@@ -1,3 +1,5 @@
+.PHONY: test
+
 setup: venv
 	. .venv/bin/activate && python -m pip install --upgrade pip
 	. .venv/bin/activate && pip install -r python-requirements.txt
@@ -16,3 +18,6 @@ mnist:
 
 pymnist:
 	. .venv/bin/activate && python examples/mnist.py
+
+test:
+	mojo run -I . test/test_tensorutils.mojo
