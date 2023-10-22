@@ -1,7 +1,6 @@
 .venv
 
-# Python example
-data/
-main.py
-Makefile
-python-requirements.txt
+dainemo.📦
+
+examples/data/mnist_test.csv
+examples/data/mnist_train.csv
