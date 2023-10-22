@@ -6,8 +6,8 @@ struct MNIST[dtype: DType]:
     var data: Tensor[dtype]
     var labels: Tensor[dtype]
 
-    fn __init__(inout self, train: Bool) raises:
-        var s = self.read_file(train)
+    fn __init__(inout self, file_path: String) raises:
+        var s = self.read_file(file_path)
         s = s[find_first(s, "\n")+1:]   # Ignore header
 
         let N = num_lines(s)                   
@@ -34,18 +34,10 @@ struct MNIST[dtype: DType]:
 
             
     @staticmethod
-    fn read_file(train: Bool) raises -> String:
-        let file_path: String
+    fn read_file(file_path: String) raises -> String:
         let s: String
-
-        if train:
-            file_path = "data/mnist_train_small.csv"
-        else:
-            file_path = "data/mnist_test_small.csv"
-
         with open(file_path, "r") as f:
             s = f.read()
-
         return s
 
 
@@ -78,7 +70,9 @@ fn find_nth(s: String, delimiter: String, n: Int) -> Int:
 
 
 fn cast_string[dtype: DType](s: String) raises -> SIMD[dtype, 1]:
-    """"Cast a string with decimal to a SIMD vector of dtype."""
+    '''
+    Cast a string with decimal to a SIMD vector of dtype.
+    '''
     
     let idx = find_first(s, delimiter=".")
     var x: SIMD[dtype, 1] = -1

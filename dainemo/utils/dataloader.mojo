@@ -33,7 +33,9 @@ struct DataLoader[dtype: DType]:
 
     @always_inline
     fn __len__(self) -> Int:
-        """Return the number of the batches left in the dataset."""
+        '''
+        Returns the number of the batches left in the dataset.
+        '''
         return self._num_batches
 
     fn __iter__(inout self) -> DataLoader[dtype]:

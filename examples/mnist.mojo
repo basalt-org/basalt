@@ -29,7 +29,7 @@ fn main():
     
     let train_data: MNIST[dtype]
     try:
-        train_data = MNIST[dtype](train=False)
+        train_data = MNIST[dtype](file_path='./examples/data/mnist_train_small.csv')
         _ = plot_image[dtype](train_data.data, 1)
     except:
         print("Could not load data")
