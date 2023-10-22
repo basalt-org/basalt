@@ -1,0 +1,7 @@
+.venv
+
+# Python example
+data/
+main.py
+Makefile
+python-requirements.txt
