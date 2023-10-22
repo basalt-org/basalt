@@ -19,7 +19,7 @@ fn fill[dtype: DType, nelts: Int](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
 
 @always_inline
 fn dot[dtype: DType, nelts: Int](A: Tensor[dtype], B: Tensor[dtype]) -> Tensor[dtype]:
-    let C = Tensor[dtype](A.dim(0), B.dim(1))
+    var C = Tensor[dtype](A.dim(0), B.dim(1))
     memset_zero[dtype](C.data(), C.num_elements())  
     
     @parameter

@@ -2,6 +2,8 @@ from dainemo.utils.datasets import MNIST
 from dainemo.utils.dataloader import DataLoader
 from dainemo.utils.tensorutils import tprint
 
+import dainemo.nn as nn
+
 from tensor import Tensor, TensorShape
 from utils.index import Index
 
@@ -23,12 +25,25 @@ def plot_image[dtype: DType](borrowed data: Tensor[dtype], num: Int):
 
 
 
+struct Model[dtype: DType]:
+    var layer1: nn.Linear[dtype]
+
+    fn __init__(inout self):
+        self.layer1 = nn.Linear[dtype](28*28, 256)
+
+    fn forward(self, x: Tensor[dtype]) -> Tensor[dtype]:
+        return self.layer1(x)
+
+
+
+
 
 fn main():
     alias dtype = DType.float32
     
     let train_data: MNIST[dtype]
     try:
+        # train_data = MNIST[dtype](file_path='./examples/data/mnist_test_small.csv')
         train_data = MNIST[dtype](file_path='./examples/data/mnist_train_small.csv')
         _ = plot_image[dtype](train_data.data, 1)
     except:
@@ -36,13 +51,17 @@ fn main():
 
 
     alias num_epochs = 1
-    alias batch_size = 32
+    alias batch_size = 201
     var training_loader = DataLoader[dtype](
                             data=train_data.data,
                             labels=train_data.labels,
                             batch_size=batch_size
                         )
     
+
+    let model = Model[dtype]()
+
+    var output: Tensor[dtype]
     for epoch in range(num_epochs):
         var batch_count = 0
         for batch in training_loader:
@@ -54,14 +73,15 @@ fn main():
                 label_batch[i] = train_data.labels[batch_count*batch_size + i]
             batch_count += 1
             
-            
-            tprint[dtype](batch)
-            tprint[dtype](label_batch)
+            # tprint[dtype](batch)
+            # tprint[dtype](label_batch)
 
-            try:
-                _ = plot_image[dtype](batch, 0)
-            except: 
-                print("Could not plot image")
+            # try:
+            #     _ = plot_image[dtype](batch, 0)
+            # except: 
+            #     print("Could not plot image")
+
+            output = model.forward(batch)
 
 
             
