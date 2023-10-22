@@ -1,4 +1,43 @@
 from tensor import Tensor, TensorShape
+from utils.index import Index
+from algorithm import vectorize, parallelize
+from memory import memset_zero
+
+
+@always_inline
+fn zero[dtype: DType](inout t: Tensor[dtype]):
+    memset_zero[dtype](t.data(), t.num_elements())
+
+
+@always_inline
+fn fill[dtype: DType, nelts: Int](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
+    @parameter
+    fn fill_vec[nelts: Int](idx: Int):
+        t.simd_store[nelts](idx, t.simd_load[nelts](idx).splat(val))
+    vectorize[nelts, fill_vec](t.num_elements())
+
+
+@always_inline
+fn dot[dtype: DType, nelts: Int](A: Tensor[dtype], B: Tensor[dtype]) -> Tensor[dtype]:
+    let C = Tensor[dtype](A.dim(0), B.dim(1))
+    memset_zero[dtype](C.data(), C.num_elements())  
+    
+    @parameter
+    fn calc_row(m: Int):
+        for k in range(A.dim(1)):
+
+            @parameter
+            fn dot[nelts: Int](n: Int):
+                C.simd_store[nelts](
+                    m * C.dim(1) + n, 
+                    C.simd_load[nelts](m * C.dim(1) + n) + A[m, k] * B.simd_load[nelts](k * B.dim(1) + n)
+                )
+
+            vectorize[nelts, dot](C.dim(1))
+
+    parallelize[calc_row](C.dim(0), 20)
+
+    return C
 
 
 fn tprint[dtype: DType](t: Tensor[dtype], indent: Int = 0):
