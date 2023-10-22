@@ -50,7 +50,7 @@ struct DataLoader[dtype: DType]:
         let end = min(self._current_index + self.batch_size, self.data.dim(0))
 
         # TODO: avoid copy & include labels in output tuple
-        var batch =  Tensor[dtype](TensorShape(end - start, 1, 28, 28))
+        var batch = Tensor[dtype](TensorShape(end - start, 1, 28, 28))
         for i in range(end - start):
             for m in range(28):
                 for n in range(28):

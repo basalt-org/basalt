@@ -31,7 +31,7 @@ struct Model[dtype: DType]:
     fn __init__(inout self):
         self.layer1 = nn.Linear[dtype](28*28, 256)
 
-    fn forward(self, x: Tensor[dtype]) -> Tensor[dtype]:
+    fn forward(inout self, x: Tensor[dtype]) -> Tensor[dtype]:
         return self.layer1(x)
 
 
@@ -43,7 +43,6 @@ fn main():
     
     let train_data: MNIST[dtype]
     try:
-        # train_data = MNIST[dtype](file_path='./examples/data/mnist_test_small.csv')
         train_data = MNIST[dtype](file_path='./examples/data/mnist_train_small.csv')
         _ = plot_image[dtype](train_data.data, 1)
     except:
@@ -51,7 +50,7 @@ fn main():
 
 
     alias num_epochs = 1
-    alias batch_size = 201
+    alias batch_size = 32
     var training_loader = DataLoader[dtype](
                             data=train_data.data,
                             labels=train_data.labels,
@@ -59,9 +58,9 @@ fn main():
                         )
     
 
-    let model = Model[dtype]()
+    var model = Model[dtype]()
 
-    var output: Tensor[dtype]
+    let output: Tensor[dtype]
     for epoch in range(num_epochs):
         var batch_count = 0
         for batch in training_loader:
@@ -82,6 +81,8 @@ fn main():
             #     print("Could not plot image")
 
             output = model.forward(batch)
+
+            tprint[dtype](output)
 
 
             
