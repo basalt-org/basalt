@@ -1,1 +1,1 @@
-from .layers import Linear
+from dainemo.nn.layers.linear import Linear

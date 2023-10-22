@@ -1,9 +1,11 @@
+from tensor import Tensor
 '''
 Implement forward and backward operations for basic tensor manipulations.
 '''
 
 # <------------ADD------------>
-# TODO
+struct Add:
+    pass
 
 
 # <------------SUB------------>
