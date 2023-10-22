@@ -27,7 +27,7 @@ struct MNIST[dtype: DType]:
                 for n in range(28):
                     idx_low = find_nth(s, ",", 28 * m + n + 1) + 1
                     if m == 27 and n == 27:
-                        self.data[Index(i, 0, m, n)] = atol(s[idx_low:idx_line-2])
+                        self.data[Index(i, 0, m, n)] = atol(s[idx_low:idx_line-1])
                     else:
                         idx_high = find_nth(s, ",", 28 * m + n + 2)
                         self.data[Index(i, 0, m, n)] = atol(s[idx_low:idx_high])
