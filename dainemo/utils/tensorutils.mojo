@@ -24,7 +24,7 @@ fn dot[dtype: DType, nelts: Int](A: Tensor[dtype], B: Tensor[dtype]) -> Tensor[d
     
     @parameter
     fn calc_row(m: Int):
-        for k in range(A.dim(1)):
+        for k in range(B.dim(0)):    # TODO: test dot(4x1x28x28, 784x32) = (4x32)
 
             @parameter
             fn dot[nelts: Int](n: Int):
@@ -38,6 +38,12 @@ fn dot[dtype: DType, nelts: Int](A: Tensor[dtype], B: Tensor[dtype]) -> Tensor[d
     parallelize[calc_row](C.dim(0), 20)
 
     return C
+
+
+fn tinfo[dtype: DType](t: Tensor[dtype]):
+    print_no_newline("Tensor shape:", t.shape().__str__(), ", ")
+    print_no_newline("Tensor rank:", t.rank(), ", ")
+    print_no_newline("DType:", t.type().__str__(), "\n\n")
 
 
 fn tprint[dtype: DType](t: Tensor[dtype], indent: Int = 0):
@@ -93,7 +99,7 @@ fn tprint[dtype: DType](t: Tensor[dtype], indent: Int = 0):
             s += smat + "\n\n"
         s = s[:-1] + "]"
         print(s)
-            
+    
     print_no_newline("Tensor shape:", t.shape().__str__(), ", ")
     print_no_newline("Tensor rank:", t.rank(), ", ")
     print_no_newline("DType:", t.type().__str__(), "\n\n")
