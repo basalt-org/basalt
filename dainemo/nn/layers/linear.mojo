@@ -21,12 +21,12 @@ struct Linear[dtype: DType]:
         zero[dtype](self.bias)
 
     @always_inline
-    fn forward_linear(inout self, inputs: Tensor[dtype]) -> Tensor[dtype]:
+    fn forward(inout self, inputs: Tensor[dtype]) -> Tensor[dtype]:
         '''
         Forward pass of the linear layer.
         '''
         alias nelts: Int = simdwidthof[dtype]()
-        return dot[dtype, nelts](inputs, self.weights) # + self.bias
+        return dot[dtype, nelts](inputs, self.weights) # + self.bias # TODO: + op
 
     fn __call__(inout self, inputs: Tensor[dtype]) -> Tensor[dtype]:
-        return self.forward_linear(inputs)
+        return self.forward(inputs)

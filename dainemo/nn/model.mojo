@@ -1,5 +1,5 @@
 from tensor import Tensor
 
-
-struct ModelTODO:
+'''Model Abstractions.'''
+struct Model:
     pass

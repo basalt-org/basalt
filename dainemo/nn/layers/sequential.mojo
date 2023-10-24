@@ -3,6 +3,7 @@ from tensor import Tensor
 
 struct Sequential[dtype: DType]:
     '''
+    Abstract container of layers
     Sequentially passes the output of one layer the input of the next layer.
     '''
 
