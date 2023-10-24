@@ -18,10 +18,10 @@ struct MSE[dtype: DType]:
     #     return self.forward(outputs, targets)
 
 
-# <------------BINARYCROSSENTROPY------------>
+# <------------CROSSENTROPY------------>
 # TODO
 
-# <------------CROSSENTROPY------------>
+# <------------BINARYCROSSENTROPY------------>
 # TODO
 
 # <------------SOFTMAXCROSSENTROPY------------>

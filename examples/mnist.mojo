@@ -43,14 +43,14 @@ fn main():
     
     let train_data: MNIST[dtype]
     try:
-        train_data = MNIST[dtype](file_path='./examples/data/mnist_train_small.csv')
-        _ = plot_image[dtype](train_data.data, 1)
+        train_data = MNIST[dtype](file_path='./examples/data/mnist_test_small.csv')
+        # _ = plot_image[dtype](train_data.data, 1)
     except:
         print("Could not load data")
 
 
     alias num_epochs = 1
-    alias batch_size = 32
+    alias batch_size = 4
     var training_loader = DataLoader[dtype](
                             data=train_data.data,
                             labels=train_data.labels,
@@ -65,14 +65,14 @@ fn main():
         var batch_count = 0
         for batch in training_loader:
             
-            # TODO: construct label batch in dataloader (v0.4.0 cannot handle tuple of tensors)
+            # TODO: construct label batch in dataloader (v0.4.0 cannot handle tuple of tensors: waiting for Traits)
             # https://github.com/modularml/mojo/issues/516
             var label_batch = Tensor[dtype](batch.dim(0))
             for i in range(batch.dim(0)):
                 label_batch[i] = train_data.labels[batch_count*batch_size + i]
             batch_count += 1
             
-            # tprint[dtype](batch)
+            tprint[dtype](batch)
             # tprint[dtype](label_batch)
 
             # try:
@@ -83,7 +83,8 @@ fn main():
             output = model.forward(batch)
 
             tprint[dtype](output)
-
+            break
+        break
 
             
 

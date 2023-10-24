@@ -6,7 +6,7 @@ struct Adam:
     pass
 
 
-
+# (possibly also)
 # <------------Vanilla Gradient Descent------------>
 # <------------Momentum------------>
 # <------------RMSProp------------>
