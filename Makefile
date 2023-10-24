@@ -21,3 +21,4 @@ pymnist:
 
 test:
 	mojo run -I . test/test_tensorutils.mojo
+	mojo run -I . test/test_layers.mojo

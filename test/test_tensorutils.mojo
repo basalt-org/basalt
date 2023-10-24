@@ -9,8 +9,7 @@ fn main():
 
     var A: Tensor[dtype] = Tensor[dtype](2, 3)
     var B: Tensor[dtype] = Tensor[dtype](3, 2)
-
-    
+ 
     # <------------ZERO------------>
     zero[dtype](A)
     tprint[dtype](A)
@@ -22,7 +21,7 @@ fn main():
     fill[dtype, nelts](B, 1.0)
     tprint[dtype](B)
     
-    # <------------DOT------------>
+    # <-------------DOT------------->
     let C = dot[dtype, nelts](A, B)
     tprint[dtype](C)
 
