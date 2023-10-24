@@ -69,7 +69,7 @@ WIP: Workin progress
 
 ### Other
 
-| Task                           | Status |
+| Task                          | Status |
 |-------------------------------|--------|
 | Model abstractions (eval/save/load/...) |   ❌   |
 | Datasets (MNIST)              |   ✅   |
@@ -79,6 +79,7 @@ WIP: Workin progress
 
 ### Examples
 
-| Task  | Status |
-|-------|--------|
-| MNIST |   ❌   |
+| Task       | Status |
+|------------|--------|
+| REGRESSION |   ❌   |
+| MNIST      |   ❌   |
