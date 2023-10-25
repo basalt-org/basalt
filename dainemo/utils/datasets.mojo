@@ -1,13 +1,58 @@
 from tensor import Tensor
 from utils.index import Index
 
+from math import div
+from dainemo.utils.tensorutils import elwise_op, tmean, tstd
+
+
+struct BostonHousing[dtype: DType]:
+    var data: Tensor[dtype]
+    var labels: Tensor[dtype]
+
+    fn __init__(inout self, file_path: String) raises:
+        var s = read_file(file_path)
+        s = s[find_first(s, "\n")+1:]       # Ignore header
+
+        let N = num_lines(s)       
+        self.data = Tensor[dtype](N, 13)    # All columns except the last one
+        self.labels = Tensor[dtype](N)      # Only the last column (MEDV)
+
+        let idx_low: Int
+        let idx_high: Int
+        var idx_line: Int = 0
+
+        # Load data in Tensor   
+        # TODO: redo when String .split(",") is supported
+        for i in range(N):
+            s = s[idx_line:]
+            idx_line = find_first(s, "\n") + 1
+            for n in range(13):
+                idx_low = find_nth(s, ",", n) + 1
+                idx_high = find_nth(s, ",", n + 1)
+                
+                self.data[Index(i, n)] = cast_string[dtype](s[idx_low:idx_high])
+
+            idx_low = find_nth(s, ",", 13) + 1 
+            self.labels[i] = cast_string[dtype](s[idx_low:idx_line-1])
+
+        # Normalize data
+        # TODO: redo when tensorutils tmean2 and tstd2 are implemented
+        alias nelts = simdwidthof[dtype]()
+        var col = Tensor[dtype](N)
+        for j in range(13):
+            for k in range(N):
+                col[k] = self.data[Index(k, j)]
+            for i in range(N):
+                self.data[Index(i, j)] = (self.data[Index(i, j)] - tmean[dtype, nelts](col)) / tstd[dtype, nelts](col)
+            
+
 
 struct MNIST[dtype: DType]:
     var data: Tensor[dtype]
     var labels: Tensor[dtype]
 
     fn __init__(inout self, file_path: String) raises:
-        var s = self.read_file(file_path)
+        var s = read_file(file_path)
         s = s[find_first(s, "\n")+1:]   # Ignore header
 
         let N = num_lines(s)                   
@@ -18,6 +63,7 @@ struct MNIST[dtype: DType]:
         let idx_high: Int
         var idx_line: Int = 0
 
+        # Load data in Tensor   
         # TODO: redo when String .split(",") is supported
         for i in range(N):
             s = s[idx_line:]
@@ -32,14 +78,15 @@ struct MNIST[dtype: DType]:
                         idx_high = find_nth(s, ",", 28 * m + n + 2)
                         self.data[Index(i, 0, m, n)] = atol(s[idx_low:idx_high])
 
-            
-    @staticmethod
-    fn read_file(file_path: String) raises -> String:
-        let s: String
-        with open(file_path, "r") as f:
-            s = f.read()
-        return s
+        # Normalize data
+        self.data = elwise_op[dtype, simdwidthof[dtype](), div](self.data, 255.0)
 
+
+fn read_file(file_path: String) raises -> String:
+    let s: String
+    with open(file_path, "r") as f:
+        s = f.read()
+    return s
 
 
 fn num_lines(s: String) -> Int:

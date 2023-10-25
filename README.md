@@ -1,9 +1,9 @@
 ### Examples
 
-| Task       | Dataset | Status |
-|------------|---------|--------|
-| REGRESSION |   ❌    |   ❌   |
-| CONV       |   ❌    |   ❌   |
+| Task       | Dataset | Training Status |
+|------------|---------|-----------------|
+| REGRESSION |   ✅    |       WIP       |
+| CONV       |   ✅    |       ❌        |
 
 [SOURCES]  
 **Bosten Housing Dataset**  
@@ -11,7 +11,7 @@
 https://archive.ics.uci.edu/ml/machine-learning-databases/housing/housing.names
 https://archive.ics.uci.edu/ml/machine-learning-databases/housing/housing.data
 
-(Kaggle csv)
+(Included in repo: Kaggle csv)
 https://www.kaggle.com/code/prasadperera/the-boston-housing-dataset
 
 **MNIST DataSet**  
@@ -21,7 +21,7 @@ wget https://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz (training labe
 wget https://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz  (test images)  
 wget https://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz  (test labels)  
 
-(Kaggle csv)  
+(Included in repo: A subset of Kaggle csv)  
 https://www.kaggle.com/datasets/hojjatk/mnist-dataset
 
 # Progress
@@ -100,7 +100,7 @@ WIP: Workin progress
 | Task                          | Status |
 |-------------------------------|--------|
 | Model abstractions (eval/save/load/...) |   ❌   |
-| Datasets (MNIST)              |   ✅   |
+| Datasets (MNIST/Boston Housing)         |   ✅   |
 | Dataloader                    |   ✅   |
 | Tensorutils                   |   WIP  |
 | Checkpoints                   |   ❌   |
