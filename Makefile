@@ -19,6 +19,12 @@ mnist:
 pymnist:
 	. .venv/bin/activate && python examples/mnist.py
 
+housing:
+	. .venv/bin/activate && mojo run -I . examples/housing.mojo
+
+pyhousing:
+	. .venv/bin/activate && python examples/housing.py
+
 test:
 	mojo run -I . test/test_tensorutils.mojo
 	mojo run -I . test/test_layers.mojo
