@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
     # Visualize data
     num = 0
-    plt.imshow(np.array(train_data[num][0]*255).squeeze())
+    plt.imshow(np.array(train_data[num][0]).squeeze())
     plt.title('%i' % train_data[num][1])
     plt.show()
 

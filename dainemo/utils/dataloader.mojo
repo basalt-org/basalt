@@ -45,20 +45,21 @@ struct DataLoader[dtype: DType]:
         self._num_batches = full_batches + remainder
         return self
 
-    fn __next__(inout self) -> Tensor[dtype]:
+    fn __next__(inout self) -> (Int, Int):
         let start = self._current_index
         let end = min(self._current_index + self.batch_size, self.data.dim(0))
 
-        # TODO: avoid copy & include labels in output tuple
-        var batch = Tensor[dtype](TensorShape(end - start, 1, 28, 28))
-        for i in range(end - start):
-            for m in range(28):
-                for n in range(28):
-                    batch[Index(i, 0, m, n)] = self.data[Index(start + i, 0, m, n)]
+        # TODO: create data batch & label batch here and return as (Tensor[dtype], Tensor[dtype]])
+        # 1. Not supported yet: Can't get tensor out of tuple (Traits: https://github.com/modularml/mojo/issues/516)
+        # 2. Not support yet: get 2 elements when looping over the iter metod (eg for batch, label_batch in dataloader)
+        # 3. Can't dynamically creating a TensorShape 
+        #    e.g TensorShape(end - start, 1, 28, 28) for mnsit and 
+        #    e.g TensorShape(end - start, 13) for boston housing
+        
+        # Workaround: return start and end and create batch per fixed example
 
         self._current_index += self.batch_size
         self._num_batches -= 1
-        return batch
-
+        return start, end
 
         

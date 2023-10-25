@@ -36,15 +36,13 @@ struct Model[dtype: DType]:
 
 
 
-
-
 fn main():
     alias dtype = DType.float32
     
     let train_data: MNIST[dtype]
     try:
         train_data = MNIST[dtype](file_path='./examples/data/mnist_test_small.csv')
-        # _ = plot_image[dtype](train_data.data, 1)
+        _ = plot_image[dtype](train_data.data, 1)
     except:
         print("Could not load data")
 
@@ -61,30 +59,47 @@ fn main():
     var model = Model[dtype]()
 
     let output: Tensor[dtype]
+    let batch_start: Int
+    let batch_end: Int
+    let batch_data: Tensor[dtype]
+    let batch_labels: Tensor[dtype]
     for epoch in range(num_epochs):
-        var batch_count = 0
-        for batch in training_loader:
+        for batch_indeces in training_loader:
             
-            # TODO: construct label batch in dataloader (v0.4.0 cannot handle tuple of tensors: waiting for Traits)
-            # https://github.com/modularml/mojo/issues/516
-            var label_batch = Tensor[dtype](batch.dim(0))
-            for i in range(batch.dim(0)):
-                label_batch[i] = train_data.labels[batch_count*batch_size + i]
-            batch_count += 1
+            batch_start = batch_indeces.get[0, Int]()
+            batch_end = batch_indeces.get[1, Int]()
             
-            tprint[dtype](batch)
-            # tprint[dtype](label_batch)
+            batch_data = create_data_batch[dtype](batch_start, batch_end, training_loader.data)
+            batch_labels = create_label_batch[dtype](batch_start, batch_end, training_loader.labels)
+            
+            # tprint[dtype](batch_data)
+            # tprint[dtype](batch_labels)
 
             # try:
-            #     _ = plot_image[dtype](batch, 0)
+            #     _ = plot_image[dtype](batch_data, 0)
             # except: 
             #     print("Could not plot image")
 
-            output = model.forward(batch)
+            output = model.forward(batch_data)
 
-            tprint[dtype](output)
-            break
-        break
+            # tprint[dtype](output)
+        #     break
+        # break
 
-            
+
+
+#TODO: See DataLoader
+fn create_data_batch[dtype: DType](start: Int, end: Int, data: Tensor[dtype]) ->  Tensor[dtype]:
+    var batch = Tensor[dtype](TensorShape(end - start, 1, 28, 28))
+    for i in range(end - start):
+        for m in range(28):
+            for n in range(28):
+                batch[Index(i, 0, m, n)] = data[Index(start + i, 0, m, n)]
+    return batch
+
+fn create_label_batch[dtype: DType](start: Int, end: Int, labels: Tensor[dtype]) ->  Tensor[dtype]:
+    var batch = Tensor[dtype](TensorShape(end - start))    
+    for i in range(end - start):
+        batch[i] = labels[start + i]
+    return batch
 
