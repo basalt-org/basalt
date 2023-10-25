@@ -18,6 +18,42 @@ fn fill[dtype: DType, nelts: Int](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
 
 
 @always_inline
+fn elwise_transform[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIMD[dtype, nelts]) -> SIMD[dtype, nelts]](t: Tensor[dtype]) -> Tensor[dtype]:
+    var t_new = Tensor[dtype](t.shape())
+    @parameter
+    fn vecmath[nelts: Int](idx: Int):
+        t_new.simd_store[nelts](idx, func[dtype, nelts](t.simd_load[nelts](idx)))
+    vectorize[nelts, vecmath](t.num_elements())
+    return t_new
+
+
+@always_inline
+fn elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]) -> SIMD[dtype, nelts]](t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
+    '''Element-wise operation on two tensors.'''
+    var t_new = Tensor[dtype](t1.shape())
+    @parameter
+    fn vecmath[nelts: Int](idx: Int):
+        t_new.simd_store[nelts](idx, func[dtype, nelts](t1.simd_load[nelts](idx), t2.simd_load[nelts](idx)))
+    vectorize[nelts, vecmath](t1.num_elements())
+    return t_new
+
+@always_inline
+fn elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]) -> SIMD[dtype, nelts]](t1: Tensor[dtype], a: SIMD[dtype, 1]) -> Tensor[dtype]:
+    '''Element-wise operation on a tensor and a scalar.'''
+    var t_new = Tensor[dtype](t1.shape())
+    @parameter
+    fn vecmath[nelts: Int](idx: Int):
+        t_new.simd_store[nelts](idx, func[dtype, nelts](t1.simd_load[nelts](idx), a))
+    vectorize[nelts, vecmath](t1.num_elements())
+    return t_new
+
+@always_inline
+fn elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]) -> SIMD[dtype, nelts]](a: SIMD[dtype, 1], t1: Tensor[dtype]) -> Tensor[dtype]:
+    '''Element-wise operation on a tensor and a scalar.'''
+    return elwise_op[dtype, nelts, func](t1, a)
+
+
+@always_inline
 fn dot[dtype: DType, nelts: Int](A: Tensor[dtype], B: Tensor[dtype]) -> Tensor[dtype]:
     var C = Tensor[dtype](A.dim(0), B.dim(1))
     memset_zero[dtype](C.data(), C.num_elements())  
