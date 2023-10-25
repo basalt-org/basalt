@@ -3,6 +3,7 @@ from utils.index import Index
 from algorithm import vectorize, parallelize
 from memory import memset_zero
 
+from math import sqrt
 
 @always_inline
 fn zero[dtype: DType](inout t: Tensor[dtype]):
@@ -51,6 +52,42 @@ fn elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIM
 fn elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]) -> SIMD[dtype, nelts]](a: SIMD[dtype, 1], t1: Tensor[dtype]) -> Tensor[dtype]:
     '''Element-wise operation on a tensor and a scalar.'''
     return elwise_op[dtype, nelts, func](t1, a)
+
+@always_inline
+fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
+    var s: SIMD[dtype, 1] = 0
+    @parameter
+    fn vecsum[nelts: Int](idx: Int):
+        s += t.simd_load[nelts](idx).reduce_add()
+    vectorize[nelts, vecsum](t.num_elements())
+    return s
+
+@always_inline
+fn tmean[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
+    return tsum[dtype, nelts](t) / t.num_elements()
+
+@always_inline
+fn tstd[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
+    var mu: SIMD[dtype, 1] = tmean[dtype, nelts](t)
+    var variance: SIMD[dtype, 1] = 0
+    
+    @parameter
+    fn vecvar[nelts: Int](idx: Int):
+        let diff = t.simd_load[nelts](idx) - mu
+        variance += (diff * diff).reduce_add()
+    vectorize[nelts, vecvar](t.num_elements())
+    
+    return sqrt(variance / t.num_elements())
+
+fn tmean2[dtype: DType](t: Tensor[dtype], dim: Int = 0):
+    '''Calculate mean of a 2D tensor along a dimension.'''
+    # TODO: every mean of vector can be calulated in parallel where each mean calculation can be vectorized
+    pass
+
+fn tstd2[dtype: DType](t: Tensor[dtype], dim: Int = 0):
+    '''Calculate standard deviation of a 2D tensor along a dimension.'''
+    # TODO
+    pass
 
 
 @always_inline

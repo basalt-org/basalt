@@ -2,6 +2,7 @@ from tensor import Tensor
 
 from dainemo.utils.tensorutils import zero, fill, dot, tprint
 from dainemo.utils.tensorutils import elwise_transform, elwise_op
+from dainemo.utils.tensorutils import tsum, tmean, tstd
 
 from math import sqrt, exp, round
 from math import add, sub, mul, div
@@ -84,3 +85,19 @@ fn main():
 
     result1 = elwise_op[dtype, nelts, div](t1, a)
     tprint[dtype](result1)
+
+
+    # <-------------SUM/MEAN/STD------------->
+    var t = Tensor[dtype](10)
+    for i in range(10):
+        t[i] = i
+    tprint[dtype](t)
+
+    let tensor_sum = tsum[dtype, nelts](t)
+    print("sum: ", tensor_sum)
+
+    let tensor_mean = tmean[dtype, nelts](t)
+    print("mean: ", tensor_mean)
+
+    let tensor_std = tstd[dtype, nelts](t)
+    print("std: ", tensor_std)
