@@ -1,9 +1,9 @@
 ### Examples
 
-| Task       | Dataset | Training Status |
-|------------|---------|-----------------|
-| REGRESSION |   ✅    |       WIP       |
-| CONV       |   ✅    |       ❌        |
+| Task       | Dataset | Forward | Backward | Training |
+|------------|---------|---------|----------|----------|
+| REGRESSION |   ✅    |   WIP   |    ❌    |    ❌    |
+| CONV       |   ✅    |   ❌    |    ❌    |    ❌    |
 
 [SOURCES]  
 **Bosten Housing Dataset**  
