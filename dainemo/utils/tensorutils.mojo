@@ -3,7 +3,8 @@ from utils.index import Index
 from algorithm import vectorize, parallelize
 from memory import memset_zero
 
-from math import sqrt
+from math import sqrt, pow
+
 
 @always_inline
 fn zero[dtype: DType](inout t: Tensor[dtype]):
@@ -29,6 +30,16 @@ fn elwise_transform[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int]
 
 
 @always_inline
+fn elwise_pow[dtype: DType, nelts: Int](t: Tensor[dtype], x: Int) -> Tensor[dtype]:
+    var t_new = Tensor[dtype](t.shape())
+    @parameter
+    fn vecpow[nelts: Int](idx: Int):
+        t_new.simd_store[nelts](idx, pow(t.simd_load[nelts](idx), x))
+    vectorize[nelts, vecpow](t.num_elements())
+    return t_new
+
+
+@always_inline
 fn elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]) -> SIMD[dtype, nelts]](t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
     '''Element-wise operation on two tensors.'''
     var t_new = Tensor[dtype](t1.shape())
@@ -37,6 +48,7 @@ fn elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIM
         t_new.simd_store[nelts](idx, func[dtype, nelts](t1.simd_load[nelts](idx), t2.simd_load[nelts](idx)))
     vectorize[nelts, vecmath](t1.num_elements())
     return t_new
+
 
 @always_inline
 fn elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]) -> SIMD[dtype, nelts]](t1: Tensor[dtype], a: SIMD[dtype, 1]) -> Tensor[dtype]:
@@ -48,10 +60,12 @@ fn elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIM
     vectorize[nelts, vecmath](t1.num_elements())
     return t_new
 
+
 @always_inline
 fn elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]) -> SIMD[dtype, nelts]](a: SIMD[dtype, 1], t1: Tensor[dtype]) -> Tensor[dtype]:
     '''Element-wise operation on a tensor and a scalar.'''
     return elwise_op[dtype, nelts, func](t1, a)
+
 
 @always_inline
 fn batch_elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]) -> SIMD[dtype, nelts]](t_batch: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
@@ -72,6 +86,7 @@ fn batch_elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](
     parallelize[row_op](t_batch.dim(0), t_batch.dim(0))
     return t_new
 
+
 @always_inline
 fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     var s: SIMD[dtype, 1] = 0
@@ -81,9 +96,11 @@ fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     vectorize[nelts, vecsum](t.num_elements())
     return s
 
+
 @always_inline
 fn tmean[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     return tsum[dtype, nelts](t) / t.num_elements()
+
 
 @always_inline
 fn tstd[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
@@ -98,10 +115,12 @@ fn tstd[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     
     return sqrt(variance / t.num_elements())
 
+
 fn tmean2[dtype: DType](t: Tensor[dtype], dim: Int = 0):
     '''Calculate mean of a 2D tensor along a dimension.'''
     # TODO: every mean of vector can be calulated in parallel where each mean calculation can be vectorized
     pass
+
 
 fn tstd2[dtype: DType](t: Tensor[dtype], dim: Int = 0):
     '''Calculate standard deviation of a 2D tensor along a dimension.'''
