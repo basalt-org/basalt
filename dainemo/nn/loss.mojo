@@ -1,21 +1,37 @@
 from tensor import Tensor
+from dainemo.utils.tensorutils import elwise_pow, elwise_op, tsum
+from math import sub, mul
 
 
 # <------------MSE------------>
-struct MSE[dtype: DType]:
-    def __init__(inout self):
+struct MSELoss[dtype: DType]:
+    fn __init__(inout self):
         pass
 
-    def forward(self, outputs: Tensor[dtype], targets: Tensor[dtype]):
+    fn forward(inout self, outputs: Tensor[dtype], targets: Tensor[dtype]) -> SIMD[dtype, 1]:
         '''Forward pass of MSE.'''
-        pass
+        alias nelts = simdwidthof[dtype]()
+        let difference = elwise_op[dtype, nelts, sub](outputs, targets)
+        let squared_difference = elwise_pow[dtype, nelts](difference, 2)
 
-        # num_examples = outputs.dim(0)
-        # cost = (1/(2*num_examples))*_sum((outputs-targets)**2)
-        # return cost
+        # TODO: Autograd SUM required
+        # TODO: The loss function is working but. SUM should be implemented in autograd
+        print("MSELoss doesn't support autograd yet")
 
-    # def __call__(self, outputs: Tensor[dtype], targets: Tensor[dtype]):
-    #     return self.forward(outputs, targets)
+        let div2N: SIMD[dtype, 1] = (1/(2*outputs.num_elements())).cast[dtype]()
+        return div2N * tsum[dtype, nelts](squared_difference)
+
+    fn forward(inout self, output: SIMD[dtype, 1], target: SIMD[dtype, 1]) -> SIMD[dtype, 1]:
+        '''Forward pass of MSE on a scalar.'''
+        # TODO
+        print("Not implemented yet: MSE scalar")
+        return 0
+
+    fn __call__(inout self, outputs: Tensor[dtype], targets: Tensor[dtype]) -> SIMD[dtype, 1]:
+        return self.forward(outputs, targets)
+
+    fn __call__(inout self, outputs: SIMD[dtype, 1], targets: SIMD[dtype, 1]) -> SIMD[dtype, 1]:
+        return self.forward(outputs, targets)
 
 
 # <------------CROSSENTROPY------------>

@@ -73,7 +73,7 @@ fn main():
             batch_labels = create_label_batch[dtype](batch_start, batch_end, training_loader.labels)
             
             # tprint[dtype](batch_data)
-            # tprint[dtype](batch_labels)
+            tprint[dtype](batch_labels)
 
             # try:
             #     _ = plot_image[dtype](batch_data, 0)
@@ -98,7 +98,7 @@ fn create_data_batch[dtype: DType](start: Int, end: Int, data: Tensor[dtype]) ->
     return batch
 
 fn create_label_batch[dtype: DType](start: Int, end: Int, labels: Tensor[dtype]) ->  Tensor[dtype]:
-    var batch = Tensor[dtype](TensorShape(end - start))    
+    var batch = Tensor[dtype](TensorShape(end - start, 1))
     for i in range(end - start):
         batch[i] = labels[start + i]
     return batch

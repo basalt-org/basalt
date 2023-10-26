@@ -41,8 +41,10 @@ fn main():
     
     
     var model = LinearRegression[dtype](train_data.data.dim(1))
+    var loss_func = nn.MSELoss[dtype]()
 
     let output: Tensor[dtype]
+    let loss: SIMD[dtype, 1]
     let batch_start: Int
     let batch_end: Int
     let batch_data: Tensor[dtype]
@@ -60,8 +62,11 @@ fn main():
             # tprint[dtype](batch_labels)
             
             output = model.forward(batch_data)
+            loss = loss_func(output, batch_labels)
 
             tprint[dtype](output)
+            print(loss)
+            
             break
         break
 
@@ -76,7 +81,7 @@ fn create_data_batch[dtype: DType](start: Int, end: Int, data: Tensor[dtype]) ->
     return batch
 
 fn create_label_batch[dtype: DType](start: Int, end: Int, labels: Tensor[dtype]) ->  Tensor[dtype]:
-    var batch = Tensor[dtype](TensorShape(end - start))    
+    var batch = Tensor[dtype](TensorShape(end - start, 1))    
     for i in range(end - start):
         batch[i] = labels[start + i]
     return batch

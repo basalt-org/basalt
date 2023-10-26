@@ -2,20 +2,20 @@
 
 | Task       | Dataset | Forward | Backward | Training |
 |------------|---------|---------|----------|----------|
-| REGRESSION |   ✅    |   WIP   |    ❌    |    ❌    |
+| REGRESSION |   ✅    |   ✅    |    ❌    |    ❌    |
 | CONV       |   ✅    |   ❌    |    ❌    |    ❌    |
 
 [SOURCES]  
 **Bosten Housing Dataset**  
-(original)
+(original)  
 https://archive.ics.uci.edu/ml/machine-learning-databases/housing/housing.names
 https://archive.ics.uci.edu/ml/machine-learning-databases/housing/housing.data
 
-(Included in repo: Kaggle csv)
+(Included in repo: Kaggle csv)  
 https://www.kaggle.com/code/prasadperera/the-boston-housing-dataset
 
 **MNIST DataSet**  
-(original)
+(original)  
 wget https://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz  (training images)  
 wget https://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz (training labels)  
 wget https://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz  (test images)  
@@ -27,8 +27,8 @@ https://www.kaggle.com/datasets/hojjatk/mnist-dataset
 # Progress
 
 ❌: Not implemented  
-✅: Working but might require changes  
-WIP: Workin progress
+✅: Working (but might require changes because of not implemented dependencies)  
+WIP: Workin progress  
 
 ### Autograd
 
@@ -62,7 +62,7 @@ WIP: Workin progress
 
 | Task      | Status |
 |-----------|--------|
-| MSE       |   ❌   |
+| MSE       |   ✅   |
 | CE        |   ❌   |
 | BCE       |   ❌   |
 | SoftmaxCE |   ❌   |
@@ -88,7 +88,7 @@ WIP: Workin progress
 | Task       | Status |
 |------------|--------|
 | SEQUENTIAL |   ❌   |
-| LINEAR     |   WIP  |
+| LINEAR     |   ✅   |
 | DROPOUT    |   ❌   |
 | CONV2D     |   ❌   |
 | CONV3D     |   ❌   |
