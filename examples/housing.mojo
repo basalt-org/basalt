@@ -29,7 +29,7 @@ fn main():
     except:
         print("Could not load data")
 
-    tprint[dtype](train_data.data)
+    # tprint[dtype](train_data.data)
     
     alias num_epochs = 1
     alias batch_size = 4
@@ -61,9 +61,9 @@ fn main():
             
             output = model.forward(batch_data)
 
-        #     tprint[dtype](output)
-        #     break
-        # break
+            tprint[dtype](output)
+            break
+        break
 
 
 

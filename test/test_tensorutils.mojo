@@ -1,7 +1,7 @@
 from tensor import Tensor
 
 from dainemo.utils.tensorutils import zero, fill, dot, tprint
-from dainemo.utils.tensorutils import elwise_transform, elwise_op
+from dainemo.utils.tensorutils import elwise_transform, elwise_op, batch_elwise_op
 from dainemo.utils.tensorutils import tsum, tmean, tstd
 
 from math import sqrt, exp, round
@@ -101,3 +101,22 @@ fn main():
 
     let tensor_std = tstd[dtype, nelts](t)
     print("std: ", tensor_std)
+
+    # <-------------ELEMENT WISE BATCH-TENSOR OPERATORS------------->
+    var batch = Tensor[dtype](4, 10)
+    for i in range(40):
+        batch[i] = i
+    tprint[dtype](batch)
+
+    for i in range(10):
+        t[i] = -i
+    tprint[dtype](t)
+
+    let batch_result1 = batch_elwise_op[dtype, nelts, add](batch, t)
+    tprint[dtype](batch_result1)
+
+    let batch_result2 = batch_elwise_op[dtype, nelts, sub](batch, t)
+    tprint[dtype](batch_result2)
+
+    let batch_result3 = batch_elwise_op[dtype, nelts, mul](batch, t)
+    tprint[dtype](batch_result3)

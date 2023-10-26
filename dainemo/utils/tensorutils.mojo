@@ -54,6 +54,25 @@ fn elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIM
     return elwise_op[dtype, nelts, func](t1, a)
 
 @always_inline
+fn batch_elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]) -> SIMD[dtype, nelts]](t_batch: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
+    '''Element-wise operation on between a batch of tensors t_batch and a tensor t2.'''
+    var t_new = Tensor[dtype](t_batch.shape())
+
+    @parameter
+    fn row_op(r: Int):
+
+        @parameter
+        fn vecmath[nelts: Int](c: Int):
+            t_new.simd_store[nelts](
+                    r * t_batch.dim(1) + c, 
+                    func[dtype, nelts](t_batch.simd_load[nelts](r * t_batch.dim(1) + c), t2.simd_load[nelts](c))
+                )
+        vectorize[nelts, vecmath](t_batch.dim(1))
+
+    parallelize[row_op](t_batch.dim(0), t_batch.dim(0))
+    return t_new
+
+@always_inline
 fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     var s: SIMD[dtype, 1] = 0
     @parameter
@@ -97,7 +116,7 @@ fn dot[dtype: DType, nelts: Int](A: Tensor[dtype], B: Tensor[dtype]) -> Tensor[d
     
     @parameter
     fn calc_row(m: Int):
-        for k in range(B.dim(0)):    # TODO: test dot(4x1x28x28, 784x32) = (4x32)
+        for k in range(B.dim(0)):    # TODO: test dot(4x1x28x28, 784x32) = (4x32) // mnist case
 
             @parameter
             fn dot[nelts: Int](n: Int):

@@ -19,6 +19,7 @@ struct Node[dtype: DType]:
         self.children = DynamicVector[Pointer[Self]]()
         self.parents = DynamicVector[Pointer[Self]]()
         self.visited = False
+        
 
     #     self.ptr = Self.get_null()
     
