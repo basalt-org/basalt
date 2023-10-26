@@ -1,7 +1,7 @@
 from tensor import Tensor
 
 from dainemo.utils.tensorutils import zero, fill, dot, tprint
-from dainemo.utils.tensorutils import elwise_transform, elwise_pow, elwise_op, batch_elwise_op
+from dainemo.utils.tensorutils import elwise_transform, elwise_pow, elwise_op, batch_tensor_elwise_op
 from dainemo.utils.tensorutils import tsum, tmean, tstd
 
 from math import sqrt, exp, round
@@ -123,11 +123,36 @@ fn main():
         t[i] = -i
     tprint[dtype](t)
 
-    let batch_result1 = batch_elwise_op[dtype, nelts, add](batch, t)
+    let batch_result1 = batch_tensor_elwise_op[dtype, nelts, add](batch, t)
     tprint[dtype](batch_result1)
 
-    let batch_result2 = batch_elwise_op[dtype, nelts, sub](batch, t)
+    let batch_result2 = batch_tensor_elwise_op[dtype, nelts, sub](batch, t)
     tprint[dtype](batch_result2)
 
-    let batch_result3 = batch_elwise_op[dtype, nelts, mul](batch, t)
+    let batch_result3 = batch_tensor_elwise_op[dtype, nelts, mul](batch, t)
     tprint[dtype](batch_result3)
+
+
+    # <-------------ELEMENT WISE BATCH-BATCH OPERATORS------------->
+    # Can be done similar to element wise TENSOR - TENSOR operators
+    var batch1 = Tensor[dtype](4, 10)
+    for i in range(40):
+        batch1[i] = i
+    tprint[dtype](batch1)
+    
+    var batch2 = Tensor[dtype](4, 10)
+    for i in range(40):
+        batch2[i] = i
+    tprint[dtype](batch2)
+
+    let batch_batch_result1 = elwise_op[dtype, nelts, add](batch1, batch2)
+    tprint[dtype](batch_batch_result1)
+
+    let batch_batch_result2 = elwise_op[dtype, nelts, sub](batch1, batch2)
+    tprint[dtype](batch_batch_result2)
+
+    let batch_batch_result3 = elwise_op[dtype, nelts, mul](batch1, batch2)
+    tprint[dtype](batch_batch_result3)
+
+    let batch_batch_result4 = elwise_pow[dtype, nelts](batch1, 2)
+    tprint[dtype](batch_batch_result4)

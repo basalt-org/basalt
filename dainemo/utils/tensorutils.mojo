@@ -68,7 +68,7 @@ fn elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIM
 
 
 @always_inline
-fn batch_elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]) -> SIMD[dtype, nelts]](t_batch: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
+fn batch_tensor_elwise_op[dtype: DType, nelts: Int, func: fn[dtype: DType, nelts: Int](x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]) -> SIMD[dtype, nelts]](t_batch: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
     '''Element-wise operation on between a batch of tensors t_batch and a tensor t2.'''
     var t_new = Tensor[dtype](t_batch.shape())
 
