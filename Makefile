@@ -28,3 +28,7 @@ pyhousing:
 test:
 	mojo run -I . test/test_tensorutils.mojo
 	mojo run -I . test/test_layers.mojo
+	mojo run -I . test/test_collection.mojo
+
+node:
+	mojo run -I . test/test_node.mojo
