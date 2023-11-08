@@ -32,3 +32,6 @@ test:
 
 node:
 	mojo run -I . test/test_node.mojo
+
+graph:
+	mojo run -I . test/test_graph.mojo

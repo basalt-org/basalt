@@ -59,3 +59,8 @@ struct GraphNode[dtype: DType = DType.float32]:
             if not child.visited:
                 return False
         return True
+
+    fn __copyinit__(inout self, other: GraphNode[dtype]):
+        self.node = other.node
+        self.children = other.children
+        self.parents = other.parents
