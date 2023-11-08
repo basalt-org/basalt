@@ -42,3 +42,11 @@ fn main():
         let res = collection.get(i)
         # print(res.tensor)
         print(res.visited)
+
+    # Copy collection    
+    print("Copying collection")
+    var collection_copy = collection.copy()
+    for i in range(2):
+        let res = collection_copy.get(i)
+        # print(res.tensor)
+        print(res.visited)

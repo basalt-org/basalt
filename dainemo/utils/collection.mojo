@@ -48,3 +48,17 @@ struct NodeCollection[dtype: DType = DType.float32]:
         self.store(self.size, self.data, value)
         self.size += 1
 
+    fn __copyinit__(inout self, other: NodeCollection[dtype]):
+        self.capacity = other.capacity
+        self.size = other.size
+        
+        let new_data: Pointer[Node[dtype]]
+        new_data = new_data.alloc(other.capacity)
+        for i in range(other.size):
+            self.store(i, new_data, __get_address_as_lvalue(other.data.offset(i).address))
+        self.data = new_data
+
+    fn copy(borrowed self) -> Self:
+        let result: Self
+        result.__copyinit__(self)
+        return result
