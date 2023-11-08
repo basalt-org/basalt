@@ -27,26 +27,23 @@ fn main():
     collection.append(node_3)
     print("Collection size (expected 3): ", collection.size, "capacity (expected 4): ", collection.capacity)
 
-    for i in range(2):
-        let res = collection.get(i)
+    for res in collection:
         # print(res.tensor)
         print(res.visited)
 
-    # Example visit nodes
+    # Example visit first 2 nodes
     for i in range(2):
         var res = collection.get(i)
         res.visited = True
         collection.replace(i, res)
 
-    for i in range(2):
-        let res = collection.get(i)
+    for res in collection:
         # print(res.tensor)
         print(res.visited)
 
     # Copy collection    
     print("Copying collection")
     var collection_copy = collection.copy()
-    for i in range(2):
-        let res = collection_copy.get(i)
+    for res in collection_copy:
         # print(res.tensor)
         print(res.visited)

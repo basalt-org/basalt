@@ -49,7 +49,7 @@ struct DataLoader[dtype: DType]:
         let start = self._current_index
         let end = min(self._current_index + self.batch_size, self.data.dim(0))
 
-        # TODO: create data batch & label batch here and return as (Tensor[dtype], Tensor[dtype]])
+        # TODO: (current: mojo v0.4.0) create data batch & label batch here and return as (Tensor[dtype], Tensor[dtype]])
         # 1. Not supported yet: Can't get tensor out of tuple (Traits: https://github.com/modularml/mojo/issues/516)
         # 2. Not support yet: get 2 elements when looping over the iter metod (eg for batch, label_batch in dataloader)
         # 3. Can't dynamically creating a TensorShape 

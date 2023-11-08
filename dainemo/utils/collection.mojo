@@ -5,16 +5,13 @@ struct NodeCollection[dtype: DType = DType.float32]:
     var data: Pointer[Node[dtype]]
     var size: Int
     var capacity: Int
+    var _current_index: Int
 
     fn __init__(inout self):
         self.size = 0
         self.capacity = 1
         self.data = self.data.alloc(self.capacity)
-
-    fn __moveinit__(inout self, owned other: Self):
-        self.data = other.data
-        self.capacity = other.capacity
-        self.size = other.size
+        self._current_index = 0
 
     fn __del__(owned self):
         self.data.free()
@@ -51,6 +48,7 @@ struct NodeCollection[dtype: DType = DType.float32]:
     fn __copyinit__(inout self, other: NodeCollection[dtype]):
         self.capacity = other.capacity
         self.size = other.size
+        self._current_index = other._current_index
         
         let new_data: Pointer[Node[dtype]]
         new_data = new_data.alloc(other.capacity)
@@ -61,4 +59,17 @@ struct NodeCollection[dtype: DType = DType.float32]:
     fn copy(borrowed self) -> Self:
         let result: Self
         result.__copyinit__(self)
+        return result
+
+    fn __len__(borrowed self) -> Int:
+        '''Iterations left.'''
+        return self.size - self._current_index
+
+    fn __iter__(inout self) -> Self:
+        self._current_index = 0
+        return self
+
+    fn __next__(inout self) -> Node[dtype]:
+        let result = self.get(self._current_index)
+        self._current_index += 1
         return result
