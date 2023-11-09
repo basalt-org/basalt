@@ -86,6 +86,7 @@ struct Graph[dtype: DType = DType.float32]:
         # TODO: can probably be parallelized 
         # TODO: revise vectorized elwise_equal, could maybe be stopped early on False
         # TODO: revise is getting the node by tensor is the right way to go
+        # TODO: What if two nodes have exactly the same tensor?
 
         alias nelts: Int = simdwidthof[dtype]()
 

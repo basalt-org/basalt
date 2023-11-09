@@ -19,7 +19,7 @@ struct MSELoss[dtype: DType]:
         let squared_difference = elwise_pow[dtype, nelts](difference, 2)
         
         let div2N: SIMD[dtype, 1] = (1/(2*outputs.num_elements())).cast[dtype]()
-        
+
         return div2N * SUM[dtype].forward(g, squared_difference)
 
 

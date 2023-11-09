@@ -102,7 +102,7 @@ fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
     
     if t.rank() == 2:
         let d: Int = 1 if axis == 0 else 0
-        t_new = Tensor[dtype](t.dim(d))
+        let t_new = Tensor[dtype](1, t.dim(d)) if axis == 0 else Tensor[dtype](t.dim(d), 1)
 
         @parameter
         fn parallel_sum(i: Int):
