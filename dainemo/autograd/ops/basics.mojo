@@ -54,13 +54,23 @@ struct DOT[dtype: DType]:
 
 
 # <------------SUM------------>
-struct SUM[dtype: DType, axis: Int = 0]:
+struct SUM[dtype: DType]:
     @staticmethod
-    fn forward(inout graph: Graph[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+    fn forward(inout graph: Graph[dtype], t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
         '''Forward pass of sum operation.'''
         alias nelts: Int = simdwidthof[dtype]()
         let res: Tensor[dtype] = tsum[dtype, nelts](t, axis=axis)
         graph.set_forward_op(res, t)
+        return res
+
+    @staticmethod
+    fn forward(inout graph: Graph[dtype], t: Tensor[dtype]) -> SIMD[dtype, 1]:
+        '''Forward pass of sum operation.'''
+        alias nelts: Int = simdwidthof[dtype]()
+        let res: SIMD[dtype, 1] = tsum[dtype, nelts](t)
+        var res_tensor = Tensor[dtype](1)
+        res_tensor[0] = res
+        graph.set_forward_op(res_tensor, t)
         return res
 
     @staticmethod

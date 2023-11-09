@@ -26,12 +26,17 @@ fn main():
     g.reset()
 
     # <------------SUM------------>
-    res = SUM[dtype, axis=0].forward(g, t1)
+    res = SUM[dtype].forward(g, t1, axis=0)
     print(res)
     print("Graph contains 2 nodes:", g.graph.size)
     g.reset()
 
-    res = SUM[dtype, axis=1].forward(g, t1)
+    res = SUM[dtype].forward(g, t1, axis=1)
     print(res)
+    print("Graph contains 2 nodes:", g.graph.size)
+    g.reset()
+
+    let res_scalar = SUM[dtype].forward(g, t1)
+    print(res_scalar)
     print("Graph contains 2 nodes:", g.graph.size)
     g.reset()
