@@ -24,8 +24,7 @@ struct MSELoss[dtype: DType]:
     fn forward(inout self, output: SIMD[dtype, 1], target: SIMD[dtype, 1]) -> SIMD[dtype, 1]:
         '''Forward pass of MSE on a scalar.'''
         # TODO
-        print("Not implemented yet: MSE scalar")
-        return 0
+        return -1
 
     fn __call__(inout self, outputs: Tensor[dtype], targets: Tensor[dtype]) -> SIMD[dtype, 1]:
         return self.forward(outputs, targets)

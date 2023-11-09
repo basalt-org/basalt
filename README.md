@@ -28,7 +28,7 @@ https://www.kaggle.com/datasets/hojjatk/mnist-dataset
 
 ❌: Not implemented  
 ✅: Working (but might require changes because of not implemented dependencies)  
-WIP: Workin progress  
+WIP: Work in progress  
 
 ### Autograd
 
@@ -49,7 +49,7 @@ WIP: Workin progress
 | EXP        |   ❌   |
 | LOG        |   ❌   |
 | POW        |   ❌   |
-| SUM        |   ❌   |
+| SUM        |  WIP   |
 | TRANSPOSE  |   ❌   |
 | FLATTEN    |   ❌   |
 | RESHAPE    |   ❌   |

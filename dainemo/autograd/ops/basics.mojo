@@ -1,6 +1,6 @@
 from tensor import Tensor
 from dainemo.autograd.graph import Graph
-from dainemo.utils.tensorutils import dot
+from dainemo.utils.tensorutils import dot, tsum
 
 '''
 Implement forward and backward operations for basic tensor manipulations.
@@ -24,7 +24,7 @@ struct Add:
 
 
 # <------------DOT------------>
-struct Dot[dtype: DType]:
+struct DOT[dtype: DType]:
     @staticmethod
     fn forward(inout graph: Graph[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
         '''Forward operation of dot product.'''
@@ -54,8 +54,20 @@ struct Dot[dtype: DType]:
 
 
 # <------------SUM------------>
-# TODO
+struct SUM[dtype: DType, axis: Int = 0]:
+    @staticmethod
+    fn forward(inout graph: Graph[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+        '''Forward pass of sum operation.'''
+        alias nelts: Int = simdwidthof[dtype]()
+        let res: Tensor[dtype] = tsum[dtype, nelts](t, axis=axis)
+        graph.set_forward_op(res, t)
+        return res
 
+    @staticmethod
+    fn backward(inout graph: Graph[dtype], t: Tensor[dtype]):
+        '''Backward pass of sum operation.'''
+        # TODO
+        pass
 
 # <---------TRANSPOSE--------->
 # TODO

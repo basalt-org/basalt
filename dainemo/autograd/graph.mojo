@@ -113,3 +113,10 @@ struct Graph[dtype: DType = DType.float32]:
         vectorize[nelts, vecmath](t1.num_elements())
         
         return res
+
+    
+    fn reset(inout self):
+        '''
+        Resets the graph.
+        '''
+        self.graph = GraphNodeCollection[dtype]()

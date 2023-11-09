@@ -96,6 +96,33 @@ fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     vectorize[nelts, vecsum](t.num_elements())
     return s
 
+@always_inline
+fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
+    var t_new: Tensor[dtype]
+    
+    if t.rank() == 2:
+        let d: Int = 1 if axis == 0 else 0
+        t_new = Tensor[dtype](t.dim(d))
+
+        @parameter
+        fn parallel_sum(i: Int):
+
+            var s: SIMD[dtype, 1] = 0
+            @parameter
+            fn axissum[nelts: Int](j: Int):
+                s += t.simd_load[nelts](j * t.dim(0) + i).reduce_add()
+            vectorize[nelts, axissum](t.dim(axis))
+            t_new[i] = s
+
+        parallelize[parallel_sum](t.dim(d), t.dim(d))
+
+        return t_new
+    
+    else:
+        print("Tensor sum on rank", t.rank(), " Not implemented yet. Only supports rank 2")
+        # TODO implement recursively
+        return t
+
 
 @always_inline
 fn tmean[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:

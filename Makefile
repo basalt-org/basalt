@@ -29,9 +29,8 @@ test:
 	mojo run -I . test/test_tensorutils.mojo
 	mojo run -I . test/test_layers.mojo
 	mojo run -I . test/test_collection.mojo
-
-node:
 	mojo run -I . test/test_node.mojo
-
-graph:
 	mojo run -I . test/test_graph.mojo
+
+ops:
+	mojo run -I . test/test_ops.mojo
