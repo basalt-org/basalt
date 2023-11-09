@@ -1,8 +1,8 @@
 from dainemo.utils.datasets import BostonHousing
 from dainemo.utils.dataloader import DataLoader
-from dainemo.utils.tensorutils import tprint
 
 import dainemo.nn as nn
+from dainemo.autograd.graph import Graph
 
 from tensor import Tensor, TensorShape
 from utils.index import Index
@@ -10,13 +10,15 @@ from utils.index import Index
 
 
 struct LinearRegression[dtype: DType]:
+    var graph: Graph[dtype]
     var layer1: nn.Linear[dtype]
 
     fn __init__(inout self, input_dim: Int):
+        self.graph = Graph[dtype]()
         self.layer1 = nn.Linear[dtype](input_dim, 1)
-
+        
     fn forward(inout self, x: Tensor[dtype]) -> Tensor[dtype]:
-        return self.layer1(x)
+        return self.layer1(self.graph, x)
 
 
 
@@ -29,7 +31,7 @@ fn main():
     except:
         print("Could not load data")
 
-    # tprint[dtype](train_data.data)
+    # print(train_data.data)
     
     alias num_epochs = 1
     alias batch_size = 4
@@ -58,13 +60,13 @@ fn main():
             batch_data = create_data_batch[dtype](batch_start, batch_end, training_loader.data)
             batch_labels = create_label_batch[dtype](batch_start, batch_end, training_loader.labels)
 
-            # tprint[dtype](batch_data)
-            # tprint[dtype](batch_labels)
+            # print(batch_data)
+            # print(batch_labels)
             
             output = model.forward(batch_data)
             loss = loss_func(output, batch_labels)
 
-            tprint[dtype](output)
+            print(output)
             print(loss)
             
             break

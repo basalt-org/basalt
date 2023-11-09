@@ -34,8 +34,8 @@ WIP: Workin progress
 
 | Task        | Status |
 |-------------|--------|
-| NODE        |   ❌   |
-| GRAPH       |   ❌   |
+| NODE        |  WIP   |
+| GRAPH       |  WIP   |
 
 ### Operators
 
@@ -45,7 +45,7 @@ WIP: Workin progress
 | SUB        |   ❌   |
 | MUL        |   ❌   |
 | DIV        |   ❌   |
-| DOT        |   ❌   |
+| DOT        |  WIP   |
 | EXP        |   ❌   |
 | LOG        |   ❌   |
 | POW        |   ❌   |
@@ -102,5 +102,5 @@ WIP: Workin progress
 | Model abstractions (eval/save/load/...) |   ❌   |
 | Datasets (MNIST/Boston Housing)         |   ✅   |
 | Dataloader                    |   ✅   |
-| Tensorutils                   |   WIP  |
+| Tensorutils                   |   ✅   |
 | Checkpoints                   |   ❌   |
