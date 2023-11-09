@@ -64,7 +64,7 @@ fn main():
             # print(batch_labels)
             
             output = model.forward(batch_data)
-            loss = loss_func(output, batch_labels)
+            loss = loss_func(model.graph, output, batch_labels)
 
             print(output)
             print(loss)
