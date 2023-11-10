@@ -1,7 +1,7 @@
 from random import rand
 from tensor import Tensor
 
-from dainemo.autograd.ops.basics import DOT, SUM
+from dainemo.autograd.ops.basics import DOT, SUM, ADD, SUB, MUL, POW
 from dainemo.autograd.graph import Graph
 from dainemo.utils.tensorutils import fill
 
@@ -19,24 +19,53 @@ fn main():
     fill[dtype, nelts](t3, 1.0)
 
 
+    # <------------ADD------------>
+    var res = ADD[dtype].forward(g, t1, t2)
+    print(res.tensor)
+    print("Graph contains 3 nodes:", g.graph.size)
+    g.reset()
+
+    # <------------SUB------------>
+    res = SUB[dtype].forward(g, t1, t2)
+    print(res.tensor)
+    print("Graph contains 3 nodes:", g.graph.size)
+    g.reset()
+
+    # <------------MUL------------>
+    res = MUL[dtype].forward(g, t1, t2)
+    print(res.tensor)
+    print("Graph contains 3 nodes:", g.graph.size)
+    g.reset()
+
+    res = MUL[dtype].forward(g, t1, 5)
+    print(res.tensor)
+    print("Graph contains 3 nodes:", g.graph.size)
+    g.reset()
+
     # <------------DOT------------>
-    var res = DOT[dtype].forward(g, t2, t3)
-    print(res)
+    res = DOT[dtype].forward(g, t2, t3)
+    print(res.tensor)
+    print("Graph contains 3 nodes:", g.graph.size)
+    g.reset()
+
+    # <------------POW------------>
+    res = POW[dtype].forward(g, t1, 2)
+    print(res.tensor)
     print("Graph contains 3 nodes:", g.graph.size)
     g.reset()
 
     # <------------SUM------------>
     res = SUM[dtype].forward(g, t1, axis=0)
-    print(res)
+    print(res.tensor)
     print("Graph contains 2 nodes:", g.graph.size)
     g.reset()
 
     res = SUM[dtype].forward(g, t1, axis=1)
-    print(res)
+    print(res.tensor)
     print("Graph contains 2 nodes:", g.graph.size)
     g.reset()
 
     let res_scalar = SUM[dtype].forward(g, t1)
-    print(res_scalar)
+    print(res_scalar.tensor)
     print("Graph contains 2 nodes:", g.graph.size)
     g.reset()

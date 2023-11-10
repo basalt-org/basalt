@@ -3,7 +3,7 @@ from tensor import Tensor
 
 from dainemo.autograd.node import Node
 from dainemo.utils.collection import NodeCollection
-from dainemo.utils.tensorutils import tprint, zero
+from dainemo.utils.tensorutils import zero
 
 
 

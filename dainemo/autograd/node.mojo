@@ -1,34 +1,59 @@
 from tensor import Tensor
 
 from dainemo.utils.collection import NodeCollection
+from dainemo.utils.uuid import uuid
+
 
 
 struct Node[dtype: DType = DType.float32]:
+    '''
+    A Node data structure that is used to build the computational graph.
+        - tensor: The tensor that is stored in the node.
+        - visited: A flag that is used to mark the node as visited during the backward pass.
+    '''
+    
     var tensor: Tensor[dtype]
     var visited: Bool
+    var requires_grad: Bool
+    var requires_broadcast: Bool
+    var uuid: String  # Identifier to find a node by uuid in the graph
+    # var grad: Tensor[dtype]
+    # var grad_fn: Function set in the <ops>.backward() that will be executed during the backward pass.
 
-    fn __init__(inout self, tensor: Tensor[dtype]):
+
+    fn __init__(inout self, tensor: Tensor[dtype], requires_grad: Bool = False, requires_broadcast: Bool = True):
         self.tensor = tensor
         self.visited = False
-
+        self.requires_grad = requires_grad
+        self.requires_broadcast = requires_broadcast
+        self.uuid = uuid()
+        
     fn __copyinit__(inout self, other: Node[dtype]):
         self.tensor = other.tensor
-        self.visited = other.visited    
+        self.visited = other.visited
+        self.requires_grad = other.requires_grad
+        self.requires_broadcast = other.requires_broadcast
+        self.uuid = other.uuid
 
 
 struct GraphNode[dtype: DType = DType.float32]:
     '''
-    A node in the computational graph.
+    A Node in the computational graph.
     Monitors the relation between all the incoming edges (=parents) and the outgoing edges (=children).
     '''
     var node: Node[dtype]
     var children: NodeCollection[dtype]
     var parents: NodeCollection[dtype]
+    # var parent_broadcast_shape TODO
+    var backward_fn: String
+    
 
     fn __init__(inout self, node: Node[dtype]):
         self.node = node
         self.children = NodeCollection[dtype]()
         self.parents = NodeCollection[dtype]()
+        self.backward_fn = "None"
+        
 
     fn add_child(inout self, node: Node[dtype]):
         ''''
@@ -64,3 +89,4 @@ struct GraphNode[dtype: DType = DType.float32]:
         self.node = other.node
         self.children = other.children
         self.parents = other.parents
+        self.backward_fn = other.backward_fn

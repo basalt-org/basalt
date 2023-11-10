@@ -4,6 +4,7 @@ from tensor import Tensor
 
 import dainemo.nn as nn
 from dainemo.autograd.graph import Graph
+from dainemo.autograd.node import Node
 
 
 fn main():
@@ -16,13 +17,13 @@ fn main():
     
     let inputs: Tensor[dtype] = rand[dtype](2, 5)    # A batch of 2 with 5 inputs
     
-    let outputs = f(graph, inputs)
+    let outputs = f(graph, Node[dtype](inputs))
 
     print("Lindear layer with 5 inputs and 3 outputs.")
     print("Input batch of 2 with 5 inputs:", inputs.shape().__str__())
-    print("Output batch of 2 with 3 outputs:", outputs.shape().__str__())
+    print("Output batch of 2 with 3 outputs:", outputs.tensor.shape().__str__())
 
-    print("3 Nodes added to the graph: inputs, linear.weights and outputs:", graph.graph.size)
+    print("5 Nodes added to the graph: ", graph.graph.size)   # inputs, weights, output(inputsxweight), bias, output(output+bias)
     for graph_node in graph.graph:
-        print("Children:", graph_node.children.size, "Parents:", graph_node.parents.size, "\t is inputs:", graph_node.node.tensor == inputs, "\t is weights:", graph_node.node.tensor == f.weights, "\t is outputs:", graph_node.node.tensor == outputs)
+        print("Children:", graph_node.children.size, "Parents:", graph_node.parents.size)
         

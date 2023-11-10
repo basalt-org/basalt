@@ -3,6 +3,7 @@ from dainemo.utils.dataloader import DataLoader
 
 import dainemo.nn as nn
 from dainemo.autograd.graph import Graph
+from dainemo.autograd.node import Node
 
 from tensor import Tensor, TensorShape
 from utils.index import Index
@@ -17,8 +18,8 @@ struct LinearRegression[dtype: DType]:
         self.graph = Graph[dtype]()
         self.layer1 = nn.Linear[dtype](input_dim, 1)
         
-    fn forward(inout self, x: Tensor[dtype]) -> Tensor[dtype]:
-        return self.layer1(self.graph, x)
+    fn forward(inout self, x: Tensor[dtype]) -> Node[dtype]:
+        return self.layer1(self.graph, Node[dtype](x))
 
 
 
@@ -45,8 +46,7 @@ fn main():
     var model = LinearRegression[dtype](train_data.data.dim(1))
     var loss_func = nn.MSELoss[dtype]()
 
-    let output: Tensor[dtype]
-    let loss: SIMD[dtype, 1]
+
     let batch_start: Int
     let batch_end: Int
     let batch_data: Tensor[dtype]
@@ -59,16 +59,31 @@ fn main():
 
             batch_data = create_data_batch[dtype](batch_start, batch_end, training_loader.data)
             batch_labels = create_label_batch[dtype](batch_start, batch_end, training_loader.labels)
-
-            # print(batch_data)
-            # print(batch_labels)
             
-            output = model.forward(batch_data)
-            loss = loss_func(model.graph, output, batch_labels)
+            let output = model.forward(batch_data)            
+            let loss = loss_func(model.graph, output, batch_labels)
 
-            print(output)
-            print(loss)
+            print("output")
+            print(output.tensor)
             
+            print("loss")
+            print(loss.tensor)
+
+            print("#####  GRAPH  #####", model.graph.graph.size)
+
+            for graph_node in model.graph.graph:
+                print("\n ----------------")
+                print(graph_node.node.tensor)
+                print(graph_node.backward_fn)
+                print(graph_node.node.requires_grad)
+                print(graph_node.node.uuid)
+                print('\t Parents,')
+                for parent in graph_node.parents:
+                    print('\t\t', parent.uuid)
+                print('\t Children,')
+                for child in graph_node.children:
+                    print('\t\t', child.uuid)
+
             break
         break
 

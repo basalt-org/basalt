@@ -1,23 +1,66 @@
 from tensor import Tensor
+from dainemo.autograd.node import Node
 from dainemo.autograd.graph import Graph
-from dainemo.utils.tensorutils import dot, tsum
+from dainemo.utils.tensorutils import dot, tsum, elwise_op, elwise_pow
+
+from math import add, sub, mul, div
 
 '''
 Implement forward and backward operations for basic tensor manipulations.
 '''
 
 # <------------ADD------------>
-struct Add:
-    pass
+struct ADD[dtype: DType]:
+    @staticmethod
+    fn forward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
+        '''Forward operation of element wise addition.'''
+        alias nelts: Int = simdwidthof[dtype]()
+        let res: Tensor[dtype] = elwise_op[dtype, nelts, add](n1.tensor, n2.tensor)
+        return graph.create_graph_node["bw_ADD"](res, n1, n2)           # "bw_ADD"  --> ADD[dtype].backward
+
+    @staticmethod
+    fn backward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]):
+        '''Backward operation of element wise addition.'''
+        pass
 
 
 # <------------SUB------------>
-# TODO
+struct SUB[dtype: DType]:
+    @staticmethod
+    fn forward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
+        '''Forward operation of element wise subtraction.'''
+        alias nelts: Int = simdwidthof[dtype]()
+        let res: Tensor[dtype] = elwise_op[dtype, nelts, sub](n1.tensor, n2.tensor)
+        return graph.create_graph_node["bw_SUB"](res, n1, n2)           # "bw_SUB"  --> SUB[dtype].backward
+
+    @staticmethod
+    fn backward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]):
+        '''Backward operation of element wise subtraction.'''
+        pass
 
 
 # <------------MUL------------>
-# TODO
+struct MUL[dtype: DType]:
+    @staticmethod
+    fn forward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
+        '''Forward operation of element wise multiplication.'''
+        alias nelts: Int = simdwidthof[dtype]()
+        let res: Tensor[dtype] = elwise_op[dtype, nelts, mul](n1.tensor, n2.tensor)
+        return graph.create_graph_node["bw_MUL"](res, n1, n2)           # "bw_MUL"  --> SUB[dtype].backward
 
+    @staticmethod
+    fn forward(inout graph: Graph[dtype], n1: Node[dtype], a: SIMD[dtype, 1]) -> Node[dtype]:
+        '''Forward operation of tensor-scalar multiplication.'''
+        alias nelts: Int = simdwidthof[dtype]()
+        let res: Tensor[dtype] = elwise_op[dtype, nelts, mul](n1.tensor, a)
+        var a_tensor: Tensor[dtype] = Tensor[dtype](1)
+        a_tensor[0] = a
+        return graph.create_graph_node["bw_MUL_scalar"](res, n1, Node[dtype](a_tensor))    # "bw_MUL_scalar"  --> MUL[dtype].backward
+
+    @staticmethod
+    fn backward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]):
+        '''Backward operation of element wise multiplication.'''
+        pass
 
 # <------------DIV------------>
 # TODO
@@ -26,17 +69,16 @@ struct Add:
 # <------------DOT------------>
 struct DOT[dtype: DType]:
     @staticmethod
-    fn forward(inout graph: Graph[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
+    fn forward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
         '''Forward operation of dot product.'''
         alias nelts: Int = simdwidthof[dtype]()
-        let res = dot[dtype, nelts](t1, t2)
-        graph.set_forward_op(res, t1, t2)
-        return res
+        let res: Tensor[dtype] = dot[dtype, nelts](n1.tensor, n2.tensor)
+        return graph.create_graph_node["bw_DOT"](res, n1, n2)           # "bw_DOT"  --> DOT[dtype].backward
 
     @staticmethod
-    fn backward(inout graph: Graph[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
+    fn backward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]):
         '''Backward operation of dot product.'''
-        # TODO
+        # TODO: sets the grad_fn of the input tensors
         pass
 
 
@@ -50,33 +92,39 @@ struct DOT[dtype: DType]:
 
 
 # <------------POW------------>
-# TODO
+struct POW[dtype: DType]:
+    @staticmethod
+    fn forward(inout graph: Graph[dtype], n1: Node[dtype], a: Int) -> Node[dtype]:
+        '''Forward operation of element wise pow.'''
+        alias nelts: Int = simdwidthof[dtype]()
+        let res: Tensor[dtype] = elwise_pow[dtype, nelts](n1.tensor, a)
+        var a_tensor: Tensor[dtype] = Tensor[dtype](1)
+        a_tensor[0] = a
+        return graph.create_graph_node["bw_POW"](res, n1, Node[dtype](a_tensor))           # "bw_POW"  --> POW[dtype].backward
 
 
 # <------------SUM------------>
 struct SUM[dtype: DType]:
     @staticmethod
-    fn forward(inout graph: Graph[dtype], t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
-        '''Forward pass of sum operation.'''
+    fn forward(inout graph: Graph[dtype], n: Node[dtype], axis: Int) -> Node[dtype]:
+        '''Forward pass of sum operation: along axis.'''
         alias nelts: Int = simdwidthof[dtype]()
-        let res: Tensor[dtype] = tsum[dtype, nelts](t, axis=axis)
-        graph.set_forward_op(res, t)
-        return res
+        let res: Tensor[dtype] = tsum[dtype, nelts](n.tensor, axis=axis)
+        return graph.create_graph_node["bw_SUM_axis"](res, n)   # "bw_SUM_axis"  --> SUM[dtype].backward
 
     @staticmethod
-    fn forward(inout graph: Graph[dtype], t: Tensor[dtype]) -> SIMD[dtype, 1]:
-        '''Forward pass of sum operation.'''
+    fn forward(inout graph: Graph[dtype], n: Node[dtype]) -> Node[dtype]:
+        '''Forward pass of sum operation: all elements.'''
         alias nelts: Int = simdwidthof[dtype]()
-        let res: SIMD[dtype, 1] = tsum[dtype, nelts](t)
+        let res: SIMD[dtype, 1] = tsum[dtype, nelts](n.tensor)
         var res_tensor = Tensor[dtype](1)
         res_tensor[0] = res
-        graph.set_forward_op(res_tensor, t)
-        return res
+        return graph.create_graph_node["bw_SUM_all"](res_tensor, n)    # "bw_SUM_all"  --> SUM[dtype].backward
 
     @staticmethod
-    fn backward(inout graph: Graph[dtype], t: Tensor[dtype]):
+    fn backward(inout graph: Graph[dtype], n: Node[dtype]):
         '''Backward pass of sum operation.'''
-        # TODO
+        # TODO: sets the grad_fn of the input tensors
         pass
 
 # <---------TRANSPOSE--------->

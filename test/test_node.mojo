@@ -2,12 +2,19 @@ from tensor import Tensor
 from random import rand
 
 from dainemo.autograd.node import Node, GraphNode
+from dainemo.utils.uuid import uuid
 
 
 
 
 
 fn main():
+
+    # Test uuid
+    print(uuid())
+    print(uuid())
+    print(uuid())
+
 
     alias dtype = DType.float32
     alias nelts: Int = simdwidthof[dtype]()

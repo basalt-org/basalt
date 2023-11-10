@@ -41,14 +41,14 @@ WIP: Work in progress
 
 | Task       | Status |
 |------------|--------|
-| ADD        |   ❌   |
-| SUB        |   ❌   |
-| MUL        |   ❌   |
+| ADD        |  WIP   |
+| SUB        |  WIP   |
+| MUL        |  WIP   |
 | DIV        |   ❌   |
 | DOT        |  WIP   |
 | EXP        |   ❌   |
 | LOG        |   ❌   |
-| POW        |   ❌   |
+| POW        |  WIP   |
 | SUM        |  WIP   |
 | TRANSPOSE  |   ❌   |
 | FLATTEN    |   ❌   |

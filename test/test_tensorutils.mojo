@@ -1,6 +1,6 @@
 from tensor import Tensor
 
-from dainemo.utils.tensorutils import zero, fill, dot, tprint
+from dainemo.utils.tensorutils import zero, fill, dot
 from dainemo.utils.tensorutils import elwise_transform, elwise_pow, elwise_op, batch_tensor_elwise_op
 from dainemo.utils.tensorutils import tsum, tmean, tstd
 
@@ -167,3 +167,5 @@ fn main():
 
     let batch_sum_1 = tsum[dtype, nelts](batch, axis=1)
     print(batch_sum_1)
+
+    # TODO: mean / std across a specified axis

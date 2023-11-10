@@ -1,8 +1,9 @@
 from tensor import Tensor
 from math import sub, mul
 
+from dainemo.autograd.node import Node
 from dainemo.autograd.graph import Graph
-from dainemo.autograd.ops.basics import SUM
+from dainemo.autograd.ops.basics import SUM, MUL, SUB, POW
 from dainemo.utils.tensorutils import elwise_pow, elwise_op, tsum
 
 
@@ -12,20 +13,18 @@ struct MSELoss[dtype: DType]:
     fn __init__(inout self):
         pass
 
-    fn forward(inout self, inout g: Graph[dtype], outputs: Tensor[dtype], targets: Tensor[dtype]) -> SIMD[dtype, 1]:
+    fn forward(inout self, inout g: Graph[dtype], outputs: Node[dtype], targets: Tensor[dtype]) -> Node[dtype]:
         '''Forward pass of MSE.'''
-        alias nelts = simdwidthof[dtype]()
-        let difference = elwise_op[dtype, nelts, sub](outputs, targets)
-        let squared_difference = elwise_pow[dtype, nelts](difference, 2)
-        
-        let div2N: SIMD[dtype, 1] = (1/(2*outputs.num_elements())).cast[dtype]()
 
-        return div2N * SUM[dtype].forward(g, squared_difference)
+        let difference = SUB[dtype].forward(g, outputs, Node[dtype](targets))
+        let squared_difference = POW[dtype].forward(g, difference, 2)
+        let res = SUM[dtype].forward(g, squared_difference)
+        let div2N: SIMD[dtype, 1] = (1/(2*outputs.tensor.num_elements())).cast[dtype]()
+        return MUL[dtype].forward(g, res, div2N)
 
-
-    fn __call__(inout self, inout g: Graph[dtype], outputs: Tensor[dtype], targets: Tensor[dtype]) -> SIMD[dtype, 1]:
+    fn __call__(inout self, inout g: Graph[dtype], outputs: Node[dtype], targets: Tensor[dtype]) -> Node[dtype]:
         return self.forward(g, outputs, targets)
-
+        
 
 # <------------CROSSENTROPY------------>
 # TODO
