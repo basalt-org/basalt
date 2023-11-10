@@ -61,28 +61,30 @@ fn main():
             batch_labels = create_label_batch[dtype](batch_start, batch_end, training_loader.labels)
             
             let output = model.forward(batch_data)            
-            let loss = loss_func(model.graph, output, batch_labels)
+            var loss = loss_func(model.graph, output, batch_labels)
 
-            print("output")
-            print(output.tensor)
+            # print("output")
+            # print(output.tensor)
             
-            print("loss")
-            print(loss.tensor)
+            # print("loss")
+            # print(loss.tensor)
 
-            print("#####  GRAPH  #####", model.graph.graph.size)
+            # print("#####  GRAPH  #####", model.graph.graph.size)
 
-            for graph_node in model.graph.graph:
-                print("\n ----------------")
-                print(graph_node.node.tensor)
-                print(graph_node.backward_fn)
-                print(graph_node.node.requires_grad)
-                print(graph_node.node.uuid)
-                print('\t Parents,')
-                for parent in graph_node.parents:
-                    print('\t\t', parent.uuid)
-                print('\t Children,')
-                for child in graph_node.children:
-                    print('\t\t', child.uuid)
+            # for graph_node in model.graph.graph:
+            #     print("\n ----------------")
+            #     print(graph_node.node.tensor)
+            #     print(graph_node.backward_fn)
+            #     print(graph_node.node.requires_grad)
+            #     print(graph_node.node.uuid)
+            #     print('\t Parents,')
+            #     for parent in graph_node.parents:
+            #         print('\t\t', parent.uuid)
+            #     print('\t Children,')
+            #     for child in graph_node.children:
+            #         print('\t\t', child.uuid)
+
+            loss.backward(model.graph)
 
             break
         break

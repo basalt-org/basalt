@@ -48,3 +48,16 @@ fn main():
     var graph_copy = graph.copy()
     for graph_node in graph_copy:
         print(graph_node.visited)
+
+    # Adding two collections
+    print("Adding two collections")
+    var added = collection + collection.copy()
+    for node in added:
+        print(node.uuid)
+
+    print("iadding two collections")
+    collection += collection.copy()
+    for node in collection:
+        print(node.uuid)
+
+    

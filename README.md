@@ -35,7 +35,7 @@ WIP: Work in progress
 | Task        | Status |
 |-------------|--------|
 | NODE        |  WIP   |
-| GRAPH       |  WIP   |
+| GRAPH       |   ✅   |
 
 ### Operators
 

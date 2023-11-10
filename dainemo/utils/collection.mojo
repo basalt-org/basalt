@@ -36,7 +36,7 @@ struct NodeCollection[dtype: DType = DType.float32]:
     fn store(i: Int, data: Pointer[Node[dtype]], value: Node[dtype]):
         __get_address_as_uninit_lvalue(data.offset(i).address) = value
 
-    fn get(inout self, i: Int) -> Node[dtype]:
+    fn get(self, i: Int) -> Node[dtype]:
         return __get_address_as_lvalue(self.data.offset(i).address)
 
     fn replace(inout self, i: Int, value: Node[dtype]):
@@ -90,6 +90,16 @@ struct NodeCollection[dtype: DType = DType.float32]:
         self._current_index += 1
         return result
 
+    fn __add__(self, other: Self) -> Self:
+        var result = self.copy()
+        for i in range(other.size):
+            result.append(other.get(i))
+        return result
+
+    fn __iadd__(inout self, other: Self):
+        for i in range(other.size):
+            self.append(other.get(i))
+
 
 
 """
@@ -116,7 +126,7 @@ struct GraphNodeCollection[dtype: DType = DType.float32]:
     fn store(i: Int, data: Pointer[GraphNode[dtype]], value: GraphNode[dtype]):
         __get_address_as_uninit_lvalue(data.offset(i).address) = value
 
-    fn get(inout self, i: Int) -> GraphNode[dtype]:
+    fn get(self, i: Int) -> GraphNode[dtype]:
         return __get_address_as_lvalue(self.data.offset(i).address)
 
     fn replace(inout self, i: Int, value: GraphNode[dtype]):
@@ -169,6 +179,16 @@ struct GraphNodeCollection[dtype: DType = DType.float32]:
         let result = self.get(self._current_index)
         self._current_index += 1
         return result
+
+    fn __add__(self, other: Self) -> Self:
+        var result = self.copy()
+        for i in range(other.size):
+            result.append(other.get(i))
+        return result
+
+    fn __iadd__(inout self, other: Self):
+        for i in range(other.size):
+            self.append(other.get(i))
 
     # Extra to avoid a copy & replacement in the GraphNodeCollection
     fn set_visit_value(inout self, idx: Int, value: Bool):
