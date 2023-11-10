@@ -1,5 +1,8 @@
+from math import add
 from tensor import Tensor
+from algorithm import vectorize, parallelize
 
+from dainemo.autograd.graph import Graph
 from dainemo.utils.collection import NodeCollection
 from dainemo.utils.uuid import uuid
 
@@ -17,16 +20,17 @@ struct Node[dtype: DType = DType.float32]:
     var requires_grad: Bool
     var requires_broadcast: Bool
     var uuid: String  # Identifier to find a node by uuid in the graph
-    # var grad: Tensor[dtype]
+    var grad: Tensor[dtype]
     # var grad_fn: Function set in the <ops>.backward() that will be executed during the backward pass.
 
 
     fn __init__(inout self, tensor: Tensor[dtype], requires_grad: Bool = False, requires_broadcast: Bool = True):
         self.tensor = tensor
         self.visited = False
-        self.requires_grad = requires_grad
+        self.requires_grad = requires_grad              # TODO: can probably compile time known -> parameter
         self.requires_broadcast = requires_broadcast
         self.uuid = uuid()
+        self.grad = Tensor[dtype](self.tensor.shape())
         
     fn __copyinit__(inout self, other: Node[dtype]):
         self.tensor = other.tensor
@@ -35,6 +39,45 @@ struct Node[dtype: DType = DType.float32]:
         self.requires_broadcast = other.requires_broadcast
         self.uuid = other.uuid
 
+    fn backward(inout self, inout graph: Graph[dtype], upper_grad: Tensor[dtype], retain_graph: Bool = False):
+        '''
+        Initial entrypoint for the backward pass. (as loss.backward() is called)
+        Initializes the backward pass by calling the backward function of the corresponding graph_node.
+        Which is aware if its children and parents in the graph.
+        - upper_grad: The gradient to start the backward pass with. Shape should be equal to the shape of the node's tensor.
+        - retain_graph: If true, the graph will not reset after the backward pass.
+        '''
+
+        if self.requires_grad:
+            # TODO: Check if upper_grad.shape == self.tensor.shape (raises)
+            self.accumulate_grad(upper_grad)
+            let idx = graph.get_node(self)
+            let graph_node = graph.graph.get(idx)
+            graph_node.backward(retain_graph)
+            if not retain_graph:
+                graph.reset()
+
+
+    fn accumulate_grad(inout self, grad: Tensor[dtype]):
+        '''
+        Accumulates the gradient of the node.
+        '''
+        alias nelts: Int = simdwidthof[dtype]()
+        @parameter
+        fn vecadd[nelts: Int](idx: Int):
+            self.grad.simd_store[nelts](idx, add[dtype, nelts](self.grad.simd_load[nelts](idx), grad.simd_load[nelts](idx)))
+        vectorize[nelts, vecadd](self.grad.num_elements())
+        
+    
+    fn calculate_gradient(inout self, calculate_grads: Bool = True):
+        '''
+        Gradient calculation for the node during the backward pass.
+        '''
+        
+        print("calculating gradient of node: " + self.uuid)
+        #TODO
+        pass
+        
 
 struct GraphNode[dtype: DType = DType.float32]:
     '''
@@ -90,3 +133,14 @@ struct GraphNode[dtype: DType = DType.float32]:
         self.children = other.children
         self.parents = other.parents
         self.backward_fn = other.backward_fn
+
+    fn backward(inout self, retain_graph: Bool = False):
+        '''
+        Calculates the order of the backward pass and calls the backward function of the node to calculate the gradients.
+        '''
+
+        # 1. Visit all children so that they aren't included in the backward pass
+        # Allows gradient calculation for any intermediate node in the graph
+
+        # self.visit_all_children()
+        pass
