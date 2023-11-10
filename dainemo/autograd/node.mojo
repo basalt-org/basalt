@@ -12,11 +12,9 @@ struct Node[dtype: DType = DType.float32]:
     '''
     A Node data structure that is used to build the computational graph.
         - tensor: The tensor that is stored in the node.
-        - visited: A flag that is used to mark the node as visited during the backward pass.
     '''
     
     var tensor: Tensor[dtype]
-    var visited: Bool
     var requires_grad: Bool
     var requires_broadcast: Bool
     var uuid: String  # Identifier to find a node by uuid in the graph
@@ -26,7 +24,6 @@ struct Node[dtype: DType = DType.float32]:
 
     fn __init__(inout self, tensor: Tensor[dtype], requires_grad: Bool = False, requires_broadcast: Bool = True):
         self.tensor = tensor
-        self.visited = False
         self.requires_grad = requires_grad              # TODO: can probably compile time known -> parameter
         self.requires_broadcast = requires_broadcast
         self.uuid = uuid()
@@ -34,10 +31,10 @@ struct Node[dtype: DType = DType.float32]:
         
     fn __copyinit__(inout self, other: Node[dtype]):
         self.tensor = other.tensor
-        self.visited = other.visited
         self.requires_grad = other.requires_grad
         self.requires_broadcast = other.requires_broadcast
         self.uuid = other.uuid
+        self.grad = other.grad
 
     fn backward(inout self, inout graph: Graph[dtype], upper_grad: Tensor[dtype], retain_graph: Bool = False):
         '''
@@ -85,6 +82,7 @@ struct GraphNode[dtype: DType = DType.float32]:
     Monitors the relation between all the incoming edges (=parents) and the outgoing edges (=children).
     '''
     var node: Node[dtype]
+    var visited: Bool
     var children: NodeCollection[dtype]
     var parents: NodeCollection[dtype]
     # var parent_broadcast_shape TODO
@@ -93,6 +91,7 @@ struct GraphNode[dtype: DType = DType.float32]:
 
     fn __init__(inout self, node: Node[dtype]):
         self.node = node
+        self.visited = False
         self.children = NodeCollection[dtype]()
         self.parents = NodeCollection[dtype]()
         self.backward_fn = "None"
@@ -110,26 +109,27 @@ struct GraphNode[dtype: DType = DType.float32]:
         '''
         self.parents.append(node)
 
-    fn visit_all_children(inout self):
+    fn visit_all_children(inout self, inout g: Graph[dtype]):
         '''
-        Marks all children of the node as visited.
-        '''
-        for i in range(self.children.size):
-            var child = self.children.get(i)
-            child.visited = True
-            self.children.replace(i, child)
-
-    fn are_children_visited(inout self) -> Bool:
-        '''
-        Checks if all children of the node are visited.
+        Marks all children of the node as visited in the graph.
         '''
         for child in self.children:
-            if not child.visited:
+            let idx = g.get_node(child)
+            g.graph.set_visit_value(idx, True)
+
+    fn are_children_visited(inout self, inout g: Graph[dtype]) -> Bool:
+        '''
+        Checks if all children of the node are visited in the graph.
+        '''
+        for child in self.children:
+            let idx = g.get_node(child)
+            if not g.graph.get_visit_value(idx):
                 return False
         return True
 
     fn __copyinit__(inout self, other: GraphNode[dtype]):
         self.node = other.node
+        self.visited = other.visited
         self.children = other.children
         self.parents = other.parents
         self.backward_fn = other.backward_fn

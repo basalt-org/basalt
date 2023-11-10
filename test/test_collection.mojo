@@ -1,9 +1,8 @@
 from random import rand
 from tensor import Tensor
 
-from dainemo.autograd.node import Node
-from dainemo.utils.collection import NodeCollection
-from dainemo.utils.tensorutils import zero
+from dainemo.autograd.node import Node, GraphNode
+from dainemo.utils.collection import NodeCollection, GraphNodeCollection
 
 
 
@@ -27,23 +26,25 @@ fn main():
     collection.append(node_3)
     print("Collection size (expected 3): ", collection.size, "capacity (expected 4): ", collection.capacity)
 
-    for res in collection:
-        # print(res.tensor)
-        print(res.visited)
+
+    var graph = GraphNodeCollection[dtype]()
+    graph.append(GraphNode[dtype](node_1))
+    graph.append(GraphNode[dtype](node_2))
+    graph.append(GraphNode[dtype](node_3))
+
+    for graph_node in graph:
+        print(graph_node.visited)
 
     # Example visit first 2 nodes
-    for i in range(2):
-        var res = collection.get(i)
-        res.visited = True
-        collection.replace(i, res)
+    # By idx
+    graph.set_visit_value(0, True)
+    graph.set_visit_value(1, True)
 
-    for res in collection:
-        # print(res.tensor)
-        print(res.visited)
+    for graph_node in graph:
+        print(graph_node.visited)
 
     # Copy collection    
     print("Copying collection")
-    var collection_copy = collection.copy()
-    for res in collection_copy:
-        # print(res.tensor)
-        print(res.visited)
+    var graph_copy = graph.copy()
+    for graph_node in graph_copy:
+        print(graph_node.visited)

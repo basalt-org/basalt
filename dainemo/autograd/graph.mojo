@@ -112,3 +112,12 @@ struct Graph[dtype: DType = DType.float32]:
         Resets the graph.
         '''
         self.graph = GraphNodeCollection[dtype]()
+
+
+    fn reset_visited(inout self):
+        '''
+        Marks visited as False for every GraphNode in the graph.
+        '''
+        for i in range(self.graph.size):
+            self.graph.set_visit_value(i, False)
+

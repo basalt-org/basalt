@@ -169,3 +169,16 @@ struct GraphNodeCollection[dtype: DType = DType.float32]:
         let result = self.get(self._current_index)
         self._current_index += 1
         return result
+
+    # Extra to avoid a copy & replacement in the GraphNodeCollection
+    fn set_visit_value(inout self, idx: Int, value: Bool):
+        '''
+        Marks the GraphNode at the given index as <value> in the graph.
+        '''
+        __get_address_as_lvalue(self.data.offset(idx).address).visited = value
+
+    fn get_visit_value(inout self, idx: Int) -> Bool:
+        '''
+        Get the GraphNode's visit value at the given index in the graph.
+        '''
+        return __get_address_as_lvalue(self.data.offset(idx).address).visited
