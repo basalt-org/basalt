@@ -1,5 +1,5 @@
 '''
-This currently server as a replacement for a stdlib's List that can contain any types.
+This currently serves as a replacement for a stdlib's List that can contain any types.
 For every specific type a collection is defined that allows you to:
 - Append elements of custom type structs into a collection of dynamic shape
 - Replace elements in the collection
@@ -100,6 +100,15 @@ struct NodeCollection[dtype: DType = DType.float32]:
         for i in range(other.size):
             self.append(other.get(i))
 
+    fn remove(inout self, idx: Int):
+        for i in range(idx + 1, self.size):
+            self.replace(i - 1, self.get(i))
+        self.size -= 1
+
+        # Free memory of unused space
+        if self.size <= self.capacity // 4:
+            self.resize(self.capacity // 2)
+
 
 
 """
@@ -189,6 +198,16 @@ struct GraphNodeCollection[dtype: DType = DType.float32]:
     fn __iadd__(inout self, other: Self):
         for i in range(other.size):
             self.append(other.get(i))
+
+    fn remove(inout self, idx: Int):
+        for i in range(idx + 1, self.size):
+            self.replace(i - 1, self.get(i))
+        self.size -= 1
+
+        # Free memory of unused space
+        if self.size <= self.capacity // 4:
+            self.resize(self.capacity // 2)
+
 
     # Extra to avoid a copy & replacement in the GraphNodeCollection
     fn set_visit_value(inout self, idx: Int, value: Bool):

@@ -121,3 +121,12 @@ struct Graph[dtype: DType = DType.float32]:
         for i in range(self.graph.size):
             self.graph.set_visit_value(i, False)
 
+    
+    fn mark_visited(inout self, node: Node[dtype]):
+        '''
+        Marks the GraphNode corresponding to the given node as visited.
+        '''
+        let idx = self.get_node(node)
+        if idx != -1:
+            self.graph.set_visit_value(idx, True)
+

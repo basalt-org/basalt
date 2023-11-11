@@ -60,4 +60,19 @@ fn main():
     for node in collection:
         print(node.uuid)
 
+    # Removing nodes
+    print("Removing nodes")
+    collection.remove(5)
+    collection.remove(3)
+    collection.remove(1)
+    for node in collection:
+        print(node.uuid)
+    print(collection.capacity)
+
+    # Removing nodes and freeing up memory
+    collection.remove(0)
+    for node in collection:
+        print(node.uuid)
+    print(collection.capacity)
+
     

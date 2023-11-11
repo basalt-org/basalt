@@ -57,7 +57,7 @@ struct Node[dtype: DType = DType.float32]:
 
 
     fn backward(inout self, inout g: Graph[dtype], retain_graph: Bool = False):
-        '''Default upper_grad is a Tensor of 1.0 with shape equal to the shape of the node's tensor.'''
+        '''Function overload for: Default upper_grad, a Tensor of 1.0 with shape equal to the shape of the node's tensor.'''
         var upper_grad = Tensor[dtype](self.tensor.shape())
         alias nelts: Int = simdwidthof[dtype]()
         fill[dtype, nelts](upper_grad, 1.0)
@@ -75,7 +75,7 @@ struct Node[dtype: DType = DType.float32]:
         vectorize[nelts, vecadd](self.grad.num_elements())
         
     
-    fn calculate_gradient(inout self, calculate_grads: Bool = True):
+    fn backward_gradient(inout self, calculate_grads: Bool = True):
         '''
         Gradient calculation for the node during the backward pass.
         '''
@@ -154,16 +154,14 @@ struct GraphNode[dtype: DType = DType.float32]:
         g.reset_visited()
         self.visit_all_children(g)
         var sorted_nodes = self.topological_sort(g)
+        g.reset_visited()
 
-        for node in sorted_nodes:
-            print("\n ----------------")
-            print(node.tensor)
-            # print(node.backward_fn)
-            print(node.requires_grad)
-            print(node.uuid)
+        # 2. Mark as visited & Backward pass on current node without calulating the gradient
+        sorted_nodes.remove(0)
+        g.mark_visited(self.node)
+        
 
-
-        # 2. Calculate the gradients for the node
+        # 3. Calculate the gradients for the nodes in topological order
 
 
 
@@ -186,7 +184,7 @@ struct GraphNode[dtype: DType = DType.float32]:
         # 2. If yes, add node to array 
         #    & topological sort on the parents to go up the graph
         else:
-            g.graph.set_visit_value(g.get_node(self.node), True)
+            g.mark_visited(self.node)
             sorted_nodes.append(self.node)
             for parent in self.parents:
                 let idx = g.get_node(parent)
