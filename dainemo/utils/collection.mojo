@@ -221,3 +221,9 @@ struct GraphNodeCollection[dtype: DType = DType.float32]:
         Get the GraphNode's visit value at the given index in the graph.
         '''
         return __get_address_as_lvalue(self.data.offset(idx).address).visited
+
+    fn set_grad_value(inout self, idx: Int, value: Tensor[dtype]):
+        '''
+        Sets the GraphNode's gradient at the given index as <value> in the graph.
+        '''
+        __get_address_as_lvalue(self.data.offset(idx).address).node.grad = value
