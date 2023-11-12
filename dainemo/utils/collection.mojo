@@ -109,6 +109,17 @@ struct NodeCollection[dtype: DType = DType.float32]:
         if self.size <= self.capacity // 4:
             self.resize(self.capacity // 2)
 
+    # Extra (depends on Node struct)
+    fn get_idx_by_uuid(inout self, uuid: String) -> Int:
+        '''
+        Returns the index of the GraphNode with the given uuid.
+        When the uuid is not found in the collection, returns -1.
+        '''
+        for i in range(self.size):
+            if __get_address_as_lvalue(self.data.offset(i).address).uuid == uuid:
+                return i
+        return -1
+
 
 
 """
@@ -210,6 +221,7 @@ struct GraphNodeCollection[dtype: DType = DType.float32]:
 
 
     # Extra to avoid a copy & replacement in the GraphNodeCollection
+    # (depends on GraphNode struct)
     fn set_visit_value(inout self, idx: Int, value: Bool):
         '''
         Marks the GraphNode at the given index as <value> in the graph.
@@ -227,3 +239,13 @@ struct GraphNodeCollection[dtype: DType = DType.float32]:
         Sets the GraphNode's gradient at the given index as <value> in the graph.
         '''
         __get_address_as_lvalue(self.data.offset(idx).address).node.grad = value
+
+    fn get_idx_by_uuid(inout self, uuid: String) -> Int:
+        '''
+        Returns the index of the GraphNode with the given uuid.
+        When the uuid is not found in the collection, returns -1.
+        '''
+        for i in range(self.size):
+            if __get_address_as_lvalue(self.data.offset(i).address).node.uuid == uuid:
+                return i
+        return -1

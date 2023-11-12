@@ -57,7 +57,9 @@ struct Node[dtype: DType = DType.float32]:
 
 
     fn backward(inout self, inout g: Graph[dtype], retain_graph: Bool = False):
-        '''Function overload for: Default upper_grad, a Tensor of 1.0 with shape equal to the shape of the node's tensor.'''
+        '''
+        Function overload for: Default upper_grad, a Tensor of 1.0 with shape equal to the shape of the node's tensor.
+        '''
         var upper_grad = Tensor[dtype](self.tensor.shape())
         alias nelts: Int = simdwidthof[dtype]()
         fill[dtype, nelts](upper_grad, 1.0)
@@ -91,16 +93,32 @@ struct Node[dtype: DType = DType.float32]:
             var child_graph_node = g.graph.get(child_idx)
             if self.requires_grad and calculate_grads:
                 
-                #HERE
-                for node in child_graph_node.parents:
-                    print("BF arguments:", node.uuid)
-                    print(node.tensor)
-                print("Uppergrad: ... ", "------------------------------------------------------")
+                # Identify the index of itself in the child.parents NodeCollection
+                # Required when operation has multiple operands to identify the correct gradient function
+                let node_id = child_graph_node.parents.get_idx_by_uuid(self.uuid)
+                let upper_grad = child_graph_node.node.grad
+                _ = child_graph_node.backward_fn(upper_grad, child_graph_node.parents, node_id)
+                # print(child_graph_node.backward_fn)
+
+                # #HERE
+                # for node in child_graph_node.parents:
+                #     print("BF arguments:", node.uuid)
+                # #     print(node.tensor)
+                # # print("Uppergrad: ... ", "------------------------------------------------------")
+                # print()
+                # print(node_id)
+                # print(upper_grad)
 
             if not retain_graph and child_graph_node.are_parents_visited(g):
                 g.graph.remove(child_idx)
         if not retain_graph and graph_node.are_parents_visited(g):
             g.graph.remove(g.get_node(self))
+
+
+fn backward_fn_placeholder[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
+    # TODO: Error when called (raises)
+    print("Backward function placeholder")
+    return Tensor[dtype](ug.shape())
 
 
 struct GraphNode[dtype: DType = DType.float32]:
@@ -113,7 +131,7 @@ struct GraphNode[dtype: DType = DType.float32]:
     var children: NodeCollection[dtype]
     var parents: NodeCollection[dtype]
     # var parent_broadcast_shape TODO
-    var backward_fn: String
+    var backward_fn: fn(ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]
     
 
     fn __init__(inout self, node: Node[dtype]):
@@ -121,7 +139,7 @@ struct GraphNode[dtype: DType = DType.float32]:
         self.visited = False
         self.children = NodeCollection[dtype]()
         self.parents = NodeCollection[dtype]()
-        self.backward_fn = "None"
+        self.backward_fn = backward_fn_placeholder[dtype]
         
 
     fn add_child(inout self, node: Node[dtype]):

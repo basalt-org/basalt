@@ -1,6 +1,7 @@
 from tensor import Tensor
 from dainemo.autograd.node import Node
 from dainemo.autograd.graph import Graph
+from dainemo.utils.collection import NodeCollection
 from dainemo.utils.tensorutils import dot, tsum, elwise_op, elwise_pow
 
 from math import add, sub, mul, div
@@ -16,12 +17,13 @@ struct ADD[dtype: DType]:
         '''Forward operation of element wise addition.'''
         alias nelts: Int = simdwidthof[dtype]()
         let res: Tensor[dtype] = elwise_op[dtype, nelts, add](n1.tensor, n2.tensor)
-        return graph.create_graph_node["bw_ADD"](res, n1, n2)           # "bw_ADD"  --> ADD[dtype].backward
+        return graph.create_graph_node[Self.backward[dtype]](res, n1, n2)
 
     @staticmethod
-    fn backward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]):
+    fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of element wise addition.'''
-        pass
+        print("ADD backward")
+        return Tensor[dtype](ug.shape())
 
 
 # <------------SUB------------>
@@ -31,12 +33,13 @@ struct SUB[dtype: DType]:
         '''Forward operation of element wise subtraction.'''
         alias nelts: Int = simdwidthof[dtype]()
         let res: Tensor[dtype] = elwise_op[dtype, nelts, sub](n1.tensor, n2.tensor)
-        return graph.create_graph_node["bw_SUB"](res, n1, n2)           # "bw_SUB"  --> SUB[dtype].backward
+        return graph.create_graph_node[Self.backward[dtype]](res, n1, n2)
 
     @staticmethod
-    fn backward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]):
+    fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of element wise subtraction.'''
-        pass
+        print("SUB backward")
+        return Tensor[dtype](ug.shape())
 
 
 # <------------MUL------------>
@@ -46,7 +49,7 @@ struct MUL[dtype: DType]:
         '''Forward operation of element wise multiplication.'''
         alias nelts: Int = simdwidthof[dtype]()
         let res: Tensor[dtype] = elwise_op[dtype, nelts, mul](n1.tensor, n2.tensor)
-        return graph.create_graph_node["bw_MUL"](res, n1, n2)           # "bw_MUL"  --> SUB[dtype].backward
+        return graph.create_graph_node[Self.backward[dtype]](res, n1, n2)
 
     @staticmethod
     fn forward(inout graph: Graph[dtype], n1: Node[dtype], a: SIMD[dtype, 1]) -> Node[dtype]:
@@ -55,12 +58,13 @@ struct MUL[dtype: DType]:
         let res: Tensor[dtype] = elwise_op[dtype, nelts, mul](n1.tensor, a)
         var a_tensor: Tensor[dtype] = Tensor[dtype](1)
         a_tensor[0] = a
-        return graph.create_graph_node["bw_MUL_scalar"](res, n1, Node[dtype](a_tensor))    # "bw_MUL_scalar"  --> MUL[dtype].backward
+        return graph.create_graph_node[Self.backward[dtype]](res, n1, Node[dtype](a_tensor))
 
     @staticmethod
-    fn backward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]):
+    fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of element wise multiplication.'''
-        pass
+        print("MUL backward")
+        return Tensor[dtype](ug.shape())
 
 # <------------DIV------------>
 # TODO
@@ -73,13 +77,14 @@ struct DOT[dtype: DType]:
         '''Forward operation of dot product.'''
         alias nelts: Int = simdwidthof[dtype]()
         let res: Tensor[dtype] = dot[dtype, nelts](n1.tensor, n2.tensor)
-        return graph.create_graph_node["bw_DOT"](res, n1, n2)           # "bw_DOT"  --> DOT[dtype].backward
+        return graph.create_graph_node[Self.backward[dtype]](res, n1, n2)
 
     @staticmethod
-    fn backward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]):
+    fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of dot product.'''
         # TODO: sets the grad_fn of the input tensors
-        pass
+        print("DOT backward")
+        return Tensor[dtype](ug.shape())
 
 
 
@@ -100,7 +105,13 @@ struct POW[dtype: DType]:
         let res: Tensor[dtype] = elwise_pow[dtype, nelts](n1.tensor, a)
         var a_tensor: Tensor[dtype] = Tensor[dtype](1)
         a_tensor[0] = a
-        return graph.create_graph_node["bw_POW"](res, n1, Node[dtype](a_tensor))           # "bw_POW"  --> POW[dtype].backward
+        return graph.create_graph_node[Self.backward[dtype]](res, n1, Node[dtype](a_tensor))
+
+    @staticmethod
+    fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
+        '''Backward operation of element wise pow.'''
+        print("POW backward")
+        return Tensor[dtype](ug.shape())
 
 
 # <------------SUM------------>
@@ -110,7 +121,7 @@ struct SUM[dtype: DType]:
         '''Forward pass of sum operation: along axis.'''
         alias nelts: Int = simdwidthof[dtype]()
         let res: Tensor[dtype] = tsum[dtype, nelts](n.tensor, axis=axis)
-        return graph.create_graph_node["bw_SUM_axis"](res, n)   # "bw_SUM_axis"  --> SUM[dtype].backward
+        return graph.create_graph_node[Self.backward[dtype]](res, n)
 
     @staticmethod
     fn forward(inout graph: Graph[dtype], n: Node[dtype]) -> Node[dtype]:
@@ -119,13 +130,14 @@ struct SUM[dtype: DType]:
         let res: SIMD[dtype, 1] = tsum[dtype, nelts](n.tensor)
         var res_tensor = Tensor[dtype](1)
         res_tensor[0] = res
-        return graph.create_graph_node["bw_SUM_all"](res_tensor, n)    # "bw_SUM_all"  --> SUM[dtype].backward
+        return graph.create_graph_node[Self.backward[dtype]](res_tensor, n)
 
     @staticmethod
-    fn backward(inout graph: Graph[dtype], n: Node[dtype]):
+    fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward pass of sum operation.'''
         # TODO: sets the grad_fn of the input tensors
-        pass
+        print("SUM backward")
+        return Tensor[dtype](ug.shape())
 
 # <---------TRANSPOSE--------->
 # TODO

@@ -2,7 +2,7 @@ from tensor import Tensor
 from algorithm import vectorize, parallelize
 
 from dainemo.autograd.node import Node, GraphNode
-from dainemo.utils.collection import GraphNodeCollection
+from dainemo.utils.collection import NodeCollection, GraphNodeCollection
 
 
 
@@ -44,12 +44,18 @@ struct Graph[dtype: DType = DType.float32]:
         result_graph_node.add_parent(operand)
     
 
-    fn create_graph_node[backward_fn: String](inout self, result: Tensor[dtype], *operands: Node[dtype]) -> Node[dtype]:
+    fn create_graph_node[
+            backward_fn: fn(ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]
+        ](
+            inout self, 
+            result: Tensor[dtype], 
+            *operands: Node[dtype]
+        )-> Node[dtype]:
         '''
         To be used in every forward operation and responsible for creating the graph.
         If tracking is enabled it:
             - Creates a GraphNode for the result_tensor & the operands
-            - Adds edges to the graphnodes of the the result_tensor & the operands
+            - Adds edges to the graphnodes of the the result_tensor & the operands.
         '''
 
         if self.tracking:
@@ -98,13 +104,7 @@ struct Graph[dtype: DType = DType.float32]:
         Returns the GraphNode (index in the GraphNodeCollection) corresponding to the given node.
         When the node is not found in the graph, returns -1.        
         '''
-        
-        for i in range(self.graph.size):
-            let graph_node = self.graph.get(i)
-            if graph_node.node.uuid == node.uuid:
-                return i
-            
-        return -1
+        return self.graph.get_idx_by_uuid(node.uuid)
 
     
     fn reset(inout self):
