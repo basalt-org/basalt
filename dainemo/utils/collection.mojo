@@ -240,6 +240,12 @@ struct GraphNodeCollection[dtype: DType = DType.float32]:
         '''
         __get_address_as_lvalue(self.data.offset(idx).address).node.grad = value
 
+    fn get_grad_value(inout self, idx: Int) -> Tensor[dtype]:
+        '''
+        Get the GraphNode's gradient at the given index in the graph.
+        '''
+        return __get_address_as_lvalue(self.data.offset(idx).address).node.grad
+    
     fn get_idx_by_uuid(inout self, uuid: String) -> Int:
         '''
         Returns the index of the GraphNode with the given uuid.

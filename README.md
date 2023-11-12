@@ -2,7 +2,7 @@
 
 | Task       | Dataset | Forward | Backward | Training |
 |------------|---------|---------|----------|----------|
-| REGRESSION |   ✅    |   ✅    |    ❌    |    ❌    |
+| REGRESSION |   ✅    |   ✅    |    ✅    |    ❌    |
 | CONV       |   ✅    |   ❌    |    ❌    |    ❌    |
 
 [SOURCES]  
@@ -49,7 +49,7 @@ WIP: Work in progress
 | EXP        |   ❌   |
 | LOG        |   ❌   |
 | POW        |   ✅   |
-| SUM        |   ✅   |
+| SUM        |   ✅*  |
 | TRANSPOSE  |   ❌   |
 | FLATTEN    |   ❌   |
 | RESHAPE    |   ❌   |
@@ -81,7 +81,7 @@ WIP: Work in progress
 
 | Task  | Status |
 |-------|--------|
-| ADAM  |   ❌   |
+| ADAM  |  WIP   |
 
 ### Layers
 

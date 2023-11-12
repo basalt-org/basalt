@@ -69,22 +69,24 @@ fn main():
             # print("loss")
             # print(loss.tensor)
 
-            # print("#####  GRAPH  #####", model.graph.graph.size)
-
-            # for graph_node in model.graph.graph:
-            #     print("\n ----------------")
-            #     print(graph_node.node.tensor)
-            #     print(graph_node.backward_fn)
-            #     print(graph_node.node.requires_grad)
-            #     print(graph_node.node.uuid)
-            #     print('\t Parents,')
-            #     for parent in graph_node.parents:
-            #         print('\t\t', parent.uuid)
-            #     print('\t Children,')
-            #     for child in graph_node.children:
-            #         print('\t\t', child.uuid)
-
             loss.backward(model.graph)
+
+            print("#####  GRAPH  #####", model.graph.graph.size)
+
+            for graph_node in model.graph.graph:
+                print("\n ----------------")
+                print(graph_node.node.tensor)
+                print(graph_node.node.requires_grad)
+                print(graph_node.node.uuid)
+                print('\t Parents,')
+                for parent in graph_node.parents:
+                    print('\t\t', parent.uuid)
+                print('\t Children,')
+                for child in graph_node.children:
+                    print('\t\t', child.uuid)
+                print("\t Grad:", graph_node.node.grad)
+
+            
 
             break
         break

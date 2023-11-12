@@ -26,7 +26,7 @@ struct Graph[dtype: DType = DType.float32]:
         Adds an edge between result node and the corresponding operand node of the operand tensor.
             - Identify the operand graph node in the graph corresponding the the operand node
             - Adds the result node as child to the operand nodes
-            - Adds the operand nodes as parents to the result node
+            - Adds the operand nodes as parents to the result node.
         '''
         # 1. Find the operand node in the graph
         var idx = self.get_node(operand)
@@ -74,7 +74,7 @@ struct Graph[dtype: DType = DType.float32]:
             let result_node = Node[dtype](result, requires_grad=requires_grad)
             var result_graph_node = GraphNode[dtype](result_node)
 
-            # TODO: Set backwar_fn & TODO: Set parent_broadcasting_shape
+            # TODO: Set parent_broadcasting_shape
             # The resulting node in the graph always contains it's backward information
             result_graph_node.backward_fn = backward_fn
 
@@ -102,7 +102,7 @@ struct Graph[dtype: DType = DType.float32]:
     fn get_node(inout self, node: Node[dtype]) -> Int:
         '''
         Returns the GraphNode (index in the GraphNodeCollection) corresponding to the given node.
-        When the node is not found in the graph, returns -1.        
+        When the node is not found in the graph, returns -1.
         '''
         return self.graph.get_idx_by_uuid(node.uuid)
 

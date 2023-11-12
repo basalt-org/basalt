@@ -1,11 +1,10 @@
 from math import add
 from tensor import Tensor
-from algorithm import vectorize, parallelize
 
 from dainemo.autograd.graph import Graph
 from dainemo.utils.collection import NodeCollection
 from dainemo.utils.uuid import uuid
-from dainemo.utils.tensorutils import fill
+from dainemo.utils.tensorutils import fill, elwise_op
 
 
 
@@ -20,7 +19,7 @@ struct Node[dtype: DType = DType.float32]:
     var requires_broadcast: Bool
     var uuid: String  # Identifier to find a node by uuid in the graph
     var grad: Tensor[dtype]
-
+    # var param: Bool   # TODO: Mark node as param to save weights & biasses & to pass on grads to optimizer 
 
     fn __init__(inout self, tensor: Tensor[dtype], requires_grad: Bool = False, requires_broadcast: Bool = True):
         self.tensor = tensor
@@ -69,13 +68,9 @@ struct Node[dtype: DType = DType.float32]:
         '''
         Accumulates the gradient of the node in the graph.
         '''
+        let current_grad = g.graph.get_grad_value(idx)
         alias nelts: Int = simdwidthof[dtype]()
-        @parameter
-        fn vecadd[nelts: Int](i: Int):
-            # NOTE: self.grad.simd_load[nelts](i) or g.get_grad_value(idx).simd_load[nelts](i)  ????? 
-            self.grad.simd_store[nelts](i, add[dtype, nelts](self.grad.simd_load[nelts](i), grad.simd_load[nelts](i)))
-        vectorize[nelts, vecadd](self.grad.num_elements())
-        
+        self.grad = elwise_op[dtype, nelts, add](current_grad, grad)
         g.graph.set_grad_value(idx, self.grad)
 
     
@@ -95,18 +90,12 @@ struct Node[dtype: DType = DType.float32]:
                 # Identify the index of itself in the child.parents NodeCollection
                 # Required when operation has multiple operands to identify the correct gradient function
                 let node_id = child_graph_node.parents.get_idx_by_uuid(self.uuid)
-                let upper_grad = child_graph_node.node.grad
-                _ = child_graph_node.backward_fn(upper_grad, child_graph_node.parents, node_id)
-                # print(child_graph_node.backward_fn)
+                let upper_grad = g.graph.get_grad_value(child_idx)
+                let grad = child_graph_node.backward_fn(upper_grad, child_graph_node.parents, node_id)
+                # TODO: Broadcasting
+                self.accumulate_grad(g, idx, grad)
 
-                # #HERE
-                # for node in child_graph_node.parents:
-                #     print("BF arguments:", node.uuid)
-                # #     print(node.tensor)
-                # # print("Uppergrad: ... ", "------------------------------------------------------")
-                # print()
-                # print(node_id)
-                # print(upper_grad)
+                # TODO: Before removing the nodes in the graph, find a way to share the grads with the params of the optimizer
 
             if not retain_graph and child_graph_node.are_parents_visited(g):
                 g.graph.remove(child_idx)
