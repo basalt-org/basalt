@@ -20,7 +20,6 @@ struct Node[dtype: DType = DType.float32]:
     var requires_broadcast: Bool
     var uuid: String  # Identifier to find a node by uuid in the graph
     var grad: Tensor[dtype]
-    # var grad_fn: Function set in the <ops>.backward() that will be executed during the backward pass.
 
 
     fn __init__(inout self, tensor: Tensor[dtype], requires_grad: Bool = False, requires_broadcast: Bool = True):

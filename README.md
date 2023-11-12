@@ -41,9 +41,9 @@ WIP: Work in progress
 
 | Task       | Status |
 |------------|--------|
-| ADD        |  WIP   |
-| SUB        |  WIP   |
-| MUL        |  WIP   |
+| ADD        |   ✅   |
+| SUB        |   ✅   |
+| MUL        |   ✅   |
 | DIV        |   ❌   |
 | DOT        |  WIP   |
 | EXP        |   ❌   |

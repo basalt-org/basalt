@@ -34,3 +34,6 @@ test:
 
 ops:
 	mojo run -I . test/test_ops.mojo
+
+bw:
+	mojo run -I . test/test_backward.mojo

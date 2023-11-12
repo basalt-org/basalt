@@ -22,8 +22,7 @@ struct ADD[dtype: DType]:
     @staticmethod
     fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of element wise addition.'''
-        print("ADD backward")
-        return Tensor[dtype](ug.shape())
+        return ug
 
 
 # <------------SUB------------>
@@ -38,8 +37,12 @@ struct SUB[dtype: DType]:
     @staticmethod
     fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of element wise subtraction.'''
-        print("SUB backward")
-        return Tensor[dtype](ug.shape())
+        if node_id == 0:
+            return ug
+        else:
+            alias nelts = simdwidthof[dtype]()
+            let factor: SIMD[dtype, 1] = -1.0
+            return elwise_op[dtype, nelts, mul](factor, ug)
 
 
 # <------------MUL------------>
@@ -63,8 +66,10 @@ struct MUL[dtype: DType]:
     @staticmethod
     fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of element wise multiplication.'''
-        print("MUL backward")
-        return Tensor[dtype](ug.shape())
+        alias nelts: Int = simdwidthof[dtype]()
+        let other_id: Int = (node_id + 1) % 2
+        return elwise_op[dtype, nelts, mul](nodes.get(other_id).tensor, ug)
+
 
 # <------------DIV------------>
 # TODO
