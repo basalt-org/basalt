@@ -96,32 +96,30 @@ fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     vectorize[nelts, vecsum](t.num_elements())
     return s
 
+from testing import assert_equal
 @always_inline
 fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
-    var t_new: Tensor[dtype]
     
-    if t.rank() == 2:
-        let d: Int = 1 if axis == 0 else 0
-        let t_new = Tensor[dtype](1, t.dim(d)) if axis == 0 else Tensor[dtype](t.dim(d), 1)
+    # Only supported rank atm is 2
+    # TODO implement recursively to support any rank
+    _ = assert_equal(t.rank(), 2)
 
+    let d: Int = 1 if axis == 0 else 0
+    let t_new = Tensor[dtype](1, t.dim(d)) if axis == 0 else Tensor[dtype](t.dim(d), 1)
+
+    @parameter
+    fn parallel_sum(i: Int):
+
+        var s: SIMD[dtype, 1] = 0
         @parameter
-        fn parallel_sum(i: Int):
+        fn axissum[nelts: Int](j: Int):
+            s += t.simd_load[nelts](j * t.dim(0) + i).reduce_add()
+        vectorize[nelts, axissum](t.dim(axis))
+        t_new[i] = s
 
-            var s: SIMD[dtype, 1] = 0
-            @parameter
-            fn axissum[nelts: Int](j: Int):
-                s += t.simd_load[nelts](j * t.dim(0) + i).reduce_add()
-            vectorize[nelts, axissum](t.dim(axis))
-            t_new[i] = s
+    parallelize[parallel_sum](t.dim(d), t.dim(d))
 
-        parallelize[parallel_sum](t.dim(d), t.dim(d))
-
-        return t_new
-    
-    else:
-        print("Tensor sum on rank", t.rank(), " Not implemented yet. Only supports rank 2")
-        # TODO implement recursively
-        return t
+    return t_new
 
 
 @always_inline
@@ -173,7 +171,23 @@ fn dot[dtype: DType, nelts: Int](A: Tensor[dtype], B: Tensor[dtype]) -> Tensor[d
 
             vectorize[nelts, dot](C.dim(1))
 
-    parallelize[calc_row](C.dim(0), 20)
+    parallelize[calc_row](C.dim(0), C.dim(0))
 
     return C
+
+
+@always_inline
+fn transpose_2D[dtype: DType, nelts: Int](t: Tensor[dtype]) -> Tensor[dtype]:
+    var t_new = Tensor[dtype](t.dim(1), t.dim(0))
+    
+    # TODO: figure out vectorization
+    # TODO: make it work for any rank
+
+    @parameter
+    fn proc_row(i: Int):
+        for j in range(t.dim(1)):
+            t_new[j*t.dim(0) + i] = t[i*t.dim(1) + j]
+    parallelize[proc_row](t.dim(0))
+
+    return t_new
 

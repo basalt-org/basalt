@@ -45,11 +45,11 @@ WIP: Work in progress
 | SUB        |   ✅   |
 | MUL        |   ✅   |
 | DIV        |   ❌   |
-| DOT        |  WIP   |
+| DOT        |   ✅   |
 | EXP        |   ❌   |
 | LOG        |   ❌   |
-| POW        |  WIP   |
-| SUM        |  WIP   |
+| POW        |   ✅   |
+| SUM        |   ✅   |
 | TRANSPOSE  |   ❌   |
 | FLATTEN    |   ❌   |
 | RESHAPE    |   ❌   |

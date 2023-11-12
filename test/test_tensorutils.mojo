@@ -2,7 +2,7 @@ from tensor import Tensor
 
 from dainemo.utils.tensorutils import zero, fill, dot
 from dainemo.utils.tensorutils import elwise_transform, elwise_pow, elwise_op, batch_tensor_elwise_op
-from dainemo.utils.tensorutils import tsum, tmean, tstd
+from dainemo.utils.tensorutils import tsum, tmean, tstd, transpose_2D
 
 from math import sqrt, exp, round
 from math import add, sub, mul, div
@@ -169,3 +169,11 @@ fn main():
     print(batch_sum_1)
 
     # TODO: mean / std across a specified axis
+
+
+    # <-------------TRANSPOSE------------->
+    # TODO: figure out vectorization
+    # TODO: make it work for any rank
+    print(batch1)
+    let transposed = transpose_2D[dtype, nelts](batch1)
+    print(transposed)

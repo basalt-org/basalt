@@ -2,9 +2,10 @@ from tensor import Tensor
 from dainemo.autograd.node import Node
 from dainemo.autograd.graph import Graph
 from dainemo.utils.collection import NodeCollection
-from dainemo.utils.tensorutils import dot, tsum, elwise_op, elwise_pow
+from dainemo.utils.tensorutils import dot, tsum, elwise_op, elwise_pow, elwise_transform, fill, batch_tensor_elwise_op
 
-from math import add, sub, mul, div
+from math import add, sub, mul, div, log
+
 
 '''
 Implement forward and backward operations for basic tensor manipulations.
@@ -22,6 +23,7 @@ struct ADD[dtype: DType]:
     @staticmethod
     fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of element wise addition.'''
+        # d(x + y) / dx = d(x + y) / dy = 1
         return ug
 
 
@@ -38,8 +40,10 @@ struct SUB[dtype: DType]:
     fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of element wise subtraction.'''
         if node_id == 0:
+            # d(x - y) / dx = 1
             return ug
         else:
+            # d(x - y) / dy = -1
             alias nelts = simdwidthof[dtype]()
             let factor: SIMD[dtype, 1] = -1.0
             return elwise_op[dtype, nelts, mul](factor, ug)
@@ -66,6 +70,8 @@ struct MUL[dtype: DType]:
     @staticmethod
     fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of element wise multiplication.'''
+        # d(x*y) / dx = y
+        # d(x*y) / dy = x
         alias nelts: Int = simdwidthof[dtype]()
         let other_id: Int = (node_id + 1) % 2
         return elwise_op[dtype, nelts, mul](nodes.get(other_id).tensor, ug)
@@ -87,9 +93,17 @@ struct DOT[dtype: DType]:
     @staticmethod
     fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of dot product.'''
-        # TODO: sets the grad_fn of the input tensors
-        print("DOT backward")
-        return Tensor[dtype](ug.shape())
+        # Only 2D input tensors are supported yet !! 
+        from testing import assert_equal
+        from dainemo.utils.tensorutils import transpose_2D
+        alias nelts: Int = simdwidthof[dtype]()
+        if node_id == 0:
+            _ = assert_equal(nodes.get(1).tensor.rank(), 2)
+
+            return dot[dtype, nelts](ug, transpose_2D[dtype, nelts](nodes.get(1).tensor))           # dot(ug, n2.T)
+        else:
+            _ = assert_equal(nodes.get(0).tensor.rank(), 2)
+            return dot[dtype, nelts](transpose_2D[dtype, nelts](nodes.get(0).tensor), ug)           # dot(n1.T, ug)
 
 
 
@@ -115,18 +129,30 @@ struct POW[dtype: DType]:
     @staticmethod
     fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of element wise pow.'''
-        print("POW backward")
-        return Tensor[dtype](ug.shape())
+        # By design: tensor has id = 0 and scalar has id 1
+        alias nelts: Int = simdwidthof[dtype]()
+        let a: SIMD[dtype, 1] = nodes.get(1).tensor[0]
+
+        if node_id == 0:
+            # d(x^y) / dx = y * x^(y-1)
+            let res = elwise_op[dtype, nelts, mul](a, elwise_pow[dtype, nelts](nodes.get(0).tensor, a.to_int() - 1))    # a * t^(a-1)
+            return elwise_op[dtype, nelts, mul](res, ug)                                                                # a * t^(a-1) * ug
+        else:
+            # d(x^y) / dy = x^y * log(x)
+            let t_a = elwise_pow[dtype, nelts](nodes.get(0).tensor, a.to_int())             # t^a
+            let log_t = elwise_transform[dtype, nelts, log](nodes.get(0).tensor)            # log(t)
+            let res = elwise_op[dtype, nelts, mul](t_a, log_t)                              # t^a * log(t)
+            return elwise_op[dtype, nelts, mul](res, ug)                                    # t^a * log(t) * ug
 
 
 # <------------SUM------------>
 struct SUM[dtype: DType]:
     @staticmethod
-    fn forward(inout graph: Graph[dtype], n: Node[dtype], axis: Int) -> Node[dtype]:
+    fn forward[axis: Int](inout graph: Graph[dtype], n: Node[dtype]) -> Node[dtype]:
         '''Forward pass of sum operation: along axis.'''
         alias nelts: Int = simdwidthof[dtype]()
         let res: Tensor[dtype] = tsum[dtype, nelts](n.tensor, axis=axis)
-        return graph.create_graph_node[Self.backward[dtype]](res, n)
+        return graph.create_graph_node[Self.backward[dtype, axis=axis]](res, n)
 
     @staticmethod
     fn forward(inout graph: Graph[dtype], n: Node[dtype]) -> Node[dtype]:
@@ -138,11 +164,32 @@ struct SUM[dtype: DType]:
         return graph.create_graph_node[Self.backward[dtype]](res_tensor, n)
 
     @staticmethod
-    fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
+    fn backward[dtype: DType, axis: Int = -1](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward pass of sum operation.'''
-        # TODO: sets the grad_fn of the input tensors
-        print("SUM backward")
-        return Tensor[dtype](ug.shape())
+        # By design only one node in the collection
+        # Output tensor has always the same shape as node input tensor
+        alias nelts: Int = simdwidthof[dtype]()
+        let tensor = nodes.get(0).tensor
+        var res = Tensor[dtype](tensor.shape())
+        fill[dtype, nelts](res, 1.0)
+        
+        if axis == -1:
+            # Upper gradient will be a Tensor of shape: 1 scalar as it was constructed by summing all elements of node.tensor
+            return elwise_op[dtype, nelts, mul](res, ug[0])
+
+        elif axis == 0:
+            # Upper gradient will be a Tensor of shape: sum of node.tensor along axis 0
+            return batch_tensor_elwise_op[dtype, nelts, mul](res, ug)
+
+        elif axis == 1:
+            # Upper gradient will be a Tensor of shape: sum of node.tensor along axis 1
+            print("NotImplemented: batch_tensor_elwise_op only support axis 0.")
+            return res
+
+        else:
+            print("NotImplemented: Tensor Sum only support up to rank 2.")
+            return res
+
 
 # <---------TRANSPOSE--------->
 # TODO

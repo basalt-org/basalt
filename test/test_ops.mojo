@@ -55,12 +55,12 @@ fn main():
     g.reset()
 
     # <------------SUM------------>
-    res = SUM[dtype].forward(g, t1, axis=0)
+    res = SUM[dtype].forward[axis=0](g, t1)
     print(res.tensor)
     print("Graph contains 2 nodes:", g.graph.size)
     g.reset()
 
-    res = SUM[dtype].forward(g, t1, axis=1)
+    res = SUM[dtype].forward[axis=1](g, t1)
     print(res.tensor)
     print("Graph contains 2 nodes:", g.graph.size)
     g.reset()
