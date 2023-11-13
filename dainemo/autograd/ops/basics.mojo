@@ -71,9 +71,9 @@ struct MUL[dtype: DType]:
     fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of element wise multiplication.'''
         # d(x*y) / dx = y
-        # d(x*y) / dy = x
-        alias nelts: Int = simdwidthof[dtype]()
+        # d(x*y) / dy = x 
         let other_id: Int = (node_id + 1) % 2
+        alias nelts: Int = simdwidthof[dtype]()
         return elwise_op[dtype, nelts, mul](nodes.get(other_id).tensor, ug)
 
 

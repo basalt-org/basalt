@@ -13,7 +13,7 @@ fn main():
     var graph = Graph[dtype]()
 
     # <------------LINEAR------------>
-    var f = nn.Linear[dtype](5, 3)
+    var f = nn.Linear[dtype](graph, 5, 3)
     
     let inputs: Tensor[dtype] = rand[dtype](2, 5)    # A batch of 2 with 5 inputs
     

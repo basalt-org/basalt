@@ -20,19 +20,23 @@ struct Node[dtype: DType = DType.float32]:
     '''
     
     var tensor: Tensor[dtype]
-    var requires_grad: Bool
+    var requires_grad: Bool                     # TODO: can probably be compile time known
     var requires_broadcast: Bool
     var uuid: String
     var grad: Tensor[dtype]
-    var param: Bool
+    var param: Bool                             # TODO: can probably be compile time known
+    var optim_rms_grad: Tensor[dtype]           # TODO: Remove. Etra value for the optimizer to avoid code duplication in absence of inheritance & lifetimes
+    var optim_momentum_grad: Tensor[dtype]      # TODO: Remove. Etra value for the optimizer to avoid code duplication in absence of inheritance & lifetimes
 
     fn __init__(inout self, tensor: Tensor[dtype], requires_grad: Bool = False, requires_broadcast: Bool = True, param: Bool = False):
         self.tensor = tensor
-        self.requires_grad = requires_grad              # TODO: can probably be compile time known
+        self.requires_grad = requires_grad
         self.requires_broadcast = requires_broadcast
         self.uuid = uuid()
         self.grad = Tensor[dtype](self.tensor.shape())
-        self.param = param                              # TODO: can probably be compile time known
+        self.param = param
+        self.optim_rms_grad = Tensor[dtype](self.grad.shape())
+        self.optim_momentum_grad = Tensor[dtype](self.grad.shape())
         
     fn __copyinit__(inout self, other: Node[dtype]):
         self.tensor = other.tensor
@@ -41,6 +45,8 @@ struct Node[dtype: DType = DType.float32]:
         self.uuid = other.uuid
         self.grad = other.grad
         self.param = other.param
+        self.optim_rms_grad = other.optim_rms_grad
+        self.optim_momentum_grad = other.optim_momentum_grad
 
     fn backward(inout self, inout g: Graph[dtype], upper_grad: Tensor[dtype], retain_graph: Bool = False):
         '''

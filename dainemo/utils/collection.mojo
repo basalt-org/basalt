@@ -1,5 +1,8 @@
+# TODO: Refactor codebase when Lifetimes are available.
 '''
-This currently serves as a replacement for a stdlib's List that can contain any types.
+This currently serves as a replacement and is waiting for Lifetimes to be implemented.
+Lifetimes will enable to safely store references in structs. 
+For now, unsafe pointers are stored in the collections.
 For every specific type a collection is defined that allows you to:
 - Append elements of custom type structs into a collection of dynamic shape
 - Replace elements in the collection
@@ -15,6 +18,7 @@ For every specific type a collection is defined that allows you to:
 from tensor import Tensor
 from dainemo.autograd.node import Node
 from dainemo.autograd.node import GraphNode
+from dainemo.utils.tensorutils import fill
 
 
 struct NodeCollection[dtype: DType = DType.float32]:
@@ -131,6 +135,13 @@ struct NodeCollection[dtype: DType = DType.float32]:
         Get the Node's gradient at the given index in the graph.
         '''
         return __get_address_as_lvalue(self.data.offset(idx).address).grad
+
+    fn zero_grad(inout self, idx: Int):
+        '''
+        Sets the Node's gradient at the given index to zero.
+        '''
+        alias nelts = simdwidthof[dtype]()
+        fill[dtype, nelts](__get_address_as_lvalue(self.data.offset(idx).address).grad, 0)
 
 
 
@@ -267,3 +278,10 @@ struct GraphNodeCollection[dtype: DType = DType.float32]:
             if __get_address_as_lvalue(self.data.offset(i).address).node.uuid == uuid:
                 return i
         return -1
+
+    fn zero_grad(inout self, idx: Int):
+        '''
+        Sets the Node's gradient at the given index to zero.
+        '''
+        alias nelts = simdwidthof[dtype]()
+        fill[dtype, nelts](__get_address_as_lvalue(self.data.offset(idx).address).node.grad, 0)

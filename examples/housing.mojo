@@ -16,7 +16,7 @@ struct LinearRegression[dtype: DType]:
 
     fn __init__(inout self, input_dim: Int):
         self.graph = Graph[dtype]()
-        self.layer1 = nn.Linear[dtype](input_dim, 1)
+        self.layer1 = nn.Linear[dtype](self.graph, input_dim, 1)
         
     fn forward(inout self, x: Tensor[dtype]) -> Node[dtype]:
         return self.layer1(self.graph, Node[dtype](x))
@@ -42,10 +42,9 @@ fn main():
                             batch_size=batch_size
                         )
     
-    
     var model = LinearRegression[dtype](train_data.data.dim(1))
     var loss_func = nn.MSELoss[dtype]()
-
+    var optim = nn.optim.Adam[dtype](lr=0.001)
 
     let batch_start: Int
     let batch_end: Int
@@ -56,10 +55,10 @@ fn main():
             
             batch_start = batch_indeces.get[0, Int]()
             batch_end = batch_indeces.get[1, Int]()
-
             batch_data = create_data_batch[dtype](batch_start, batch_end, training_loader.data)
             batch_labels = create_label_batch[dtype](batch_start, batch_end, training_loader.labels)
             
+            optim.zero_grad(model.graph)
             let output = model.forward(batch_data)            
             var loss = loss_func(model.graph, output, batch_labels)
 
@@ -71,14 +70,13 @@ fn main():
 
             loss.backward(model.graph)
 
-            print("#####  PARAMETERS  #####", model.graph.parameters.size)
+            # print("#####  PARAMETERS  #####", model.graph.parameters.size)
+            # for param in model.graph.parameters:
+            #     print("\n ----------------")
+            #     print("\t Grad:", param.grad)
 
-            for param in model.graph.parameters:
-                print("\n ----------------")
-                print(param.tensor)
-                print(param.requires_grad)
-                print(param.uuid)
-                print("\t Grad:", param.grad)
+
+            optim.step(model.graph)
 
             
 

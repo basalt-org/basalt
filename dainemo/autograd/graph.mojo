@@ -135,17 +135,28 @@ struct Graph[dtype: DType = DType.float32]:
         if idx != -1:
             self.graph.set_visit_value(idx, True)
 
+
+    fn zero_grad(inout self):
+        '''
+        Zeros the grad value of every node in the graph & parameters.
+        '''
+        alias nelts = simdwidthof[dtype]()
+        for i in range(self.graph.size):
+            self.graph.zero_grad(i)
+        for i in range(self.parameters.size):
+            self.parameters.zero_grad(i)
+
+
     fn update_parameter_grads(inout self, graph_idx: Int):
-        # TODO: Can be removed when the param nodes are not deleted in the graph. But only the pointers removed.
-        # For now Copies the gradient values of the param nodes in the graph to parameters
+        # TODO: Can be removed when the lifetime of param nodes are handled correctly.
+        # For now: Copies the gradient values of the param nodes in the graph to parameters NodeCollection
         alias nelts: Int = simdwidthof[dtype]()
         let graph_node = self.graph.get(graph_idx)
         if graph_node.node.param:
             let param_idx = self.parameters.get_idx_by_uuid(graph_node.node.uuid)
-            if param_idx == -1:
-                # param node not found in parameters collection, add the param node to parameters
-                self.parameters.append(graph_node.node)
-            elif param_idx != -1:
-                # update grad value of the param node in parameters
+            if param_idx != -1:
+                # Accumulate grad value of the param node in parameters
                 let current_grad = self.parameters.get_grad_value(param_idx)
                 self.parameters.set_grad_value(param_idx, elwise_op[dtype, nelts, add](current_grad, graph_node.node.grad))
+            else:
+                print("ERROR: Parameter nodes should be added to (graph.parameters) collection on model creation.")

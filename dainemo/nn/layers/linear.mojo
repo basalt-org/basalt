@@ -19,11 +19,13 @@ struct Linear[dtype: DType]:
     var weights: Node[dtype]
     var bias: Node[dtype]
 
-    fn __init__(inout self, n_input: Int, n_output: Int):
+    fn __init__(inout self, inout g: Graph[dtype], n_input: Int, n_output: Int):
         self.n_input = n_input
         self.n_output = n_output
         self.weights = Node[dtype](rand[dtype](n_input, n_output), requires_grad=True, param=True)
         self.bias = Node[dtype](Tensor[dtype](n_input, n_output), requires_grad=True, param=True)
+        g.parameters.append(self.weights)
+        g.parameters.append(self.bias)
 
     fn forward(inout self, inout g: Graph[dtype], inputs: Node[dtype]) -> Node[dtype]:
         '''
