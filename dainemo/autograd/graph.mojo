@@ -3,6 +3,8 @@ from algorithm import vectorize, parallelize
 
 from dainemo.autograd.node import Node, GraphNode
 from dainemo.utils.collection import NodeCollection, GraphNodeCollection
+from dainemo.utils.tensorutils import elwise_op
+from math import add
 
 
 
@@ -14,12 +16,15 @@ struct Graph[dtype: DType = DType.float32]:
     '''
 
     var graph: GraphNodeCollection[dtype]
-    var tracking: Bool   ### TODO: --> make this a parameter, compile time known for optimization purposes
+    var tracking: Bool                          # TODO: can probably be compile time known
+    var parameters: NodeCollection[dtype]       # TODO: shouldn't be part of graph, but of nn.model abstract class
+                                                # As Inheritance is not supported yet, temporary solution 
+                                                # to store the model parameters in the graph
 
     fn __init__(inout self):
         self.graph = GraphNodeCollection[dtype]()
         self.tracking = True
-
+        self.parameters = NodeCollection[dtype]()
 
     fn add_edge(inout self, inout result_graph_node: GraphNode[dtype], operand: Node[dtype]):
         '''
@@ -130,3 +135,17 @@ struct Graph[dtype: DType = DType.float32]:
         if idx != -1:
             self.graph.set_visit_value(idx, True)
 
+    fn update_parameter_grads(inout self, graph_idx: Int):
+        # TODO: Can be removed when the param nodes are not deleted in the graph. But only the pointers removed.
+        # For now Copies the gradient values of the param nodes in the graph to parameters
+        alias nelts: Int = simdwidthof[dtype]()
+        let graph_node = self.graph.get(graph_idx)
+        if graph_node.node.param:
+            let param_idx = self.parameters.get_idx_by_uuid(graph_node.node.uuid)
+            if param_idx == -1:
+                # param node not found in parameters collection, add the param node to parameters
+                self.parameters.append(graph_node.node)
+            elif param_idx != -1:
+                # update grad value of the param node in parameters
+                let current_grad = self.parameters.get_grad_value(param_idx)
+                self.parameters.set_grad_value(param_idx, elwise_op[dtype, nelts, add](current_grad, graph_node.node.grad))

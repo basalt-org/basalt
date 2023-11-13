@@ -71,20 +71,14 @@ fn main():
 
             loss.backward(model.graph)
 
-            print("#####  GRAPH  #####", model.graph.graph.size)
+            print("#####  PARAMETERS  #####", model.graph.parameters.size)
 
-            for graph_node in model.graph.graph:
+            for param in model.graph.parameters:
                 print("\n ----------------")
-                print(graph_node.node.tensor)
-                print(graph_node.node.requires_grad)
-                print(graph_node.node.uuid)
-                print('\t Parents,')
-                for parent in graph_node.parents:
-                    print('\t\t', parent.uuid)
-                print('\t Children,')
-                for child in graph_node.children:
-                    print('\t\t', child.uuid)
-                print("\t Grad:", graph_node.node.grad)
+                print(param.tensor)
+                print(param.requires_grad)
+                print(param.uuid)
+                print("\t Grad:", param.grad)
 
             
 

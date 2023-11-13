@@ -120,6 +120,18 @@ struct NodeCollection[dtype: DType = DType.float32]:
                 return i
         return -1
 
+    fn set_grad_value(inout self, idx: Int, value: Tensor[dtype]):
+        '''
+        Sets the Node's gradient at the given index as <value> in the graph.
+        '''
+        __get_address_as_lvalue(self.data.offset(idx).address).grad = value
+
+    fn get_grad_value(inout self, idx: Int) -> Tensor[dtype]:
+        '''
+        Get the Node's gradient at the given index in the graph.
+        '''
+        return __get_address_as_lvalue(self.data.offset(idx).address).grad
+
 
 
 """

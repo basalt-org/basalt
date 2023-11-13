@@ -12,21 +12,27 @@ struct Node[dtype: DType = DType.float32]:
     '''
     A Node data structure that is used to build the computational graph.
         - tensor: The tensor that is stored in the node.
+        - requires_grad: If true, the node will be included in the backward pass.
+        - requires_broadcast: TODO
+        - uuid: Identifier to find a node by uuid in the graph
+        - grad: The gradient of the node.
+        - param: If true, the node is a parameter of the model. (requires_grad indicates if it is trainable or not)
     '''
     
     var tensor: Tensor[dtype]
     var requires_grad: Bool
     var requires_broadcast: Bool
-    var uuid: String  # Identifier to find a node by uuid in the graph
+    var uuid: String
     var grad: Tensor[dtype]
-    # var param: Bool   # TODO: Mark node as param to save weights & biasses & to pass on grads to optimizer 
+    var param: Bool
 
-    fn __init__(inout self, tensor: Tensor[dtype], requires_grad: Bool = False, requires_broadcast: Bool = True):
+    fn __init__(inout self, tensor: Tensor[dtype], requires_grad: Bool = False, requires_broadcast: Bool = True, param: Bool = False):
         self.tensor = tensor
-        self.requires_grad = requires_grad              # TODO: can probably compile time known -> parameter
+        self.requires_grad = requires_grad              # TODO: can probably be compile time known
         self.requires_broadcast = requires_broadcast
         self.uuid = uuid()
         self.grad = Tensor[dtype](self.tensor.shape())
+        self.param = param                              # TODO: can probably be compile time known
         
     fn __copyinit__(inout self, other: Node[dtype]):
         self.tensor = other.tensor
@@ -34,6 +40,7 @@ struct Node[dtype: DType = DType.float32]:
         self.requires_broadcast = other.requires_broadcast
         self.uuid = other.uuid
         self.grad = other.grad
+        self.param = other.param
 
     fn backward(inout self, inout g: Graph[dtype], upper_grad: Tensor[dtype], retain_graph: Bool = False):
         '''
@@ -95,11 +102,13 @@ struct Node[dtype: DType = DType.float32]:
                 # TODO: Broadcasting
                 self.accumulate_grad(g, idx, grad)
 
-                # TODO: Before removing the nodes in the graph, find a way to share the grads with the params of the optimizer
-
             if not retain_graph and child_graph_node.are_parents_visited(g):
+                #TODO: update can be removed when copies are avoided
+                g.update_parameter_grads(child_idx) # Share the grads with the params of the optimizer 
                 g.graph.remove(child_idx)
         if not retain_graph and graph_node.are_parents_visited(g):
+            #TODO: update can be removed when copies are avoided
+            g.update_parameter_grads(g.get_node(self)) # Share the grads with the params of the optimizer
             g.graph.remove(g.get_node(self))
 
 
