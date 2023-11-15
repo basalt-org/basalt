@@ -66,19 +66,24 @@ fn main():
             # print(output.tensor)
             
             # print("loss")
-            # print(loss.tensor)
+            print(loss.tensor[0])
 
             loss.backward(model.graph)
 
             # print("#####  PARAMETERS  #####", model.graph.parameters.size)
             # for param in model.graph.parameters:
             #     print("\n ----------------")
-            #     print("\t Grad:", param.grad)
+            #     print("\t Grad:", param.tensor)
 
 
             optim.step(model.graph)
 
             
+            # print("#####  PARAMETERS  #####", model.graph.parameters.size)
+            # for param in model.graph.parameters:
+            #     print("\n ----------------")
+            #     print("\t Grad:", param.tensor)
+
 
             break
         break

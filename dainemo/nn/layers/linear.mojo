@@ -13,7 +13,7 @@ struct Linear[dtype: DType]:
     '''
     A fully connected layer.
     '''
-    
+
     var n_input: Int
     var n_output: Int
     var weights: Node[dtype]
@@ -31,9 +31,14 @@ struct Linear[dtype: DType]:
         '''
         Forward pass of the linear layer.
         '''
+        # Get self.weight & self.bias from g.parameters
+        # Workaround because model parameters are created and change in copies. 
+        # TODO: Redo when lifetimes are there.
+        let weights = g.parameters.get(g.parameters.get_idx_by_uuid(self.weights.uuid))
+        let bias = g.parameters.get(g.parameters.get_idx_by_uuid(self.bias.uuid))
 
-        let res = DOT[dtype].forward(g, inputs, self.weights)
-        return ADD[dtype].forward(g, res, self.bias)
+        let res = DOT[dtype].forward(g, inputs, weights)
+        return ADD[dtype].forward(g, res, bias)
 
     fn __call__(inout self, inout g: Graph[dtype], inputs: Node[dtype]) -> Node[dtype]:
         return self.forward(g, inputs)

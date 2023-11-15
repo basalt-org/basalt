@@ -1,5 +1,7 @@
 from tensor import Tensor
 from dainemo.autograd.graph import Graph
+from dainemo.utils.tensorutils import elwise_transform, elwise_op, elwise_pow
+from math import mul, add, sqrt, div, sub
 '''Optimizers.'''
 
 
@@ -34,23 +36,41 @@ struct Adam[dtype: DType]:
         '''Reset the optimizer.'''
         self.iter = 0
 
-    fn set_adam_grads(inout self, inout g: Graph[dtype], param_idx: Int, rms_grads: Tensor[dtype], momentum_grads: Tensor[dtype]):
-        # Set the adam grads of the parameter nodes. Remove when Lifetimes are added.
-        var current_param = g.parameters.get(param_idx)
-        current_param.optim_rms_grad = rms_grads
-        current_param.optim_momentum_grad = momentum_grads
-        g.parameters.replace(param_idx, current_param)
-
     fn step(inout self, inout g: Graph[dtype]):
         '''Update parameters.'''
-        
-        for param in g.parameters:
-            print(param.grad)
-            print(param.optim_momentum_grad)
-            print(param.optim_rms_grad)
-            print('----------------------------------')
-        
+        alias nelts = simdwidthof[dtype]()
         self.iter += 1
+
+        for param_idx in range(g.parameters.size):
+            var param = g.parameters.get(param_idx)
+
+            if param.requires_grad:
+                
+                # 1. Compute adam grads
+                param.optim_momentum_grad = elwise_op[dtype, nelts, add](
+                    elwise_op[dtype, nelts, mul](self.beta1, param.optim_momentum_grad),
+                    elwise_op[dtype, nelts, mul](1 - self.beta1, param.grad)
+                )
+                param.optim_rms_grad = elwise_op[dtype, nelts, add](
+                    elwise_op[dtype, nelts, mul](self.beta2, param.optim_rms_grad),
+                    elwise_op[dtype, nelts, mul](1 - self.beta2, elwise_transform[dtype, nelts, sqrt](param.grad))
+                )
+
+                # 2. Compute bias-corrected adam grads
+                let bias_corrected_momentum_grad = elwise_op[dtype, nelts, div](param.optim_momentum_grad, 1 - (self.beta1 ** self.iter))
+                let bias_corrected_rms_grad = elwise_op[dtype, nelts, div](param.optim_rms_grad, 1 - (self.beta2 ** self.iter))
+                let delta = elwise_op[dtype, nelts, div](
+                    bias_corrected_momentum_grad, 
+                    elwise_op[dtype, nelts, add](elwise_transform[dtype, nelts, sqrt](bias_corrected_rms_grad), self.epsilon)
+                )
+
+                # 3. Update parameters
+                param.tensor = elwise_op[dtype, nelts, sub](param.tensor, elwise_op[dtype, nelts, mul](self.lr, delta))
+                g.parameters.replace(param_idx, param)
+
+                
+
+        
 
 
 

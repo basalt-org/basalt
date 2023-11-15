@@ -16,7 +16,7 @@ struct Node[dtype: DType = DType.float32]:
         - requires_broadcast: TODO
         - uuid: Identifier to find a node by uuid in the graph
         - grad: The gradient of the node.
-        - param: If true, the node is a parameter of the model. (requires_grad indicates if it is trainable or not)
+        - param: If true, the node is a parameter of the model. (requires_grad indicates if it is trainable or not).
     '''
     
     var tensor: Tensor[dtype]

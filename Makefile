@@ -37,3 +37,6 @@ ops:
 
 bw:
 	mojo run -I . test/test_backward.mojo
+
+optim:
+	mojo run -I . test/test_optim.mojo
