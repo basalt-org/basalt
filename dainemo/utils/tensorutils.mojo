@@ -113,7 +113,7 @@ fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
         var s: SIMD[dtype, 1] = 0
         @parameter
         fn axissum[nelts: Int](j: Int):
-            s += t.simd_load[nelts](j * t.dim(0) + i).reduce_add()
+            s += t.simd_load[nelts](j * t.dim(d) + i).reduce_add()
         vectorize[nelts, axissum](t.dim(axis))
         t_new[i] = s
 
