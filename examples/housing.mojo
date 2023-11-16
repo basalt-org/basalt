@@ -31,11 +31,9 @@ fn main():
         train_data = BostonHousing[dtype](file_path='./examples/data/housing.csv')
     except:
         print("Could not load data")
-
-    # print(train_data.data)
     
-    alias num_epochs = 1
-    alias batch_size = 4
+    alias num_epochs = 500
+    alias batch_size = 64
     var training_loader = DataLoader[dtype](
                             data=train_data.data,
                             labels=train_data.labels,
@@ -44,13 +42,15 @@ fn main():
     
     var model = LinearRegression[dtype](train_data.data.dim(1))
     var loss_func = nn.MSELoss[dtype]()
-    var optim = nn.optim.Adam[dtype](lr=0.001)
+    var optim = nn.optim.Adam[dtype](lr=0.01)
 
     let batch_start: Int
     let batch_end: Int
     let batch_data: Tensor[dtype]
     let batch_labels: Tensor[dtype]
     for epoch in range(num_epochs):
+        var epoch_loss: SIMD[dtype, 1] = 0.0
+        var num_batches: Int = 0
         for batch_indeces in training_loader:
             
             batch_start = batch_indeces.get[0, Int]()
@@ -62,32 +62,13 @@ fn main():
             let output = model.forward(batch_data)            
             var loss = loss_func(model.graph, output, batch_labels)
 
-            # print("output")
-            # print(output.tensor)
-            
-            # print("loss")
-            print(loss.tensor[0])
-
             loss.backward(model.graph)
-
-            # print("#####  PARAMETERS  #####", model.graph.parameters.size)
-            # for param in model.graph.parameters:
-            #     print("\n ----------------")
-            #     print("\t Grad:", param.tensor)
-
-
             optim.step(model.graph)
 
-            
-            # print("#####  PARAMETERS  #####", model.graph.parameters.size)
-            # for param in model.graph.parameters:
-            #     print("\n ----------------")
-            #     print("\t Grad:", param.tensor)
-
-
-            break
-        break
-
+            epoch_loss += loss.tensor[0]
+            num_batches += 1
+        
+        print("Epoch: [", epoch+1, "/", num_epochs, "] \t Avg loss per epoch:", epoch_loss / num_batches)
 
 
 #TODO: See DataLoader

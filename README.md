@@ -2,7 +2,7 @@
 
 | Task       | Dataset | Forward | Backward | Training |
 |------------|---------|---------|----------|----------|
-| REGRESSION |   ✅    |   ✅    |    ✅    |    ❌    |
+| REGRESSION |   ✅    |   ✅    |    ✅    |    ✅    |
 | CONV       |   ✅    |   ❌    |    ❌    |    ❌    |
 
 [SOURCES]  
@@ -34,7 +34,7 @@ WIP: Work in progress
 
 | Task        | Status |
 |-------------|--------|
-| NODE        |  WIP   |
+| NODE        |   ✅   |
 | GRAPH       |   ✅   |
 
 ### Operators
@@ -81,7 +81,7 @@ WIP: Work in progress
 
 | Task  | Status |
 |-------|--------|
-| ADAM  |  WIP   |
+| ADAM  |   ✅   |
 
 ### Layers
 

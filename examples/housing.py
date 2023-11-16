@@ -41,15 +41,15 @@ class LinearRegression(nn.Module):
 
 
 if __name__ == "__main__":
-    batch_size = 32
-    num_epochs = 10
+    batch_size = 64
+    num_epochs = 500
     learning_rate = 0.01
 
 
     # Load data and split in training and testing sets
     df = pd.read_csv("./examples/data/housing.csv")
 
-    TRAIN_PCT = 0.8
+    TRAIN_PCT = 0.99
     shuffled_df = df.sample(frac=1, random_state=42)
     train_df = shuffled_df[:int(TRAIN_PCT * len(df))]
     test_df = shuffled_df[int(TRAIN_PCT * len(df)):]
@@ -78,13 +78,16 @@ if __name__ == "__main__":
     device = torch.device('cpu')
     model = LinearRegression(train_data.data.shape[1])
     loss_func = nn.MSELoss()
-    optimizer = optim.SGD(model.parameters(), lr=0.01)
+    # optimizer = optim.SGD(model.parameters(), lr=0.01)
+    optimizer = optim.Adam(model.parameters(), lr=0.01)
 
 
     # Train the model
     model.train()
     total_step = len(loaders['train'])
     for epoch in range(num_epochs):
+        epoch_loss = 0
+        num_batches = 0
         for i, (batch_data, batch_targets) in enumerate(loaders['train']):    
             
             # Forward pass
@@ -96,8 +99,10 @@ if __name__ == "__main__":
             loss.backward()
             optimizer.step()
 
-            print ('Epoch [{}/{}],\t Step [{}/{}],\t Loss: {:.4f}'
-                .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
+            epoch_loss += loss.item()
+            num_batches += 1
+
+        print (f'Epoch [{epoch + 1}/{num_epochs}],\t Avg loss per epoch: {epoch_loss / num_batches}')
 
 
     # Evaluate the model
