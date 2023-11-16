@@ -33,9 +33,4 @@ test:
 	mojo run -I . test/test_graph.mojo
 	mojo run -I . test/test_ops.mojo
 	mojo run -I . test/test_backward.mojo
-
-optim:
-	mojo run -I . test/test_optim.mojo
-
-reg:
 	mojo run -I . test/test_regression.mojo
