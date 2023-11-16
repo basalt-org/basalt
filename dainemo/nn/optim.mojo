@@ -45,7 +45,6 @@ struct Adam[dtype: DType]:
             var param = g.parameters.get(param_idx)
 
             if param.requires_grad:
-                
                 # 1. Compute adam grads
                 param.optim_momentum_grad = elwise_op[dtype, nelts, add](
                     elwise_op[dtype, nelts, mul](self.beta1, param.optim_momentum_grad),
@@ -53,9 +52,9 @@ struct Adam[dtype: DType]:
                 )
                 param.optim_rms_grad = elwise_op[dtype, nelts, add](
                     elwise_op[dtype, nelts, mul](self.beta2, param.optim_rms_grad),
-                    elwise_op[dtype, nelts, mul](1 - self.beta2, elwise_transform[dtype, nelts, sqrt](param.grad))
+                    elwise_op[dtype, nelts, mul](1 - self.beta2, elwise_pow[dtype, nelts](param.grad, 2))
                 )
-
+                
                 # 2. Compute bias-corrected adam grads
                 let bias_corrected_momentum_grad = elwise_op[dtype, nelts, div](param.optim_momentum_grad, 1 - (self.beta1 ** self.iter))
                 let bias_corrected_rms_grad = elwise_op[dtype, nelts, div](param.optim_rms_grad, 1 - (self.beta2 ** self.iter))
