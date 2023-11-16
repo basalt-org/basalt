@@ -23,7 +23,7 @@ struct Linear[dtype: DType]:
         self.n_input = n_input
         self.n_output = n_output
         self.weights = Node[dtype](rand[dtype](n_input, n_output), requires_grad=True, param=True)
-        self.bias = Node[dtype](Tensor[dtype](n_input, n_output), requires_grad=True, param=True)
+        self.bias = Node[dtype](Tensor[dtype](1, n_output), requires_grad=True, param=True)
         g.parameters.append(self.weights)
         g.parameters.append(self.bias)
 

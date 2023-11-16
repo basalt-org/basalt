@@ -1,10 +1,10 @@
-from tensor import Tensor
+from tensor import Tensor, TensorShape
 from algorithm import vectorize, parallelize
 
 from dainemo.autograd.node import Node, GraphNode
 from dainemo.utils.collection import NodeCollection, GraphNodeCollection
 from dainemo.utils.tensorutils import elwise_op
-from math import add
+from math import add, max
 
 
 
@@ -53,7 +53,7 @@ struct Graph[dtype: DType = DType.float32]:
             backward_fn: fn(ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]
         ](
             inout self, 
-            result: Tensor[dtype], 
+            result: Tensor[dtype],
             *operands: Node[dtype]
         )-> Node[dtype]:
         '''
@@ -69,6 +69,8 @@ struct Graph[dtype: DType = DType.float32]:
             > result_requires_grad:
             Returns True when at least one of the operand nodes requires grad.
             '''
+            # TODO: pack in function once myfunc(*operands) is supported. 
+            # v0.5.0: error: unpacked arguments are not supported yet
             var requires_grad: Bool = False
             for i in range(operands.__len__()):
                 let operand: Node[dtype] = __get_address_as_lvalue(operands[i])
@@ -79,11 +81,20 @@ struct Graph[dtype: DType = DType.float32]:
             let result_node = Node[dtype](result, requires_grad=requires_grad)
             var result_graph_node = GraphNode[dtype](result_node)
 
-            # TODO: Set parent_broadcasting_shape
-            # The resulting node in the graph always contains it's backward information
+            # 2. The resulting node in the graph always contains it's backward information
             result_graph_node.backward_fn = backward_fn
+            '''
+            > result broadcast_shape:
+            Returns the broadcast shape of the given operands.
+            '''
+            # TODO: pack in function once myfunc(*operands) is supported. 
+            # v0.5.0: error: unpacked arguments are not supported yet
+            var operand_collection = NodeCollection[dtype]()
+            for i in range(operands.__len__()):
+                operand_collection.append(__get_address_as_lvalue(operands[i]))
+            result_graph_node.parent_broadcast_shape = self.get_broadcasting_shape(operand_collection, result)       
 
-            # 2. Add edges to the result node & the operands and adds them to the graph
+            # 3. Add edges to the result node & the operands and adds them to the graph
             for i in range(operands.__len__()):
                 let operand: Node[dtype] = __get_address_as_lvalue(operands[i])
                 self.add_edge(result_graph_node, operand)
@@ -94,6 +105,36 @@ struct Graph[dtype: DType = DType.float32]:
         
         else:
             return Node[dtype](result)
+
+    @staticmethod
+    fn get_broadcasting_shape(inout operands: NodeCollection[dtype], result: Tensor[dtype]) -> TensorShape:
+        '''
+        Broadcast multiple shapes to find a common compatible shape using only loops.
+        '''
+        # TODO: Only supports rank 2 operands for now.
+        from testing import assert_true
+        let max_rank: Int = 2
+
+        alias none_bc = TensorShape(-1, -1)
+        var bc_shape = DynamicVector[Int](max_rank)
+        bc_shape.push_back(-1)
+        bc_shape.push_back(-1)
+        for i in range(max_rank):
+            var current_max: Int = 1
+            for operand in operands:
+                _ = assert_true(operand.tensor.rank() <= 2, "Broadcasting only supports up to rank 2 tensors.")
+                let operand_shape = operand.tensor.shape()
+                if i < operand_shape.rank():
+                    let dim_size = operand_shape[max_rank - i - 1]
+                    if dim_size > 1:
+                        if current_max != 1 and current_max != dim_size:
+                            # Broadcasting not supported for given operands.
+                            return none_bc
+                        current_max = dim_size
+            bc_shape[max_rank - i - 1] = current_max
+
+        let broadcast_shape = TensorShape(bc_shape)
+        return broadcast_shape
 
 
     fn add_node(inout self, node: Node[dtype]):
@@ -140,7 +181,6 @@ struct Graph[dtype: DType = DType.float32]:
         '''
         Zeros the grad value of every node in the graph & parameters.
         '''
-        alias nelts = simdwidthof[dtype]()
         for i in range(self.graph.size):
             self.graph.zero_grad(i)
         for i in range(self.parameters.size):

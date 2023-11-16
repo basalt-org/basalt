@@ -17,7 +17,11 @@ struct ADD[dtype: DType]:
     fn forward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
         '''Forward operation of element wise addition.'''
         alias nelts: Int = simdwidthof[dtype]()
-        let res: Tensor[dtype] = elwise_op[dtype, nelts, add](n1.tensor, n2.tensor)
+        let res: Tensor[dtype]
+        if n1.tensor.shape() == n2.tensor.shape():
+            res = elwise_op[dtype, nelts, add](n1.tensor, n2.tensor)
+        else:
+            res = batch_tensor_elwise_op[dtype, nelts, add](n1.tensor, n2.tensor)
         return graph.create_graph_node[Self.backward[dtype]](res, n1, n2)
 
     @staticmethod
@@ -33,7 +37,11 @@ struct SUB[dtype: DType]:
     fn forward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
         '''Forward operation of element wise subtraction.'''
         alias nelts: Int = simdwidthof[dtype]()
-        let res: Tensor[dtype] = elwise_op[dtype, nelts, sub](n1.tensor, n2.tensor)
+        let res: Tensor[dtype] 
+        if n1.tensor.shape() == n2.tensor.shape():
+            res = elwise_op[dtype, nelts, sub](n1.tensor, n2.tensor)
+        else:
+            res = batch_tensor_elwise_op[dtype, nelts, sub](n1.tensor, n2.tensor)
         return graph.create_graph_node[Self.backward[dtype]](res, n1, n2)
 
     @staticmethod
@@ -55,7 +63,11 @@ struct MUL[dtype: DType]:
     fn forward(inout graph: Graph[dtype], n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
         '''Forward operation of element wise multiplication.'''
         alias nelts: Int = simdwidthof[dtype]()
-        let res: Tensor[dtype] = elwise_op[dtype, nelts, mul](n1.tensor, n2.tensor)
+        let res: Tensor[dtype]
+        if n1.tensor.shape() == n2.tensor.shape():
+            res = elwise_op[dtype, nelts, mul](n1.tensor, n2.tensor)
+        else:
+            res = batch_tensor_elwise_op[dtype, nelts, mul](n1.tensor, n2.tensor)
         return graph.create_graph_node[Self.backward[dtype]](res, n1, n2)
 
     @staticmethod

@@ -1,10 +1,10 @@
-from math import add
-from tensor import Tensor
+from math import add, min
+from tensor import Tensor, TensorShape
 
 from dainemo.autograd.graph import Graph
 from dainemo.utils.collection import NodeCollection
 from dainemo.utils.uuid import uuid
-from dainemo.utils.tensorutils import fill, elwise_op
+from dainemo.utils.tensorutils import fill, elwise_op, tsum
 
 
 
@@ -104,8 +104,8 @@ struct Node[dtype: DType = DType.float32]:
                 # Required when operation has multiple operands to identify the correct gradient function
                 let node_id = child_graph_node.parents.get_idx_by_uuid(self.uuid)
                 let upper_grad = g.graph.get_grad_value(child_idx)
-                let grad = child_graph_node.backward_fn(upper_grad, child_graph_node.parents, node_id)
-                # TODO: Broadcasting
+                var grad = child_graph_node.backward_fn(upper_grad, child_graph_node.parents, node_id)
+                self.unbroadcast_data(grad, self.tensor.shape(), child_graph_node.parent_broadcast_shape)
                 self.accumulate_grad(g, idx, grad)
 
             if not retain_graph and child_graph_node.are_parents_visited(g):
@@ -117,10 +117,22 @@ struct Node[dtype: DType = DType.float32]:
             g.update_parameter_grads(g.get_node(self)) # Share the grads with the params of the optimizer
             g.graph.remove(g.get_node(self))
 
+    @staticmethod
+    fn unbroadcast_data(inout data: Tensor[dtype], original_shape: TensorShape, broadcast_shape: TensorShape):
+        '''
+        Unbroadcasts the data to the original shape of the node.
+        '''
+        alias none_bc = TensorShape(-1, -1)
+        alias nelts: Int = simdwidthof[dtype]()
+        if broadcast_shape != none_bc:
+            for dim in range(min(original_shape.rank(), broadcast_shape.rank())):
+                if original_shape[dim] != broadcast_shape[dim]:
+                    data = tsum[dtype, 1](data, axis=dim)
+            
 
 fn backward_fn_placeholder[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
     # TODO: Error when called (raises)
-    print("Backward function placeholder")
+    print("ERROR: Backward function placeholder")
     return Tensor[dtype](ug.shape())
 
 
@@ -133,7 +145,7 @@ struct GraphNode[dtype: DType = DType.float32]:
     var visited: Bool
     var children: NodeCollection[dtype]
     var parents: NodeCollection[dtype]
-    # var parent_broadcast_shape TODO
+    var parent_broadcast_shape: TensorShape
     var backward_fn: fn(ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]
     
 
@@ -142,6 +154,7 @@ struct GraphNode[dtype: DType = DType.float32]:
         self.visited = False
         self.children = NodeCollection[dtype]()
         self.parents = NodeCollection[dtype]()
+        self.parent_broadcast_shape = node.tensor.shape()
         self.backward_fn = backward_fn_placeholder[dtype]
         
 
@@ -190,6 +203,7 @@ struct GraphNode[dtype: DType = DType.float32]:
         self.visited = other.visited
         self.children = other.children
         self.parents = other.parents
+        self.parent_broadcast_shape = other.parent_broadcast_shape
         self.backward_fn = other.backward_fn
 
     fn backward(inout self, inout g: Graph[dtype], retain_graph: Bool = False):

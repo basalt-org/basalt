@@ -31,12 +31,11 @@ test:
 	mojo run -I . test/test_collection.mojo
 	mojo run -I . test/test_node.mojo
 	mojo run -I . test/test_graph.mojo
-
-ops:
 	mojo run -I . test/test_ops.mojo
-
-bw:
 	mojo run -I . test/test_backward.mojo
 
 optim:
 	mojo run -I . test/test_optim.mojo
+
+reg:
+	mojo run -I . test/test_regression.mojo
