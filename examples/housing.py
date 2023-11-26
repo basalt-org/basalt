@@ -42,8 +42,8 @@ class LinearRegression(nn.Module):
 
 if __name__ == "__main__":
     batch_size = 64
-    num_epochs = 500
-    learning_rate = 0.01
+    num_epochs = 200
+    learning_rate = 0.05
 
 
     # Load data and split in training and testing sets
@@ -78,8 +78,8 @@ if __name__ == "__main__":
     device = torch.device('cpu')
     model = LinearRegression(train_data.data.shape[1])
     loss_func = nn.MSELoss()
-    # optimizer = optim.SGD(model.parameters(), lr=0.01)
-    optimizer = optim.Adam(model.parameters(), lr=0.01)
+    # optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 
     # Train the model
