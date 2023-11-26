@@ -1,9 +1,11 @@
 <h1 align='center'><b>Dainemo</b></h1>
 <p align='center'>
-    A Machine Learning framework from scratch created in Mojo 🔥
+    A Machine Learning framework from scratch in Mojo 🔥
 </p>
 
-![Dainemo Logo](./dainemo.png)
+<p align="center">
+  <img src="dainemo.png" alt="Dainemo Logo" width="300"/>
+</p>
 
 
 ### Examples Status
@@ -12,6 +14,14 @@
 |------------|---------|---------|----------|----------|
 | REGRESSION |   ✅    |   ✅    |    ✅    |    ✅    |
 | CONV       |   ✅    |   ❌    |    ❌    |    ❌    |
+
+
+<sub>Regression example:</sub>
+<p>
+  <img src="./dainemo.gif" alt="Dainemo Logo" width="400"/>
+</p>
+
+
 
 # Getting started
 
@@ -136,4 +146,4 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ## Acknowledgements
 
-The project is inspired by [neograd](https://github.com/pranftw/neograd)
+A huge thanks to [pranftw](https://github.com/pranftw) for the inspiration and support! This project is inspired by [neograd](https://github.com/pranftw/neograd) which forms the basis of the implementation.
