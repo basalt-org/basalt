@@ -1,8 +1,9 @@
 from dainemo.utils.datasets import MNIST
-from dainemo.utils.dataloader import DataLoader
-from dainemo.utils.tensorutils import tprint
+from dainemo.utils.dataloader import DataLoader, mnist_data_batch, mnist_label_batch
 
 import dainemo.nn as nn
+from dainemo.autograd.graph import Graph
+from dainemo.autograd.node import Node
 
 from tensor import Tensor, TensorShape
 from utils.index import Index
@@ -26,13 +27,15 @@ def plot_image[dtype: DType](borrowed data: Tensor[dtype], num: Int):
 
 
 struct Model[dtype: DType]:
+    var graph: Graph[dtype]
     var layer1: nn.Linear[dtype]
 
     fn __init__(inout self):
-        self.layer1 = nn.Linear[dtype](28*28, 256)
-
-    fn forward(inout self, x: Tensor[dtype]) -> Tensor[dtype]:
-        return self.layer1(x)
+        self.graph = Graph[dtype]()
+        self.layer1 = nn.Linear[dtype](self.graph, 28*28, 256)
+        
+    fn forward(inout self, x: Tensor[dtype]) -> Node[dtype]:
+        return self.layer1(self.graph, Node[dtype](x))
 
 
 
@@ -55,51 +58,20 @@ fn main():
                             batch_size=batch_size
                         )
     
-
     var model = Model[dtype]()
 
-    let output: Tensor[dtype]
-    let batch_start: Int
-    let batch_end: Int
+
     let batch_data: Tensor[dtype]
     let batch_labels: Tensor[dtype]
     for epoch in range(num_epochs):
-        for batch_indeces in training_loader:
+        for batch in training_loader:
+                        
+            batch_data = mnist_data_batch[dtype](batch.get[0, Int](), batch.get[1, Int](), training_loader.data)
+            batch_labels = mnist_label_batch[dtype](batch.get[0, Int](), batch.get[1, Int](), training_loader.labels)
             
-            batch_start = batch_indeces.get[0, Int]()
-            batch_end = batch_indeces.get[1, Int]()
-            
-            batch_data = create_data_batch[dtype](batch_start, batch_end, training_loader.data)
-            batch_labels = create_label_batch[dtype](batch_start, batch_end, training_loader.labels)
-            
-            # tprint[dtype](batch_data)
-            tprint[dtype](batch_labels)
+            try:
+                _ = plot_image[dtype](batch_data, 0)
+            except: 
+                print("Could not plot image")
 
-            # try:
-            #     _ = plot_image[dtype](batch_data, 0)
-            # except: 
-            #     print("Could not plot image")
-
-            output = model.forward(batch_data)
-
-            # tprint[dtype](output)
-        #     break
-        # break
-
-
-
-#TODO: See DataLoader
-fn create_data_batch[dtype: DType](start: Int, end: Int, data: Tensor[dtype]) ->  Tensor[dtype]:
-    var batch = Tensor[dtype](TensorShape(end - start, 1, 28, 28))
-    for i in range(end - start):
-        for m in range(28):
-            for n in range(28):
-                batch[Index(i, 0, m, n)] = data[Index(start + i, 0, m, n)]
-    return batch
-
-fn create_label_batch[dtype: DType](start: Int, end: Int, labels: Tensor[dtype]) ->  Tensor[dtype]:
-    var batch = Tensor[dtype](TensorShape(end - start, 1))
-    for i in range(end - start):
-        batch[i] = labels[start + i]
-    return batch
-
+            let output = model.forward(batch_data)

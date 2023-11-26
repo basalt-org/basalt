@@ -52,7 +52,7 @@ struct DataLoader[dtype: DType]:
         # TODO: (current: mojo v0.4.0) create data batch & label batch here and return as (Tensor[dtype], Tensor[dtype]])
         # 1. Not supported yet: Can't get tensor out of tuple (Traits: https://github.com/modularml/mojo/issues/516)
         # 2. Not support yet: get 2 elements when looping over the iter metod (eg for batch, label_batch in dataloader)
-        # 3. Can't dynamically creating a TensorShape 
+        # 3. Dynamically creating a TensorShape 
         #    e.g TensorShape(end - start, 1, 28, 28) for mnsit and 
         #    e.g TensorShape(end - start, 13) for boston housing
         
@@ -63,3 +63,31 @@ struct DataLoader[dtype: DType]:
         return start, end
 
         
+
+## TODO: Workarounds
+fn housing_data_batch[dtype: DType](start: Int, end: Int, data: Tensor[dtype]) ->  Tensor[dtype]:
+    var batch = Tensor[dtype](TensorShape(end - start, 13))
+    for n in range(end - start):
+        for i in range(13):
+            batch[Index(n, i)] = data[Index(start + n, i)]
+    return batch
+
+fn housing_label_batch[dtype: DType](start: Int, end: Int, labels: Tensor[dtype]) ->  Tensor[dtype]:
+    var batch = Tensor[dtype](TensorShape(end - start, 1))    
+    for i in range(end - start):
+        batch[i] = labels[start + i]
+    return batch
+
+fn mnist_data_batch[dtype: DType](start: Int, end: Int, data: Tensor[dtype]) ->  Tensor[dtype]:
+    var batch = Tensor[dtype](TensorShape(end - start, 1, 28, 28))
+    for i in range(end - start):
+        for m in range(28):
+            for n in range(28):
+                batch[Index(i, 0, m, n)] = data[Index(start + i, 0, m, n)]
+    return batch
+
+fn mnist_label_batch[dtype: DType](start: Int, end: Int, labels: Tensor[dtype]) ->  Tensor[dtype]:
+    var batch = Tensor[dtype](TensorShape(end - start, 1))
+    for i in range(end - start):
+        batch[i] = labels[start + i]
+    return batch

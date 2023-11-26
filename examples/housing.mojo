@@ -1,5 +1,5 @@
 from dainemo.utils.datasets import BostonHousing
-from dainemo.utils.dataloader import DataLoader
+from dainemo.utils.dataloader import DataLoader, housing_data_batch, housing_label_batch
 
 import dainemo.nn as nn
 from dainemo.autograd.graph import Graph
@@ -32,7 +32,7 @@ fn main():
     except:
         print("Could not load data")
     
-    alias num_epochs = 500
+    alias num_epochs = 200
     alias batch_size = 64
     var training_loader = DataLoader[dtype](
                             data=train_data.data,
@@ -42,21 +42,17 @@ fn main():
     
     var model = LinearRegression[dtype](train_data.data.dim(1))
     var loss_func = nn.MSELoss[dtype]()
-    var optim = nn.optim.Adam[dtype](lr=0.01)
+    var optim = nn.optim.Adam[dtype](lr=0.05)
 
-    let batch_start: Int
-    let batch_end: Int
     let batch_data: Tensor[dtype]
     let batch_labels: Tensor[dtype]
     for epoch in range(num_epochs):
-        var epoch_loss: SIMD[dtype, 1] = 0.0
         var num_batches: Int = 0
+        var epoch_loss: SIMD[dtype, 1] = 0.0
         for batch_indeces in training_loader:
-            
-            batch_start = batch_indeces.get[0, Int]()
-            batch_end = batch_indeces.get[1, Int]()
-            batch_data = create_data_batch[dtype](batch_start, batch_end, training_loader.data)
-            batch_labels = create_label_batch[dtype](batch_start, batch_end, training_loader.labels)
+
+            batch_data = housing_data_batch[dtype](batch_indeces.get[0, Int](), batch_indeces.get[1, Int](), training_loader.data)
+            batch_labels = housing_label_batch[dtype](batch_indeces.get[0, Int](), batch_indeces.get[1, Int](), training_loader.labels)
             
             optim.zero_grad(model.graph)
             let output = model.forward(batch_data)            
@@ -69,18 +65,3 @@ fn main():
             num_batches += 1
         
         print("Epoch: [", epoch+1, "/", num_epochs, "] \t Avg loss per epoch:", epoch_loss / num_batches)
-
-
-#TODO: See DataLoader
-fn create_data_batch[dtype: DType](start: Int, end: Int, data: Tensor[dtype]) ->  Tensor[dtype]:
-    var batch = Tensor[dtype](TensorShape(end - start, 13))
-    for n in range(end - start):
-        for i in range(13):
-            batch[Index(n, i)] = data[Index(start + n, i)]
-    return batch
-
-fn create_label_batch[dtype: DType](start: Int, end: Int, labels: Tensor[dtype]) ->  Tensor[dtype]:
-    var batch = Tensor[dtype](TensorShape(end - start, 1))    
-    for i in range(end - start):
-        batch[i] = labels[start + i]
-    return batch
