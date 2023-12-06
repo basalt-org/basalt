@@ -96,13 +96,13 @@ fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     vectorize[nelts, vecsum](t.num_elements())
     return s
 
-from testing import assert_equal
+# from testing import assert_equal
 @always_inline
 fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
     
     # Only supported rank atm is 2
     # TODO implement recursively to support any rank
-    _ = assert_equal(t.rank(), 2)
+    # _ = assert_equal(t.rank(), 2)
 
     let d: Int = 1 if axis == 0 else 0
     let t_new = Tensor[dtype](1, t.dim(d)) if axis == 0 else Tensor[dtype](t.dim(d), 1)

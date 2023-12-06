@@ -106,15 +106,15 @@ struct DOT[dtype: DType]:
     fn backward[dtype: DType](ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]:
         '''Backward operation of dot product.'''
         # Only 2D input tensors are supported yet !! 
-        from testing import assert_equal
+        # from testing import assert_equal
         from dainemo.utils.tensorutils import transpose_2D
         alias nelts: Int = simdwidthof[dtype]()
         if node_id == 0:
-            _ = assert_equal(nodes.get(1).tensor.rank(), 2)
+            # _ = assert_equal(nodes.get(1).tensor.rank(), 2)
 
             return dot[dtype, nelts](ug, transpose_2D[dtype, nelts](nodes.get(1).tensor))           # dot(ug, n2.T)
         else:
-            _ = assert_equal(nodes.get(0).tensor.rank(), 2)
+            # _ = assert_equal(nodes.get(0).tensor.rank(), 2)
             return dot[dtype, nelts](transpose_2D[dtype, nelts](nodes.get(0).tensor), ug)           # dot(n1.T, ug)
 
 

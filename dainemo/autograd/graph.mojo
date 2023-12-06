@@ -112,7 +112,7 @@ struct Graph[dtype: DType = DType.float32]:
         Broadcast multiple shapes to find a common compatible shape using only loops.
         '''
         # TODO: Only supports rank 2 operands for now.
-        from testing import assert_true
+        # from testing import assert_true
         let max_rank: Int = 2
 
         alias none_bc = TensorShape(-1, -1)
@@ -122,7 +122,7 @@ struct Graph[dtype: DType = DType.float32]:
         for i in range(max_rank):
             var current_max: Int = 1
             for operand in operands:
-                _ = assert_true(operand.tensor.rank() <= 2, "Broadcasting only supports up to rank 2 tensors.")
+                # _ = assert_true(operand.tensor.rank() <= 2, "Broadcasting only supports up to rank 2 tensors.")
                 let operand_shape = operand.tensor.shape()
                 if i < operand_shape.rank():
                     let dim_size = operand_shape[max_rank - i - 1]
