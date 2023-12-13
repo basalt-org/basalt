@@ -25,6 +25,8 @@ struct bytes:
         var result: String = ""
         alias hex_table: String = "0123456789abcdef"
         for i in range(self.__len__()):
+            if i==4 or i==6 or i==8 or i==10:
+                result += "-"
             result += hex_table[(self[i] >> 4).to_int()] + hex_table[(self[i] & 0xF).to_int()]
         return result
 
