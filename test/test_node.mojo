@@ -42,6 +42,28 @@ fn test_graph_relations() raises:
     assert_equal(n3.parents[1], n2.uuid)     # node_3 <- node_2
 
 
+fn test_visited_default() raises:
+    var n1 = GRAPH.graph[0]
+    var n2 = GRAPH.graph[1]
+    var n3 = GRAPH.graph[2]
+
+    assert_equal(n1.are_children_visited(), False)
+    assert_equal(n2.are_children_visited(), False)
+    assert_equal(n3.are_children_visited(), True)      # node_3 has no children
+    assert_equal(n1.are_parents_visited(), True)       # node_1 has no parents
+    assert_equal(n2.are_parents_visited(), True)       # node_2 has no parents
+    assert_equal(n3.are_parents_visited(), False)
+
+
+fn test_visit_all_children() raises:
+    var n1 = GRAPH.graph[0]
+    var n2 = GRAPH.graph[1]
+
+    assert_equal(n1.are_children_visited(), False)
+    n2.visit_all_children()
+    assert_equal(n1.are_children_visited(), True)
+
+
 
 fn main():
 
@@ -50,6 +72,8 @@ fn main():
     try:
         assert_equal(GRAPH.graph.size, 3)
         test_graph_relations()
+        test_visited_default()
+        test_visit_all_children()
     except:
         print("[ERROR] Error in test_node.py")
 

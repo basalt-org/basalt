@@ -1,7 +1,7 @@
 from math import add, min
 from tensor import Tensor, TensorShape
 
-from dainemo.autograd.graph import Graph
+from dainemo import GRAPH
 from dainemo.utils.uuid import uuid
 from dainemo.utils.tensorutils import fill, elwise_op, tsum
 
@@ -70,33 +70,37 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         '''
         self.parents.push_back(node.uuid)
 
-    # fn visit_all_children(inout self, inout g: Graph[dtype]):
-    #     '''
-    #     Marks all children of the node as visited in the graph.
-    #     '''
-    #     for child in self.children:
-    #         let idx = g.get_node(child)
-    #         g.graph.set_visit_value(idx, True)
+    fn visit_all_children(inout self):
+        '''
+        Marks all children of the node as visited in the graph.
+        '''
+        for i in range(self.children.size):
+            let idx = GRAPH.get_node_idx(self.children[i])
+            # TODO: GRAPH.graph[idx].visited = True 
+            # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
+            var child = GRAPH.graph[idx]
+            child.visited = True
+            GRAPH.graph[idx] = child
+    
+    fn are_children_visited(inout self) -> Bool:
+        '''
+        Checks if all children of the node are visited in the graph.
+        '''
+        for i in range(self.children.size):
+            let idx = GRAPH.get_node_idx(self.children[i])
+            if not GRAPH.graph[idx].visited:
+                return False
+        return True
 
-    # fn are_children_visited(inout self, inout g: Graph[dtype]) -> Bool:
-    #     '''
-    #     Checks if all children of the node are visited in the graph.
-    #     '''
-    #     for child in self.children:
-    #         let idx = g.get_node(child)
-    #         if not g.graph.get_visit_value(idx):
-    #             return False
-    #     return True
-
-    # fn are_parents_visited(inout self, inout g: Graph[dtype]) -> Bool:
-    #     '''
-    #     Checks if all parents of the node are visited in the graph.
-    #     '''
-    #     for parent in self.parents:
-    #         let idx = g.get_node(parent)
-    #         if not g.graph.get_visit_value(idx):
-    #             return False
-    #     return True
+    fn are_parents_visited(inout self) -> Bool:
+        '''
+        Checks if all parents of the node are visited in the graph.
+        '''
+        for i in range(self.parents.size):
+            let idx = GRAPH.get_node_idx(self.parents[i])
+            if not GRAPH.graph[idx].visited:
+                return False
+        return True
 
 
 
