@@ -2,7 +2,7 @@ from tensor import Tensor, TensorShape
 from algorithm import vectorize, parallelize
 
 from dainemo.autograd.node import Node
-from dainemo.utils.tensorutils import elwise_op
+from dainemo.utils.tensorutils import elwise_op, zero
 from math import add, max
 
 
@@ -16,14 +16,12 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
 
     var keys: DynamicVector[String]
     var graph: DynamicVector[Node[dtype]]
-    # var parameters: NodeCollection[dtype]       # TODO: shouldn't be part of graph, but of nn.model abstract class
-    #                                             # As Inheritance is not supported yet, temporary solution
-    #                                             # to store the model parameters in the graph
+
 
     fn __init__(inout self):
         self.keys = DynamicVector[String]()
         self.graph = DynamicVector[Node[dtype]]()
-        # self.parameters = NodeCollection[dtype]()
+
 
     fn add_edge(inout self, inout result_node: Node[dtype], operands: VariadicListMem[Node[dtype]]):
         '''
@@ -180,14 +178,16 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
             self.graph[idx] = node
 
 
-    # fn zero_grad(inout self):
-    #     '''
-    #     Zeros the grad value of every node in the graph & parameters.
-    #     '''
-    #     for i in range(self.graph.size):
-    #         self.graph.zero_grad(i)
-    #     for i in range(self.parameters.size):
-    #         self.parameters.zero_grad(i)
+    fn zero_grad(inout self):
+        '''
+        Zeros the grad value of every node in the graph & parameters.
+        '''
+        for idx in range(self.graph.size):
+            # TODO: zero[dtype](self.graph[idx].grad)  --> only
+            # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
+            var node = self.graph[idx]
+            zero[dtype](node.grad)
+            self.graph[idx] = node
 
 
     # fn update_parameter_grads(inout self, graph_idx: Int):
