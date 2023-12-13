@@ -24,6 +24,9 @@ fn test_MSE_perfect() raises:
     assert_equal(loss.tensor[0], 0)         # loss is 0
     assert_equal(loss.tensor[1], 0)         # loss is 0
 
+    assert_equal(GRAPH.graph.size, 8)        # outputs, labels, diff, [2], pow, sum, div2n, loss
+    GRAPH.reset()
+
 
 fn test_MSE_imperfect() raises:
     var loss_func = nn.MSELoss()
@@ -44,6 +47,9 @@ fn test_MSE_imperfect() raises:
         expected_loss += (output[i] - labels[i])**2
     expected_loss = expected_loss / (2*10)
     assert_equal(loss.tensor[0], expected_loss)
+
+    assert_equal(GRAPH.graph.size, 8)
+    GRAPH.reset()
 
 
 fn main():
