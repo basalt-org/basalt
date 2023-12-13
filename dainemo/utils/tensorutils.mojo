@@ -100,10 +100,6 @@ fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
 @always_inline
 fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
     
-    # Only supported rank atm is 2
-    # TODO implement recursively to support any rank
-    # _ = assert_equal(t.rank(), 2)
-
     let d: Int = 1 if axis == 0 else 0
     let t_new = Tensor[dtype](1, t.dim(d)) if axis == 0 else Tensor[dtype](t.dim(d), 1)
 
@@ -113,7 +109,8 @@ fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
         var s: SIMD[dtype, 1] = 0
         @parameter
         fn axissum[nelts: Int](j: Int):
-            s += t.simd_load[nelts](j * t.dim(d) + i).reduce_add()
+            let index = j * t.dim(d) + i if axis == 0 else i * t.dim(axis) + j
+            s += t.simd_load[nelts](index).reduce_add()
         vectorize[nelts, axissum](t.dim(axis))
         t_new[i] = s
 
