@@ -56,7 +56,7 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
 
 
     fn create_graph_node[
-            backward_fn: fn(ug: Tensor[dtype], operand_tensors: VariadicListMem[Tensor[dtype]], operand_idx: Int) -> Tensor[dtype]
+            backward_fn: fn(ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[dtype]
         ](
             inout self, 
             result: Tensor[dtype],

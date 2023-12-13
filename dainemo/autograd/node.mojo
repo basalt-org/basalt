@@ -8,8 +8,8 @@ from dainemo.utils.tensorutils import fill, elwise_op, tsum
 
 fn backward_fn_placeholder[dtype: DType](
         ug: Tensor[dtype],
-        operand_tensors: VariadicListMem[Tensor[dtype]],
-        operand_idx: Int
+        tensor_vec: DynamicVector[String],
+        tensor_id: Int
     ) -> Tensor[dtype]:
     print("[ERROR]: Backward function placeholder")
     return Tensor[dtype](ug.shape())
@@ -39,7 +39,7 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
     var children: DynamicVector[String]
     var parents: DynamicVector[String]
     var parent_broadcast_shape: TensorShape
-    var backward_fn: fn(ug: Tensor[dtype], operand_tensors: VariadicListMem[Tensor[dtype]], operand_idx: Int) -> Tensor[dtype]
+    var backward_fn: fn(ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[dtype]
 
     # var optim_rms_grad: Tensor[dtype]           # TODO: Remove. Etra value for the optimizer to avoid code duplication in absence of inheritance & lifetimes
     # var optim_momentum_grad: Tensor[dtype]      # TODO: Remove. Etra value for the optimizer to avoid code duplication in absence of inheritance & lifetimes
