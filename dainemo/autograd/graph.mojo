@@ -146,13 +146,13 @@ struct Graph[dtype: DType = DType.float32](Stringable):
         self.graph.push_back(node)
 
 
-    fn get_node(inout self, node: Node[dtype]) -> Int:
+    fn get_node_idx(inout self, node_uuid: String) -> Int:
         '''
         Returns the index of the corresponding node in the graph.
         When the node is not found in the graph, returns -1.
         '''
-        for i in range(self.graph.size):
-            if self.graph[i].uuid == node.uuid:
+        for i in range(self.keys.size):
+            if self.keys[i] == node_uuid:
                 return i
         return -1
 
@@ -165,21 +165,29 @@ struct Graph[dtype: DType = DType.float32](Stringable):
         self.graph = DynamicVector[Node[dtype]]()
 
 
-    # fn reset_visited(inout self):
-    #     '''
-    #     Marks visited as False for every GraphNode in the graph.
-    #     '''
-    #     for i in range(self.graph.size):
-    #         self.graph.set_visit_value(i, False)
+    fn reset_visited(inout self):
+        '''
+        Marks visited as False for every Node in the graph.
+        '''
+        for idx in range(self.graph.size):
+            # TODO: self.graph[idx].visited = False 
+            # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
+            var node = self.graph[idx]
+            node.visited = False
+            self.graph[idx] = node
 
     
-    # fn mark_visited(inout self, node: Node[dtype]):
-    #     '''
-    #     Marks the GraphNode corresponding to the given node as visited.
-    #     '''
-    #     let idx = self.get_node(node)
-    #     if idx != -1:
-    #         self.graph.set_visit_value(idx, True)
+    fn mark_visited(inout self, node_uuid: String):
+        '''
+        Marks the Node corresponding to the given uuid as visited in the graph.
+        '''
+        let idx = self.get_node_idx(node_uuid)
+        if idx != -1:
+            # TODO: self.graph[idx].visited = True 
+            # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
+            var node = self.graph[idx]
+            node.visited = True
+            self.graph[idx] = node
 
 
     # fn zero_grad(inout self):

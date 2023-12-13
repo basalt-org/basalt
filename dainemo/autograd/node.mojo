@@ -75,12 +75,7 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         Marks all children of the node as visited in the graph.
         '''
         for i in range(self.children.size):
-            let idx = GRAPH.get_node_idx(self.children[i])
-            # TODO: GRAPH.graph[idx].visited = True 
-            # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
-            var child = GRAPH.graph[idx]
-            child.visited = True
-            GRAPH.graph[idx] = child
+            GRAPH.mark_visited(self.children[i])
     
     fn are_children_visited(inout self) -> Bool:
         '''
