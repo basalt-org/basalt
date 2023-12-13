@@ -1,51 +1,55 @@
 from random import rand
 from tensor import Tensor
+from testing import assert_equal
 
-from dainemo.autograd.node import Node, GraphNode
-from dainemo.autograd.graph import Graph
+from dainemo import GRAPH
+from dainemo.autograd.node import Node
 from dainemo.autograd.node import backward_fn_placeholder
+
+alias dtype = DType.float32
+
+
+fn build_test_graph():
+    # Building the graph for test purposes
+    # A graph with two parent nodes and one child node:
+    #       node_1   \
+    #                  [-] --> node_3
+    #       node_2   / 
+    let node_1 = Node(rand[dtype](1, 10))
+    let node_2 = Node(rand[dtype](1, 10))
+    let tensor_3 = rand[dtype](1, 10)
+
+    # Define node relationships using operation [-] with:
+    #      result: tensor_3
+    #      operands: node_1, node_2
+    _ = GRAPH.create_graph_node[backward_fn_placeholder[dtype]](tensor_3, node_1, node_2)
+    print(GRAPH)
+
+
+fn test_graph_relations() raises:
+    let n1 = GRAPH.graph[0]
+    let n2 = GRAPH.graph[1]
+    let n3 = GRAPH.graph[2]
+
+    assert_equal(GRAPH.graph.size, 3)
+    assert_equal(n1.children.size, 1)
+    assert_equal(n2.children.size, 1)
+    assert_equal(n3.children.size, 0)
+    assert_equal(n1.parents.size, 0)
+    assert_equal(n2.parents.size, 0)
+    assert_equal(n3.parents.size, 2)
+
+    assert_equal(n1.children[0], n3.uuid)    # node_1 -> node_3
+    assert_equal(n2.children[0], n3.uuid)    # node_2 -> node_3
+    assert_equal(n3.parents[0], n1.uuid)     # node_3 <- node_1
+    assert_equal(n3.parents[1], n2.uuid)     # node_3 <- node_2
 
 
 fn main():
-    alias dtype = DType.float32
-    alias nelts: Int = simdwidthof[dtype]()
 
+    build_test_graph()
 
-    var g = Graph[dtype]()
-
-    let tensor_1 = rand[dtype](2, 10)
-    let tensor_2 = rand[dtype](2, 10)
-    let tensor_3 = rand[dtype](2, 10)
-    let node_1 = Node[dtype](tensor_1)
-    let node_2 = Node[dtype](tensor_2)
-    let node_3 = Node[dtype](tensor_3)
-
-    # Test get_node
-    print("Empty graph, size:", g.graph.size, ", finds no nodes:", g.get_node(node_1))
-    g.add_node(node_1)
-    g.add_node(node_2)
-    print(g.get_node(node_1))
-    print(g.get_node(node_2))
-    print(g.get_node(node_3))
-
-    # Test add_edge
-    var result_node = GraphNode[dtype](node_3)
-    
-    print("Result node has no parents:", result_node.parents.size)
-    print("Node corresponding to tensor_1 has no children:", g.graph.get(g.get_node(node_1)).children.size)
-
-    print("Adding edge from node_1 to result_node")
-    g.add_edge(result_node, node_1)
-
-    print("Result node has a parent:", result_node.parents.size)
-    print("Node corresponding to tensor_1 has a child:",  g.graph.get(g.get_node(node_1)).children.size)
-
-
-    # Test create_graph_node
-    let tensor_4 = rand[dtype](2, 10)
-    print("2 nodes in the graph so far:", g.graph.size)
-    
-    let node_4 = g.create_graph_node[backward_fn_placeholder[dtype]](tensor_4, node_1, node_2, node_3)
-    
-    print("4 nodes in the graph:", g.graph.size)
-    print("tensor_4 node has 3 parents:", g.graph.get(g.get_node(node_4)).parents.size)
+    try:
+        test_graph_relations()
+    except:
+        print("[ERROR] Error in graph.py")
