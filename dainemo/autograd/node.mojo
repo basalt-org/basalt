@@ -6,10 +6,13 @@ from dainemo.utils.uuid import uuid
 from dainemo.utils.tensorutils import fill, elwise_op, tsum
 
 
-# fn backward_fn_placeholder[dtype: DType](ug: Tensor[dtype], nodes: DynamicVector[Node[dtype]], node_id: Int) -> Tensor[dtype]:
-#     # TODO: Error when called (raises)
-#     print("ERROR: Backward function placeholder")
-#     return Tensor[dtype](ug.shape())
+fn backward_fn_placeholder[dtype: DType](
+        ug: Tensor[dtype],
+        operand_tensors: VariadicListMem[Tensor[dtype]],
+        operand_idx: Int
+    ) -> Tensor[dtype]:
+    print("[ERROR]: Backward function placeholder")
+    return Tensor[dtype](ug.shape())
 
 
 @value
@@ -36,7 +39,7 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
     var children: DynamicVector[String]
     var parents: DynamicVector[String]
     var parent_broadcast_shape: TensorShape
-    # var backward_fn: fn(ug: Tensor[dtype], nodes: DynamicVector[Node[dtype]], node_id: Int) -> Tensor[dtype]
+    var backward_fn: fn(ug: Tensor[dtype], operand_tensors: VariadicListMem[Tensor[dtype]], operand_idx: Int) -> Tensor[dtype]
 
     # var optim_rms_grad: Tensor[dtype]           # TODO: Remove. Etra value for the optimizer to avoid code duplication in absence of inheritance & lifetimes
     # var optim_momentum_grad: Tensor[dtype]      # TODO: Remove. Etra value for the optimizer to avoid code duplication in absence of inheritance & lifetimes
@@ -52,7 +55,7 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         self.children = DynamicVector[String]()
         self.parents = DynamicVector[String]()
         self.parent_broadcast_shape = tensor.shape()
-        # self.backward_fn = backward_fn_placeholder[dtype]
+        self.backward_fn = backward_fn_placeholder[dtype]
         
         # self.optim_rms_grad = Tensor[dtype](self.grad.shape())
         # self.optim_momentum_grad = Tensor[dtype](self.grad.shape())
