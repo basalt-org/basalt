@@ -59,24 +59,25 @@ struct Graph[dtype: DType = DType.float32](Stringable):
             res += " -> "
         res += ")"
         return res
-    
 
+
+alias dtype = DType.float32
+var GRAPH = Graph[dtype]()
 
 
 fn main():
-    alias dtype = DType.float32
+    
     let t0: Tensor[dtype] = rand[dtype](3, 4)
     let t1: Tensor[dtype] = rand[dtype](1, 4)
 
     var mynode = Node[dtype](t0, requires_grad=True)
     var mychild = Node[dtype](t1, requires_grad=True)
 
-    var graph = Graph[dtype]()
-    graph.add_node(mynode)
-    graph.add_node(mychild)
+    GRAPH.add_node(mynode)
+    GRAPH.add_node(mychild)
 
-    for i in range(graph.graph.size):
-        let n = graph.graph[i]
+    for i in range(GRAPH.graph.size):
+        let n = GRAPH.graph[i]
         print("GRAPH: ", n.uuid)
         for i in range(n.children.size):
             print("\tMYCHILD: ", n.children[i])
