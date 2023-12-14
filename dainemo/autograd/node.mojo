@@ -102,44 +102,64 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
 
 
 
-    # fn backward(inout self, inout g: Graph[dtype], upper_grad: Tensor[dtype], retain_graph: Bool = False):
-    #     '''
-    #     Initial entrypoint for the backward pass. (as loss.backward() is called)
-    #     Initializes the backward pass by calling the backward function of the corresponding graph_node.
-    #     Which is aware if its children and parents in the graph.
-    #     - upper_grad: The gradient to start the backward pass with. Shape should be equal to the shape of the node's tensor.
-    #     - retain_graph: If true, the graph will not reset after the backward pass.
-    #     '''
+    fn backward(inout self, upper_grad: Tensor[dtype], retain_graph: Bool = False):
+        '''
+        Initial entrypoint for the backward pass. (as loss.backward() is called)
+        Calculates the order of the backward pass and calls the backward function of the node to calculate the gradients.
+        - upper_grad: The gradient to start the backward pass with. Shape should be equal to the shape of the node's tensor.
+        - retain_graph: If true, the graph will not reset after the backward pass.
+        '''
 
-    #     if self.requires_grad:
-    #         # TODO: Check if upper_grad.shape == self.tensor.shape (raises)
-    #         let idx = g.get_node(self)
-    #         var graph_node = g.graph.get(idx)
-    #         self.accumulate_grad(g, idx, upper_grad)
-    #         graph_node.backward(g, retain_graph)
-    #         if not retain_graph:
-    #             g.reset()
+        if self.requires_grad:
+            # TODO: Check if upper_grad.shape == self.tensor.shape (raises)
+            self.accumulate_grad(upper_grad)
+            
+            # # 1. Topological sort of the graph.
+            # # Visit all children so that they aren't included in the backward pass
+            # # This allows gradient calculation for any intermediate node in the graph
+            # g.reset_visited()
+            # self.visit_all_children(g)
+            # var sorted_nodes = self.topological_sort(g)
+            # g.reset_visited()
+
+            # # 2. Mark as visited & Backward pass on 1st current node without calulating the gradient
+            # sorted_nodes.remove(0)
+            # g.mark_visited(self.node)
+            # self.node.backward_gradient(g, retain_graph, calculate_grads=False)
+            
+            # # 3. Calculate the gradients for the nodes in topological order
+            # for node in sorted_nodes:
+            #     g.mark_visited(node)
+            #     node.backward_gradient(g, retain_graph)
+
+            if not retain_graph:
+                GRAPH.reset()
 
 
-    # fn backward(inout self, inout g: Graph[dtype], retain_graph: Bool = False):
-    #     '''
-    #     Function overload for: Default upper_grad, a Tensor of 1.0 with shape equal to the shape of the node's tensor.
-    #     '''
-    #     var upper_grad = Tensor[dtype](self.tensor.shape())
-    #     alias nelts: Int = simdwidthof[dtype]()
-    #     fill[dtype, nelts](upper_grad, 1.0)
-    #     self.backward(g, upper_grad, retain_graph)
+    fn backward(inout self, retain_graph: Bool = False):
+        '''
+        Function overload for: Default upper_grad, tensor of 1.0, with shape equal to the shape of the node's tensor.
+        '''
+        var upper_grad = Tensor[dtype](self.tensor.shape())
+        alias nelts: Int = simdwidthof[dtype]()
+        fill[dtype, nelts](upper_grad, 1.0)
+        self.backward(upper_grad, retain_graph)
 
 
-    # fn accumulate_grad(inout self, inout g: Graph[dtype], idx: Int, grad: Tensor[dtype]):
-    #     '''
-    #     Accumulates the gradient of the node in the graph.
-    #     '''
-    #     let current_grad = g.graph.get_grad_value(idx)
-    #     alias nelts: Int = simdwidthof[dtype]()
-    #     self.grad = elwise_op[dtype, nelts, add](current_grad, grad)
-    #     g.graph.set_grad_value(idx, self.grad)
-
+    fn accumulate_grad(inout self, grad: Tensor[dtype]):
+        '''
+        Accumulates the gradient of the node in the graph.
+        '''
+        # TODO: self.grad = elwise_op[dtype, nelts, add](self.grad, grad) --> only
+        # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
+        let my_idx = GRAPH.get_node_idx(self.uuid)
+        var my_node = GRAPH.graph[my_idx]
+        # TODO: [BUG] my_node.grad has type DType.float32 instead of a generic dtype
+        # should be: my_node.grad = elwise_op[dtype, nelts, add](my_node.grad, grad)
+        for i in range(grad.num_elements()):
+            my_node.grad[i] += grad[i].cast[DType.float32]()        
+        GRAPH.graph[my_idx] = my_node
+    
     
     # fn backward_gradient(inout self, inout g: Graph[dtype], retain_graph: Bool, calculate_grads: Bool = True):
     #     '''
@@ -219,30 +239,6 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
 
 
 
-
-
-    # fn backward(inout self, inout g: Graph[dtype], retain_graph: Bool = False):
-    #     '''
-    #     Calculates the order of the backward pass and calls the backward function of the node to calculate the gradients.
-    #     '''
-
-    #     # 1. Topological sort of the graph.
-    #     # Visit all children so that they aren't included in the backward pass
-    #     # This allows gradient calculation for any intermediate node in the graph
-    #     g.reset_visited()
-    #     self.visit_all_children(g)
-    #     var sorted_nodes = self.topological_sort(g)
-    #     g.reset_visited()
-
-    #     # 2. Mark as visited & Backward pass on 1st current node without calulating the gradient
-    #     sorted_nodes.remove(0)
-    #     g.mark_visited(self.node)
-    #     self.node.backward_gradient(g, retain_graph, calculate_grads=False)
-        
-    #     # 3. Calculate the gradients for the nodes in topological order
-    #     for node in sorted_nodes:
-    #         g.mark_visited(node)
-    #         node.backward_gradient(g, retain_graph)
             
 
     # fn topological_sort(inout self, inout g: Graph[dtype]) -> NodeCollection[dtype]:
