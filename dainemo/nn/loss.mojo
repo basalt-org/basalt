@@ -15,7 +15,7 @@ struct MSELoss:
 
         let difference = SUB.forward(outputs, Node[dtype](targets))
         let squared_difference = POW.forward(difference, 2)
-        let res = SUM.forward[axis=1](squared_difference)
+        let res = SUM.forward(squared_difference)
         let div2N: SIMD[dtype, 1] = (1/(2*outputs.tensor.num_elements())).cast[dtype]()
         return MUL.forward(res, div2N)
 

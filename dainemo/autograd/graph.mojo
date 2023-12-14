@@ -156,9 +156,11 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
         var param_keys = DynamicVector[String]()
         var param_graph = DynamicVector[Node[dtype]]()
         for idx in range(self.keys.size):
-            if self.graph[idx].param:
+            var node = self.graph[idx]
+            if node.param:
                 param_keys.push_back(self.keys[idx])
-                param_graph.push_back(self.graph[idx])
+                node.reset_relations()
+                param_graph.push_back(node)
 
         self.keys = param_keys
         self.graph = param_graph

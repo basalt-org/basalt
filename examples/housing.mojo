@@ -50,17 +50,13 @@ fn main():
             batch_labels = housing_label_batch[dtype](batch_indeces.get[0, Int](), batch_indeces.get[1, Int](), training_loader.labels)
             
             optim.zero_grad()
-            let output = model.forward(batch_data) 
-            print("model forward")           
+            let output = model.forward(batch_data)          
             var loss = loss_func(output, batch_labels)
-            print("loss done")
 
             loss.backward()
-            print("backward done")
             optim.step()
 
             epoch_loss += loss.tensor[0]
             num_batches += 1
-            print(num_batches)
-        
+
         print("Epoch: [", epoch+1, "/", num_epochs, "] \t Avg loss per epoch:", epoch_loss / num_batches)

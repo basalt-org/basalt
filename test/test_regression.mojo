@@ -50,7 +50,7 @@ fn main():
         print("Gradient: ", GRAPH.graph[i].grad)
 
     
-    #### BACKWARD ####
+    #### OPTIMIZER ####
     print("------------ OPTIMIZER ------------")
     print("Graph size:", GRAPH.graph.size)
     for i in range(GRAPH.graph.size):
@@ -61,3 +61,15 @@ fn main():
     for i in range(GRAPH.graph.size):
         print("Parameters After: ", GRAPH.graph[i].tensor)
 
+
+    #### FORWARD2 ####
+    print("------------ SECOND ITER ------------")
+    optim.zero_grad()
+    let output2 = model.forward(batch_data)
+    var loss2 = loss_func(output2, batch_labels)
+    print("OUTPUT: ", output2.tensor)
+    print("LOSS: ", loss2.tensor[0])
+    
+    print("Graph size:", GRAPH.graph.size)
+    
+    loss2.backward()

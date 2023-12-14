@@ -236,6 +236,14 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
                     parent.topological_sort(sorted_nodes)
 
 
+    fn reset_relations(inout self):
+        '''
+        Resets the relations of the node in the graph.
+        '''
+        self.children = DynamicVector[String]()
+        self.parents = DynamicVector[String]()
+
+    
     fn __str__(self) -> String:
         var res = String("Node(")
         res += self.uuid
