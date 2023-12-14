@@ -14,8 +14,8 @@ struct BostonHousing[dtype: DType]:
         s = s[find_first(s, "\n")+1:]       # Ignore header
 
         let N = num_lines(s)       
-        self.data = Tensor[dtype](N, 13)    # All columns except the last one
-        self.labels = Tensor[dtype](N)      # Only the last column (MEDV)
+        self.data = Tensor[dtype](N, 13)        # All columns except the last one
+        self.labels = Tensor[dtype](N, 1)       # Only the last column (MEDV), Always specify 1!
 
         let idx_low: Int
         let idx_high: Int
@@ -57,7 +57,7 @@ struct MNIST[dtype: DType]:
 
         let N = num_lines(s)                   
         self.data = Tensor[dtype](N, 1, 28, 28)
-        self.labels = Tensor[dtype](N)
+        self.labels = Tensor[dtype](N, 1)       # Always specify 1!
 
         let idx_low: Int
         let idx_high: Int

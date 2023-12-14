@@ -1,83 +1,75 @@
-from random import rand
-
+from dainemo import GRAPH
 import dainemo.nn as nn
-from dainemo.autograd.graph import Graph
 from dainemo.autograd.node import Node
 from dainemo.utils.tensorutils import fill
 
+alias dtype = DType.float32
+alias nelts: Int = simdwidthof[dtype]()
 
-struct LinearRegression[dtype: DType]:
-    var graph: Graph[dtype]
-    var layer1: nn.Linear[dtype]
+
+struct LinearRegression:
+    var layer1: nn.Linear
 
     fn __init__(inout self, input_dim: Int):
-        self.graph = Graph[dtype]()
-        self.layer1 = nn.Linear[dtype](self.graph, input_dim, 1)
+        self.layer1 = nn.Linear(input_dim, 1)
         
     fn forward(inout self, x: Tensor[dtype]) -> Node[dtype]:
-        return self.layer1(self.graph, Node[dtype](x))
+        return self.layer1(Node[dtype](x))
 
 
 
-fn replace_param[dtype: DType](inout g: Graph[dtype], param_idx: Int, cst_value: FloatLiteral):
-    alias nelts: Int = simdwidthof[dtype]()
-    var param = g.parameters.get(param_idx)
-    var new_param_tensor = Tensor[dtype](param.tensor.shape())
-    fill[dtype, nelts](new_param_tensor, cst_value)
-    param.tensor = new_param_tensor
-    g.parameters.replace(param_idx, param)
+fn main():    
+    let batch_size = 4
+    let input_size = 13
 
-
-
-fn main():
-    alias dtype = DType.float32
-    alias nelts: Int = simdwidthof[dtype]()
-
-    let batch_size = 2
-    let input_size = 4
-
-    var model = LinearRegression[dtype](input_size)
-    var loss_func = nn.MSELoss[dtype]()
-    var optim = nn.optim.Adam[dtype](lr=0.05)
-
-    # Overwrite parameters of the model
-    replace_param(model.graph, 0, 1.0)
-    replace_param(model.graph, 1, 1.0)
-    print(model.graph.parameters.get(0).tensor)
-    print(model.graph.parameters.get(1).tensor)
+    var model = LinearRegression(input_size)
+    var loss_func = nn.MSELoss()
+    var optim = nn.optim.Adam(lr=0.05)
 
     # Create batch data
     var batch_data = Tensor[dtype](batch_size, input_size)
     var batch_labels = Tensor[dtype](batch_size, 1)
     fill[dtype, nelts](batch_data, 1.0)
     fill[dtype, nelts](batch_labels, 1.0)
-    print(batch_data)
-    print(batch_labels)
 
     #### FORWARD ####
-    optim.zero_grad(model.graph)
+    optim.zero_grad()
     let output = model.forward(batch_data)
-    var loss = loss_func(model.graph, output, batch_labels)
+    var loss = loss_func(output, batch_labels)
     print("OUTPUT: ", output.tensor)
     print("LOSS: ", loss.tensor[0])
 
     #### BACKWARD ####
-
-    print("#####  GRADIENTS Before  #####", model.graph.parameters.size)
-    for param in model.graph.parameters:
-        print("\n ----------------")
-        print("\t Grad:", param.grad)
-
     print("------------ BACKWARD ------------")
-    loss.backward(model.graph)
+    print("Before:", GRAPH.graph.size)
     
+    loss.backward()
+    
+    print("After:", GRAPH.graph.size)
+    for i in range(GRAPH.graph.size):
+        print("Gradient: ", GRAPH.graph[i].grad)
 
-    print("#####  GRADIENTS AFTER  #####", model.graph.parameters.size)
-    for param in model.graph.parameters:
-        print("Grad:", param.grad)
+    
+    #### OPTIMIZER ####
+    print("------------ OPTIMIZER ------------")
+    print("Graph size:", GRAPH.graph.size)
+    for i in range(GRAPH.graph.size):
+        print("Parameters Before: ", GRAPH.graph[i].tensor)
 
-    optim.step(model.graph)
+    optim.step()
 
-    print("#####  PARAMETERS  #####", model.graph.parameters.size)
-    for param in model.graph.parameters:
-        print("Param:", param.tensor)
+    for i in range(GRAPH.graph.size):
+        print("Parameters After: ", GRAPH.graph[i].tensor)
+
+
+    #### FORWARD2 ####
+    print("------------ SECOND ITER ------------")
+    optim.zero_grad()
+    let output2 = model.forward(batch_data)
+    var loss2 = loss_func(output2, batch_labels)
+    print("OUTPUT: ", output2.tensor)
+    print("LOSS: ", loss2.tensor[0])
+    
+    print("Graph size:", GRAPH.graph.size)
+    
+    loss2.backward()

@@ -1,15 +1,12 @@
 from tensor import Tensor
-from dainemo.autograd.graph import Graph
-from dainemo.utils.tensorutils import elwise_transform, elwise_op, elwise_pow
 from math import mul, add, sqrt, div, sub
-'''Optimizers.'''
+
+from dainemo import GRAPH
+from dainemo.utils.tensorutils import elwise_transform, elwise_op, elwise_pow
 
 
 # <------------Adam------------>
-struct Adam[dtype: DType]:
-
-    # var params #TODO: Waiting for lifetimes. Storing references of parameter nodes. (Get them from model class)
-    # When the optimizer has the params variable, Remove from graph. & Remove update_parameter_grads from Node.backward_gradient
+struct Adam:
     var lr: SIMD[dtype, 1]
     var beta1: SIMD[dtype, 1]
     var beta2: SIMD[dtype, 1]
@@ -28,23 +25,23 @@ struct Adam[dtype: DType]:
         self.epsilon = epsilon
         self.iter = 0
 
-    fn zero_grad(inout self, inout g: Graph[dtype]):
+    fn zero_grad(inout self):
         '''Set all gradients to zero.'''
-        g.zero_grad()
+        GRAPH.zero_grad()
 
     fn reset(inout self):
         '''Reset the optimizer.'''
         self.iter = 0
 
-    fn step(inout self, inout g: Graph[dtype]):
+    fn step(inout self):
         '''Update parameters.'''
         alias nelts = simdwidthof[dtype]()
         self.iter += 1
 
-        for param_idx in range(g.parameters.size):
-            var param = g.parameters.get(param_idx)
+        for idx in range(GRAPH.graph.size):
+            var param = GRAPH.graph[idx]
 
-            if param.requires_grad:
+            if param.param and param.requires_grad:
                 # 1. Compute adam grads
                 param.optim_momentum_grad = elwise_op[dtype, nelts, add](
                     elwise_op[dtype, nelts, mul](self.beta1, param.optim_momentum_grad),
@@ -65,7 +62,7 @@ struct Adam[dtype: DType]:
 
                 # 3. Update parameters
                 param.tensor = elwise_op[dtype, nelts, sub](param.tensor, elwise_op[dtype, nelts, mul](self.lr, delta))
-                g.parameters.replace(param_idx, param)
+                GRAPH.graph[idx] = param
 
                 
 

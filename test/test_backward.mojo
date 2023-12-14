@@ -1,196 +1,222 @@
 from random import rand
 from tensor import Tensor
 from math import equal, log
-from algorithm import vectorize, parallelize
-from testing import assert_true, assert_equal, assert_almost_equal
+from testing import assert_true, assert_equal
+from test_tensorutils import assert_tensors_equal
 
-from dainemo.autograd.ops.basics import DOT, SUM, ADD, SUB, MUL, POW
-from dainemo.autograd.graph import Graph
+from dainemo import GRAPH
 from dainemo.autograd.node import Node
 from dainemo.utils.tensorutils import fill
+from dainemo.autograd.ops.basics import DOT, SUM, ADD, SUB, MUL, POW
+
+alias dtype = DType.float32
+alias nelts: Int = simdwidthof[dtype]()
 
 
-fn elwise_equal[dtype: DType, nelts: Int](t1: Tensor[dtype], t2: Tensor[dtype]) -> Bool:
-    var res: Bool = True
-    
-    @parameter
-    fn vecmath[nelts: Int](idx: Int):
-        let t = equal[dtype, nelts](t1.simd_load[nelts](idx), t2.simd_load[nelts](idx))
-        if not t.reduce_or():
-            res = False
-    vectorize[nelts, vecmath](t1.num_elements())
-    
-    return res
-
-
-fn main():
-    alias dtype = DType.float32
-    alias nelts: Int = simdwidthof[dtype]()
-    var g = Graph[dtype]()
-
+# <------------ADD------------>
+fn test_ADD() raises:
     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
     var t2: Tensor[dtype] = Tensor[dtype](2, 3)
-    var t3: Tensor[dtype] = Tensor[dtype](3, 2)
     var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
     fill[dtype, nelts](t1, 1.0)
     fill[dtype, nelts](t2, 2.0)
-    fill[dtype, nelts](t3, 3.0)
     fill[dtype, nelts](upper_grad, 1.0)
 
+    let res = ADD.forward(t1, t2)
 
-    # <------------ADD------------>
-    var res = ADD[dtype].forward(g, t1, t2)
-    
-    # By construction: The id of the nodes in the graph should be 0, 1, 2
-    let g_t1_id: Int = 0
-    let g_t2_id: Int = 1
-    let res_id: Int = 2
-    # Verify
-    for gnode in g.graph:
-        print(elwise_equal[dtype, nelts](gnode.node.tensor, t1), elwise_equal[dtype, nelts](gnode.node.tensor, t2), elwise_equal[dtype, nelts](gnode.node.tensor, res.tensor))
-    
-    var gn = g.graph.get(res_id)            # The graph node of the result
-    _ = assert_equal(gn.parents.size, 2)    # Should have 2 parents
-    
-    # Get id of the operand nodes in the gn.parents collection
-    var t1_id = gn.parents.get_idx_by_uuid(g.graph.get(g_t1_id).node.uuid)
-    var t2_id = gn.parents.get_idx_by_uuid(g.graph.get(g_t2_id).node.uuid)
-    _ = assert_equal(t1_id, 0)
-    _ = assert_equal(t2_id, 1)
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 2)
 
-    var ug1 = gn.backward_fn(upper_grad, gn.parents, t1_id)
-    var ug2 = gn.backward_fn(upper_grad, gn.parents, t2_id)
-    
-    _ = assert_true(elwise_equal[dtype, nelts](ug1, upper_grad))
-    _ = assert_true(elwise_equal[dtype, nelts](ug2, upper_grad))
-    
-    g.reset()
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+    let ug2 = gn.backward_fn(upper_grad, gn.parents, 1)
+
+    assert_tensors_equal(ug1, upper_grad)
+    assert_tensors_equal(ug1, upper_grad)
+    GRAPH.reset()
 
 
-    # <------------SUB------------>
-    res = SUB[dtype].forward(g, t1, t2)
-    gn = g.graph.get(2)
-    t1_id = 0
-    t2_id = 1
+# <------------SUB------------>
+fn test_SUB() raises:
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    var t2: Tensor[dtype] = Tensor[dtype](2, 3)
+    var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](t1, 1.0)
+    fill[dtype, nelts](t2, 2.0)
+    fill[dtype, nelts](upper_grad, 1.0)
 
-    ug1 = gn.backward_fn(upper_grad, gn.parents, t1_id)
-    ug2 = gn.backward_fn(upper_grad, gn.parents, t2_id)
+    let res = SUB.forward(t1, t2)
 
-    var expected_ug1 = upper_grad
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 2)
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+    let ug2 = gn.backward_fn(upper_grad, gn.parents, 1)
+
     var expected_ug2 = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected_ug2, -1.0)
     
-    _ = assert_true(elwise_equal[dtype, nelts](ug1, upper_grad))
-    _ = assert_true(elwise_equal[dtype, nelts](ug2, expected_ug2))
-    g.reset()
+    assert_tensors_equal(ug1, upper_grad)
+    assert_tensors_equal(ug2, expected_ug2)
+    GRAPH.reset()
 
+# <------------MUL------------>
+fn test_MUL() raises:
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    var t2: Tensor[dtype] = Tensor[dtype](2, 3)
+    var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](t1, 1.0)
+    fill[dtype, nelts](t2, 2.0)
+    fill[dtype, nelts](upper_grad, 1.0)
 
-    # <------------MUL------------>
-    res = MUL[dtype].forward(g, t1, t2)
-    gn = g.graph.get(2)
-    t1_id = 0
-    t2_id = 1
+    let res = MUL.forward(t1, t2)
 
-    ug1 = gn.backward_fn(upper_grad, gn.parents, t1_id)
-    ug2 = gn.backward_fn(upper_grad, gn.parents, t2_id)
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 2)
 
-    expected_ug1 = Tensor[dtype](2, 3)
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+    let ug2 = gn.backward_fn(upper_grad, gn.parents, 1)
+
+    var expected_ug1 = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected_ug1, 2.0)
-    expected_ug2 = Tensor[dtype](2, 3)
+    var expected_ug2 = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected_ug2, 1.0)
 
-    _ = assert_true(elwise_equal[dtype, nelts](ug1, expected_ug1))
-    _ = assert_true(elwise_equal[dtype, nelts](ug2, expected_ug2))
-    g.reset()
+    assert_tensors_equal(ug1, expected_ug1)
+    assert_tensors_equal(ug2, expected_ug2)
+    GRAPH.reset()
 
 
-    # <------------DOT------------>
-    res = DOT[dtype].forward(g, t1, t2)
-    gn = g.graph.get(2)
-    t1_id = 0
-    t2_id = 1
+# <------------DOT------------>
+fn test_DOT() raises:
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    var t2: Tensor[dtype] = Tensor[dtype](2, 3)
+    var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](t1, 1.0)
+    fill[dtype, nelts](t2, 2.0)
+    fill[dtype, nelts](upper_grad, 1.0)
 
-    ug1 = gn.backward_fn(upper_grad, gn.parents, t1_id)
-    ug2 = gn.backward_fn(upper_grad, gn.parents, t2_id)
+    let res = DOT.forward(t1, t2)
 
-    expected_ug1 = Tensor[dtype](2, 2)
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 2)
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+    let ug2 = gn.backward_fn(upper_grad, gn.parents, 1)
+
+    var expected_ug1 = Tensor[dtype](2, 2)
     fill[dtype, nelts](expected_ug1, 6.0)
-    expected_ug2 = Tensor[dtype](3, 3)
+    var expected_ug2 = Tensor[dtype](3, 3)
     fill[dtype, nelts](expected_ug2, 2.0)
 
-    _ = assert_true(elwise_equal[dtype, nelts](ug1, expected_ug1))
-    _ = assert_true(elwise_equal[dtype, nelts](ug2, expected_ug2))
-    g.reset()
+    assert_tensors_equal(ug1, expected_ug1)
+    assert_tensors_equal(ug2, expected_ug2)
+    GRAPH.reset()
 
 
-    # <------------POW------------>
-    res = POW[dtype].forward(g, t2, 2)
-    gn = g.graph.get(2)
-    t2_id = 0
-    let factor_id = 1
+# <------------POW------------>
+fn test_POW() raises:
+    var t2: Tensor[dtype] = Tensor[dtype](2, 3)
+    var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](t2, 2.0)
+    fill[dtype, nelts](upper_grad, 1.0)
 
-    ug1 = gn.backward_fn(upper_grad, gn.parents, t2_id)
-    ug2 = gn.backward_fn(upper_grad, gn.parents, factor_id)
+    let res = POW.forward(t2, 2)
 
-    expected_ug1 = Tensor[dtype](2, 3)
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 2)
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+    let ug2 = gn.backward_fn(upper_grad, gn.parents, 1)
+
+    var expected_ug1 = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected_ug1, 4.0)
-    expected_ug2 = Tensor[dtype](3, 3)
+    var expected_ug2 = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected_ug2, (2**2)*log[dtype, 1](2))
 
-    _ = assert_true(elwise_equal[dtype, nelts](ug1, expected_ug1))
-    _ = assert_true(elwise_equal[dtype, nelts](ug2, expected_ug2))
-    g.reset()
+    assert_tensors_equal(ug1, expected_ug1)
+    assert_tensors_equal(ug2, expected_ug2)
+    GRAPH.reset()
 
 
-    # <------------SUM------------>
+# <------------SUM------------>
+fn test_SUM() raises:
     # SUM ALL ELEMENTS
-    res = SUM[dtype].forward(g, t1)
-    gn = g.graph.get(1)
-    upper_grad = Tensor[dtype](res.tensor.shape()) # The upper gradient tensor will always be of the same shape as res.tensor
-    fill[dtype, nelts](upper_grad, 9.0)
-
-    ug1 = gn.backward_fn(upper_grad, gn.parents, t2_id)
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](t1, 1.0)
     
-    expected_ug1 = Tensor[dtype](2, 3)
-    fill[dtype, nelts](expected_ug1, 9.0)
-    _ = assert_true(elwise_equal[dtype, nelts](ug1, expected_ug1))
-    g.reset()
+    let res = SUM.forward(t1)
 
+    # uppergrad has always to same shape as res
+    var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
+    fill[dtype, nelts](upper_grad, 9.0)
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 1) # one parent
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+
+    var expected_ug1 = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected_ug1, 9.0)
+    assert_tensors_equal(ug1, expected_ug1)
+    GRAPH.reset()
+
+fn test_SUM_0() raises:
     # SUM ALONG AXIS 0
-    res = SUM[dtype].forward[axis=0](g, t1)
-    gn = g.graph.get(1)
-    upper_grad = Tensor[dtype](res.tensor.shape())
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](t1, 1.0)
+
+    let res = SUM.forward[axis=0](t1)
+
+    # uppergrad has always to same shape as res
+    var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
     upper_grad[0] = 0.0
     upper_grad[1] = 1.0
     upper_grad[2] = 2.0
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 1) # one parent
 
-    ug1 = gn.backward_fn(upper_grad, gn.parents, t2_id)
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
 
-    expected_ug1 = Tensor[dtype](2, 3)
+    var expected_ug1 = Tensor[dtype](2, 3)
     for i in range(expected_ug1.num_elements()):
         expected_ug1[i] = i % 3
-    _ = assert_true(elwise_equal[dtype, nelts](ug1, expected_ug1))
-    g.reset()
+    assert_tensors_equal(ug1, expected_ug1)
+    GRAPH.reset()
 
+fn test_SUM_1() raises:
+    # SUM ALONG AXIS 1
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](t1, 1.0)
 
-    # SEM ALONG AXIS 1
-    res = SUM[dtype].forward[axis=1](g, t1)
-    gn = g.graph.get(1)
-    upper_grad = Tensor[dtype](res.tensor.shape())
+    let res = SUM.forward[axis=1](t1)
+
+    # uppergrad has always to same shape as res
+    var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
     upper_grad[0] = 0.0
     upper_grad[1] = 1.0
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 1) # one parent
 
-    ug1 = gn.backward_fn(upper_grad, gn.parents, t2_id)
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
     
-    expected_ug1 = Tensor[dtype](2, 3)
-    for i in range(2):
-        expected_ug1[i*3] = i
-        expected_ug1[i*3+1] = i
-        expected_ug1[i*3+2] = i
-
-    # TODO
-    g.reset()
+    var expected_ug1 = Tensor[dtype](2, 3)
+    for i in range(expected_ug1.num_elements()):
+        expected_ug1[i] = 0 if i<3 else 1
+    assert_tensors_equal(ug1, expected_ug1)
+    GRAPH.reset()
 
 
 
+fn main():
+
+    try:
+        test_ADD()
+        test_SUB()
+        test_MUL()
+        test_DOT()
+        test_POW()
+        test_SUM()
+        test_SUM_0()
+        test_SUM_1()
+    except:
+        print("[ERROR] Error in backward pass.")
 

@@ -1,117 +1,108 @@
 from tensor import Tensor, TensorShape
 from algorithm import vectorize, parallelize
 
-from dainemo.autograd.node import Node, GraphNode
-from dainemo.utils.collection import NodeCollection, GraphNodeCollection
-from dainemo.utils.tensorutils import elwise_op
+from dainemo.autograd.node import Node
+from dainemo.utils.tensorutils import elwise_op, zero
 from math import add, max
 
 
 
-struct Graph[dtype: DType = DType.float32]:
+struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
     '''
     Keeps track of all the nodes and its relations in the computational graph.
     Created during the forward pass and used by the backpard pass to 
     compute gradients through autodiff.
     '''
 
-    var graph: GraphNodeCollection[dtype]
-    var tracking: Bool                          # TODO: can probably be compile time known
-    var parameters: NodeCollection[dtype]       # TODO: shouldn't be part of graph, but of nn.model abstract class
-                                                # As Inheritance is not supported yet, temporary solution 
-                                                # to store the model parameters in the graph
+    var keys: DynamicVector[String]
+    var graph: DynamicVector[Node[dtype]]
+
 
     fn __init__(inout self):
-        self.graph = GraphNodeCollection[dtype]()
-        self.tracking = True
-        self.parameters = NodeCollection[dtype]()
+        self.keys = DynamicVector[String]()
+        self.graph = DynamicVector[Node[dtype]]()
 
-    fn add_edge(inout self, inout result_graph_node: GraphNode[dtype], operand: Node[dtype]):
+
+    fn add_edge(inout self, inout result_node: Node[dtype], operands: VariadicListMem[Node[dtype]]):
         '''
         Adds an edge between result node and the corresponding operand node of the operand tensor.
-            - Identify the operand graph node in the graph corresponding the the operand node
+            - Identify the operand node in the graph corresponding to the operand node
             - Adds the result node as child to the operand nodes
             - Adds the operand nodes as parents to the result node.
         '''
-        # 1. Find the operand node in the graph
-        var idx = self.get_node(operand)
-        if idx == -1:
-            # Add operand node to the graph when not found in the collection
-            self.add_node(operand)
-            idx = self.graph.size - 1
+        for operand_ptr in operands:
+            var operand: Node[dtype] = __get_address_as_lvalue(operand_ptr)
 
-        # 2. Adds the result node as child to the operand nodes
-        var operand_graph_node = self.graph.get(idx)
-        operand_graph_node.add_child(result_graph_node.node)
-        self.graph.replace(idx, operand_graph_node)
+            # 1. Find the operand node in the graph
+            var idx = self.get_node_idx(operand.uuid)
+            if idx == -1:
+                # Add operand node to the graph when not found
+                self.add_node(operand)
+                idx = self.graph.size - 1
 
-        # 3. Adds the operand node as parent to the result graph node
-        result_graph_node.add_parent(operand)
+            # 2. Adds the result node as child to the operand
+            # TODO: self.graph[idx].add_child(result_node)
+            # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
+            operand = self.graph[idx]
+            operand.add_child(result_node)
+            self.graph[idx] = operand
+
+            # 3. Adds the operand node as parent to the result graph node
+            result_node.add_parent(operand)
     
+        self.add_node(result_node)
+
 
     fn create_graph_node[
-            backward_fn: fn(ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]
+            backward_fn: fn(ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[dtype]
         ](
             inout self, 
             result: Tensor[dtype],
             *operands: Node[dtype]
-        )-> Node[dtype]:
+        ) -> Node[dtype]:
         '''
         To be used in every forward operation and responsible for creating the graph.
         If tracking is enabled it:
-            - Creates a GraphNode for the result_tensor & the operands
+            - Creates a Node in the computaitonal graph for the result_tensor & the operands
+            - Sets the backward_fn & parent_broadcast_shape of the result_node
             - Adds edges to the graphnodes of the the result_tensor & the operands.
         '''
 
-        if self.tracking:
-            # 1. Create a GraphNode
-            '''
-            > result_requires_grad:
-            Returns True when at least one of the operand nodes requires grad.
-            '''
-            # TODO: pack in function once myfunc(*operands) is supported. 
-            # v0.5.0: error: unpacked arguments are not supported yet
-            var requires_grad: Bool = False
-            for i in range(operands.__len__()):
-                let operand: Node[dtype] = __get_address_as_lvalue(operands[i])
-                if operand.requires_grad:
-                    requires_grad = True
-                    break
-
-            let result_node = Node[dtype](result, requires_grad=requires_grad)
-            var result_graph_node = GraphNode[dtype](result_node)
+        if tracking:
+            # 1. Create a Node from the resulting tensor
+            var result_node = Node[dtype](result, requires_grad=self.result_requires_grad(operands))
 
             # 2. The resulting node in the graph always contains it's backward information
-            result_graph_node.backward_fn = backward_fn
-            '''
-            > result broadcast_shape:
-            Returns the broadcast shape of the given operands.
-            '''
-            # TODO: pack in function once myfunc(*operands) is supported. 
-            # v0.5.0: error: unpacked arguments are not supported yet
-            var operand_collection = NodeCollection[dtype]()
-            for i in range(operands.__len__()):
-                operand_collection.append(__get_address_as_lvalue(operands[i]))
-            result_graph_node.parent_broadcast_shape = self.get_broadcasting_shape(operand_collection, result)       
+            result_node.backward_fn = backward_fn
+            result_node.parent_broadcast_shape = self.get_broadcasting_shape(operands, result)       
 
             # 3. Add edges to the result node & the operands and adds them to the graph
-            for i in range(operands.__len__()):
-                let operand: Node[dtype] = __get_address_as_lvalue(operands[i])
-                self.add_edge(result_graph_node, operand)
-
-            self.graph.append(result_graph_node)
+            self.add_edge(result_node, operands)
             
             return result_node
         
         else:
             return Node[dtype](result)
 
+
     @staticmethod
-    fn get_broadcasting_shape(inout operands: NodeCollection[dtype], result: Tensor[dtype]) -> TensorShape:
+    fn result_requires_grad(operands: VariadicListMem[Node[dtype]]) -> Bool:
+        '''
+        Returns True when at least one of the operand nodes requires grad.
+        '''
+        for operand_ptr in operands:
+            if __get_address_as_lvalue(operand_ptr).requires_grad:
+                return True
+        return False
+
+
+    @staticmethod
+    fn get_broadcasting_shape(operands: VariadicListMem[Node[dtype]], result: Tensor[dtype]) -> TensorShape:
         '''
         Broadcast multiple shapes to find a common compatible shape using only loops.
+        Returns the broadcast shape of the given operands.
         '''
-        # TODO: Only supports rank 2 operands for now.
+        # TODO: REFACTOR, Only supports rank 2 operands for now.
         # from testing import assert_true
         let max_rank: Int = 2
 
@@ -121,7 +112,8 @@ struct Graph[dtype: DType = DType.float32]:
         bc_shape.push_back(-1)
         for i in range(max_rank):
             var current_max: Int = 1
-            for operand in operands:
+            for operand_ptr in operands:
+                let operand: Node[dtype] = __get_address_as_lvalue(operand_ptr)
                 # _ = assert_true(operand.tensor.rank() <= 2, "Broadcasting only supports up to rank 2 tensors.")
                 let operand_shape = operand.tensor.shape()
                 if i < operand_shape.rank():
@@ -137,66 +129,83 @@ struct Graph[dtype: DType = DType.float32]:
         return broadcast_shape
 
 
-    fn add_node(inout self, node: Node[dtype]):
+    fn add_node(inout self, inout node: Node[dtype]):
         '''
         Adds a node to the graph.
         '''
-        let graph_node = GraphNode[dtype](node)
-        self.graph.append(graph_node)
+        self.keys.push_back(node.uuid)
+        self.graph.push_back(node)
 
 
-    fn get_node(inout self, node: Node[dtype]) -> Int:
+    fn get_node_idx(inout self, node_uuid: String) -> Int:
         '''
-        Returns the GraphNode (index in the GraphNodeCollection) corresponding to the given node.
+        Returns the index of the corresponding node in the graph.
         When the node is not found in the graph, returns -1.
         '''
-        return self.graph.get_idx_by_uuid(node.uuid)
+        for i in range(self.keys.size):
+            if self.keys[i] == node_uuid:
+                return i
+        return -1
 
     
     fn reset(inout self):
         '''
         Resets the graph.
+        Except for the trainable parameters.
         '''
-        self.graph = GraphNodeCollection[dtype]()
+        var param_keys = DynamicVector[String]()
+        var param_graph = DynamicVector[Node[dtype]]()
+        for idx in range(self.keys.size):
+            var node = self.graph[idx]
+            if node.param:
+                param_keys.push_back(self.keys[idx])
+                node.reset_relations()
+                param_graph.push_back(node)
+
+        self.keys = param_keys
+        self.graph = param_graph
 
 
     fn reset_visited(inout self):
         '''
-        Marks visited as False for every GraphNode in the graph.
+        Marks visited as False for every Node in the graph.
         '''
-        for i in range(self.graph.size):
-            self.graph.set_visit_value(i, False)
+        for idx in range(self.graph.size):
+            # TODO: self.graph[idx].visited = False 
+            # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
+            var node = self.graph[idx]
+            node.visited = False
+            self.graph[idx] = node
 
     
-    fn mark_visited(inout self, node: Node[dtype]):
+    fn mark_visited(inout self, node_uuid: String):
         '''
-        Marks the GraphNode corresponding to the given node as visited.
+        Marks the Node corresponding to the given uuid as visited in the graph.
         '''
-        let idx = self.get_node(node)
+        let idx = self.get_node_idx(node_uuid)
         if idx != -1:
-            self.graph.set_visit_value(idx, True)
+            # TODO: self.graph[idx].visited = True 
+            # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
+            var node = self.graph[idx]
+            node.visited = True
+            self.graph[idx] = node
 
 
     fn zero_grad(inout self):
         '''
         Zeros the grad value of every node in the graph & parameters.
         '''
+        for idx in range(self.graph.size):
+            # TODO: zero[dtype](self.graph[idx].grad)  --> only
+            # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
+            var node = self.graph[idx]
+            zero[dtype](node.grad)
+            self.graph[idx] = node
+
+
+    fn __str__(self) -> String:
+        var res = String("Graph[\n")
         for i in range(self.graph.size):
-            self.graph.zero_grad(i)
-        for i in range(self.parameters.size):
-            self.parameters.zero_grad(i)
-
-
-    fn update_parameter_grads(inout self, graph_idx: Int):
-        # TODO: Can be removed when the lifetime of param nodes are handled correctly.
-        # For now: Copies the gradient values of the param nodes in the graph to parameters NodeCollection
-        alias nelts: Int = simdwidthof[dtype]()
-        let graph_node = self.graph.get(graph_idx)
-        if graph_node.node.param:
-            let param_idx = self.parameters.get_idx_by_uuid(graph_node.node.uuid)
-            if param_idx != -1:
-                # Accumulate grad value of the param node in parameters
-                let current_grad = self.parameters.get_grad_value(param_idx)
-                self.parameters.set_grad_value(param_idx, elwise_op[dtype, nelts, add](current_grad, graph_node.node.grad))
-            else:
-                print("ERROR: Parameter nodes should be added to (graph.parameters) collection on model creation.")
+            res += "\t" + self.graph[i].__str__() + "\n"
+        res += "]"
+        return res
