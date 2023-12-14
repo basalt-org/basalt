@@ -1,11 +1,8 @@
-import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 
 import torch
 import torch.nn as nn
 from torch import optim
-from torch.autograd import Variable
 from torch.utils.data import Dataset, DataLoader, TensorDataset
 
 
@@ -41,11 +38,6 @@ class LinearRegression(nn.Module):
 
 
 if __name__ == "__main__":
-    batch_size = 64
-    num_epochs = 200
-    learning_rate = 0.05
-
-
     # Load data and split in training and testing sets
     df = pd.read_csv("./examples/data/housing.csv")
 
@@ -57,6 +49,10 @@ if __name__ == "__main__":
     train_data = BostonHousing(train_df)
     test_data = BostonHousing(test_df)
 
+    # Train Parameters
+    batch_size = 64
+    num_epochs = 200
+    learning_rate = 0.05
 
     # Batchwise data loader
     loaders = {
@@ -78,21 +74,19 @@ if __name__ == "__main__":
     device = torch.device('cpu')
     model = LinearRegression(train_data.data.shape[1])
     loss_func = nn.MSELoss()
-    # optimizer = optim.SGD(model.parameters(), lr=learning_rate)
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+    # optimizer = optim.SGD(model.parameters(), lr=learning_rate)
+    
 
-
-    # Train the model
     model.train()
-    total_step = len(loaders['train'])
     for epoch in range(num_epochs):
         epoch_loss = 0
         num_batches = 0
-        for i, (batch_data, batch_targets) in enumerate(loaders['train']):    
+        for (batch_data, batch_labels) in loaders['train']:    
             
             # Forward pass
             outputs = model(batch_data)
-            loss = loss_func(outputs, batch_targets)
+            loss = loss_func(outputs, batch_labels)
 
             # Backward pass
             optimizer.zero_grad()

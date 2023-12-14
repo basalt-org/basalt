@@ -27,27 +27,35 @@ fn main():
     except:
         print("Could not load data")
     
-    alias num_epochs = 200
+    # Train Parameters
     alias batch_size = 64
+    alias num_epochs = 200
+    alias learning_rate = 0.05
+
+    # Batchwise data loader
     var training_loader = DataLoader[dtype](
                             data=train_data.data,
                             labels=train_data.labels,
                             batch_size=batch_size
                         )
     
+    
     var model = LinearRegression(train_data.data.dim(1))
     var loss_func = nn.MSELoss()
-    var optim = nn.optim.Adam(lr=0.05)
+    var optim = nn.optim.Adam(lr=learning_rate)
+
 
     for epoch in range(num_epochs):
         var num_batches: Int = 0
         var epoch_loss: Float32 = 0.0
         for batch in training_loader:
 
-            optim.zero_grad()
-            let output = model.forward(batch[0])          
-            var loss = loss_func(output, batch[1])
+            # Forward pass
+            let output = model.forward(batch.data)          
+            var loss = loss_func(output, batch.labels)
 
+            # Backward pass
+            optim.zero_grad()
             loss.backward()
             optim.step()
 
