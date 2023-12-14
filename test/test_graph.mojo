@@ -60,7 +60,10 @@ fn test_zero_grad() raises:
     assert_true(all_grads_zero())
 
     var n2 = GRAPH.graph[1]
-    n2.accumulate_grad(rand[dtype](n2.grad.shape()))
+    var grad = rand[dtype](n2.grad.shape())
+    for i in range(grad.num_elements()):
+        grad[i] = grad[i].cast[DType.float32]()
+    n2.accumulate_grad(grad)
 
     assert_false(all_grads_zero())
 

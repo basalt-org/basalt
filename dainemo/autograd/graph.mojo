@@ -84,6 +84,7 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
         else:
             return Node[dtype](result)
 
+
     @staticmethod
     fn result_requires_grad(operands: VariadicListMem[Node[dtype]]) -> Bool:
         '''
@@ -93,6 +94,7 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
             if __get_address_as_lvalue(operand_ptr).requires_grad:
                 return True
         return False
+
 
     @staticmethod
     fn get_broadcasting_shape(operands: VariadicListMem[Node[dtype]], result: Tensor[dtype]) -> TensorShape:
@@ -126,6 +128,7 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
         let broadcast_shape = TensorShape(bc_shape)
         return broadcast_shape
 
+
     fn add_node(inout self, inout node: Node[dtype]):
         '''
         Adds a node to the graph.
@@ -148,9 +151,17 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
     fn reset(inout self):
         '''
         Resets the graph.
+        Except for the trainable parameters.
         '''
-        self.keys = DynamicVector[String]()
-        self.graph = DynamicVector[Node[dtype]]()
+        var param_keys = DynamicVector[String]()
+        var param_graph = DynamicVector[Node[dtype]]()
+        for idx in range(self.keys.size):
+            if self.graph[idx].param:
+                param_keys.push_back(self.keys[idx])
+                param_graph.push_back(self.graph[idx])
+
+        self.keys = param_keys
+        self.graph = param_graph
 
 
     fn reset_visited(inout self):
@@ -189,20 +200,6 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
             zero[dtype](node.grad)
             self.graph[idx] = node
 
-
-    # fn update_parameter_grads(inout self, graph_idx: Int):
-    #     # TODO: Can be removed when the lifetime of param nodes are handled correctly.
-    #     # For now: Copies the gradient values of the param nodes in the graph to parameters NodeCollection
-    #     alias nelts: Int = simdwidthof[dtype]()
-    #     let graph_node = self.graph.get(graph_idx)
-    #     if graph_node.node.param:
-    #         let param_idx = self.parameters.get_idx_by_uuid(graph_node.node.uuid)
-    #         if param_idx != -1:
-    #             # Accumulate grad value of the param node in parameters
-    #             let current_grad = self.parameters.get_grad_value(param_idx)
-    #             self.parameters.set_grad_value(param_idx, elwise_op[dtype, nelts, add](current_grad, graph_node.node.grad))
-    #         else:
-    #             print("ERROR: Parameter nodes should be added to (graph.parameters) collection on model creation.")
 
     fn __str__(self) -> String:
         var res = String("Graph[\n")

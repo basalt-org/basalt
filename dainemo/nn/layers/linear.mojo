@@ -22,6 +22,8 @@ struct Linear:
         self.n_output = n_output
         self.weights = Node[dtype](rand[dtype](n_input, n_output), requires_grad=True, param=True)
         self.bias = Node[dtype](Tensor[dtype](1, n_output), requires_grad=True, param=True)
+        GRAPH.add_node(self.weights)
+        GRAPH.add_node(self.bias)
 
     fn forward(inout self, inputs: Node[dtype]) -> Node[dtype]:
         '''
@@ -30,14 +32,14 @@ struct Linear:
         # COPY self.weight & self.bias directly from GRAPH
         # Workaround because model parameters are created and change in copies. 
         # TODO: Redo when lifetimes are there. [INVESTIGATE HOW TO AVOID THIS]
-        # let weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
-        # let bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
+        let weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
+        let bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
 
         ######
         # TODO: CHECK IF PARAMS CHANGED !!!!!
 
-        let res = DOT.forward(inputs, self.weights)
-        return ADD.forward(res, self.bias)
+        let res = DOT.forward(inputs, weights)
+        return ADD.forward(res, bias)
 
     fn __call__(inout self, inputs: Node[dtype]) -> Node[dtype]:
         return self.forward(inputs)

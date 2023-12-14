@@ -61,17 +61,20 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         # self.optim_momentum_grad = Tensor[dtype](self.grad.shape())
         # self.optim_momentum_grad = Tensor[dtype](self.grad.shape())
 
+
     fn add_child(inout self, node: Node[dtype]):
         ''''
         Adds a child to the node.
         '''
         self.children.push_back(node.uuid)
     
+
     fn add_parent(inout self, node: Node[dtype]):
         '''
         Adds a parent to the node.
         '''
         self.parents.push_back(node.uuid)
+
 
     fn visit_all_children(inout self):
         '''
@@ -80,6 +83,7 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         for i in range(self.children.size):
             GRAPH.mark_visited(self.children[i])
     
+
     fn are_children_visited(inout self) -> Bool:
         '''
         Checks if all children of the node are visited in the graph.
@@ -90,6 +94,7 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
                 return False
         return True
 
+
     fn are_parents_visited(inout self) -> Bool:
         '''
         Checks if all parents of the node are visited in the graph.
@@ -99,7 +104,6 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
             if not GRAPH.graph[idx].visited:
                 return False
         return True
-
 
 
     fn backward(inout self, upper_grad: Tensor[dtype], retain_graph: Bool = False):
@@ -114,23 +118,24 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
             # TODO: Check if upper_grad.shape == self.tensor.shape (raises)
             self.accumulate_grad(upper_grad)
             
-            # # 1. Topological sort of the graph.
-            # # Visit all children so that they aren't included in the backward pass
-            # # This allows gradient calculation for any intermediate node in the graph
-            # g.reset_visited()
-            # self.visit_all_children(g)
-            # var sorted_nodes = self.topological_sort(g)
-            # g.reset_visited()
+            # 1. Topological sort of the graph.
+            # Visit all children so that they aren't included in the backward pass
+            # This allows gradient calculation for any intermediate node in the graph
+            GRAPH.reset_visited()
+            self.visit_all_children()
+            var sorted_nodes = DynamicVector[String]()
+            self.topological_sort(sorted_nodes)
+            GRAPH.reset_visited()
 
-            # # 2. Mark as visited & Backward pass on 1st current node without calulating the gradient
-            # sorted_nodes.remove(0)
-            # g.mark_visited(self.node)
-            # self.node.backward_gradient(g, retain_graph, calculate_grads=False)
+            # 2. Mark as visited & Backward pass on 1st current node without calulating the gradient
+            GRAPH.mark_visited(self.uuid)
+            self.backward_gradient(retain_graph, calculate_grads=False)
             
-            # # 3. Calculate the gradients for the nodes in topological order
-            # for node in sorted_nodes:
-            #     g.mark_visited(node)
-            #     node.backward_gradient(g, retain_graph)
+            # 3. Calculate the gradients for the nodes in topological order
+            for i in range(1, sorted_nodes.size):
+                var node = GRAPH.graph[GRAPH.get_node_idx(sorted_nodes[i])]
+                GRAPH.mark_visited(node.uuid)
+                node.backward_gradient(retain_graph)
 
             if not retain_graph:
                 GRAPH.reset()
@@ -154,120 +159,86 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
         let my_idx = GRAPH.get_node_idx(self.uuid)
         var my_node = GRAPH.graph[my_idx]
-        # TODO: [BUG] my_node.grad has type DType.float32 instead of a generic dtype
+        # BUG: my_node.grad has type DType.float32 instead of a generic dtype (also see unbroadcast_data)
         # should be: my_node.grad = elwise_op[dtype, nelts, add](my_node.grad, grad)
         for i in range(grad.num_elements()):
-            my_node.grad[i] += grad[i].cast[DType.float32]()        
+            my_node.grad[i] += grad[i].cast[DType.float32]()
+        GRAPH.graph[my_idx] = my_node
+
+
+    fn accumulate_grad2(inout self, grad: Tensor[DType.float32]):
+        # BUG: overload as workaround: should be one generic dtype
+        let my_idx = GRAPH.get_node_idx(self.uuid)
+        var my_node = GRAPH.graph[my_idx]
+        alias nelts: Int = simdwidthof[DType.float32]()
+        my_node.grad = elwise_op[DType.float32, nelts, add](my_node.grad, grad)
         GRAPH.graph[my_idx] = my_node
     
-    
-    # fn backward_gradient(inout self, inout g: Graph[dtype], retain_graph: Bool, calculate_grads: Bool = True):
-    #     '''
-    #     Gradient calculation for the node during the backward pass.
-    #     '''
-        
-    #     let idx = g.get_node(self)
-    #     var graph_node = g.graph.get(idx)
 
-    #     for child in graph_node.children:
-    #         let child_idx = g.get_node(child)
-    #         var child_graph_node = g.graph.get(child_idx)
-    #         if self.requires_grad and calculate_grads:
-                
-    #             # Identify the index of itself in the child.parents NodeCollection
-    #             # Required when operation has multiple operands to identify the correct gradient function
-    #             let node_id = child_graph_node.parents.get_idx_by_uuid(self.uuid)
-    #             let upper_grad = g.graph.get_grad_value(child_idx)
-    #             var grad = child_graph_node.backward_fn(upper_grad, child_graph_node.parents, node_id)
-    #             self.unbroadcast_data(grad, self.tensor.shape(), child_graph_node.parent_broadcast_shape)
-    #             self.accumulate_grad(g, idx, grad)
+    fn backward_gradient(inout self, retain_graph: Bool, calculate_grads: Bool = True):
+        '''
+        Gradient calculation for the node during the backward pass.
+        '''
 
-    #         if not retain_graph and child_graph_node.are_parents_visited(g):
-    #             #TODO: update can be removed when copies are avoided
-    #             g.update_parameter_grads(child_idx) # Share the grads with the params of the optimizer 
-    #             g.graph.remove(child_idx)
-    #     if not retain_graph and graph_node.are_parents_visited(g):
-    #         #TODO: update can be removed when copies are avoided
-    #         g.update_parameter_grads(g.get_node(self)) # Share the grads with the params of the optimizer
-    #         g.graph.remove(g.get_node(self))
+        for c in range(self.children.size):
+            let child_idx = GRAPH.get_node_idx(self.children[c])
+            let child = GRAPH.graph[child_idx]
+            if self.requires_grad and calculate_grads:
+                # Identify the index of itself in the child.parents NodeCollection
+                # Required when operation has multiple operands to identify the correct gradient function
+                var tensor_id: Int = -1
+                for t_idx in range(child.parents.size):
+                    if child.parents[t_idx] == self.uuid:
+                        tensor_id = t_idx
+                        break
 
-    # @staticmethod
-    # fn unbroadcast_data(inout data: Tensor[dtype], original_shape: TensorShape, broadcast_shape: TensorShape):
-    #     '''
-    #     Unbroadcasts the data to the original shape of the node.
-    #     '''
-    #     alias none_bc = TensorShape(-1, -1)
-    #     alias nelts: Int = simdwidthof[dtype]()
-    #     if broadcast_shape != none_bc:
-    #         for dim in range(min(original_shape.rank(), broadcast_shape.rank())):
-    #             if original_shape[dim] != broadcast_shape[dim]:
-    #                 data = tsum[dtype, 1](data, axis=dim)
+                var grad = child.backward_fn(child.grad, child.parents, tensor_id)
+                self.unbroadcast_data(grad, self.tensor.shape(), child.parent_broadcast_shape)
+                self.accumulate_grad2(grad)
+
+
+    @staticmethod
+    fn unbroadcast_data(inout data: Tensor[DType.float32], original_shape: TensorShape, broadcast_shape: TensorShape):
+        '''
+        Unbroadcasts the data to the original shape of the node.
+        '''
+        alias none_bc = TensorShape(-1, -1)
+        alias nelts: Int = simdwidthof[dtype]()
+        if broadcast_shape != none_bc:
+            for dim in range(min(original_shape.rank(), broadcast_shape.rank())):
+                if original_shape[dim] != broadcast_shape[dim]:
+                    data = tsum[DType.float32, 1](data, axis=dim)
+      
+
+    fn topological_sort(inout self, inout sorted_nodes: DynamicVector[String]):
+        '''
+        Topological sort of the graph.
+        Efficiently perform the backwards pass by making sure that all the children's gradients are calculated before the parents.
+        '''
+
+        # Check if all children are visited
+        # 1. If not, topological sort on the children
+        if not self.are_children_visited():
+            for c in range(self.children.size):
+                let idx = GRAPH.get_node_idx(self.children[c])
+                var child = GRAPH.graph[idx]
+                if not child.visited:
+                    child.topological_sort(sorted_nodes)
+
+        # 2. If yes, add node to array 
+        #    & topological sort on the parents to go up the graph
+        else:
+            GRAPH.mark_visited(self.uuid)
+            sorted_nodes.push_back(self.uuid)
+            for p in range(self.parents.size):
+                let idx = GRAPH.get_node_idx(self.parents[p])
+                var parent = GRAPH.graph[idx]
+                if not parent.visited:
+                    parent.topological_sort(sorted_nodes)
+
 
     fn __str__(self) -> String:
         var res = String("Node(")
         res += self.uuid
         res += ")"
         return res
-            
-
-
-
-
-
-
-# struct GraphNode[dtype: DType = DType.float32]:
-#     '''
-#     A Node in the computational graph.
-#     Monitors the relation between all the incoming edges (=parents) and the outgoing edges (=children).
-#     '''
-#     var node: Node[dtype]
-#     var visited: Bool
-#     var children: NodeCollection[dtype]
-#     var parents: NodeCollection[dtype]
-#     var parent_broadcast_shape: TensorShape
-#     var backward_fn: fn(ug: Tensor[dtype], nodes: NodeCollection[dtype], node_id: Int) -> Tensor[dtype]
-    
-
-#     fn __init__(inout self, node: Node[dtype]):
-#         self.node = node
-#         self.visited = False
-#         self.children = NodeCollection[dtype]()
-#         self.parents = NodeCollection[dtype]()
-#         self.parent_broadcast_shape = node.tensor.shape()
-#         self.backward_fn = backward_fn_placeholder[dtype]
-        
-
-
-
-            
-
-    # fn topological_sort(inout self, inout g: Graph[dtype]) -> NodeCollection[dtype]:
-    #     '''
-    #     Topological sort of the graph.
-    #     Efficiently perform the backwards pass by making sure that all the children's gradients are calculated before the parents.
-    #     '''
-    #     #TODO: Sorted nodes is a copy where the uuid is used to fecth the node from the graph
-    #     # Could be more efficient is when this is a collection of pointers to the graph nodes
-    #     var sorted_nodes = NodeCollection[dtype]()
-
-    #     # Check if all children are visited
-    #     # 1. If not, topological sort on the children
-    #     if not self.are_children_visited(g):
-    #         for child in self.children:
-    #             let idx = g.get_node(child)
-    #             var child_graph_node = g.graph.get(idx)
-    #             if not child_graph_node.visited:
-    #                 sorted_nodes += child_graph_node.topological_sort(g)
-
-    #     # 2. If yes, add node to array 
-    #     #    & topological sort on the parents to go up the graph
-    #     else:
-    #         g.mark_visited(self.node)
-    #         sorted_nodes.append(self.node)
-    #         for parent in self.parents:
-    #             let idx = g.get_node(parent)
-    #             var parent_graph_node = g.graph.get(idx)
-    #             if not parent_graph_node.visited:
-    #                 sorted_nodes += parent_graph_node.topological_sort(g)
-
-    #     return sorted_nodes
