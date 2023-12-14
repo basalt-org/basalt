@@ -41,8 +41,8 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
     var parent_broadcast_shape: TensorShape
     var backward_fn: fn(ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[dtype]
 
-    # var optim_rms_grad: Tensor[dtype]           # TODO: Remove. Etra value for the optimizer to avoid code duplication in absence of inheritance & lifetimes
-    # var optim_momentum_grad: Tensor[dtype]      # TODO: Remove. Etra value for the optimizer to avoid code duplication in absence of inheritance & lifetimes
+    var optim_rms_grad: Tensor[dtype]           # TODO: Remove. Only applicable for param == True (extra trait?)
+    var optim_momentum_grad: Tensor[dtype]      # TODO: Remove. Only applicable for param == True (extra trait?)
 
     fn __init__(inout self, tensor: Tensor[dtype], requires_grad: Bool = False, requires_broadcast: Bool = True, param: Bool = False):
         self.tensor = tensor
@@ -57,9 +57,8 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         self.parent_broadcast_shape = tensor.shape()
         self.backward_fn = backward_fn_placeholder[dtype]
         
-        # self.optim_rms_grad = Tensor[dtype](self.grad.shape())
-        # self.optim_momentum_grad = Tensor[dtype](self.grad.shape())
-        # self.optim_momentum_grad = Tensor[dtype](self.grad.shape())
+        self.optim_rms_grad = Tensor[dtype](self.grad.shape())
+        self.optim_momentum_grad = Tensor[dtype](self.grad.shape())
 
 
     fn add_child(inout self, node: Node[dtype]):

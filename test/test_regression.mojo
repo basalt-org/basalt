@@ -49,9 +49,15 @@ fn main():
     for i in range(GRAPH.graph.size):
         print("Gradient: ", GRAPH.graph[i].grad)
 
+    
+    #### BACKWARD ####
+    print("------------ OPTIMIZER ------------")
+    print("Graph size:", GRAPH.graph.size)
+    for i in range(GRAPH.graph.size):
+        print("Parameters Before: ", GRAPH.graph[i].tensor)
 
-    # optim.step(model.graph)
+    optim.step()
 
-    # print("#####  PARAMETERS  #####", model.graph.parameters.size)
-    # for param in model.graph.parameters:
-    #     print("Param:", param.tensor)
+    for i in range(GRAPH.graph.size):
+        print("Parameters After: ", GRAPH.graph[i].tensor)
+

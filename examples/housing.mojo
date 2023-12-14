@@ -1,31 +1,26 @@
+from tensor import Tensor
+
+import dainemo.nn as nn
+from dainemo.autograd.node import Node
 from dainemo.utils.datasets import BostonHousing
 from dainemo.utils.dataloader import DataLoader, housing_data_batch, housing_label_batch
 
-import dainemo.nn as nn
-from dainemo.autograd.graph import Graph
-from dainemo.autograd.node import Node
-
-from tensor import Tensor, TensorShape
-from utils.index import Index
+alias dtype = DType.float32
 
 
 
-struct LinearRegression[dtype: DType]:
-    var graph: Graph[dtype]
-    var layer1: nn.Linear[dtype]
+struct LinearRegression:
+    var layer1: nn.Linear
 
     fn __init__(inout self, input_dim: Int):
-        self.graph = Graph[dtype]()
-        self.layer1 = nn.Linear[dtype](self.graph, input_dim, 1)
+        self.layer1 = nn.Linear(input_dim, 1)
         
     fn forward(inout self, x: Tensor[dtype]) -> Node[dtype]:
-        return self.layer1(self.graph, Node[dtype](x))
+        return self.layer1(Node[dtype](x))
 
 
 
-fn main():
-    alias dtype = DType.float32
-    
+fn main():    
     let train_data: BostonHousing[dtype]
     try:
         train_data = BostonHousing[dtype](file_path='./examples/data/housing.csv')
@@ -40,9 +35,9 @@ fn main():
                             batch_size=batch_size
                         )
     
-    var model = LinearRegression[dtype](train_data.data.dim(1))
-    var loss_func = nn.MSELoss[dtype]()
-    var optim = nn.optim.Adam[dtype](lr=0.05)
+    var model = LinearRegression(train_data.data.dim(1))
+    var loss_func = nn.MSELoss()
+    var optim = nn.optim.Adam(lr=0.05)
 
     let batch_data: Tensor[dtype]
     let batch_labels: Tensor[dtype]
@@ -54,14 +49,18 @@ fn main():
             batch_data = housing_data_batch[dtype](batch_indeces.get[0, Int](), batch_indeces.get[1, Int](), training_loader.data)
             batch_labels = housing_label_batch[dtype](batch_indeces.get[0, Int](), batch_indeces.get[1, Int](), training_loader.labels)
             
-            optim.zero_grad(model.graph)
-            let output = model.forward(batch_data)            
-            var loss = loss_func(model.graph, output, batch_labels)
+            optim.zero_grad()
+            let output = model.forward(batch_data) 
+            print("model forward")           
+            var loss = loss_func(output, batch_labels)
+            print("loss done")
 
-            loss.backward(model.graph)
-            optim.step(model.graph)
+            loss.backward()
+            print("backward done")
+            optim.step()
 
             epoch_loss += loss.tensor[0]
             num_batches += 1
+            print(num_batches)
         
         print("Epoch: [", epoch+1, "/", num_epochs, "] \t Avg loss per epoch:", epoch_loss / num_batches)
