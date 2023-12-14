@@ -1,18 +1,18 @@
+from tensor import Tensor
+
+import dainemo.nn as nn
+from dainemo.autograd.node import Node
 from dainemo.utils.datasets import MNIST
 from dainemo.utils.dataloader import DataLoader, mnist_data_batch, mnist_label_batch
 
-import dainemo.nn as nn
-from dainemo.autograd.graph import Graph
-from dainemo.autograd.node import Node
-
-from tensor import Tensor, TensorShape
-from utils.index import Index
-
+alias dtype = DType.float32
 
 
 
 def plot_image[dtype: DType](borrowed data: Tensor[dtype], num: Int):
+    from utils.index import Index
     from python.python import Python, PythonObject
+    
     np = Python.import_module("numpy")
     plt = Python.import_module("matplotlib.pyplot")
 
@@ -26,22 +26,18 @@ def plot_image[dtype: DType](borrowed data: Tensor[dtype], num: Int):
 
 
 
-struct Model[dtype: DType]:
-    var graph: Graph[dtype]
-    var layer1: nn.Linear[dtype]
+struct Model:
+    var layer1: nn.Linear
 
     fn __init__(inout self):
-        self.graph = Graph[dtype]()
-        self.layer1 = nn.Linear[dtype](self.graph, 28*28, 256)
+        self.layer1 = nn.Linear(28*28, 256)
         
     fn forward(inout self, x: Tensor[dtype]) -> Node[dtype]:
-        return self.layer1(self.graph, Node[dtype](x))
+        return self.layer1(Node[dtype](x))
 
 
 
-fn main():
-    alias dtype = DType.float32
-    
+fn main():    
     let train_data: MNIST[dtype]
     try:
         train_data = MNIST[dtype](file_path='./examples/data/mnist_test_small.csv')
@@ -58,17 +54,17 @@ fn main():
                             batch_size=batch_size
                         )
     
-    var model = Model[dtype]()
-
+    var model = Model()
 
     let batch_data: Tensor[dtype]
     let batch_labels: Tensor[dtype]
     for epoch in range(num_epochs):
         for batch in training_loader:
                         
-            batch_data = mnist_data_batch[dtype](batch.get[0, Int](), batch.get[1, Int](), training_loader.data)
-            batch_labels = mnist_label_batch[dtype](batch.get[0, Int](), batch.get[1, Int](), training_loader.labels)
-            
+            # TODO: Dataloader needs FLATTEN & RESHAPE to generalize for any rank
+            batch_data = mnist_data_batch[dtype](batch.start, batch.end, training_loader.data)
+            batch_labels = mnist_label_batch[dtype](batch.start, batch.end, training_loader.labels)
+
             try:
                 _ = plot_image[dtype](batch_data, 0)
             except: 

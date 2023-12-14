@@ -3,7 +3,7 @@ from tensor import Tensor
 import dainemo.nn as nn
 from dainemo.autograd.node import Node
 from dainemo.utils.datasets import BostonHousing
-from dainemo.utils.dataloader import DataLoader, housing_data_batch, housing_label_batch
+from dainemo.utils.dataloader import DataLoader
 
 alias dtype = DType.float32
 
@@ -20,7 +20,7 @@ struct LinearRegression:
 
 
 
-fn main():    
+fn main():
     let train_data: BostonHousing[dtype]
     try:
         train_data = BostonHousing[dtype](file_path='./examples/data/housing.csv')
@@ -39,19 +39,14 @@ fn main():
     var loss_func = nn.MSELoss()
     var optim = nn.optim.Adam(lr=0.05)
 
-    let batch_data: Tensor[dtype]
-    let batch_labels: Tensor[dtype]
     for epoch in range(num_epochs):
         var num_batches: Int = 0
-        var epoch_loss: SIMD[dtype, 1] = 0.0
-        for batch_indeces in training_loader:
+        var epoch_loss: Float32 = 0.0
+        for batch in training_loader:
 
-            batch_data = housing_data_batch[dtype](batch_indeces.get[0, Int](), batch_indeces.get[1, Int](), training_loader.data)
-            batch_labels = housing_label_batch[dtype](batch_indeces.get[0, Int](), batch_indeces.get[1, Int](), training_loader.labels)
-            
             optim.zero_grad()
-            let output = model.forward(batch_data)          
-            var loss = loss_func(output, batch_labels)
+            let output = model.forward(batch[0])          
+            var loss = loss_func(output, batch[1])
 
             loss.backward()
             optim.step()
