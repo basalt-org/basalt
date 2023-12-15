@@ -107,7 +107,7 @@ fn test_DIV() raises:
     var expected_ug1 = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected_ug1, 1.0 / 2.0)
     var expected_ug2 = Tensor[dtype](2, 3)
-    fill[dtype, nelts](expected_ug2, 1.0 / (2.0**2))
+    fill[dtype, nelts](expected_ug2, -1.0 / (2.0**2))
 
     assert_tensors_equal(ug1, expected_ug1)
     assert_tensors_equal(ug2, expected_ug2)

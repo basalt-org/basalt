@@ -120,7 +120,7 @@ struct DIV:
         """Backward operation of element wise division."""
         alias nelts: Int = simdwidthof[dtype]()
         # d(x/y) / dx = 1/y
-        # d(x/y) / dy = x/y^2
+        # d(x/y) / dy = -x/y^2
         if tensor_id == 0:
             let n2 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])]
             let res = elwise_op[dtype, nelts, div](1.0, n2.tensor)
@@ -129,7 +129,8 @@ struct DIV:
             let n1 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])]
             let n2 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])]
             let n2_sq = elwise_pow[dtype, nelts](n2.tensor, 2)
-            let res = elwise_op[dtype, nelts, div](n1.tensor, n2_sq)
+            let div_n1_n2_sq = elwise_op[dtype, nelts, div](n1.tensor, n2_sq)
+            let res = elwise_op[dtype, nelts, mul](div_n1_n2_sq, -1.0)
             return elwise_op[dtype, nelts, mul](res, ug)
 
 
