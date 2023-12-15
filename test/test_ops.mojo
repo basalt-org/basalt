@@ -4,10 +4,10 @@ from testing import assert_equal
 from test_tensorutils import assert_tensors_equal
 
 from dainemo import GRAPH
-from dainemo.autograd.ops.basics import ADD, SUB, DOT, SUM, MUL, POW
+from dainemo.autograd.ops.basics import ADD, SUB, DOT, SUM, MUL, POW, DIV
 from dainemo.utils.tensorutils import fill
 
-alias dtype = DType.float32 
+alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
 
 
@@ -19,12 +19,13 @@ fn test_ADD() raises:
     fill[dtype, nelts](t2, 1.0)
 
     let res = ADD.forward(t1, t2)
-    
+
     var expected = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected, 2.0)
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 3)
     GRAPH.reset()
+
 
 # <------------SUB------------>
 fn test_SUB() raises:
@@ -34,7 +35,7 @@ fn test_SUB() raises:
     fill[dtype, nelts](t2, 1.0)
 
     let res = SUB.forward(t1, t2)
-    
+
     let expected = Tensor[dtype](2, 3)
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 3)
@@ -49,7 +50,7 @@ fn test_MUL() raises:
     fill[dtype, nelts](t2, 1.0)
 
     var res = MUL.forward(t1, t2)
-    
+
     var expected = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected, 1.0)
     assert_tensors_equal(res.tensor, expected)
@@ -58,6 +59,28 @@ fn test_MUL() raises:
 
     res = MUL.forward(t1, 5)
     fill[dtype, nelts](expected, 5)
+    assert_tensors_equal(res.tensor, expected)
+    assert_equal(GRAPH.graph.size, 3)
+    GRAPH.reset()
+
+
+# <------------DIV------------>
+fn test_DIV() raises:
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    var t2: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](t1, 1.0)
+    fill[dtype, nelts](t2, 3.0)
+
+    var res = DIV.forward(t1, t2)
+
+    var expected = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected, 1.0 / 3.0)
+    assert_tensors_equal(res.tensor, expected)
+    assert_equal(GRAPH.graph.size, 3)
+    GRAPH.reset()
+
+    res = DIV.forward(t1, 5)
+    fill[dtype, nelts](expected, 1.0 / 5.0)
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 3)
     GRAPH.reset()
@@ -124,11 +147,11 @@ fn test_SUM() raises:
 
 
 fn main():
-    
     try:
         test_ADD()
         test_SUB()
         test_MUL()
+        test_DIV()
         test_DOT()
         test_POW()
         test_SUM()
