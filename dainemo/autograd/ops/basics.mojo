@@ -92,7 +92,46 @@ struct MUL:
 
 
 # <------------DIV------------>
-# TODO
+struct DIV:
+    @staticmethod
+    fn forward(n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
+        """Forward operation of element wise division."""
+        alias nelts: Int = simdwidthof[dtype]()
+        let res: Tensor[dtype]
+        if n1.tensor.shape() == n2.tensor.shape():
+            res = elwise_op[dtype, nelts, div](n1.tensor, n2.tensor)
+        else:
+            res = batch_tensor_elwise_op[dtype, nelts, div](n1.tensor, n2.tensor)
+        return GRAPH.create_graph_node[Self.backward](res, n1, n2)
+
+    @staticmethod
+    fn forward(n1: Node[dtype], a: SIMD[dtype, 1]) -> Node[dtype]:
+         """Forward operation of tensor-scalar division."""
+        alias nelts: Int = simdwidthof[dtype]()
+        let res: Tensor[dtype] = elwise_op[dtype, nelts, div](n1.tensor, a)
+        var a_tensor: Tensor[dtype] = Tensor[dtype](1)
+        a_tensor[0] = a
+        return GRAPH.create_graph_node[Self.backward](res, n1, Node[dtype](a_tensor))
+
+    @staticmethod
+    fn backward(
+        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
+    ) -> Tensor[dtype]:
+        """Backward operation of element wise division."""
+        alias nelts: Int = simdwidthof[dtype]()
+        # d(x/y) / dx = 1/y
+        # d(x/y) / dy = -x/y^2
+        if tensor_id == 0:
+            let n2 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])]
+            let res = elwise_op[dtype, nelts, div](1.0, n2.tensor)
+            return elwise_op[dtype, nelts, mul](res, ug)
+        else:
+            let n1 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])]
+            let n2 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])]
+            let n2_sq = elwise_pow[dtype, nelts](n2.tensor, 2)
+            let div_n1_n2_sq = elwise_op[dtype, nelts, div](n1.tensor, n2_sq)
+            let res = elwise_op[dtype, nelts, mul](div_n1_n2_sq, -1.0)
+            return elwise_op[dtype, nelts, mul](res, ug)
 
 
 # <------------DOT------------>
