@@ -60,8 +60,8 @@ WIP: Work in progress
 | MUL        |   ✅   |
 | DIV        |   ✅   |
 | DOT        |   ✅   |
-| EXP        |   ❌   |
-| LOG        |   ❌   |
+| EXP        |   ✅   |
+| LOG        |   ✅   |
 | POW        |   ✅   |
 | SUM        |   ✅*  |
 | TRANSPOSE  |   ❌   |

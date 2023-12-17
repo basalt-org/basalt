@@ -4,7 +4,7 @@ from dainemo import GRAPH
 from dainemo.autograd.node import Node
 from dainemo.utils.tensorutils import dot, tsum, elwise_op, elwise_pow, elwise_transform, fill, batch_tensor_elwise_op
 
-from math import add, sub, mul, div, log
+from math import add, sub, mul, div, log, exp
 
 
 '''
@@ -95,7 +95,7 @@ struct MUL:
 struct DIV:
     @staticmethod
     fn forward(n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
-        """Forward operation of element wise division."""
+        '''Forward operation of element wise division.'''
         alias nelts: Int = simdwidthof[dtype]()
         let res: Tensor[dtype]
         if n1.tensor.shape() == n2.tensor.shape():
@@ -106,7 +106,7 @@ struct DIV:
 
     @staticmethod
     fn forward(n1: Node[dtype], a: SIMD[dtype, 1]) -> Node[dtype]:
-         """Forward operation of tensor-scalar division."""
+        '''Forward operation of tensor-scalar division.'''
         alias nelts: Int = simdwidthof[dtype]()
         let res: Tensor[dtype] = elwise_op[dtype, nelts, div](n1.tensor, a)
         var a_tensor: Tensor[dtype] = Tensor[dtype](1)
@@ -117,7 +117,7 @@ struct DIV:
     fn backward(
         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
     ) -> Tensor[dtype]:
-        """Backward operation of element wise division."""
+        '''Backward operation of element wise division.'''
         alias nelts: Int = simdwidthof[dtype]()
         # d(x/y) / dx = 1/y
         # d(x/y) / dy = -x/y^2
@@ -157,14 +157,42 @@ struct DOT:
             return dot[dtype, nelts](transpose_2D[dtype, nelts](n1.tensor), ug)           # dot(n1.T, ug)
 
 
-
-
 # <------------EXP------------>
-# TODO
-
+struct EXP:
+    @staticmethod
+    fn forward(n: Node[dtype]) -> Node[dtype]:
+        '''Forward operation of exp.'''
+        alias nelts: Int = simdwidthof[dtype]()
+        let res: Tensor[dtype] = elwise_transform[dtype, nelts, exp](n.tensor)
+        return GRAPH.create_graph_node[Self.backward](res, n)
+        
+    @staticmethod
+    fn backward(ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[dtype]:
+        '''Backward operation of exp.'''
+        # d(exp(x)) / dx = exp(x)
+        alias nelts: Int = simdwidthof[dtype]()
+        let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
+        let res = elwise_transform[dtype, nelts, exp](t)
+        return elwise_op[dtype, nelts, mul](res, ug)
+        
 
 # <------------LOG------------>
-# TODO
+struct LOG:
+    @staticmethod
+    fn forward(n: Node[dtype]) -> Node[dtype]:
+        '''Forward operation of log.'''
+        alias nelts: Int = simdwidthof[dtype]()
+        let res: Tensor[dtype] = elwise_transform[dtype, nelts, log](n.tensor)
+        return GRAPH.create_graph_node[Self.backward](res, n)
+    
+    @staticmethod
+    fn backward(ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[dtype]:
+        '''Backward operation of log.'''
+        # d(log(x)) / dx = 1 / x
+        alias nelts: Int = simdwidthof[dtype]()
+        let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
+        let res = elwise_op[dtype, nelts, div](1.0, t)
+        return elwise_op[dtype, nelts, mul](res, ug)
 
 
 # <------------POW------------>

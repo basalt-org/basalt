@@ -1,13 +1,13 @@
 from random import rand
 from tensor import Tensor, TensorShape
-from math import equal, log
+from math import equal, log, exp
 from testing import assert_true, assert_equal
 from test_tensorutils import assert_tensors_equal
 
 from dainemo import GRAPH
 from dainemo.autograd.node import Node
 from dainemo.utils.tensorutils import fill
-from dainemo.autograd.ops.basics import DOT, SUM, ADD, SUB, MUL, POW, DIV, FLATTEN, RESHAPE
+from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, SUM, FLATTEN, RESHAPE
 
 alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
@@ -138,6 +138,46 @@ fn test_DOT() raises:
 
     assert_tensors_equal(ug1, expected_ug1)
     assert_tensors_equal(ug2, expected_ug2)
+    GRAPH.reset()
+
+
+# <------------EXP------------>
+fn test_EXP() raises:
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](t1, 2.0)
+    fill[dtype, nelts](upper_grad, 5.0)
+
+    let res = EXP.forward(t1)
+
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 1)
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+
+    var expected_ug1 = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected_ug1, 5.0 * exp[dtype, 1](2.0))
+    assert_tensors_equal(ug1, expected_ug1)
+    GRAPH.reset()
+
+
+# <------------LOG------------>
+fn test_LOG() raises:
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](t1, 2.0)
+    fill[dtype, nelts](upper_grad, 5.0)
+
+    let res = LOG.forward(t1)
+
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 1)
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+
+    var expected_ug1 = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected_ug1, 5.0 / 2.0)
+    assert_tensors_equal(ug1, expected_ug1)
     GRAPH.reset()
 
 
@@ -286,6 +326,8 @@ fn main():
         test_MUL()
         test_DIV()
         test_DOT()
+        test_EXP()
+        test_LOG()
         test_POW()
         test_SUM()
         test_SUM_0()

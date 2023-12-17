@@ -2,9 +2,10 @@ from random import rand
 from tensor import Tensor, TensorShape
 from testing import assert_equal
 from test_tensorutils import assert_tensors_equal
+from math import exp, log
 
 from dainemo import GRAPH
-from dainemo.autograd.ops.basics import ADD, SUB, DOT, SUM, MUL, POW, DIV, FLATTEN, RESHAPE
+from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, SUM, FLATTEN, RESHAPE
 from dainemo.utils.tensorutils import fill
 
 alias dtype = DType.float32
@@ -102,6 +103,34 @@ fn test_DOT() raises:
     GRAPH.reset()
 
 
+# <------------EXP------------>
+fn test_EXP() raises:
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](t1, 2.0)
+
+    let res = EXP.forward(t1)
+
+    var expected = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected, exp[dtype, 1](2.0))
+    assert_tensors_equal(res.tensor, expected)
+    assert_equal(GRAPH.graph.size, 2)
+    GRAPH.reset()
+
+
+# <------------LOG------------>
+fn test_LOG() raises:
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](t1, 2.0)
+
+    let res = LOG.forward(t1)
+
+    var expected = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected, log[dtype, 1](2.0))
+    assert_tensors_equal(res.tensor, expected)
+    assert_equal(GRAPH.graph.size, 2)
+    GRAPH.reset()
+
+
 # <------------POW------------>
 fn test_POW() raises:
     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
@@ -182,6 +211,8 @@ fn main():
         test_MUL()
         test_DIV()
         test_DOT()
+        test_EXP()
+        test_LOG()
         test_POW()
         test_SUM()
         test_FLATTEN()
