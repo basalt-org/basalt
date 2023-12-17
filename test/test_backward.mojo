@@ -1,5 +1,5 @@
 from random import rand
-from tensor import Tensor
+from tensor import Tensor, TensorShape
 from math import equal, log
 from testing import assert_true, assert_equal
 from test_tensorutils import assert_tensors_equal
@@ -7,7 +7,7 @@ from test_tensorutils import assert_tensors_equal
 from dainemo import GRAPH
 from dainemo.autograd.node import Node
 from dainemo.utils.tensorutils import fill
-from dainemo.autograd.ops.basics import DOT, SUM, ADD, SUB, MUL, POW, DIV
+from dainemo.autograd.ops.basics import DOT, SUM, ADD, SUB, MUL, POW, DIV, FLATTEN, RESHAPE
 
 alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
@@ -235,6 +235,50 @@ fn test_SUM_1() raises:
     GRAPH.reset()
 
 
+# <------------FLATTEN------------>
+fn test_FLATTEN() raises:
+    let t1 = Tensor[dtype](2, 3)
+
+    let res = FLATTEN.forward(t1)
+
+    # uppergrad has always to same shape as res
+    var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
+    fill[dtype, nelts](upper_grad, 1.0)
+    assert_equal(upper_grad.dim(0), 6)
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 1)  # one parent
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+
+    var expected_ug1 = Tensor[dtype](t1.shape())
+    fill[dtype, nelts](expected_ug1, 1.0)
+    assert_tensors_equal(ug1, expected_ug1)
+    GRAPH.reset()
+
+
+# <------------RESHAPE------------>
+fn test_RESHAPE() raises:
+    let t1 = Tensor[dtype](2, 2, 5)
+    let new_shape = TensorShape(2, 10)
+
+    let res = RESHAPE.forward(t1, new_shape)
+
+    # uppergrad has always to same shape as res
+    var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
+    fill[dtype, nelts](upper_grad, 1.0)
+    assert_equal(upper_grad.dim(0), 2)
+    assert_equal(upper_grad.dim(1), 10)
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 1)  # one parent
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+
+    var expected_ug1 = Tensor[dtype](t1.shape())
+    fill[dtype, nelts](expected_ug1, 1.0)
+    assert_tensors_equal(ug1, expected_ug1)
+    GRAPH.reset()
+
+
 fn main():
     try:
         test_ADD()
@@ -246,5 +290,7 @@ fn main():
         test_SUM()
         test_SUM_0()
         test_SUM_1()
+        test_FLATTEN()
+        test_RESHAPE()
     except:
         print("[ERROR] Error in backward pass.")
