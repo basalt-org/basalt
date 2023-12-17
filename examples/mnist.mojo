@@ -3,7 +3,7 @@ from tensor import Tensor
 import dainemo.nn as nn
 from dainemo.autograd.node import Node
 from dainemo.utils.datasets import MNIST
-from dainemo.utils.dataloader import DataLoader, mnist_data_batch, mnist_label_batch
+from dainemo.utils.dataloader import DataLoader
 
 alias dtype = DType.float32
 
@@ -41,7 +41,7 @@ fn main():
     let train_data: MNIST[dtype]
     try:
         train_data = MNIST[dtype](file_path='./examples/data/mnist_test_small.csv')
-        _ = plot_image[dtype](train_data.data, 1)
+        # _ = plot_image[dtype](train_data.data, 1)
     except:
         print("Could not load data")
 
@@ -61,13 +61,9 @@ fn main():
     for epoch in range(num_epochs):
         for batch in training_loader:
                         
-            # TODO: Dataloader needs FLATTEN & RESHAPE to generalize for any rank
-            batch_data = mnist_data_batch[dtype](batch.start, batch.end, training_loader.data)
-            batch_labels = mnist_label_batch[dtype](batch.start, batch.end, training_loader.labels)
-
             try:
-                _ = plot_image[dtype](batch_data, 0)
+                _ = plot_image[dtype](batch.data, 0)
             except: 
                 print("Could not plot image")
 
-            let output = model.forward(batch_data)
+            let output = model.forward(batch.data)

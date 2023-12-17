@@ -1,4 +1,4 @@
-from tensor import Tensor
+from tensor import Tensor, TensorShape
 
 from dainemo import GRAPH
 from dainemo.autograd.node import Node
@@ -251,9 +251,56 @@ struct SUM:
 
 
 # <----------FLATTEN---------->
-# TODO
+struct FLATTEN:
+    @staticmethod
+    fn forward(n: Node[dtype]) -> Node[dtype]:
+        var res = n.tensor
+        try:
+            res.ireshape(TensorShape(res.num_elements()))
+        except:
+            print("[ERROR]: Cannot flatten tensor in forward pass.")
+        
+        return GRAPH.create_graph_node[Self.backward](res, n)
+
+    @staticmethod
+    fn backward(ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[dtype]:
+        '''
+        Reshape upper gradient to original shape.
+        '''
+        var res = ug
+        let shape = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor.shape()
+        
+        try:
+            res.ireshape(shape)
+        except:
+            print("[ERROR]: Cannot reshape tensor in flatten backward pass.")
+
+        return res
 
 
 # <----------RESHAPE---------->
-# TODO
+struct RESHAPE:
+    @staticmethod
+    fn forward(n: Node[dtype], new_shape: TensorShape) -> Node[dtype]:
+        var res = n.tensor
+        try:
+            res.ireshape(new_shape)
+        except:
+            print("[ERROR]: Cannot reshape tensor in forward pass.")
+        
+        return GRAPH.create_graph_node[Self.backward](res, n)
 
+    @staticmethod
+    fn backward(ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[dtype]:
+        '''
+        Reshape upper gradient to original shape.
+        '''
+        var res = ug
+        let shape = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor.shape()
+        
+        try:
+            res.ireshape(shape)
+        except:
+            print("[ERROR]: Cannot reshape tensor in reshape backward pass.")
+
+        return res

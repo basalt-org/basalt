@@ -1,4 +1,4 @@
-from tensor import Tensor
+from tensor import Tensor, TensorShape
 from random import rand
 from testing import assert_equal, assert_true
 
@@ -232,6 +232,21 @@ fn test_transpose() raises:
     assert_tensors_equal(transposed, expected)
 
 
+# <-------------FLATTEN/RESHAPE------------->
+fn test_flatten() raises:
+    var A = Tensor[dtype](2, 3)
+    var B = Tensor[dtype](6)
+    for i in range(6):
+        A[i] = i+1
+        B[i] = i+1
+
+    var A_flat = A.reshape(TensorShape(A.num_elements()))       # or A.ireshape to modify in place
+    assert_tensors_equal(A_flat, B)
+
+    let A_resh = A_flat.reshape(B.shape())                      # or A_flat.ireshape to modify in place
+    assert_tensors_equal(A_resh, A)
+
+
 fn main():
  
     try:
@@ -245,5 +260,6 @@ fn main():
         test_elwise_batch_tensor()
         test_sum_mean_std()
         test_transpose()
+        test_flatten()
     except:
         print("[ERROR] Error in tensorutils.py")

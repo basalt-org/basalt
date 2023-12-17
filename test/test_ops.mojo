@@ -1,10 +1,10 @@
 from random import rand
-from tensor import Tensor
+from tensor import Tensor, TensorShape
 from testing import assert_equal
 from test_tensorutils import assert_tensors_equal
 
 from dainemo import GRAPH
-from dainemo.autograd.ops.basics import ADD, SUB, DOT, SUM, MUL, POW, DIV
+from dainemo.autograd.ops.basics import ADD, SUB, DOT, SUM, MUL, POW, DIV, FLATTEN, RESHAPE
 from dainemo.utils.tensorutils import fill
 
 alias dtype = DType.float32
@@ -146,6 +146,35 @@ fn test_SUM() raises:
     GRAPH.reset()
 
 
+# <------------FLATTEN------------>
+fn test_FLATTEN() raises:
+    var A = Tensor[dtype](2, 3)
+    var B = Tensor[dtype](6)
+    for i in range(6):
+        A[i] = i+1
+        B[i] = i+1
+
+    let res = FLATTEN.forward(A)
+
+    assert_tensors_equal(res.tensor, B)
+
+
+# <------------RESHAPE------------>
+fn test_RESHAPE() raises:
+    var A = Tensor[dtype](2, 2, 5)
+    let new_shape = TensorShape(2, 10)
+    
+    var B = Tensor[dtype](new_shape)
+    for i in range(20):
+        A[i] = i+1
+        B[i] = i+1
+
+    let res = RESHAPE.forward(A, new_shape)
+
+    assert_tensors_equal(res.tensor, B)
+
+
+
 fn main():
     try:
         test_ADD()
@@ -155,6 +184,8 @@ fn main():
         test_DOT()
         test_POW()
         test_SUM()
+        test_FLATTEN()
+        test_RESHAPE()
     except:
         print("[ERROR] Error in ops")
         return
