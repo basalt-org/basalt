@@ -275,7 +275,7 @@ fn transpose[
     var t_new = Tensor[dtype](new_shape)
 
     # Get the strides of the old and new tensors
-    var dims = DynamicVector[Int](2)
+    var dims = StaticIntTuple[2]()
     dims[0] = min(dim_0, dim_1)  # last dimension (reading from right to left)
     dims[1] = max(dim_0, dim_1)  # first dimension (reading from right to left)
     # example: tensor(2x3), strides (6, 3, 1)
@@ -295,24 +295,35 @@ fn transpose[
     let l_range = t.dim(dims[1])
     let m_range = strides_new[dims[1] + 1]
 
-    for i in range(i_range):
+    # NOTE: The reason why we use strides_old_shape and strides_new_shape is 
+    # because it seems there is a *bug* when using dynamic vectors inside a 
+    # parameter function? or a parameter function that is used in parallelized. 
+    # If we use the dynamic vector inside the parallelized function, the memory 
+    # of the dynamic vector is not initialized.
+    var strides_old_shape = TensorShape(strides_old)
+    var strides_new_shape = TensorShape(strides_new)
+
+    @parameter
+    fn p_transpose(i: Int):
         for j in range(j_range):
             for k in range(k_range):
                 for l in range(l_range):
                     for m in range(m_range):
                         let index_old =
-                            i * strides_old[dims[0]]
-                            + j * strides_old[dims[0] + 1]
-                            + k * strides_old[dims[1]]
-                            + l * strides_old[dims[1] + 1]
+                            i * strides_old_shape[dims[0]]
+                            + j * strides_old_shape[dims[0] + 1]
+                            + k * strides_old_shape[dims[1]]
+                            + l * strides_old_shape[dims[1] + 1]
                             + m
                         let index_new =
-                            i * strides_new[dims[0]]
-                            + l * strides_new[dims[0] + 1]
-                            + k * strides_new[dims[1]]
-                            + j * strides_new[dims[1] + 1]
+                            i * strides_new_shape[dims[0]]
+                            + l * strides_new_shape[dims[0] + 1]
+                            + k * strides_new_shape[dims[1]]
+                            + j * strides_new_shape[dims[1] + 1]
                             + m
 
                         t_new[index_new] = t[index_old]
+    
+    parallelize[p_transpose](i_range)
 
     return t_new
