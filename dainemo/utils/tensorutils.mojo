@@ -3,7 +3,7 @@ from utils.index import Index
 from algorithm import vectorize, parallelize
 from memory import memset_zero
 
-from math import sqrt, pow, equal
+from math import sqrt, pow, equal, max, min
 
 
 @always_inline
@@ -245,10 +245,74 @@ fn transpose_2D[dtype: DType, nelts: Int](t: Tensor[dtype]) -> Tensor[dtype]:
             t_new.data().offset(j * t.dim(0) + i).simd_strided_store[nelts](
                 t.simd_load[nelts](i * t.dim(1) + j), stride
             )
-            # t_new[j * t.dim(0) + i] = t[i * t.dim(1) + j]
 
         vectorize[nelts, proc_column](t.dim(1))
 
     parallelize[proc_row](t.dim(0))
+
+    return t_new
+
+
+@always_inline
+fn transpose[
+    dtype: DType, nelts: Int
+](t: Tensor[dtype], dim_0: Int, dim_1: Int) -> Tensor[dtype]:
+    """
+    Create a new transposed tensor of the given tensor t.
+    """
+
+    # Get the new shape of the transposed tensor
+    var new_shape = DynamicVector[Int](t.rank())
+
+    for i in range(t.rank()):
+        if i == dim_0:
+            new_shape.push_back(t.dim(dim_1))
+        elif i == dim_1:
+            new_shape.push_back(t.dim(dim_0))
+        else:
+            new_shape.push_back(t.dim(i))
+
+    var t_new = Tensor[dtype](new_shape)
+
+    # Get the strides of the old and new tensors
+    var dims = DynamicVector[Int](2)
+    dims[0] = min(dim_0, dim_1)  # last dimension (reading from right to left)
+    dims[1] = max(dim_0, dim_1)  # first dimension (reading from right to left)
+    # example: tensor(2x3), strides (6, 3, 1)
+    var strides_old = DynamicVector[Int](t.rank() + 1)
+    var strides_new = DynamicVector[Int](t_new.rank() + 1)
+    strides_old.resize(t.rank() + 1, 1)
+    strides_new.resize(t_new.rank() + 1, 1)
+
+    for i in range(t.rank() - 1, -1, -1):
+        strides_old[i] = strides_old[i + 1] * t.dim(i)
+        strides_new[i] = strides_new[i + 1] * t_new.dim(i)
+
+    # Transpose the tensor
+    let i_range = strides_old[0] // strides_old[dims[0]]
+    let j_range = t.dim(dims[0])
+    let k_range = strides_old[dims[0] + 1] // strides_old[dims[1]]
+    let l_range = t.dim(dims[1])
+    let m_range = strides_new[dims[1] + 1]
+
+    for i in range(i_range):
+        for j in range(j_range):
+            for k in range(k_range):
+                for l in range(l_range):
+                    for m in range(m_range):
+                        let index_old =
+                            i * strides_old[dims[0]]
+                            + j * strides_old[dims[0] + 1]
+                            + k * strides_old[dims[1]]
+                            + l * strides_old[dims[1] + 1]
+                            + m
+                        let index_new =
+                            i * strides_new[dims[0]]
+                            + l * strides_new[dims[0] + 1]
+                            + k * strides_new[dims[1]]
+                            + j * strides_new[dims[1] + 1]
+                            + m
+
+                        t_new[index_new] = t[index_old]
 
     return t_new
