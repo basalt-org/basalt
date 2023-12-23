@@ -275,9 +275,8 @@ fn transpose[
     var t_new = Tensor[dtype](new_shape)
 
     # Get the strides of the old and new tensors
-    var dims = StaticIntTuple[2]()
-    dims[0] = min(dim_0, dim_1)  # last dimension (reading from right to left)
-    dims[1] = max(dim_0, dim_1)  # first dimension (reading from right to left)
+    var dims = StaticIntTuple[2]((min(dim_0, dim_1), max(dim_0, dim_1))) # last and first dimension (reading from right to left)
+
     # example: tensor(2x3), strides (6, 3, 1)
     var strides_old = DynamicVector[Int](t.rank() + 1)
     var strides_new = DynamicVector[Int](t_new.rank() + 1)
@@ -289,11 +288,11 @@ fn transpose[
         strides_new[i] = strides_new[i + 1] * t_new.dim(i)
 
     # Transpose the tensor
-    let i_range = strides_old[0] // strides_old[dims[0]]
-    let j_range = t.dim(dims[0])
-    let k_range = strides_old[dims[0] + 1] // strides_old[dims[1]]
-    let l_range = t.dim(dims[1])
-    let m_range = strides_new[dims[1] + 1]
+    let i_range = strides_old[0] // strides_old[dims[0]] # The dimensions before the 1st diemsnion to be transposed
+    let j_range = t.dim(dims[0]) # 1st dimension to be transposed
+    let k_range = strides_old[dims[0] + 1] // strides_old[dims[1]] # Dimensions between the 1st and 2nd dimensions to be transposed
+    let l_range = t.dim(dims[1]) # 2nd dimension to be transposed
+    let m_range = strides_new[dims[1] + 1] # The dimensions after the 2nd dimension to be transposed
 
     # NOTE: The reason why we use strides_old_shape and strides_new_shape is 
     # because it seems there is a *bug* when using dynamic vectors inside a 
@@ -305,25 +304,26 @@ fn transpose[
 
     @parameter
     fn p_transpose(i: Int):
-        for j in range(j_range):
-            for k in range(k_range):
-                for l in range(l_range):
-                    for m in range(m_range):
-                        let index_old =
-                            i * strides_old_shape[dims[0]]
-                            + j * strides_old_shape[dims[0] + 1]
-                            + k * strides_old_shape[dims[1]]
-                            + l * strides_old_shape[dims[1] + 1]
-                            + m
-                        let index_new =
-                            i * strides_new_shape[dims[0]]
-                            + l * strides_new_shape[dims[0] + 1]
-                            + k * strides_new_shape[dims[1]]
-                            + j * strides_new_shape[dims[1] + 1]
-                            + m
+        let index_i = (i // (j_range * k_range)) % i_range 
+        let index_j = (i // k_range) % j_range
+        let index_k = (i % k_range)
+        for l in range(l_range):
+            for m in range(m_range):
+                let index_old =
+                    index_i * strides_old_shape[dims[0]]
+                    + index_j * strides_old_shape[dims[0] + 1]
+                    + index_k * strides_old_shape[dims[1]]
+                    + l * strides_old_shape[dims[1] + 1]
+                    + m
+                let index_new =
+                    index_i * strides_new_shape[dims[0]]
+                    + l * strides_new_shape[dims[0] + 1]
+                    + index_k * strides_new_shape[dims[1]]
+                    + index_j * strides_new_shape[dims[1] + 1]
+                    + m
 
-                        t_new[index_new] = t[index_old]
+                t_new[index_new] = t[index_old]
     
-    parallelize[p_transpose](i_range)
+    parallelize[p_transpose](i_range * j_range * k_range)
 
     return t_new
