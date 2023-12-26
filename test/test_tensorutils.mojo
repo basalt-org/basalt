@@ -216,7 +216,7 @@ fn test_sum_mean_std() raises:
 
 
 # <-------------TRANSPOSE------------->
-from test.test_tensorutils_data import TransposeData
+from test_tensorutils_data import TransposeData
 
 
 fn test_transpose() raises:
