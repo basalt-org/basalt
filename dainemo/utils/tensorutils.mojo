@@ -290,9 +290,19 @@ fn transpose[
     # Transpose the tensor
     let i_range = strides_old[0] // strides_old[dims[0]] # The dimensions before the 1st diemsnion to be transposed
     let j_range = t.dim(dims[0]) # 1st dimension to be transposed
-    let k_range = strides_old[dims[0] + 1] // strides_old[dims[1]] # Dimensions between the 1st and 2nd dimensions to be transposed
-    let l_range = t.dim(dims[1]) # 2nd dimension to be transposed
-    let m_range = strides_new[dims[1] + 1] # The dimensions after the 2nd dimension to be transposed
+    let k_range = strides_old[dims[0] + 1] // strides_old[dims[1]] # Dimensions b1etween the 1st and 2nd dimensions to be transposed
+    let l_range: Int # 2nd dimension to be transposed, unless it is the last dimension
+    let m_range: Int # The dimensions after the 2nd dimension to be transposed, unless the 2nd dimension is the last dimension
+
+    let strides_m_new: Int # The strides to be used for dimension m of the new tensor
+    if dims[1] == t.rank() - 1:
+        m_range = t.dim(dims[1])
+        l_range = 1
+        strides_m_new = strides_new[dims[0] + 1]
+    else:
+        l_range = t.dim(dims[1])
+        m_range = strides_new[dims[1] + 1]
+        strides_m_new = 1
 
     # NOTE: The reason why we use strides_old_shape and strides_new_shape is 
     # because it seems there is a *bug* when using dynamic vectors inside a 
@@ -301,14 +311,14 @@ fn transpose[
     # of the dynamic vector is not initialized.
     var strides_old_shape = TensorShape(strides_old)
     var strides_new_shape = TensorShape(strides_new)
-
     @parameter
     fn p_transpose(i: Int):
         let index_i = (i // (j_range * k_range)) % i_range 
         let index_j = (i // k_range) % j_range
         let index_k = (i % k_range)
         for l in range(l_range):
-            for m in range(m_range):
+            @parameter
+            fn v_transpose[nelts: Int](m: Int):
                 let index_old =
                     index_i * strides_old_shape[dims[0]]
                     + index_j * strides_old_shape[dims[0] + 1]
@@ -320,9 +330,13 @@ fn transpose[
                     + l * strides_new_shape[dims[0] + 1]
                     + index_k * strides_new_shape[dims[1]]
                     + index_j * strides_new_shape[dims[1] + 1]
-                    + m
+                    + m * strides_m_new
 
-                t_new[index_new] = t[index_old]
+                t_new.data().offset(index_new).simd_strided_store[nelts](
+                    t.simd_load[nelts](index_old), strides_m_new
+                )
+
+            vectorize[nelts, v_transpose](m_range)
     
     parallelize[p_transpose](i_range * j_range * k_range)
 
