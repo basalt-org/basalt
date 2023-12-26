@@ -220,9 +220,6 @@ from test_tensorutils_data import TransposeData
 
 
 fn test_transpose() raises:
-    # TODO: figure out vectorization
-    # TODO: make it work for any rank
-
     var data = TransposeData.generate_1_test_case()
 
     var transposed = transpose_2D[dtype, nelts](data.A)
