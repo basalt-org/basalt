@@ -231,10 +231,8 @@ fn dot[dtype: DType, nelts: Int](A: Tensor[dtype], B: Tensor[dtype]) -> Tensor[d
 
 @always_inline
 fn transpose_2D[dtype: DType, nelts: Int](t: Tensor[dtype]) -> Tensor[dtype]:
+    # NOTE: This function could be deleted to use instead the transpose function
     var t_new = Tensor[dtype](t.dim(1), t.dim(0))
-
-    # TODO: figure out vectorization
-    # TODO: make it work for any rank
 
     let stride = t.dim(0)
 
