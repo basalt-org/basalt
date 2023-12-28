@@ -243,7 +243,7 @@ fn test_flatten() raises:
     var A_flat = A.reshape(TensorShape(A.num_elements()))       # or A.ireshape to modify in place
     assert_tensors_equal(A_flat, B)
 
-    let A_resh = A_flat.reshape(B.shape())                      # or A_flat.ireshape to modify in place
+    let A_resh = A_flat.reshape(A.shape())                      # or A_flat.ireshape to modify in place
     assert_tensors_equal(A_resh, A)
 
 
