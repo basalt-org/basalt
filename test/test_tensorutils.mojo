@@ -3,8 +3,13 @@ from random import rand
 from testing import assert_equal, assert_true
 
 from dainemo.utils.tensorutils import zero, fill, dot
-from dainemo.utils.tensorutils import elwise_transform, elwise_pow, elwise_op, batch_tensor_elwise_op
-from dainemo.utils.tensorutils import tsum, tmean, tstd, transpose_2D
+from dainemo.utils.tensorutils import (
+    elwise_transform,
+    elwise_pow,
+    elwise_op,
+    batch_tensor_elwise_op,
+)
+from dainemo.utils.tensorutils import tsum, tmean, tstd, transpose_2D, transpose
 
 from math import sqrt, exp, round
 from math import add, sub, mul, div
@@ -99,7 +104,7 @@ fn test_elwise_tensor_tensor() raises:
     var t2 = Tensor[dtype](2, 10)
     fill[dtype, nelts](t1, 3.0)
     fill[dtype, nelts](t2, 3.0)
-    
+
     let result1 = elwise_op[dtype, nelts, add](t1, t2)
     var result1_expected = Tensor[dtype](2, 10)
     fill[dtype, nelts](result1_expected, 6.0)
@@ -125,7 +130,7 @@ fn test_elwise_tensor_scalar() raises:
     let a: SIMD[dtype, 1] = 2.0
     var t1 = Tensor[dtype](2, 10)
     fill[dtype, nelts](t1, 1.0)
-    
+
     let result1 = elwise_op[dtype, nelts, add](t1, a)
     var result1_expected = Tensor[dtype](2, 10)
     fill[dtype, nelts](result1_expected, 3.0)
@@ -172,64 +177,98 @@ fn test_elwise_batch_tensor() raises:
     # print(batch_result3)
 
 
-
 # <-------------SUM/MEAN/STD------------->
 fn test_sum_mean_std() raises:
     var t = Tensor[dtype](2, 10)
     var s = 0
     for i in range(20):
-        t[i] = i+1
-        s += i+1
+        t[i] = i + 1
+        s += i + 1
 
     # Not specifying the axis takes all elements regardless of the shape
     let tensor_sum = tsum[dtype, nelts](t)
     assert_equal(tensor_sum, s)
 
     let tensor_mean = tmean[dtype, nelts](t)
-    assert_equal(tensor_mean, s/20)
+    assert_equal(tensor_mean, s / 20)
 
     let tensor_std = tstd[dtype, nelts](t)
     var expected_std: SIMD[dtype, 1] = 0
     for i in range(20):
-        expected_std += (i+1 - tensor_mean)**2
-    expected_std = sqrt(expected_std/20)
+        expected_std += (i + 1 - tensor_mean) ** 2
+    expected_std = sqrt(expected_std / 20)
     assert_equal(tensor_std, expected_std)
 
     # When specifying the axis you can sum across batches
     let batch_sum_0 = tsum[dtype, nelts](t, axis=0)
     var expected_batch_sum_0 = Tensor[dtype](1, 10)
     for i in range(10):
-        expected_batch_sum_0[i] = (i+1) + (i+1+10)
+        expected_batch_sum_0[i] = (i + 1) + (i + 1 + 10)
     assert_tensors_equal(batch_sum_0, expected_batch_sum_0)
 
     let batch_sum_1 = tsum[dtype, nelts](t, axis=1)
     var expected_batch_sum_1 = Tensor[dtype](2, 1)
-    expected_batch_sum_1[0] = 1+2+3+4+5+6+7+8+9+10
-    expected_batch_sum_1[1] = 11+12+13+14+15+16+17+18+19+20
+    expected_batch_sum_1[0] = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10
+    expected_batch_sum_1[1] = 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19 + 20
     assert_tensors_equal(batch_sum_1, expected_batch_sum_1)
 
     # TODO: mean / std across a specified axis
 
 
 # <-------------TRANSPOSE------------->
+from test_tensorutils_data import TransposeData
+
+
 fn test_transpose() raises:
-    # TODO: figure out vectorization
-    # TODO: make it work for any rank
-    var A = Tensor[dtype](2, 3)
-    for i in range(6):
-        A[i] = i+1
-    
-    let transposed = transpose_2D[dtype, nelts](A)
-    
-    var expected = Tensor[dtype](3, 2)
-    expected[0] = 1
-    expected[1] = 4
-    expected[2] = 2
-    expected[3] = 5
-    expected[4] = 3
-    expected[5] = 6
-    
-    assert_tensors_equal(transposed, expected)
+    # Transpose 2 dimensions
+
+    var data = TransposeData.generate_1_2dim_test_case()
+
+    var transposed = transpose_2D[dtype, nelts](data.A)
+
+    assert_tensors_equal(transposed, data.expected)
+
+    data = TransposeData.generate_2_2dim_test_case()
+
+    transposed = transpose[dtype, nelts](
+        data.A, data.transpose_dims[0], data.transpose_dims[1]
+    )
+
+    assert_tensors_equal(transposed, data.expected)
+
+    data = TransposeData.generate_3_2dim_test_case()
+
+    transposed = transpose[dtype, nelts](
+        data.A, data.transpose_dims[0], data.transpose_dims[1]
+    )
+
+    assert_tensors_equal(transposed, data.expected)
+
+    data = TransposeData.generate_4_2dim_test_case()
+
+    transposed = transpose[dtype, nelts](
+        data.A, data.transpose_dims[0], data.transpose_dims[1]
+    )
+
+    assert_tensors_equal(transposed, data.expected)
+
+    # Transpose using all dimensions
+
+    data = TransposeData.generate_1_alldim_test_case()
+    var transpose_dims = DynamicVector[Int]()
+    for i in range(len(data.transpose_dims)):
+        transpose_dims.push_back(data.transpose_dims[i])
+
+    transposed = transpose[dtype, nelts](data.A, transpose_dims)
+
+    assert_tensors_equal(transposed, data.expected)
+
+    # Transpose (reverse)
+
+    data = TransposeData.generate_1_transpose_test_case()
+    transposed = transpose[dtype, nelts](data.A)
+
+    assert_tensors_equal(transposed, data.expected)
 
 
 # <-------------FLATTEN/RESHAPE------------->
@@ -237,18 +276,19 @@ fn test_flatten() raises:
     var A = Tensor[dtype](2, 3)
     var B = Tensor[dtype](6)
     for i in range(6):
-        A[i] = i+1
-        B[i] = i+1
+        A[i] = i + 1
+        B[i] = i + 1
 
-    var A_flat = A.reshape(TensorShape(A.num_elements()))       # or A.ireshape to modify in place
+    var A_flat = A.reshape(
+        TensorShape(A.num_elements())
+    )  # or A.ireshape to modify in place
     assert_tensors_equal(A_flat, B)
 
-    let A_resh = A_flat.reshape(B.shape())                      # or A_flat.ireshape to modify in place
+    let A_resh = A_flat.reshape(B.shape())  # or A_flat.ireshape to modify in place
     assert_tensors_equal(A_resh, A)
 
 
 fn main():
- 
     try:
         test_zero()
         test_fill()
