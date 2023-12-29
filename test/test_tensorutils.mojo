@@ -290,16 +290,16 @@ fn test_flatten() raises:
 
 fn main():
     try:
-        # test_zero()
-        # test_fill()
-        # test_dot()
-        # test_elwise_transform()
-        # test_elwise_pow()
-        # test_elwise_tensor_tensor()
-        # test_elwise_tensor_scalar()
-        # test_elwise_batch_tensor()
-        # test_sum_mean_std()
+        test_zero()
+        test_fill()
+        test_dot()
+        test_elwise_transform()
+        test_elwise_pow()
+        test_elwise_tensor_tensor()
+        test_elwise_tensor_scalar()
+        test_elwise_batch_tensor()
+        test_sum_mean_std()
         test_transpose()
-        # test_flatten()
+        test_flatten()
     except:
         print("[ERROR] Error in tensorutils.py")

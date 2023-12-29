@@ -303,7 +303,8 @@ fn transpose[
     """
     Create a new transposed tensor of the given tensor t.
     """
-    # NOTE: axes should be the same size as the rank of t
+    # NOTE: The rank of of the t tensor should be 2 or more
+    # NOTE: Axes should be the same size as the rank of t
     var new_shape = DynamicVector[Int](t.rank())
     for i in range(t.rank()):
         new_shape.push_back(t.dim(axes[i]))
@@ -333,6 +334,25 @@ fn transpose[
 
         t_new[new_index] = t[i]
 
-    parallelize[p_transpose](t.num_elements(), 1)
+        @parameter
+        fn v_transpose[nelts: Int](j: Int):
+            var new_index = 0
+            let original_index = i * t.dim(t.rank() - 1) + j
+            var linear_index = original_index
+            for k in range(t.rank()):
+                let stride = original_strides_shape[k]
+                let index = linear_index // stride
+                linear_index = linear_index % stride
+
+                new_index += index * transposed_strides_shape[axes[k]]
+
+            t_new.data().offset(new_index).simd_strided_store[nelts](
+                t.simd_load[nelts](original_index),
+                transposed_strides_shape[axes[t.rank() - 1]],
+            )
+
+        vectorize[nelts, v_transpose](t.dim(t.rank() - 1))
+
+    parallelize[p_transpose](t.num_elements() // t.dim(t.rank() - 1))
 
     return t_new
