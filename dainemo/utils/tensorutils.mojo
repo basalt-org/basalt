@@ -312,16 +312,27 @@ fn transpose[
     let original_strides = calculate_strides(t.shape())
     let transposed_strides = calculate_strides(t_new.shape())
 
-    for i in range(t.num_elements()):
+    # NOTE: The reason why we use original_strides_shape and
+    # transposed_strides_shape is because it seems there is a *bug* when using
+    # dynamic vectors inside a parameter function? or a parameter function that
+    # is used in parallelized. If we use the dynamic vector inside the
+    # parallelized function, the memory of the dynamic vector is not initialized.
+    let original_strides_shape = TensorShape(original_strides)
+    let transposed_strides_shape = TensorShape(transposed_strides)
+
+    @parameter
+    fn p_transpose(i: Int):
         var new_index = 0
         var linear_index = i
         for j in range(t.rank()):
-            let stride = original_strides[j]
+            let stride = original_strides_shape[j]
             let index = linear_index // stride
             linear_index = linear_index % stride
 
-            new_index += index * transposed_strides[axes[j]]
+            new_index += index * transposed_strides_shape[axes[j]]
 
         t_new[new_index] = t[i]
+
+    parallelize[p_transpose](t.num_elements(), 1)
 
     return t_new

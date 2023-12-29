@@ -221,6 +221,7 @@ from test_tensorutils_data import TransposeData
 
 fn test_transpose() raises:
     # Transpose 2 dimensions
+
     var data = TransposeData.generate_1_2dim_test_case()
 
     var transposed = transpose_2D[dtype, nelts](data.A)
