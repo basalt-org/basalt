@@ -252,90 +252,76 @@ fn transpose_2D[dtype: DType, nelts: Int](t: Tensor[dtype]) -> Tensor[dtype]:
 
 
 @always_inline
+fn calculate_strides(shape: TensorShape) -> DynamicVector[Int]:
+    var strides = DynamicVector[Int](shape.rank())
+    strides.resize(shape.rank(), 1)
+
+    for i in range(shape.rank() - 2, -1, -1):
+        strides[i] = strides[i + 1] * shape[i + 1]
+
+    return strides
+
+
+@always_inline
 fn transpose[
     dtype: DType, nelts: Int
 ](t: Tensor[dtype], dim_0: Int, dim_1: Int) -> Tensor[dtype]:
     """
-    Create a new transposed tensor of the given tensor t.
+    Create a new tensor transposing dim_0 and dim_1.
     """
-
-    # Get the new shape of the transposed tensor
-    var new_shape = DynamicVector[Int](t.rank())
+    var axes = DynamicVector[Int](t.rank())
 
     for i in range(t.rank()):
         if i == dim_0:
-            new_shape.push_back(t.dim(dim_1))
+            axes.push_back(dim_1)
         elif i == dim_1:
-            new_shape.push_back(t.dim(dim_0))
+            axes.push_back(dim_0)
         else:
-            new_shape.push_back(t.dim(i))
+            axes.push_back(i)
 
-    var t_new = Tensor[dtype](new_shape)
+    return transpose[dtype, nelts](t, axes)
 
-    # Get the strides of the old and new tensors
-    var dims = StaticIntTuple[2]((min(dim_0, dim_1), max(dim_0, dim_1))) # last and first dimension (reading from right to left)
 
-    # example: tensor(2x3), strides (6, 3, 1)
-    var strides_old = DynamicVector[Int](t.rank() + 1)
-    var strides_new = DynamicVector[Int](t_new.rank() + 1)
-    strides_old.resize(t.rank() + 1, 1)
-    strides_new.resize(t_new.rank() + 1, 1)
+@always_inline
+fn transpose[dtype: DType, nelts: Int](t: Tensor[dtype]) -> Tensor[dtype]:
+    """
+    Create a new transposed tensor of the given tensor t.
+    """
+    var axes = DynamicVector[Int](t.rank())
 
     for i in range(t.rank() - 1, -1, -1):
-        strides_old[i] = strides_old[i + 1] * t.dim(i)
-        strides_new[i] = strides_new[i + 1] * t_new.dim(i)
+        axes.push_back(i)
 
-    # Transpose the tensor
-    let i_range = strides_old[0] // strides_old[dims[0]] # The dimensions before the 1st diemsnion to be transposed
-    let j_range = t.dim(dims[0]) # 1st dimension to be transposed
-    let k_range = strides_old[dims[0] + 1] // strides_old[dims[1]] # Dimensions b1etween the 1st and 2nd dimensions to be transposed
-    let l_range: Int # 2nd dimension to be transposed, unless it is the last dimension
-    let m_range: Int # The dimensions after the 2nd dimension to be transposed, unless the 2nd dimension is the last dimension
+    return transpose[dtype, nelts](t, axes)
 
-    let strides_m_new: Int # The strides to be used for dimension m of the new tensor
-    if dims[1] == t.rank() - 1:
-        m_range = t.dim(dims[1])
-        l_range = 1
-        strides_m_new = strides_new[dims[0] + 1]
-    else:
-        l_range = t.dim(dims[1])
-        m_range = strides_new[dims[1] + 1]
-        strides_m_new = 1
 
-    # NOTE: The reason why we use strides_old_shape and strides_new_shape is 
-    # because it seems there is a *bug* when using dynamic vectors inside a 
-    # parameter function? or a parameter function that is used in parallelized. 
-    # If we use the dynamic vector inside the parallelized function, the memory 
-    # of the dynamic vector is not initialized.
-    var strides_old_shape = TensorShape(strides_old)
-    var strides_new_shape = TensorShape(strides_new)
-    @parameter
-    fn p_transpose(i: Int):
-        let index_i = (i // (j_range * k_range)) % i_range 
-        let index_j = (i // k_range) % j_range
-        let index_k = (i % k_range)
-        for l in range(l_range):
-            @parameter
-            fn v_transpose[nelts: Int](m: Int):
-                let index_old =
-                    index_i * strides_old_shape[dims[0]]
-                    + index_j * strides_old_shape[dims[0] + 1]
-                    + index_k * strides_old_shape[dims[1]]
-                    + l * strides_old_shape[dims[1] + 1]
-                    + m
-                let index_new =
-                    index_i * strides_new_shape[dims[0]]
-                    + l * strides_new_shape[dims[0] + 1]
-                    + index_k * strides_new_shape[dims[1]]
-                    + index_j * strides_new_shape[dims[1] + 1]
-                    + m * strides_m_new
+# It would be better to use VariadiList for axes, but because variadiclist can't be modified it wouldn't be possible to use overloaded transpose functions
+@always_inline
+fn transpose[
+    dtype: DType, nelts: Int
+](t: Tensor[dtype], axes: DynamicVector[Int]) -> Tensor[dtype]:
+    """
+    Create a new transposed tensor of the given tensor t.
+    """
+    # NOTE: axes should be the same size as the rank of t
+    var new_shape = DynamicVector[Int](t.rank())
+    for i in range(t.rank()):
+        new_shape.push_back(t.dim(axes[i]))
+    var t_new = Tensor[dtype](new_shape)
 
-                t_new.data().offset(index_new).simd_strided_store[nelts](
-                    t.simd_load[nelts](index_old), strides_m_new
-                )
+    let original_strides = calculate_strides(t.shape())
+    let transposed_strides = calculate_strides(t_new.shape())
 
-            vectorize[nelts, v_transpose](m_range)
-    
-    parallelize[p_transpose](i_range * j_range * k_range)
+    for i in range(t.num_elements()):
+        var new_index = 0
+        var linear_index = i
+        for j in range(t.rank()):
+            let stride = original_strides[j]
+            let index = linear_index // stride
+            linear_index = linear_index % stride
+
+            new_index += index * transposed_strides[axes[j]]
+
+        t_new[new_index] = t[i]
 
     return t_new

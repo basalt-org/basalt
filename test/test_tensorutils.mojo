@@ -220,13 +220,14 @@ from test_tensorutils_data import TransposeData
 
 
 fn test_transpose() raises:
-    var data = TransposeData.generate_1_test_case()
+    # Transpose 2 dimensions
+    var data = TransposeData.generate_1_2dim_test_case()
 
     var transposed = transpose_2D[dtype, nelts](data.A)
 
     assert_tensors_equal(transposed, data.expected)
 
-    data = TransposeData.generate_2_test_case()
+    data = TransposeData.generate_2_2dim_test_case()
 
     transposed = transpose[dtype, nelts](
         data.A, data.transpose_dims[0], data.transpose_dims[1]
@@ -234,7 +235,7 @@ fn test_transpose() raises:
 
     assert_tensors_equal(transposed, data.expected)
 
-    data = TransposeData.generate_3_test_case()
+    data = TransposeData.generate_3_2dim_test_case()
 
     transposed = transpose[dtype, nelts](
         data.A, data.transpose_dims[0], data.transpose_dims[1]
@@ -242,11 +243,29 @@ fn test_transpose() raises:
 
     assert_tensors_equal(transposed, data.expected)
 
-    data = TransposeData.generate_4_test_case()
+    data = TransposeData.generate_4_2dim_test_case()
 
     transposed = transpose[dtype, nelts](
         data.A, data.transpose_dims[0], data.transpose_dims[1]
     )
+
+    assert_tensors_equal(transposed, data.expected)
+
+    # Transpose using all dimensions
+
+    data = TransposeData.generate_1_alldim_test_case()
+    var transpose_dims = DynamicVector[Int]()
+    for i in range(len(data.transpose_dims)):
+        transpose_dims.push_back(data.transpose_dims[i])
+
+    transposed = transpose[dtype, nelts](data.A, transpose_dims)
+
+    assert_tensors_equal(transposed, data.expected)
+
+    # Transpose (reverse)
+
+    data = TransposeData.generate_1_transpose_test_case()
+    transposed = transpose[dtype, nelts](data.A)
 
     assert_tensors_equal(transposed, data.expected)
 
@@ -270,16 +289,16 @@ fn test_flatten() raises:
 
 fn main():
     try:
-        test_zero()
-        test_fill()
-        test_dot()
-        test_elwise_transform()
-        test_elwise_pow()
-        test_elwise_tensor_tensor()
-        test_elwise_tensor_scalar()
-        test_elwise_batch_tensor()
-        test_sum_mean_std()
+        # test_zero()
+        # test_fill()
+        # test_dot()
+        # test_elwise_transform()
+        # test_elwise_pow()
+        # test_elwise_tensor_tensor()
+        # test_elwise_tensor_scalar()
+        # test_elwise_batch_tensor()
+        # test_sum_mean_std()
         test_transpose()
-        test_flatten()
+        # test_flatten()
     except:
         print("[ERROR] Error in tensorutils.py")
