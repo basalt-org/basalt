@@ -64,7 +64,7 @@ WIP: Work in progress
 | LOG        |   ✅   |
 | POW        |   ✅   |
 | SUM        |   ✅*  |
-| TRANSPOSE  |   ❌   |
+| TRANSPOSE  |   ✅   |
 | FLATTEN    |   ✅   |
 | RESHAPE    |   ✅   |
 | CONV2D     |   ❌   |
