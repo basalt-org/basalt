@@ -1,4 +1,5 @@
 from tensor import Tensor, TensorShape
+from math import add, sub, mul, div, log, exp
 
 from dainemo import GRAPH
 from dainemo.autograd.node import Node
@@ -10,13 +11,8 @@ from dainemo.utils.tensorutils import (
     elwise_transform,
     fill,
     batch_tensor_elwise_op,
+    transpose
 )
-
-from dainemo.utils.tensorutils import (
-    transpose_2D,
-)  # TODO: Having this import inside the elif axis == 1 statement in struct SUM casuses the language server parser to crash, so having it here for now until this is bug is fixed, to be able to have the editor working correctly.
-
-from math import add, sub, mul, div, log, exp
 
 
 """
@@ -166,18 +162,17 @@ struct DOT:
         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
     ) -> Tensor[dtype]:
         """Backward operation of dot product."""
-        # TODO: Only 2D input tensors are supported yet !!
 
         alias nelts: Int = simdwidthof[dtype]()
         if tensor_id == 0:
             let n2 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])]
             return dot[dtype, nelts](
-                ug, transpose_2D[dtype, nelts](n2.tensor)
+                ug, transpose[dtype, nelts](n2.tensor)
             )  # dot(ug, n2.T)
         else:
             let n1 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])]
             return dot[dtype, nelts](
-                transpose_2D[dtype, nelts](n1.tensor), ug
+                transpose[dtype, nelts](n1.tensor), ug
             )  # dot(n1.T, ug)
 
 
@@ -302,9 +297,10 @@ struct SUM:
         elif axis == 1:
             # Upper gradient will be a Tensor of shape: sum of node.tensor along axis 1
             # TODO: Workaround since batch_tensor_elwise_op is only implemented across axis = 0
-            return transpose_2D[dtype, nelts](
+            # Waiting for proper broadcasting
+            return transpose[dtype, nelts](
                 batch_tensor_elwise_op[dtype, nelts, mul](
-                    transpose_2D[dtype, nelts](res), transpose_2D[dtype, nelts](ug)
+                    transpose[dtype, nelts](res), transpose[dtype, nelts](ug)
                 )
             )
 
@@ -314,7 +310,21 @@ struct SUM:
 
 
 # <---------TRANSPOSE--------->
-# TODO
+struct TRANSPOSE:
+    @staticmethod
+    fn forward(n: Node[dtype]) -> Node[dtype]:
+        """Forward pass of transpose operation."""
+        alias nelts: Int = simdwidthof[dtype]()
+        let res = transpose[dtype, nelts](n.tensor)
+        return GRAPH.create_graph_node[Self.backward](res, n)
+
+    @staticmethod
+    fn backward(
+        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
+    ) -> Tensor[dtype]:
+        """No local gradient. Transpose is its own inverse."""
+        alias nelts: Int = simdwidthof[dtype]()
+        return transpose[dtype, nelts](ug)
 
 
 # <----------FLATTEN---------->

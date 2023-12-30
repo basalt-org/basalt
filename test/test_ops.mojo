@@ -5,7 +5,7 @@ from test_tensorutils import assert_tensors_equal
 from math import exp, log
 
 from dainemo import GRAPH
-from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, SUM, FLATTEN, RESHAPE
+from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, SUM, TRANSPOSE, FLATTEN, RESHAPE
 from dainemo.utils.tensorutils import fill
 
 alias dtype = DType.float32
@@ -175,6 +175,23 @@ fn test_SUM() raises:
     GRAPH.reset()
 
 
+# <------------TRANSPOSE------------>
+fn test_TRANSPOSE() raises:
+    var A = Tensor[dtype](2, 3)
+    var B = Tensor[dtype](3, 2)
+    for i in range(6):
+        A[i] = i+1
+    for i in range(3):
+        B[2*i] = i+1
+        B[2*i+1] = i+4
+
+    let res = TRANSPOSE.forward(A)
+
+    assert_tensors_equal(res.tensor, B)
+    assert_equal(GRAPH.graph.size, 2)
+    GRAPH.reset()
+
+
 # <------------FLATTEN------------>
 fn test_FLATTEN() raises:
     var A = Tensor[dtype](2, 3)
@@ -186,6 +203,8 @@ fn test_FLATTEN() raises:
     let res = FLATTEN.forward(A)
 
     assert_tensors_equal(res.tensor, B)
+    assert_equal(GRAPH.graph.size, 2)
+    GRAPH.reset()
 
 
 # <------------RESHAPE------------>
@@ -201,6 +220,8 @@ fn test_RESHAPE() raises:
     let res = RESHAPE.forward(A, new_shape)
 
     assert_tensors_equal(res.tensor, B)
+    assert_equal(GRAPH.graph.size, 2)
+    GRAPH.reset()
 
 
 
@@ -215,6 +236,7 @@ fn main():
         test_LOG()
         test_POW()
         test_SUM()
+        test_TRANSPOSE()
         test_FLATTEN()
         test_RESHAPE()
     except:
