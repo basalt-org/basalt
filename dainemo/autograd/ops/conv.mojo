@@ -3,6 +3,7 @@ from math import floor
 
 from dainemo import GRAPH
 from dainemo.autograd.node import Node
+from dainemo.utils.tensorutils import pad_zeros, tslice
 
 
 # <------------GENERAL CONV METHODS------------>
@@ -28,14 +29,26 @@ fn get_result_shape[
     return StaticIntTuple[2](result_x_dim, result_y_dim)
 
 
-fn pad(data: Tensor[dtype]):
+fn pad[padding: Int](data: Tensor[dtype]) -> Tensor[dtype]:
     """
     Pads the input tensor in x and y dimensions (last two dims).
     Only the last two dimensions are padded rest aren't padded as
     (padded with 0, has no effect).
     """
-    # TODO
-    pass
+    
+    # No padding for dimensions other then x and y
+    var pad_width = DynamicVector[Int](data.rank() * 2)
+    for _ in  range(data.rank() - 2):
+        pad_width.push_back(0)
+        pad_width.push_back(0)
+
+    # Padding for x and y
+    for _ in range(2):
+        pad_width.push_back(padding)
+        pad_width.push_back(padding)
+
+    alias nelts: Int = simdwidthof[dtype]()
+    return pad_zeros[dtype, nelts](data, pad_width)
 
 
 fn unpad(padded_data: Tensor[dtype]):
@@ -51,18 +64,39 @@ fn unpad(padded_data: Tensor[dtype]):
 # <------------CONV2D------------>
 struct CONV2D:
     @staticmethod
-    fn forward[padding: Int, stride: Int](inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]) -> Node[dtype]:
+    fn forward[
+            padding: Int,
+            stride: Int
+        ](inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]): # -> Node[dtype]:
         """
         Performs a 2D convolution on the input tensor using the kernel and bias.
         """
-        
-        # inputs.shape should be len 3 with [number of examples, X, Y]
+        # inputs.shape should be len 3 with [batch, X, Y]
+        alias nelts: Int = simdwidthof[dtype]()
 
         let result_shape = get_result_shape[padding, stride](inputs.shape(), kernel.shape())
-
         let outputs = Tensor[dtype](inputs.dim(0), result_shape[0], result_shape[1])
+        let padded_inputs = pad[padding](inputs)
 
-        print(outputs)
+        var index_i = 0
+        var index_j = 0
+        let kernel_x_dim = kernel.shape()[-2]
+        let kernel_y_dim = kernel.shape()[-1]
+        for i in range(result_shape[0]):
+            for j in range(result_shape[1]):
+
+                # Get fragment of padded inputs
+                let slice_x = slice(index_i, index_i + kernel_x_dim)
+                let slice_y = slice(index_j, index_j + kernel_y_dim)
+                # let fragment = tslice[dtype, nelts](padded_inputs, slice(0, inputs.dim(0)), slice_x, slice_y)
+
+                # TODO
+                # output = np.sum((fragment*kernel.data), axis=(1,2)) + bias.data
+                # outputs[:, i, j] = output
+
+                # Increment index by stride
+                index_j += stride
+            index_i += stride
 
 
 # <------------CONV3D------------>
