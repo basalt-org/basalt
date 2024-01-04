@@ -65,38 +65,69 @@ fn unpad(padded_data: Tensor[dtype]):
 struct CONV2D:
     @staticmethod
     fn forward[
-            padding: Int,
-            stride: Int
-        ](inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]): # -> Node[dtype]:
+        padding: Int, stride: Int
+    ](
+        inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]
+    ) -> Node[dtype]:
         """
         Performs a 2D convolution on the input tensor using the kernel and bias.
         """
-        # inputs.shape should be len 3 with [batch, X, Y]
+        # NOTE: (for now) inputs.shape should be len 3 with [batch, X, Y]
+        # TODO 1: Add bias
+        # TODO 2: Support in_channels and out_channels
+        #         inputs.shape should be len 4 with [batch, in_channels, X, Y]
+        #         kernel.shape should be len 4 with [out_channels, in_channels, X, Y]
+        #         bias.shape should be len 1 with [out_channels]
+
         alias nelts: Int = simdwidthof[dtype]()
 
-        let result_shape = get_result_shape[padding, stride](inputs.shape(), kernel.shape())
-        let outputs = Tensor[dtype](inputs.dim(0), result_shape[0], result_shape[1])
+        let result_shape = get_result_shape[padding, stride](
+            inputs.shape(), kernel.shape()
+        )
+        var outputs = Tensor[dtype](inputs.dim(0), result_shape[0], result_shape[1])
         let padded_inputs = pad[padding](inputs)
 
         var index_i = 0
         var index_j = 0
         let kernel_x_dim = kernel.shape()[-2]
         let kernel_y_dim = kernel.shape()[-1]
-        for i in range(result_shape[0]):
-            for j in range(result_shape[1]):
 
-                # Get fragment of padded inputs
-                let slice_x = slice(index_i, index_i + kernel_x_dim)
-                let slice_y = slice(index_j, index_j + kernel_y_dim)
-                # let fragment = tslice[dtype, nelts](padded_inputs, slice(0, inputs.dim(0)), slice_x, slice_y)
+        for batch in range(outputs.dim(0)):
+            for i in range(outputs.dim(1)):
+                for j in range(outputs.dim(2)):
+                    # Iterate over kernel and multiply with fragment
+                    var result: SIMD[dtype, 1] = 0
+                    for k in range(kernel_x_dim):
+                        for l in range(kernel_y_dim):
+                            let padded_index = (
+                                batch * padded_inputs.dim(1) * padded_inputs.dim(2)
+                                + (index_i + k) * padded_inputs.dim(2)
+                                + (index_j + l)
+                            )
+                            let kernel_index = (k * kernel.dim(1) + l)
+                            result += padded_inputs[padded_index] * kernel[kernel_index]
 
-                # TODO
-                # output = np.sum((fragment*kernel.data), axis=(1,2)) + bias.data
-                # outputs[:, i, j] = output
+                    let output_index = (
+                        batch * outputs.dim(1) * outputs.dim(2) + i * outputs.dim(2) + j
+                    )
+                    outputs[output_index] = result
 
-                # Increment index by stride
-                index_j += stride
-            index_i += stride
+                    # Increment index by stride
+                    index_j += stride
+                index_j = 0
+                index_i += stride
+            index_i = 0
+
+        return GRAPH.create_graph_node[Self.backward](outputs, inputs, kernel, bias)
+
+    @staticmethod
+    fn backward(
+        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
+    ) -> Tensor[dtype]:
+        """Backward operation of 2D convolution."""
+        # TODO
+        return Tensor[dtype]()
+
 
 
 # <------------CONV3D------------>
