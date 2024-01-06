@@ -358,6 +358,7 @@ fn transpose[
     return t_new
 
 
+# TODO: Deprecate this function, as it is not used anymore
 @always_inline
 fn pad_zeros[
     dtype: DType, nelts: Int

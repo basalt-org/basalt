@@ -1,10 +1,13 @@
-from tensor import Tensor
+from python.python import Python
+from tensor import Tensor, TensorShape
 from testing import assert_equal
 from utils.index import Index
 
+from dainemo import GRAPH
 from dainemo.autograd.ops.conv import CONV2D
-from dainemo.autograd.ops.conv import get_result_shape, pad, unpad
+from dainemo.autograd.ops.conv import get_result_shape
 from dainemo.utils.tensorutils import fill
+from test_tensorutils import assert_tensors_equal
 
 
 alias dtype = DType.float32
@@ -34,23 +37,60 @@ fn test_get_result_shape() raises:
     assert_equal(res[1], 16)
 
 
-fn test_pad_unpad() raises:
+def to_numpy(tensor: Tensor) -> PythonObject:
+    let np = Python.import_module("numpy")
 
-    let inputs = Tensor[dtype](4, 28, 28)
+    rank = tensor.rank()
+    var pyarray: PythonObject = np.array([0])
+    if rank == 1:
+        pyarray = np.empty((tensor.dim(0)))
+    if rank == 2:
+        pyarray = np.empty((tensor.dim(0), tensor.dim(1)))
+    if rank == 3:
+        pyarray = np.empty((tensor.dim(0), tensor.dim(1), tensor.dim(2)))
+    if rank == 4:
+        pyarray = np.empty((tensor.dim(0), tensor.dim(1), tensor.dim(2), tensor.dim(3)))
+    else:
+        print("Error: rank not supported")
+    
+    for i in range(tensor.num_elements()):
+        pyarray.itemset((i), tensor[i])
+   
+    return pyarray
 
-    let padded = pad[2](inputs)
-    # assert_equal(padded.shape()[0], 4)
-    # assert_equal(padded.shape()[1], 30)
-    # assert_equal(padded.shape()[2], 30)
 
-    # var unpadded = unpad(padded)
-    # assert_equal(unpadded.shape()[0], 4)
-    # assert_equal(unpadded.shape()[1], 28)
-    # assert_equal(unpadded.shape()[2], 28)
+fn to_tensor(np_array: PythonObject) raises-> Tensor[dtype]:
+    var shape = DynamicVector[Int]()
+    for i in range(np_array.ndim):
+        shape.push_back(np_array.shape[i].to_float64().to_int())
+    
+    var tensor = Tensor[dtype](TensorShape(shape))
+
+    for i in range(tensor.num_elements()):
+        tensor[i] = np_array.ravel()[i].to_float64().cast[dtype]()
+
+    return tensor
 
 
+fn torch_conv2d(inputs: Tensor, kernel: Tensor, bias: PythonObject, padding: Int, stride: Int) raises -> Tensor[dtype]:
+    try:
+        let torch = Python.import_module("torch")
+        let F = Python.import_module("torch.nn.functional")
+        let np = Python.import_module("numpy")
 
+        let expected = F.conv2d(
+            torch.tensor(to_numpy(inputs)), 
+            torch.tensor(to_numpy(kernel)),
+            None,
+            stride,
+            padding
+        )
 
+        return to_tensor(expected.numpy())
+    
+    except:
+        print("Error importing torch")
+        return Tensor[dtype]()
 
 
 fn test_forward() raises:
@@ -58,58 +98,48 @@ fn test_forward() raises:
     # padding=2, stride=1
     # input shape: (4, 28, 28)  kernel shape: (1, 16)
     # result_shape:  (32, 17)
-    var inputs = Tensor[dtype](1, 28, 28)
-    var kernel = Tensor[dtype](1 , 16)
+    alias padding_a = 2
+    alias stride_a = 1
+    var inputs = Tensor[dtype](1, 1, 28, 28)
+    var kernel = Tensor[dtype](1, 1, 1 , 16)
     fill[dtype, nelts](inputs, 1.0)
     fill[dtype, nelts](kernel, 1.0)
     
-    var bias = Tensor[dtype](99)
+    let bias = Tensor[dtype](99)
+    let res = CONV2D.forward[padding_a, stride_a](inputs, kernel, bias)
+    let expected = torch_conv2d(inputs, kernel, bias=None, padding=padding_a, stride=stride_a)
 
-    let res = CONV2D.forward[2, 1](inputs, kernel, bias)
-
-    print(res.tensor.shape())
-    for i in range(res.tensor.shape()[1]):
-        for j in range(res.tensor.shape()[2]):
-            print_no_newline(res.tensor[Index(0, i, j)])
-        print("")
-
-    #######
-    # Manually checked against pytorch conv2d
-    #######
-    # TODO: check equal output against pytorch 
-    # After in_channels & out_channels are implemented
-    """
-    import torch
-    from torch.nn.functional import conv2d
-    import numpy as np
-
-    inputs = torch.tensor(np.ones((1, 1, 28, 28)))
-    weight = torch.tensor(np.ones((1, 1, 1, 16)))
-
-    output = conv2d(inputs, weight, bias=None, stride=1, padding=2)
-
-    print(output.numpy())
-    """
+    print(to_numpy(res.tensor))
+    print(to_numpy(expected))
+    
+    assert_tensors_equal(res.tensor, expected)
+    GRAPH.reset()
 
 
     # padding=0, stride=1,
     # input shape: (4, 32, 17)  kernel shape: (2, 2)
     # result_shape:  (31, 16)
-    inputs = Tensor[dtype](4, 32, 17)
-    kernel = Tensor[dtype](2, 2)
-    bias = Tensor[dtype](99)
+    alias padding_b = 0
+    alias stride_b = 1
+    inputs = Tensor[dtype](1, 1, 32, 17)
+    kernel = Tensor[dtype](1, 1, 2, 2)
+    fill[dtype, nelts](inputs, 1.0)
+    fill[dtype, nelts](kernel, 1.0)
 
-    # let res2 = CONV2D.forward[0, 1](inputs, kernel, bias)
+    let res_b = CONV2D.forward[padding_b, stride_b](inputs, kernel, bias)
+    let expected_b = torch_conv2d(inputs, kernel, bias=None, padding=padding_b, stride=stride_b)
 
+    print(to_numpy(res_b.tensor))
+    print(to_numpy(expected_b))
 
-
+    assert_tensors_equal(res_b.tensor, expected_b)
+    GRAPH.reset()
 
 
 fn main():
 
     try:
         test_get_result_shape()
-        test_pad_unpad()
         test_forward()
     except:
         print("Error")

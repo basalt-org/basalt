@@ -3,7 +3,7 @@ from math import floor
 
 from dainemo import GRAPH
 from dainemo.autograd.node import Node
-from dainemo.utils.tensorutils import pad_zeros, tslice
+from dainemo.utils.tensorutils import calculate_strides
 
 
 # <------------GENERAL CONV METHODS------------>
@@ -29,37 +29,6 @@ fn get_result_shape[
     return StaticIntTuple[2](result_x_dim, result_y_dim)
 
 
-fn pad[padding: Int](data: Tensor[dtype]) -> Tensor[dtype]:
-    """
-    Pads the input tensor in x and y dimensions (last two dims).
-    Only the last two dimensions are padded rest aren't padded as
-    (padded with 0, has no effect).
-    """
-    
-    # No padding for dimensions other then x and y
-    var pad_width = DynamicVector[Int](data.rank() * 2)
-    for _ in  range(data.rank() - 2):
-        pad_width.push_back(0)
-        pad_width.push_back(0)
-
-    # Padding for x and y
-    for _ in range(2):
-        pad_width.push_back(padding)
-        pad_width.push_back(padding)
-
-    alias nelts: Int = simdwidthof[dtype]()
-    return pad_zeros[dtype, nelts](data, pad_width)
-
-
-fn unpad(padded_data: Tensor[dtype]):
-    """
-    Removes the padding from the padded tensor.
-    Slices the padded_data in last two dimensions, 
-    Rejects the padding by only extracting the original data.
-    """
-    # TODO
-    pass
-
 
 # <------------CONV2D------------>
 struct CONV2D:
@@ -71,52 +40,68 @@ struct CONV2D:
     ) -> Node[dtype]:
         """
         Performs a 2D convolution on the input tensor using the kernel and bias.
+            inputs.shape     [batch, in_channels, X, Y]
+            kernel.shape     [out_channels, in_channels, X, Y]
+            bias.shape       [out_channels].
         """
-        # NOTE: (for now) inputs.shape should be len 3 with [batch, X, Y]
-        # TODO 1: Add bias
-        # TODO 2: Support in_channels and out_channels
-        #         inputs.shape should be len 4 with [batch, in_channels, X, Y]
-        #         kernel.shape should be len 4 with [out_channels, in_channels, X, Y]
-        #         bias.shape should be len 1 with [out_channels]
+        # TODO: Add bias
 
         alias nelts: Int = simdwidthof[dtype]()
 
         let result_shape = get_result_shape[padding, stride](
             inputs.shape(), kernel.shape()
         )
-        var outputs = Tensor[dtype](inputs.dim(0), result_shape[0], result_shape[1])
-        let padded_inputs = pad[padding](inputs)
 
-        var index_i = 0
-        var index_j = 0
-        let kernel_x_dim = kernel.shape()[-2]
-        let kernel_y_dim = kernel.shape()[-1]
+        var outputs = Tensor[dtype](inputs.dim(0), kernel.dim(0), result_shape[0], result_shape[1])
 
-        for batch in range(outputs.dim(0)):
-            for i in range(outputs.dim(1)):
-                for j in range(outputs.dim(2)):
-                    # Iterate over kernel and multiply with fragment
-                    var result: SIMD[dtype, 1] = 0
-                    for k in range(kernel_x_dim):
-                        for l in range(kernel_y_dim):
-                            let padded_index = (
-                                batch * padded_inputs.dim(1) * padded_inputs.dim(2)
-                                + (index_i + k) * padded_inputs.dim(2)
-                                + (index_j + l)
-                            )
-                            let kernel_index = (k * kernel.dim(1) + l)
-                            result += padded_inputs[padded_index] * kernel[kernel_index]
+        for batch in range(inputs.dim(0)):
+            for out_ch in range(kernel.dim(0)):
+                # (** split) OPTIMIZATION
+                for x in range(outputs.dim(2)):
+                    for y in range(outputs.dim(3)):
+                        var result: SIMD[dtype, 1] = 0
+                        for in_ch in range(inputs.dim(1)):
+                            for kx in range(kernel.dim(2)):
+                                for ky in range(kernel.dim(3)):
+                                    let ix = x * stride - padding + kx
+                                    let iy = y * stride - padding + ky
 
-                    let output_index = (
-                        batch * outputs.dim(1) * outputs.dim(2) + i * outputs.dim(2) + j
-                    )
-                    outputs[output_index] = result
+                                    ### TODO: OPTIMIZATION
+                                    # Split into edge cases to avoid having to check bounds, by determening the borders (todo)
+                                    # Case 1: TOP       x might put us out of bounds (check)
+                                    # Case 2: LEFT      y might put us out of bounds (check)
+                                    # Case 3: Base case, in bounds (no checking needed, in the majority of cases)
+                                    # Case 4: RIGHT     y might put us out of bounds (check)
+                                    # Case 5: BOTTOM    x might put us out of bounds (check)
+                                    
+                                    if not (
+                                        ix < 0 or iy < 0 
+                                        or ix >= inputs.dim(2) 
+                                        or iy >= inputs.dim(3)
+                                    ):
 
-                    # Increment index by stride
-                    index_j += stride
-                index_j = 0
-                index_i += stride
-            index_i = 0
+                                        let input_index = (
+                                            batch * (inputs.dim(1) * inputs.dim(2) * inputs.dim(3)) 
+                                            + in_ch * (inputs.dim(2) * inputs.dim(3)) 
+                                            + ix * inputs.dim(2) 
+                                            + iy
+                                        )
+                                        let kernel_index = (
+                                            out_ch * (inputs.dim(1) * kernel.dim(2) * kernel.dim(3)) 
+                                            + in_ch * (kernel.dim(2) * kernel.dim(3)) 
+                                            + kx * kernel.dim(2) 
+                                            + ky
+                                        )
+                                        result += inputs[input_index] * kernel[kernel_index]
+
+                        let output_index = (
+                            batch * (kernel.dim(0) * outputs.dim(2) * outputs.dim(3)) 
+                            + out_ch * (outputs.dim(2) * outputs.dim(3)) 
+                            + x * outputs.dim(3)
+                            + y
+                        )
+                        
+                        outputs[output_index] = result
 
         return GRAPH.create_graph_node[Self.backward](outputs, inputs, kernel, bias)
 
