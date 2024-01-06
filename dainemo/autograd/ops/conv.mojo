@@ -34,15 +34,14 @@ fn get_result_shape[
 struct CONV2D:
     @staticmethod
     fn forward[
-        padding: Int, stride: Int
-    ](
-        inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]
-    ) -> Node[dtype]:
+        padding: Int, stride: Int, padding_mode: Int = 0
+    ](inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]) -> Node[dtype]:
         """
         Performs a 2D convolution on the input tensor using the kernel and bias.
             inputs.shape     [batch, in_channels, X, Y]
-            kernel.shape     [out_channels, in_channels, X, Y]
+            kernel.shape     [out_channels, in_channels, X, Y] (or weights)
             bias.shape       [out_channels].
+            output.shape     [batch, out_channels, X, Y].
         """
         # TODO: Add bias
 
@@ -52,55 +51,64 @@ struct CONV2D:
             inputs.shape(), kernel.shape()
         )
 
-        var outputs = Tensor[dtype](inputs.dim(0), kernel.dim(0), result_shape[0], result_shape[1])
+        var outputs = Tensor[dtype](
+            inputs.dim(0), kernel.dim(0), result_shape[0], result_shape[1]
+        )
+
+        @parameter
+        fn kernel_iteration(
+            batch: Int, in_ch: Int, out_ch: Int, x: Int, y: Int
+        ) -> SIMD[dtype, 1]:
+            var result: SIMD[dtype, 1] = 0
+            for kx in range(kernel.dim(2)):
+                for ky in range(kernel.dim(3)):
+                    let ix = x * stride - padding + kx
+                    let iy = y * stride - padding + ky
+                    let kernel_index = (
+                        out_ch * (kernel.dim(1) * kernel.dim(2) * kernel.dim(3))
+                        + in_ch * (kernel.dim(2) * kernel.dim(3))
+                        + kx * kernel.dim(3)
+                        + ky
+                    )
+                    if ix < 0 or iy < 0 or ix >= inputs.dim(2) or iy >= inputs.dim(3):
+                        result += padding_mode * kernel[kernel_index]
+                        continue
+
+                    let input_index = (
+                        batch * (inputs.dim(1) * inputs.dim(2) * inputs.dim(3))
+                        + in_ch * (inputs.dim(2) * inputs.dim(3))
+                        + ix * inputs.dim(3)
+                        + iy
+                    )
+
+                    result += inputs[input_index] * kernel[kernel_index]
+
+            return result
 
         for batch in range(inputs.dim(0)):
-            for out_ch in range(kernel.dim(0)):
-                # (** split) OPTIMIZATION
+            for out_ch in range(outputs.dim(1)):
+
+                ### TODO: OPTIMIZATION
+                # Split into edge cases to avoid having to check bounds, by determening the borders (todo)
+                # for (x, y) in range(border_low_<i>, border_high_<i>): ...
+                # Case 1: TOP       x might put us out of bounds (check)
+                # Case 2: LEFT      y might put us out of bounds (check)
+                # Case 3: Base case, in bounds (no checking needed, in the majority of cases)
+                # Case 4: RIGHT     y might put us out of bounds (check)
+                # Case 5: BOTTOM    x might put us out of bounds (check)
+
                 for x in range(outputs.dim(2)):
                     for y in range(outputs.dim(3)):
                         var result: SIMD[dtype, 1] = 0
                         for in_ch in range(inputs.dim(1)):
-                            for kx in range(kernel.dim(2)):
-                                for ky in range(kernel.dim(3)):
-                                    let ix = x * stride - padding + kx
-                                    let iy = y * stride - padding + ky
-
-                                    ### TODO: OPTIMIZATION
-                                    # Split into edge cases to avoid having to check bounds, by determening the borders (todo)
-                                    # Case 1: TOP       x might put us out of bounds (check)
-                                    # Case 2: LEFT      y might put us out of bounds (check)
-                                    # Case 3: Base case, in bounds (no checking needed, in the majority of cases)
-                                    # Case 4: RIGHT     y might put us out of bounds (check)
-                                    # Case 5: BOTTOM    x might put us out of bounds (check)
-                                    
-                                    if not (
-                                        ix < 0 or iy < 0 
-                                        or ix >= inputs.dim(2) 
-                                        or iy >= inputs.dim(3)
-                                    ):
-
-                                        let input_index = (
-                                            batch * (inputs.dim(1) * inputs.dim(2) * inputs.dim(3)) 
-                                            + in_ch * (inputs.dim(2) * inputs.dim(3)) 
-                                            + ix * inputs.dim(2) 
-                                            + iy
-                                        )
-                                        let kernel_index = (
-                                            out_ch * (inputs.dim(1) * kernel.dim(2) * kernel.dim(3)) 
-                                            + in_ch * (kernel.dim(2) * kernel.dim(3)) 
-                                            + kx * kernel.dim(2) 
-                                            + ky
-                                        )
-                                        result += inputs[input_index] * kernel[kernel_index]
+                            result += kernel_iteration(batch, in_ch, out_ch, x, y)
 
                         let output_index = (
-                            batch * (kernel.dim(0) * outputs.dim(2) * outputs.dim(3)) 
-                            + out_ch * (outputs.dim(2) * outputs.dim(3)) 
+                            batch * (outputs.dim(1) * outputs.dim(2) * outputs.dim(3))
+                            + out_ch * (outputs.dim(2) * outputs.dim(3))
                             + x * outputs.dim(3)
                             + y
                         )
-                        
                         outputs[output_index] = result
 
         return GRAPH.create_graph_node[Self.backward](outputs, inputs, kernel, bias)

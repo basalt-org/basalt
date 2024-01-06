@@ -108,10 +108,6 @@ fn test_forward() raises:
     let bias = Tensor[dtype](99)
     let res = CONV2D.forward[padding_a, stride_a](inputs, kernel, bias)
     let expected = torch_conv2d(inputs, kernel, bias=None, padding=padding_a, stride=stride_a)
-
-    print(to_numpy(res.tensor))
-    print(to_numpy(expected))
-    
     assert_tensors_equal(res.tensor, expected)
     GRAPH.reset()
 
@@ -128,10 +124,6 @@ fn test_forward() raises:
 
     let res_b = CONV2D.forward[padding_b, stride_b](inputs, kernel, bias)
     let expected_b = torch_conv2d(inputs, kernel, bias=None, padding=padding_b, stride=stride_b)
-
-    print(to_numpy(res_b.tensor))
-    print(to_numpy(expected_b))
-
     assert_tensors_equal(res_b.tensor, expected_b)
     GRAPH.reset()
 
