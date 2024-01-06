@@ -172,6 +172,13 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
         self.keys = param_keys
         self.graph = param_graph
 
+    fn reset_all(inout self):
+        """
+        Resets the graph.
+        """
+        self.keys = DynamicVector[String]()
+        self.graph = DynamicVector[Node[dtype]]()
+
     fn reset_visited(inout self):
         """
         Marks visited as False for every Node in the graph.

@@ -96,11 +96,11 @@ fn torch_conv2d(inputs: Tensor, kernel: Tensor, bias: PythonObject, padding: Int
 fn test_forward() raises:
     
     # padding=2, stride=1
-    # input shape: (4, 28, 28)  kernel shape: (1, 16)
+    # input shape: (4, 1, 28, 28)  kernel shape: (1, 1, 1, 16)
     # result_shape:  (32, 17)
     alias padding_a = 2
     alias stride_a = 1
-    var inputs = Tensor[dtype](1, 1, 28, 28)
+    var inputs = Tensor[dtype](4, 1, 28, 28)
     var kernel = Tensor[dtype](1, 1, 1 , 16)
     fill[dtype, nelts](inputs, 1.0)
     fill[dtype, nelts](kernel, 1.0)
@@ -109,15 +109,15 @@ fn test_forward() raises:
     let res = CONV2D.forward[padding_a, stride_a](inputs, kernel, bias)
     let expected = torch_conv2d(inputs, kernel, bias=None, padding=padding_a, stride=stride_a)
     assert_tensors_equal(res.tensor, expected)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
     # padding=0, stride=1,
-    # input shape: (4, 32, 17)  kernel shape: (2, 2)
+    # input shape: (4, 1, 32, 17)  kernel shape: (2, 2)
     # result_shape:  (31, 16)
     alias padding_b = 0
     alias stride_b = 1
-    inputs = Tensor[dtype](1, 1, 32, 17)
+    inputs = Tensor[dtype](4, 1, 32, 17)
     kernel = Tensor[dtype](1, 1, 2, 2)
     fill[dtype, nelts](inputs, 1.0)
     fill[dtype, nelts](kernel, 1.0)
@@ -125,7 +125,7 @@ fn test_forward() raises:
     let res_b = CONV2D.forward[padding_b, stride_b](inputs, kernel, bias)
     let expected_b = torch_conv2d(inputs, kernel, bias=None, padding=padding_b, stride=stride_b)
     assert_tensors_equal(res_b.tensor, expected_b)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 fn main():

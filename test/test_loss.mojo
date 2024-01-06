@@ -23,7 +23,7 @@ fn test_MSE_perfect() raises:
     assert_equal(loss.tensor[0], 0)         # loss is 0
 
     assert_equal(GRAPH.graph.size, 8)        # outputs, labels, diff, [2], pow, sum, div2n, loss
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 fn test_MSE_imperfect() raises:
@@ -44,7 +44,7 @@ fn test_MSE_imperfect() raises:
     assert_equal(loss.tensor[0], expected_loss)
 
     assert_equal(GRAPH.graph.size, 8)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 fn main():

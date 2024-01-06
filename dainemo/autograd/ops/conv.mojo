@@ -34,8 +34,8 @@ fn get_result_shape[
 struct CONV2D:
     @staticmethod
     fn forward[
-        padding: Int, stride: Int, padding_mode: Int = 0
-    ](inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]) -> Node[dtype]:
+        padding: Int, stride: Int
+    ](inputs: Node[dtype], kernel: Node[dtype], bias: Node[dtype]) -> Node[dtype]:
         """
         Performs a 2D convolution on the input tensor using the kernel and bias.
             inputs.shape     [batch, in_channels, X, Y]
@@ -48,11 +48,11 @@ struct CONV2D:
         alias nelts: Int = simdwidthof[dtype]()
 
         let result_shape = get_result_shape[padding, stride](
-            inputs.shape(), kernel.shape()
+            inputs.tensor.shape(), kernel.tensor.shape()
         )
 
         var outputs = Tensor[dtype](
-            inputs.dim(0), kernel.dim(0), result_shape[0], result_shape[1]
+            inputs.tensor.dim(0), kernel.tensor.dim(0), result_shape[0], result_shape[1]
         )
 
         @parameter
@@ -60,32 +60,33 @@ struct CONV2D:
             batch: Int, in_ch: Int, out_ch: Int, x: Int, y: Int
         ) -> SIMD[dtype, 1]:
             var result: SIMD[dtype, 1] = 0
-            for kx in range(kernel.dim(2)):
-                for ky in range(kernel.dim(3)):
+            for kx in range(kernel.tensor.dim(2)):
+                for ky in range(kernel.tensor.dim(3)):
                     let ix = x * stride - padding + kx
                     let iy = y * stride - padding + ky
-                    let kernel_index = (
-                        out_ch * (kernel.dim(1) * kernel.dim(2) * kernel.dim(3))
-                        + in_ch * (kernel.dim(2) * kernel.dim(3))
-                        + kx * kernel.dim(3)
-                        + ky
-                    )
-                    if ix < 0 or iy < 0 or ix >= inputs.dim(2) or iy >= inputs.dim(3):
-                        result += padding_mode * kernel[kernel_index]
+
+                    if ix < 0 or iy < 0 or ix >= inputs.tensor.dim(2) or iy >= inputs.tensor.dim(3):
                         continue
 
+                    let kernel_index = (
+                        out_ch * (kernel.tensor.dim(1) * kernel.tensor.dim(2) * kernel.tensor.dim(3))
+                        + in_ch * (kernel.tensor.dim(2) * kernel.tensor.dim(3))
+                        + kx * kernel.tensor.dim(3)
+                        + ky
+                    )
+
                     let input_index = (
-                        batch * (inputs.dim(1) * inputs.dim(2) * inputs.dim(3))
-                        + in_ch * (inputs.dim(2) * inputs.dim(3))
-                        + ix * inputs.dim(3)
+                        batch * (inputs.tensor.dim(1) * inputs.tensor.dim(2) * inputs.tensor.dim(3))
+                        + in_ch * (inputs.tensor.dim(2) * inputs.tensor.dim(3))
+                        + ix * inputs.tensor.dim(3)
                         + iy
                     )
 
-                    result += inputs[input_index] * kernel[kernel_index]
+                    result += inputs.tensor[input_index] * kernel.tensor[kernel_index]
 
             return result
 
-        for batch in range(inputs.dim(0)):
+        for batch in range(inputs.tensor.dim(0)):
             for out_ch in range(outputs.dim(1)):
 
                 ### TODO: OPTIMIZATION
@@ -100,7 +101,7 @@ struct CONV2D:
                 for x in range(outputs.dim(2)):
                     for y in range(outputs.dim(3)):
                         var result: SIMD[dtype, 1] = 0
-                        for in_ch in range(inputs.dim(1)):
+                        for in_ch in range(inputs.tensor.dim(1)):
                             result += kernel_iteration(batch, in_ch, out_ch, x, y)
 
                         let output_index = (
