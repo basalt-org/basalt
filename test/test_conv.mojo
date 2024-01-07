@@ -149,7 +149,8 @@ fn test_forward_2() raises:
     var kernel = Tensor[dtype](1, 1, 2, 2)
     fill[dtype, nelts](inputs, 1.0)
     fill[dtype, nelts](kernel, 1.0)
-    let bias = Tensor[dtype](1)
+    var bias = Tensor[dtype](1)
+    fill[dtype, nelts](bias, 66.99)
 
     let res = CONV2D.forward[padding, stride](inputs, kernel, bias)
     let torch_out = torch_conv2d(inputs, kernel, bias=bias, padding=padding, stride=stride, upper_grad=res.grad)
@@ -168,7 +169,7 @@ fn test_backward_1() raises:
     var kernel = Tensor[dtype](out_channels, in_channels, 1 , 16)
     fill[dtype, nelts](inputs, 1.0)
     fill[dtype, nelts](kernel, 1.0)
-    let bias = Tensor[dtype](out_channels)
+    let bias: Tensor[dtype] = rand[dtype](out_channels)
 
     let res = CONV2D.forward[padding, stride](inputs, kernel, bias)
 

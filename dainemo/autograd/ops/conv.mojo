@@ -111,7 +111,7 @@ struct CONV2D:
                             + x * outputs.dim(3)
                             + y
                         )
-                        outputs[output_index] = result
+                        outputs[output_index] = result + bias.tensor[out_ch]
 
         return GRAPH.create_graph_node[Self.backward[padding, stride]](outputs, inputs, kernel, bias)
 
