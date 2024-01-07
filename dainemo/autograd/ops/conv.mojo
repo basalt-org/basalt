@@ -44,6 +44,7 @@ struct CONV2D:
             output.shape     [batch, out_channels, X, Y].
         """
         # TODO: Add bias
+        # TODO: calculate kernel_index and input_index using precalculated strides
 
         alias nelts: Int = simdwidthof[dtype]()
 
@@ -118,10 +119,49 @@ struct CONV2D:
     fn backward(
         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
     ) -> Tensor[dtype]:
-        """Backward operation of 2D convolution."""
-        # TODO
-        return Tensor[dtype]()
+        """
+        Backward operation of 2D convolution.
+            
+        Upper gradient of shape: [batch, out_channels, X, Y].
+        """
+        
+        alias nelts: Int = simdwidthof[dtype]()
 
+        if tensor_id == 0:
+            # Inputs
+            # TODO
+
+            return Tensor[dtype]()
+        
+        elif tensor_id == 1:
+            # Kernel
+            # TODO
+
+            return Tensor[dtype]()
+
+        else: 
+            # Bias
+            # Sum of upper gradient over batch and X, Y dimensions
+            # out_channels == ug.dim(1) == bias.dim(0)
+            # TODO: calculate ug_index using precalculated strides
+            var result = Tensor[dtype](ug.dim(1))
+
+            for out_ch in range(ug.dim(1)):
+                var sum: SIMD[dtype, 1] = 0
+                for batch in range(ug.dim(0)):
+                    for x in range(ug.dim(2)):
+                        for y in range(ug.dim(3)):
+                            let ug_index = (
+                                batch * (ug.dim(1) * ug.dim(2) * ug.dim(3))
+                                + out_ch * (ug.dim(2) * ug.dim(3))
+                                + x * ug.dim(3)
+                                + y
+                            )
+                            sum += ug[ug_index]
+
+                result[out_ch] = sum
+
+            return result
 
 
 # <------------CONV3D------------>
