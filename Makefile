@@ -39,3 +39,6 @@ test:
 
 conv:
 	. .venv/bin/activate && mojo run -I . test/test_conv.mojo
+
+pool:
+	. .venv/bin/activate && mojo run -I . test/test_maxpool.mojo
