@@ -38,10 +38,10 @@ struct CONV2D:
     ](inputs: Node[dtype], kernel: Node[dtype], bias: Node[dtype]) -> Node[dtype]:
         """
         Performs a 2D convolution on the input tensor using the kernel and bias.
-            inputs.shape     [batch, in_channels, X, Y]
-            kernel.shape     [out_channels, in_channels, X, Y] (or weights)
+            inputs.shape     [batch, in_channels, iX, iY]
+            kernel.shape     [out_channels, in_channels, kX, kY] (or weights)
             bias.shape       [out_channels].
-            output.shape     [batch, out_channels, X, Y].
+            output.shape     [batch, out_channels, oX, oY].
         """
         # TODO: Add bias
         # TODO: calculate kernel_index and input_index using precalculated strides
@@ -113,25 +113,69 @@ struct CONV2D:
                         )
                         outputs[output_index] = result
 
-        return GRAPH.create_graph_node[Self.backward](outputs, inputs, kernel, bias)
+        return GRAPH.create_graph_node[Self.backward[padding, stride]](outputs, inputs, kernel, bias)
 
     @staticmethod
-    fn backward(
+    fn backward[
+        padding: Int, stride: Int
+    ](
         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
     ) -> Tensor[dtype]:
         """
         Backward operation of 2D convolution.
             
-        Upper gradient of shape: [batch, out_channels, X, Y].
+        Upper gradient of shape: [batch, out_channels, uX, uY].
         """
         
         alias nelts: Int = simdwidthof[dtype]()
+        let inputs = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
+        let kernel = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])].tensor
+        let bias = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[2])].tensor
 
         if tensor_id == 0:
             # Inputs
-            # TODO
+            # TODO: calculate indeces using precalculated strides
+            var res = Tensor[dtype](inputs.shape())
+            
+            for batch in range(inputs.dim(0)):
+                for in_ch in range(inputs.dim(1)):
+                    for x in range(inputs.dim(2)):
+                        for y in range(inputs.dim(3)):
+                            var result: SIMD[dtype, 1] = 0
+                            for out_ch in range(ug.dim(1)):
+                                for kx in range(kernel.dim(2)):
+                                    for ky in range(kernel.dim(3)):
+                                        let ux = x * stride - kx + padding
+                                        let uy = y * stride - ky + padding
 
-            return Tensor[dtype]()
+                                        if ux < 0 or uy < 0 or ux >= ug.dim(2) or uy >= ug.dim(3):
+                                            continue
+
+                                        let kernel_index = (
+                                            out_ch * (kernel.dim(1) * kernel.dim(2) * kernel.dim(3))
+                                            + in_ch * (kernel.dim(2) * kernel.dim(3))
+                                            + (kernel.dim(2) - kx - 1) * kernel.dim(3)
+                                            + (kernel.dim(3) - ky - 1)
+                                        )
+
+                                        let ug_index = (
+                                            batch * (ug.dim(1) * ug.dim(2) * ug.dim(3))
+                                            + out_ch * (ug.dim(2) * ug.dim(3))
+                                            + ux * ug.dim(3)
+                                            + uy
+                                        )
+
+                                        result += kernel[kernel_index] * ug[ug_index]
+
+                            let res_index = (
+                                batch * (inputs.dim(1) * inputs.dim(2) * inputs.dim(3))
+                                + in_ch * (inputs.dim(2) * inputs.dim(3))
+                                + x * inputs.dim(3)
+                                + y
+                            )
+                            res[res_index] = result
+
+            return res
         
         elif tensor_id == 1:
             # Kernel
@@ -144,7 +188,7 @@ struct CONV2D:
             # Sum of upper gradient over batch and X, Y dimensions
             # out_channels == ug.dim(1) == bias.dim(0)
             # TODO: calculate ug_index using precalculated strides
-            var result = Tensor[dtype](ug.dim(1))
+            var res = Tensor[dtype](bias.shape())
 
             for out_ch in range(ug.dim(1)):
                 var sum: SIMD[dtype, 1] = 0
@@ -159,9 +203,9 @@ struct CONV2D:
                             )
                             sum += ug[ug_index]
 
-                result[out_ch] = sum
+                res[out_ch] = sum
 
-            return result
+            return res
 
 
 # <------------CONV3D------------>
