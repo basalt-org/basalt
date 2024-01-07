@@ -25,7 +25,7 @@ fn test_ADD() raises:
     fill[dtype, nelts](expected, 2.0)
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 3)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------SUB------------>
@@ -40,7 +40,7 @@ fn test_SUB() raises:
     let expected = Tensor[dtype](2, 3)
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 3)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------MUL------------>
@@ -56,13 +56,13 @@ fn test_MUL() raises:
     fill[dtype, nelts](expected, 1.0)
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 3)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
     res = MUL.forward(t1, 5)
     fill[dtype, nelts](expected, 5)
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 3)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------DIV------------>
@@ -78,13 +78,13 @@ fn test_DIV() raises:
     fill[dtype, nelts](expected, 1.0 / 3.0)
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 3)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
     res = DIV.forward(t1, 5)
     fill[dtype, nelts](expected, 1.0 / 5.0)
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 3)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------DOT------------>
@@ -100,7 +100,7 @@ fn test_DOT() raises:
     fill[dtype, nelts](expected, 3.0)
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 3)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------EXP------------>
@@ -114,7 +114,7 @@ fn test_EXP() raises:
     fill[dtype, nelts](expected, exp[dtype, 1](2.0))
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 2)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------LOG------------>
@@ -128,7 +128,7 @@ fn test_LOG() raises:
     fill[dtype, nelts](expected, log[dtype, 1](2.0))
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 2)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------POW------------>
@@ -142,7 +142,7 @@ fn test_POW() raises:
     fill[dtype, nelts](expected, 4.0)
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 3)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------SUM------------>
@@ -156,7 +156,7 @@ fn test_SUM() raises:
     fill[dtype, nelts](expected, 6.0)
     assert_tensors_equal(res_scalar.tensor, expected)
     assert_equal(GRAPH.graph.size, 2)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
     let res_0 = SUM.forward[axis=0](t1)
 
@@ -164,7 +164,7 @@ fn test_SUM() raises:
     fill[dtype, nelts](expected, 2.0)
     assert_tensors_equal(res_0.tensor, expected)
     assert_equal(GRAPH.graph.size, 2)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
     let res_1 = SUM.forward[axis=1](t1)
 
@@ -172,7 +172,7 @@ fn test_SUM() raises:
     fill[dtype, nelts](expected, 3.0)
     assert_tensors_equal(res_1.tensor, expected)
     assert_equal(GRAPH.graph.size, 2)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------TRANSPOSE------------>
@@ -189,7 +189,7 @@ fn test_TRANSPOSE() raises:
 
     assert_tensors_equal(res.tensor, B)
     assert_equal(GRAPH.graph.size, 2)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------FLATTEN------------>
@@ -204,7 +204,7 @@ fn test_FLATTEN() raises:
 
     assert_tensors_equal(res.tensor, B)
     assert_equal(GRAPH.graph.size, 2)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------RESHAPE------------>
@@ -221,7 +221,7 @@ fn test_RESHAPE() raises:
 
     assert_tensors_equal(res.tensor, B)
     assert_equal(GRAPH.graph.size, 2)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 

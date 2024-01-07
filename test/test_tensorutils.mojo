@@ -1,6 +1,6 @@
 from tensor import Tensor, TensorShape
 from random import rand
-from testing import assert_equal, assert_true
+from testing import assert_equal, assert_true, assert_almost_equal
 
 from dainemo.utils.tensorutils import zero, fill, dot
 from dainemo.utils.tensorutils import (
@@ -9,7 +9,7 @@ from dainemo.utils.tensorutils import (
     elwise_op,
     batch_tensor_elwise_op,
 )
-from dainemo.utils.tensorutils import tsum, tmean, tstd, transpose_2D, transpose
+from dainemo.utils.tensorutils import tsum, tmean, tstd, transpose_2D, transpose, pad_zeros
 
 from math import sqrt, exp, round
 from math import add, sub, mul, div
@@ -18,7 +18,7 @@ alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
 
 
-fn assert_tensors_equal(t1: Tensor, t2: Tensor) raises:
+fn assert_tensors_equal(t1: Tensor[dtype], t2: Tensor[dtype], mode: String = "exact") raises:
     # Assert equal shapes
     assert_equal(t1.num_elements(), t2.num_elements())
     assert_equal(t1.rank(), t2.rank())
@@ -26,7 +26,12 @@ fn assert_tensors_equal(t1: Tensor, t2: Tensor) raises:
         assert_equal(t1.dim(i), t2.dim(i))
     # Assert equal values
     for i in range(t1.num_elements()):
-        assert_equal(t1[i], t2[i])
+        if mode == "exact":
+            assert_equal(t1[i], t2[i])
+        elif mode == "almost":
+            assert_almost_equal[dtype, 1](t1[i], t2[i], relative_tolerance=1e-5)
+        else:
+            print("Mode must be 'exact' or 'almost'")
 
 
 # <------------ZERO------------>
@@ -220,54 +225,42 @@ from test_tensorutils_data import TransposeData
 
 
 fn test_transpose() raises:
-    # Transpose 2 dimensions
-
+    # Transpose 2D
     var data = TransposeData.generate_1_2dim_test_case()
-
     var transposed = transpose_2D[dtype, nelts](data.A)
-
     assert_tensors_equal(transposed, data.expected)
 
+    # Transpose 2 dimensions
     data = TransposeData.generate_2_2dim_test_case()
-
     transposed = transpose[dtype, nelts](
         data.A, data.transpose_dims[0], data.transpose_dims[1]
     )
-
     assert_tensors_equal(transposed, data.expected)
 
     data = TransposeData.generate_3_2dim_test_case()
-
     transposed = transpose[dtype, nelts](
         data.A, data.transpose_dims[0], data.transpose_dims[1]
     )
-
     assert_tensors_equal(transposed, data.expected)
 
     data = TransposeData.generate_4_2dim_test_case()
-
     transposed = transpose[dtype, nelts](
         data.A, data.transpose_dims[0], data.transpose_dims[1]
     )
-
     assert_tensors_equal(transposed, data.expected)
 
-    # Transpose using all dimensions
-
+    # Transpose all dimensions
     data = TransposeData.generate_1_alldim_test_case()
     var transpose_dims = DynamicVector[Int]()
     for i in range(len(data.transpose_dims)):
         transpose_dims.push_back(data.transpose_dims[i])
 
     transposed = transpose[dtype, nelts](data.A, transpose_dims)
-
     assert_tensors_equal(transposed, data.expected)
 
     # Transpose (reverse)
-
     data = TransposeData.generate_1_transpose_test_case()
     transposed = transpose[dtype, nelts](data.A)
-
     assert_tensors_equal(transposed, data.expected)
 
 
@@ -288,6 +281,42 @@ fn test_flatten() raises:
     assert_tensors_equal(A_resh, A)
 
 
+# <-------------PADDING------------->
+from test_tensorutils_data import PaddingData
+
+fn test_padding() raises:
+    # 1D padding (only after)
+    var data = PaddingData.generate_1d_test_case_after()
+    var padded_data = pad_zeros[dtype, nelts](data.A, data.pad_with)
+    assert_tensors_equal(padded_data, data.expected)
+
+    # 1D padding (before and after)
+    data = PaddingData.generate_1d_test_case_before_after()
+    padded_data = pad_zeros[dtype, nelts](data.A, data.pad_with)
+    assert_tensors_equal(padded_data, data.expected)
+
+    # 2D padding
+    data = PaddingData.generate_2d_test_case()
+    padded_data = pad_zeros[dtype, nelts](data.A, data.pad_with)
+    assert_tensors_equal(padded_data, data.expected)
+
+    # 3D padding (simple)
+    data = PaddingData.generate_3d_test_case_simple()
+    padded_data = pad_zeros[dtype, nelts](data.A, data.pad_with)
+    assert_tensors_equal(padded_data, data.expected)
+
+    # 3D padding
+    data = PaddingData.generate_3d_test_case()
+    padded_data = pad_zeros[dtype, nelts](data.A, data.pad_with)
+    assert_tensors_equal(padded_data, data.expected)
+    
+    # 4D padding
+    data = PaddingData.generate_4d_test_case()
+    padded_data = pad_zeros[dtype, nelts](data.A, data.pad_with)
+    assert_tensors_equal(padded_data, data.expected)
+
+    
+
 fn main():
     try:
         test_zero()
@@ -301,5 +330,6 @@ fn main():
         test_sum_mean_std()
         test_transpose()
         test_flatten()
+        test_padding()
     except:
         print("[ERROR] Error in tensorutils.py")

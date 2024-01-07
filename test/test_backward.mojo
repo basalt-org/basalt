@@ -32,7 +32,7 @@ fn test_ADD() raises:
 
     assert_tensors_equal(ug1, upper_grad)
     assert_tensors_equal(ug1, upper_grad)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------SUB------------>
@@ -57,7 +57,7 @@ fn test_SUB() raises:
 
     assert_tensors_equal(ug1, upper_grad)
     assert_tensors_equal(ug2, expected_ug2)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------MUL------------>
@@ -84,7 +84,7 @@ fn test_MUL() raises:
 
     assert_tensors_equal(ug1, expected_ug1)
     assert_tensors_equal(ug2, expected_ug2)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------DIV------------>
@@ -111,7 +111,7 @@ fn test_DIV() raises:
 
     assert_tensors_equal(ug1, expected_ug1)
     assert_tensors_equal(ug2, expected_ug2)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------DOT------------>
@@ -138,7 +138,7 @@ fn test_DOT() raises:
 
     assert_tensors_equal(ug1, expected_ug1)
     assert_tensors_equal(ug2, expected_ug2)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------EXP------------>
@@ -158,7 +158,7 @@ fn test_EXP() raises:
     var expected_ug1 = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected_ug1, 5.0 * exp[dtype, 1](2.0))
     assert_tensors_equal(ug1, expected_ug1)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------LOG------------>
@@ -178,7 +178,7 @@ fn test_LOG() raises:
     var expected_ug1 = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected_ug1, 5.0 / 2.0)
     assert_tensors_equal(ug1, expected_ug1)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------POW------------>
@@ -203,7 +203,7 @@ fn test_POW() raises:
 
     assert_tensors_equal(ug1, expected_ug1)
     assert_tensors_equal(ug2, expected_ug2)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------SUM------------>
@@ -225,7 +225,7 @@ fn test_SUM() raises:
     var expected_ug1 = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected_ug1, 9.0)
     assert_tensors_equal(ug1, expected_ug1)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 fn test_SUM_0() raises:
@@ -249,7 +249,7 @@ fn test_SUM_0() raises:
     for i in range(expected_ug1.num_elements()):
         expected_ug1[i] = i % 3
     assert_tensors_equal(ug1, expected_ug1)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 fn test_SUM_1() raises:
@@ -272,7 +272,7 @@ fn test_SUM_1() raises:
     for i in range(expected_ug1.num_elements()):
         expected_ug1[i] = 0 if i < 3 else 1
     assert_tensors_equal(ug1, expected_ug1)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------TRANSPOSE------------>
@@ -297,7 +297,7 @@ fn test_TRANSPOSE() raises:
     for i in range(6):
         expected_ug1[i] = i+1
     assert_tensors_equal(ug1, expected_ug1)
-    GRAPH.reset()
+    GRAPH.reset_all()
     
 
 # <------------FLATTEN------------>
@@ -318,7 +318,7 @@ fn test_FLATTEN() raises:
     var expected_ug1 = Tensor[dtype](t1.shape())
     fill[dtype, nelts](expected_ug1, 1.0)
     assert_tensors_equal(ug1, expected_ug1)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 # <------------RESHAPE------------>
@@ -341,7 +341,7 @@ fn test_RESHAPE() raises:
     var expected_ug1 = Tensor[dtype](t1.shape())
     fill[dtype, nelts](expected_ug1, 1.0)
     assert_tensors_equal(ug1, expected_ug1)
-    GRAPH.reset()
+    GRAPH.reset_all()
 
 
 fn main():

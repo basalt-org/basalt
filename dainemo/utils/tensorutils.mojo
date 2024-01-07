@@ -356,3 +356,62 @@ fn transpose[
     parallelize[p_transpose](t.num_elements() // t.dim(t.rank() - 1))
 
     return t_new
+
+
+# TODO: Deprecate this function, as it is not used anymore
+@always_inline
+fn pad_zeros[
+    dtype: DType, nelts: Int
+](t: Tensor[dtype], pad_with: DynamicVector[Int]) -> Tensor[dtype]:
+    """
+    Pad a tensor with zeros along the specified axes of an N dimensional tensor.
+    Number of values padded to the edges of each axis.
+    Example: ((before_1, after_1), ... (before_N, after_N)).
+    """
+    
+    # NOTE: The rank of of the t tensor should be equal to the size of pad_with devided by 2.
+    # As pad_with contains (before, after) number of paddings for each axis.
+    var new_shape = DynamicVector[Int](t.rank())
+    for i in range(t.rank()):
+        new_shape.push_back(t.dim(i) + pad_with[i * 2] + pad_with[i * 2 + 1])
+    var t_new = Tensor[dtype](new_shape)
+
+    let original_strides = calculate_strides(t.shape())
+    let result_strides = calculate_strides(t_new.shape())
+
+    # NOTE: The reason why we use original_strides_shape and
+    # transposed_strides_shape is because it seems there is a *bug* when using
+    # dynamic vectors inside a parameter function? or a parameter function that
+    # is used in parallelized. If we use the dynamic vector inside the
+    # parallelized function, the memory of the dynamic vector is not initialized.
+    let original_strides_shape = TensorShape(original_strides)
+    let result_strides_shape = TensorShape(result_strides)
+
+    # Parallelize over the first axis
+    # NOTE: Possible dynamically choose the axis to parallelize over
+
+    @parameter
+    fn p_pad(i: Int):
+        
+        for j in range(t.num_elements() // t.dim(0)):
+
+            let original_index = i * original_strides_shape[0] + j
+            
+            # Padding contribution of the first dimention
+            var dest_index = (i + pad_with[0]) * result_strides_shape[0]
+            
+            # Calculate the contribution from each dimension
+            var remaining_index = j % original_strides_shape[0]
+            for dim in range(1, t.rank()):
+                let stride = original_strides_shape[dim]
+                let index = remaining_index // stride
+                remaining_index = remaining_index % stride
+
+                dest_index += (index + pad_with[dim * 2]) * result_strides_shape[dim]
+            
+            # TODO: figure out vectorization
+            t_new[dest_index] = t[original_index]
+
+    parallelize[p_pad](t.dim(0))
+
+    return t_new
