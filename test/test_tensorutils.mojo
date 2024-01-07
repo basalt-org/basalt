@@ -1,6 +1,6 @@
 from tensor import Tensor, TensorShape
 from random import rand
-from testing import assert_equal, assert_true
+from testing import assert_equal, assert_true, assert_almost_equal
 
 from dainemo.utils.tensorutils import zero, fill, dot
 from dainemo.utils.tensorutils import (
@@ -18,7 +18,7 @@ alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
 
 
-fn assert_tensors_equal(t1: Tensor, t2: Tensor) raises:
+fn assert_tensors_equal(t1: Tensor[dtype], t2: Tensor[dtype], mode: String = "exact") raises:
     # Assert equal shapes
     assert_equal(t1.num_elements(), t2.num_elements())
     assert_equal(t1.rank(), t2.rank())
@@ -26,7 +26,12 @@ fn assert_tensors_equal(t1: Tensor, t2: Tensor) raises:
         assert_equal(t1.dim(i), t2.dim(i))
     # Assert equal values
     for i in range(t1.num_elements()):
-        assert_equal(t1[i], t2[i])
+        if mode == "exact":
+            assert_equal(t1[i], t2[i])
+        elif mode == "almost":
+            assert_almost_equal[dtype, 1](t1[i], t2[i], relative_tolerance=1e-5)
+        else:
+            print("Mode must be 'exact' or 'almost'")
 
 
 # <------------ZERO------------>

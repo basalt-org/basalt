@@ -164,8 +164,8 @@ fn test_backward_1() raises:
     alias batch = 4
     alias in_channels = 2
     alias out_channels = 3
-    var inputs = Tensor[dtype](batch, in_channels, 4, 4)
-    var kernel = Tensor[dtype](out_channels, in_channels, 2 , 2)
+    var inputs = Tensor[dtype](batch, in_channels, 28, 28)
+    var kernel = Tensor[dtype](out_channels, in_channels, 1 , 16)
     fill[dtype, nelts](inputs, 1.0)
     fill[dtype, nelts](kernel, 1.0)
     let bias = Tensor[dtype](out_channels)
@@ -174,7 +174,7 @@ fn test_backward_1() raises:
 
     let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
     assert_equal(gn.parents.size, 3)
-    var upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
+    let upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
 
     let ug1 = gn.backward_fn(upper_grad, gn.parents, 0) # inputs.grad
     let ug2 = gn.backward_fn(upper_grad, gn.parents, 1) # kernel.grad
@@ -182,15 +182,9 @@ fn test_backward_1() raises:
 
     let torch_out = torch_conv2d(inputs, kernel, bias=bias, padding=padding, stride=stride, upper_grad=upper_grad)
     assert_tensors_equal(res.tensor, torch_out.expected)
-    print(to_numpy(ug1))
-    print("----")
-    print(to_numpy(torch_out.expected_inputs_grad))
-    # assert_tensors_equal(ug1, torch_out.expected_inputs_grad) # TODO
-    # assert_tensors_equal(ug2, torch_out.expected_kernel_grad) # TODO
-    print(to_numpy(ug3))
-    print("----")
-    print(to_numpy(torch_out.expected_bias_grad))
-    # assert_tensors_equal(ug3, torch_out.expected_bias_grad) # TODO: assert_tensors_ALMOST_equal
+    assert_tensors_equal(ug1, torch_out.expected_inputs_grad, "almost")
+    assert_tensors_equal(ug2, torch_out.expected_kernel_grad, "almost") 
+    assert_tensors_equal(ug3, torch_out.expected_bias_grad, "almost")
     GRAPH.reset_all()
 
 

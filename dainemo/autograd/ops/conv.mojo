@@ -139,14 +139,14 @@ struct CONV2D:
             
             for batch in range(inputs.dim(0)):
                 for in_ch in range(inputs.dim(1)):
-                    for x in range(inputs.dim(2)):
-                        for y in range(inputs.dim(3)):
+                    for ix in range(inputs.dim(2)):
+                        for iy in range(inputs.dim(3)):
                             var result: SIMD[dtype, 1] = 0
                             for out_ch in range(ug.dim(1)):
                                 for kx in range(kernel.dim(2)):
                                     for ky in range(kernel.dim(3)):
-                                        let ux = x * stride - kx + padding
-                                        let uy = y * stride - ky + padding
+                                        let ux = ix * stride - kx + padding
+                                        let uy = iy * stride - ky + padding
 
                                         if ux < 0 or uy < 0 or ux >= ug.dim(2) or uy >= ug.dim(3):
                                             continue
@@ -167,21 +167,60 @@ struct CONV2D:
 
                                         result += kernel[kernel_index] * ug[ug_index]
 
-                            let res_index = (
+                            let input_index = (
                                 batch * (inputs.dim(1) * inputs.dim(2) * inputs.dim(3))
                                 + in_ch * (inputs.dim(2) * inputs.dim(3))
-                                + x * inputs.dim(3)
-                                + y
+                                + ix * inputs.dim(3)
+                                + iy
                             )
-                            res[res_index] = result
+                            res[input_index] = result
 
             return res
         
         elif tensor_id == 1:
             # Kernel
-            # TODO
+            # TODO: calculate indeces using precalculated strides
+            var res = Tensor[dtype](kernel.shape())
 
-            return Tensor[dtype]()
+            for in_ch in range(inputs.dim(1)):
+                for out_ch in range(ug.dim(1)):
+                    for kx in range(kernel.dim(2)):
+                        for ky in range(kernel.dim(3)):
+                            var result: SIMD[dtype, 1] = 0
+                            for batch in range(inputs.dim(0)):
+                                for ux in range(ug.dim(2)):
+                                    for uy in range(ug.dim(3)):
+                                        let ix = kx * stride - padding + ux
+                                        let iy = ky * stride - padding + uy
+
+                                        if ix < 0 or iy < 0 or ix >= inputs.dim(2) or iy >= inputs.dim(3):
+                                            continue
+
+                                        let input_index = (
+                                            batch * (inputs.dim(1) * inputs.dim(2) * inputs.dim(3))
+                                            + in_ch * (inputs.dim(2) * inputs.dim(3))
+                                            + ix * inputs.dim(3)
+                                            + iy
+                                        )
+
+                                        let ug_index = (
+                                            batch * (ug.dim(1) * ug.dim(2) * ug.dim(3))
+                                            + out_ch * (ug.dim(2) * ug.dim(3))
+                                            + ux * ug.dim(3)
+                                            + uy
+                                        )
+
+                                        result += inputs[input_index] * ug[ug_index]
+
+                            let kernel_index = (
+                                out_ch * (kernel.dim(1) * kernel.dim(2) * kernel.dim(3))
+                                + in_ch * (kernel.dim(2) * kernel.dim(3))
+                                + kx * kernel.dim(3)
+                                + ky
+                            )
+                            res[kernel_index] = result
+
+            return res
 
         else: 
             # Bias
@@ -193,13 +232,13 @@ struct CONV2D:
             for out_ch in range(ug.dim(1)):
                 var sum: SIMD[dtype, 1] = 0
                 for batch in range(ug.dim(0)):
-                    for x in range(ug.dim(2)):
-                        for y in range(ug.dim(3)):
+                    for ux in range(ug.dim(2)):
+                        for uy in range(ug.dim(3)):
                             let ug_index = (
                                 batch * (ug.dim(1) * ug.dim(2) * ug.dim(3))
                                 + out_ch * (ug.dim(2) * ug.dim(3))
-                                + x * ug.dim(3)
-                                + y
+                                + ux * ug.dim(3)
+                                + uy
                             )
                             sum += ug[ug_index]
 
