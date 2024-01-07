@@ -13,7 +13,7 @@
 | Task       | Dataset | Forward | Backward | Training |
 |------------|---------|---------|----------|----------|
 | REGRESSION |   ✅    |   ✅    |    ✅    |    ✅    |
-| CONV       |   ✅    |   ❌    |    ❌    |    ❌    |
+| MNIST      |   ✅    |   ❌    |    ❌    |    ❌    |
 
 
 <sub>Regression example:</sub>
@@ -67,7 +67,7 @@ WIP: Work in progress
 | TRANSPOSE  |   ✅   |
 | FLATTEN    |   ✅   |
 | RESHAPE    |   ✅   |
-| CONV2D     |   ❌   |
+| CONV2D     |   ✅   |
 | CONV3D     |   ❌   |
 | MAXPOOL2D  |   ❌   |
 | MAXPOOL3D  |   ❌   |
@@ -104,7 +104,7 @@ WIP: Work in progress
 | SEQUENTIAL |   ❌   |
 | LINEAR     |   ✅   |
 | DROPOUT    |   ❌   |
-| CONV2D     |   ❌   |
+| CONV2D     |   ✅   |
 | CONV3D     |   ❌   |
 | MAXPOOL2D  |   ❌   |
 | MAXPOOL3D  |   ❌   |
@@ -146,4 +146,4 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ## Acknowledgements
 
-A huge thanks to [pranftw](https://github.com/pranftw) for the inspiration and support! This project is inspired by [neograd](https://github.com/pranftw/neograd) which forms the basis of the implementation.
+A huge thanks to [pranftw](https://github.com/pranftw) for the inspiration and support! This project is inspired by [neograd](https://github.com/pranftw/neograd).
