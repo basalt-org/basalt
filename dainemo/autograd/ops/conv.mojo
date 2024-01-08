@@ -32,7 +32,7 @@ fn get_result_shape[
 struct CONV2D:
     @staticmethod
     fn forward[
-        padding: Int, stride: Int
+        padding: Int, stride: Int, padding_mode: Int = 0
     ](inputs: Node[dtype], kernel: Node[dtype], bias: Node[dtype]) -> Node[dtype]:
         """
         Performs a 2D convolution on the input tensor using the kernel and bias.
@@ -55,65 +55,123 @@ struct CONV2D:
         var outputs_strides = calculate_strides(outputs.shape())
 
         @parameter
-        fn kernel_iteration(
-            batch: Int, in_ch: Int, out_ch: Int, x: Int, y: Int
-        ) -> SIMD[dtype, 1]:
+        fn kernel_iteration_all_checks(batch: Int, out_ch: Int, x: Int, y: Int):
             var result: SIMD[dtype, 1] = 0
-            for kx in range(kernel.tensor.dim(2)):
-                for ky in range(kernel.tensor.dim(3)):
-                    let ix = x * stride - padding + kx
-                    let iy = y * stride - padding + ky
+            for in_ch in range(inputs.tensor.dim(1)):
+                for kx in range(kernel.tensor.dim(2)):
+                    for ky in range(kernel.tensor.dim(3)):
+                        let ix = x * stride - padding + kx
+                        let iy = y * stride - padding + ky
 
-                    if (
-                        ix < 0
-                        or iy < 0
-                        or ix >= inputs.tensor.dim(2)
-                        or iy >= inputs.tensor.dim(3)
-                    ):
-                        continue
+                        let kernel_index = (
+                            out_ch * kernel.strides[0]
+                            + in_ch * kernel.strides[1]
+                            + kx * kernel.strides[2]
+                            + ky
+                        )
 
-                    let kernel_index = (
-                        out_ch * kernel.strides[0]
-                        + in_ch * kernel.strides[1]
-                        + kx * kernel.strides[2]
-                        + ky
-                    )
+                        if (
+                            ix < 0
+                            or iy < 0
+                            or ix >= inputs.tensor.dim(2)
+                            or iy >= inputs.tensor.dim(3)
+                        ):
+                            result += padding_mode * kernel.tensor[kernel_index]
+                            continue
 
-                    let input_index = (
-                        batch * inputs.strides[0]
-                        + in_ch * inputs.strides[1]
-                        + ix * inputs.strides[2]
-                        + iy
-                    )
+                        let input_index = (
+                            batch * inputs.strides[0]
+                            + in_ch * inputs.strides[1]
+                            + ix * inputs.strides[2]
+                            + iy
+                        )
 
-                    result += inputs.tensor[input_index] * kernel.tensor[kernel_index]
+                        result += (
+                            inputs.tensor[input_index] * kernel.tensor[kernel_index]
+                        )
 
-            return result
+            let output_index = (
+                batch * outputs_strides[0]
+                + out_ch * outputs_strides[1]
+                + x * outputs_strides[2]
+                + y
+            )
+
+            outputs[output_index] = result + bias.tensor[out_ch]
+
+        @parameter
+        fn kernel_iteration_no_checks(batch: Int, out_ch: Int, x: Int, y: Int):
+            var result: SIMD[dtype, 1] = 0
+            for in_ch in range(inputs.tensor.dim(1)):
+                for kx in range(kernel.tensor.dim(2)):
+                    for ky in range(kernel.tensor.dim(3)):
+                        let ix = x * stride - padding + kx
+                        let iy = y * stride - padding + ky
+
+                        let kernel_index = (
+                            out_ch * kernel.strides[0]
+                            + in_ch * kernel.strides[1]
+                            + kx * kernel.strides[2]
+                            + ky
+                        )
+
+                        let input_index = (
+                            batch * inputs.strides[0]
+                            + in_ch * inputs.strides[1]
+                            + ix * inputs.strides[2]
+                            + iy
+                        )
+
+                        result += (
+                            inputs.tensor[input_index] * kernel.tensor[kernel_index]
+                        )
+
+            let output_index = (
+                batch * outputs_strides[0]
+                + out_ch * outputs_strides[1]
+                + x * outputs_strides[2]
+                + y
+            )
+
+            outputs[output_index] = result + bias.tensor[out_ch]
+
+        let oH_border_0 = 0
+        let oH_border_1 = (padding + kernel.strides[0] + 1) / kernel.strides[0]
+        let oH_border_2 = (
+            inputs.tensor.dim(2) + padding - kernel.tensor.dim(2)
+        ) / kernel.strides[0]
+        let oH_border_3 = outputs.dim(2)
+
+        let oW_border_0 = 0
+        let oW_border_1 = (padding + kernel.strides[1] + 1) / kernel.strides[1]
+        let oW_border_2 = (
+            inputs.tensor.dim(3) + padding - kernel.tensor.dim(3)
+        ) / kernel.strides[1]
+        let oW_border_3 = outputs.dim(3)
 
         for batch in range(inputs.tensor.dim(0)):
             for out_ch in range(outputs.dim(1)):
-                ### TODO: OPTIMIZATION
-                # Split into edge cases to avoid having to check bounds, by determening the borders (todo)
-                # for (x, y) in range(border_low_<i>, border_high_<i>): ...
-                # Case 1: TOP       x might put us out of bounds (check)
-                # Case 2: LEFT      y might put us out of bounds (check)
-                # Case 3: Base case, in bounds (no checking needed, in the majority of cases)
-                # Case 4: RIGHT     y might put us out of bounds (check)
-                # Case 5: BOTTOM    x might put us out of bounds (check)
-
-                for x in range(outputs.dim(2)):
+                let batch_o_idx = batch * outputs_strides[0]
+                let out_ch_o_idx = out_ch * outputs_strides[1]
+                # Case 1: oh might put us out of bounds
+                for x in range(oH_border_0, oH_border_1):
                     for y in range(outputs.dim(3)):
-                        var result: SIMD[dtype, 1] = 0
-                        for in_ch in range(inputs.tensor.dim(1)):
-                            result += kernel_iteration(batch, in_ch, out_ch, x, y)
-
-                        let output_index = (
-                            batch * outputs_strides[0]
-                            + out_ch * outputs_strides[1]
-                            + x * outputs_strides[2]
-                            + y
-                        )
-                        outputs[output_index] = result + bias.tensor[out_ch]
+                        kernel_iteration_all_checks(batch, out_ch, x, y)
+                # Case 2: oh in bounds
+                for x in range(oH_border_1, oH_border_2):
+                    # Case a: ow might put us out of bounds
+                    for y in range(oW_border_0, oW_border_1):
+                        kernel_iteration_all_checks(batch, out_ch, x, y)
+                    # Case b: ow in bounds
+                    for y in range(oW_border_1, oW_border_2):
+                        kernel_iteration_no_checks(batch, out_ch, x, y)
+                    # Case c: ow might put us out of bounds
+                    for y in range(oW_border_2, oW_border_3):
+                        kernel_iteration_all_checks(batch, out_ch, x, y)
+                # Case 3: oh might put us out of bounds
+                for x in range(oH_border_2, oH_border_3):
+                    for y in range(outputs.dim(3)):
+                        kernel_iteration_all_checks(batch, out_ch, x, y)
 
         return GRAPH.create_graph_node[Self.backward[padding, stride]](
             outputs, inputs, kernel, bias
