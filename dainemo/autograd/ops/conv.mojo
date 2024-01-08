@@ -8,8 +8,7 @@ from dainemo.utils.tensorutils import calculate_strides
 
 # <------------GENERAL CONV METHODS------------>
 fn get_result_shape[
-    padding: Int,
-    stride: Int
+    padding: Int, stride: Int
 ](input_shape: TensorShape, kernel_shape: TensorShape) -> StaticIntTuple[2]:
     """
     Calculates the X and Y dimensions of the resulting convolution.
@@ -19,15 +18,14 @@ fn get_result_shape[
     """
 
     let result_x_dim = floor[DType.float64, 1](
-            ((input_shape[-2] + (2 * padding) - kernel_shape[-2]) / stride) + 1
-        ).to_int()
+        ((input_shape[-2] + (2 * padding) - kernel_shape[-2]) / stride) + 1
+    ).to_int()
 
     let result_y_dim = floor[DType.float64, 1](
-            ((input_shape[-1] + (2 * padding) - kernel_shape[-1]) / stride) + 1
-        ).to_int()
+        ((input_shape[-1] + (2 * padding) - kernel_shape[-1]) / stride) + 1
+    ).to_int()
 
     return StaticIntTuple[2](result_x_dim, result_y_dim)
-
 
 
 # <------------CONV2D------------>
@@ -44,7 +42,6 @@ struct CONV2D:
             output.shape     [batch, out_channels, oX, oY].
         """
         # TODO: Add bias
-        # TODO: calculate kernel_index and input_index using precalculated strides
 
         alias nelts: Int = simdwidthof[dtype]()
 
@@ -55,6 +52,7 @@ struct CONV2D:
         var outputs = Tensor[dtype](
             inputs.tensor.dim(0), kernel.tensor.dim(0), result_shape[0], result_shape[1]
         )
+        var outputs_strides = calculate_strides(outputs.shape())
 
         @parameter
         fn kernel_iteration(
@@ -66,20 +64,25 @@ struct CONV2D:
                     let ix = x * stride - padding + kx
                     let iy = y * stride - padding + ky
 
-                    if ix < 0 or iy < 0 or ix >= inputs.tensor.dim(2) or iy >= inputs.tensor.dim(3):
+                    if (
+                        ix < 0
+                        or iy < 0
+                        or ix >= inputs.tensor.dim(2)
+                        or iy >= inputs.tensor.dim(3)
+                    ):
                         continue
 
                     let kernel_index = (
-                        out_ch * (kernel.tensor.dim(1) * kernel.tensor.dim(2) * kernel.tensor.dim(3))
-                        + in_ch * (kernel.tensor.dim(2) * kernel.tensor.dim(3))
-                        + kx * kernel.tensor.dim(3)
+                        out_ch * kernel.strides[0]
+                        + in_ch * kernel.strides[1]
+                        + kx * kernel.strides[2]
                         + ky
                     )
 
                     let input_index = (
-                        batch * (inputs.tensor.dim(1) * inputs.tensor.dim(2) * inputs.tensor.dim(3))
-                        + in_ch * (inputs.tensor.dim(2) * inputs.tensor.dim(3))
-                        + ix * inputs.tensor.dim(3)
+                        batch * inputs.strides[0]
+                        + in_ch * inputs.strides[1]
+                        + ix * inputs.strides[2]
                         + iy
                     )
 
@@ -89,7 +92,6 @@ struct CONV2D:
 
         for batch in range(inputs.tensor.dim(0)):
             for out_ch in range(outputs.dim(1)):
-
                 ### TODO: OPTIMIZATION
                 # Split into edge cases to avoid having to check bounds, by determening the borders (todo)
                 # for (x, y) in range(border_low_<i>, border_high_<i>): ...
@@ -106,37 +108,43 @@ struct CONV2D:
                             result += kernel_iteration(batch, in_ch, out_ch, x, y)
 
                         let output_index = (
-                            batch * (outputs.dim(1) * outputs.dim(2) * outputs.dim(3))
-                            + out_ch * (outputs.dim(2) * outputs.dim(3))
-                            + x * outputs.dim(3)
+                            batch * outputs_strides[0]
+                            + out_ch * outputs_strides[1]
+                            + x * outputs_strides[2]
                             + y
                         )
                         outputs[output_index] = result + bias.tensor[out_ch]
 
-        return GRAPH.create_graph_node[Self.backward[padding, stride]](outputs, inputs, kernel, bias)
+        return GRAPH.create_graph_node[Self.backward[padding, stride]](
+            outputs, inputs, kernel, bias
+        )
 
     @staticmethod
     fn backward[
         padding: Int, stride: Int
-    ](
-        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-    ) -> Tensor[dtype]:
+    ](ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[
+        dtype
+    ]:
         """
         Backward operation of 2D convolution.
-            
+
         Upper gradient of shape: [batch, out_channels, uX, uY].
         """
-        
+
         alias nelts: Int = simdwidthof[dtype]()
         let inputs = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
+        let inputs_strides = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].strides
         let kernel = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])].tensor
+        let kernel_strides = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])].strides
         let bias = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[2])].tensor
+        let bias_strides = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[2])].strides
+
+        let ug_strides = calculate_strides(ug.shape())
 
         if tensor_id == 0:
             # Inputs
-            # TODO: calculate indeces using precalculated strides
             var res = Tensor[dtype](inputs.shape())
-            
+
             for batch in range(inputs.dim(0)):
                 for in_ch in range(inputs.dim(1)):
                     for ix in range(inputs.dim(2)):
@@ -148,38 +156,43 @@ struct CONV2D:
                                         let ux = ix * stride - kx + padding
                                         let uy = iy * stride - ky + padding
 
-                                        if ux < 0 or uy < 0 or ux >= ug.dim(2) or uy >= ug.dim(3):
+                                        if (
+                                            ux < 0
+                                            or uy < 0
+                                            or ux >= ug.dim(2)
+                                            or uy >= ug.dim(3)
+                                        ):
                                             continue
 
                                         let kernel_index = (
-                                            out_ch * (kernel.dim(1) * kernel.dim(2) * kernel.dim(3))
-                                            + in_ch * (kernel.dim(2) * kernel.dim(3))
-                                            + (kernel.dim(2) - kx - 1) * kernel.dim(3)
+                                            out_ch * kernel_strides[0]
+                                            + in_ch * kernel_strides[1]
+                                            + (kernel.dim(2) - kx - 1)
+                                            * kernel_strides[2]
                                             + (kernel.dim(3) - ky - 1)
                                         )
 
                                         let ug_index = (
-                                            batch * (ug.dim(1) * ug.dim(2) * ug.dim(3))
-                                            + out_ch * (ug.dim(2) * ug.dim(3))
-                                            + ux * ug.dim(3)
+                                            batch * ug_strides[0]
+                                            + out_ch * ug_strides[1]
+                                            + ux * ug_strides[2]
                                             + uy
                                         )
 
                                         result += kernel[kernel_index] * ug[ug_index]
 
                             let input_index = (
-                                batch * (inputs.dim(1) * inputs.dim(2) * inputs.dim(3))
-                                + in_ch * (inputs.dim(2) * inputs.dim(3))
-                                + ix * inputs.dim(3)
+                                batch * inputs_strides[0]
+                                + in_ch * inputs_strides[1]
+                                + ix * inputs_strides[2]
                                 + iy
                             )
                             res[input_index] = result
 
             return res
-        
+
         elif tensor_id == 1:
             # Kernel
-            # TODO: calculate indeces using precalculated strides
             var res = Tensor[dtype](kernel.shape())
 
             for in_ch in range(inputs.dim(1)):
@@ -193,40 +206,44 @@ struct CONV2D:
                                         let ix = kx * stride - padding + ux
                                         let iy = ky * stride - padding + uy
 
-                                        if ix < 0 or iy < 0 or ix >= inputs.dim(2) or iy >= inputs.dim(3):
+                                        if (
+                                            ix < 0
+                                            or iy < 0
+                                            or ix >= inputs.dim(2)
+                                            or iy >= inputs.dim(3)
+                                        ):
                                             continue
 
                                         let input_index = (
-                                            batch * (inputs.dim(1) * inputs.dim(2) * inputs.dim(3))
-                                            + in_ch * (inputs.dim(2) * inputs.dim(3))
-                                            + ix * inputs.dim(3)
+                                            batch * inputs_strides[0]
+                                            + in_ch * inputs_strides[1]
+                                            + ix * inputs_strides[2]
                                             + iy
                                         )
 
                                         let ug_index = (
-                                            batch * (ug.dim(1) * ug.dim(2) * ug.dim(3))
-                                            + out_ch * (ug.dim(2) * ug.dim(3))
-                                            + ux * ug.dim(3)
+                                            batch * ug_strides[0]
+                                            + out_ch * ug_strides[1]
+                                            + ux * ug_strides[2]
                                             + uy
                                         )
 
                                         result += inputs[input_index] * ug[ug_index]
 
                             let kernel_index = (
-                                out_ch * (kernel.dim(1) * kernel.dim(2) * kernel.dim(3))
-                                + in_ch * (kernel.dim(2) * kernel.dim(3))
-                                + kx * kernel.dim(3)
+                                out_ch * kernel_strides[0]
+                                + in_ch * kernel_strides[1]
+                                + kx * kernel_strides[2]
                                 + ky
                             )
                             res[kernel_index] = result
 
             return res
 
-        else: 
+        else:
             # Bias
             # Sum of upper gradient over batch and X, Y dimensions
             # out_channels == ug.dim(1) == bias.dim(0)
-            # TODO: calculate ug_index using precalculated strides
             var res = Tensor[dtype](bias.shape())
 
             for out_ch in range(ug.dim(1)):
@@ -235,9 +252,9 @@ struct CONV2D:
                     for ux in range(ug.dim(2)):
                         for uy in range(ug.dim(3)):
                             let ug_index = (
-                                batch * (ug.dim(1) * ug.dim(2) * ug.dim(3))
-                                + out_ch * (ug.dim(2) * ug.dim(3))
-                                + ux * ug.dim(3)
+                                batch * ug_strides[0]
+                                + out_ch * ug_strides[1]
+                                + ux * ug_strides[2]
                                 + uy
                             )
                             sum += ug[ug_index]
