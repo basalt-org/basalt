@@ -55,7 +55,9 @@ struct CONV2D:
         var outputs_strides = calculate_strides(outputs.shape())
 
         @parameter
-        fn kernel_iteration_all_checks(batch: Int, out_ch: Int, x: Int, y: Int):
+        fn kernel_iteration[
+            all_checks: Bool = True
+        ](batch: Int, out_ch: Int, x: Int, y: Int):
             var result: SIMD[dtype, 1] = 0
             for in_ch in range(inputs.tensor.dim(1)):
                 for kx in range(kernel.tensor.dim(2)):
@@ -70,50 +72,16 @@ struct CONV2D:
                             + ky
                         )
 
-                        if (
-                            ix < 0
-                            or iy < 0
-                            or ix >= inputs.tensor.dim(2)
-                            or iy >= inputs.tensor.dim(3)
-                        ):
-                            result += padding_mode * kernel.tensor[kernel_index]
-                            continue
-
-                        let input_index = (
-                            batch * inputs.strides[0]
-                            + in_ch * inputs.strides[1]
-                            + ix * inputs.strides[2]
-                            + iy
-                        )
-
-                        result += (
-                            inputs.tensor[input_index] * kernel.tensor[kernel_index]
-                        )
-
-            let output_index = (
-                batch * outputs_strides[0]
-                + out_ch * outputs_strides[1]
-                + x * outputs_strides[2]
-                + y
-            )
-
-            outputs[output_index] = result + bias.tensor[out_ch]
-
-        @parameter
-        fn kernel_iteration_no_checks(batch: Int, out_ch: Int, x: Int, y: Int):
-            var result: SIMD[dtype, 1] = 0
-            for in_ch in range(inputs.tensor.dim(1)):
-                for kx in range(kernel.tensor.dim(2)):
-                    for ky in range(kernel.tensor.dim(3)):
-                        let ix = x * stride - padding + kx
-                        let iy = y * stride - padding + ky
-
-                        let kernel_index = (
-                            out_ch * kernel.strides[0]
-                            + in_ch * kernel.strides[1]
-                            + kx * kernel.strides[2]
-                            + ky
-                        )
+                        @parameter
+                        if all_checks:
+                            if (
+                                ix < 0
+                                or iy < 0
+                                or ix >= inputs.tensor.dim(2)
+                                or iy >= inputs.tensor.dim(3)
+                            ):
+                                result += padding_mode * kernel.tensor[kernel_index]
+                                continue
 
                         let input_index = (
                             batch * inputs.strides[0]
@@ -156,22 +124,22 @@ struct CONV2D:
                 # Case 1: oh might put us out of bounds
                 for x in range(oH_border_0, oH_border_1):
                     for y in range(outputs.dim(3)):
-                        kernel_iteration_all_checks(batch, out_ch, x, y)
+                        kernel_iteration(batch, out_ch, x, y)
                 # Case 2: oh in bounds
                 for x in range(oH_border_1, oH_border_2):
                     # Case a: ow might put us out of bounds
                     for y in range(oW_border_0, oW_border_1):
-                        kernel_iteration_all_checks(batch, out_ch, x, y)
+                        kernel_iteration(batch, out_ch, x, y)
                     # Case b: ow in bounds
                     for y in range(oW_border_1, oW_border_2):
-                        kernel_iteration_no_checks(batch, out_ch, x, y)
+                        kernel_iteration[False](batch, out_ch, x, y)
                     # Case c: ow might put us out of bounds
                     for y in range(oW_border_2, oW_border_3):
-                        kernel_iteration_all_checks(batch, out_ch, x, y)
+                        kernel_iteration(batch, out_ch, x, y)
                 # Case 3: oh might put us out of bounds
                 for x in range(oH_border_2, oH_border_3):
                     for y in range(outputs.dim(3)):
-                        kernel_iteration_all_checks(batch, out_ch, x, y)
+                        kernel_iteration(batch, out_ch, x, y)
 
         return GRAPH.create_graph_node[Self.backward[padding, stride]](
             outputs, inputs, kernel, bias
