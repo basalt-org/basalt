@@ -46,6 +46,18 @@ fn test_get_result_shape() raises:
     assert_equal(res[0], 37)
     assert_equal(res[1], 18)
 
+    # padding=(3, 2), stride=(2, 1),
+    # input shape: (4, 32, 17)  kernel shape: (2, 2)
+    # result:  (18, 20)
+    inputs = Tensor[dtype](4, 32, 17)
+    kernel = Tensor[dtype](3, 2)
+
+    res = get_result_shape[StaticIntTuple[2](3, 2), StaticIntTuple[2](2, 1)](
+        inputs.shape(), kernel.shape()
+    )
+    assert_equal(res[0], 18)
+    assert_equal(res[1], 20)
+
 
 def to_numpy(tensor: Tensor) -> PythonObject:
     let np = Python.import_module("numpy")
