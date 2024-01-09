@@ -104,17 +104,17 @@ struct CONV2D:
             outputs[output_index] = result + bias.tensor[out_ch]
 
         let oH_border_0 = 0
-        let oH_border_1 = (padding + kernel.strides[0] + 1) / kernel.strides[0]
+        let oH_border_1 = (padding + stride + 1) / stride
         let oH_border_2 = (
             inputs.tensor.dim(2) + padding - kernel.tensor.dim(2)
-        ) / kernel.strides[0]
+        ) / stride
         let oH_border_3 = outputs.dim(2)
 
         let oW_border_0 = 0
-        let oW_border_1 = (padding + kernel.strides[1] + 1) / kernel.strides[1]
+        let oW_border_1 = (padding + stride + 1) / stride
         let oW_border_2 = (
             inputs.tensor.dim(3) + padding - kernel.tensor.dim(3)
-        ) / kernel.strides[1]
+        ) / stride
         let oW_border_3 = outputs.dim(3)
 
         for batch in range(inputs.tensor.dim(0)):
