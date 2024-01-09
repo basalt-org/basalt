@@ -8,7 +8,7 @@ from dainemo.utils.tensorutils import calculate_strides
 
 # <------------GENERAL CONV METHODS------------>
 fn get_result_shape[
-    padding: Int, stride: Int
+    padding: StaticIntTuple[2], stride: Int
 ](input_shape: TensorShape, kernel_shape: TensorShape) -> StaticIntTuple[2]:
     """
     Calculates the X and Y dimensions of the resulting convolution.
@@ -18,11 +18,11 @@ fn get_result_shape[
     """
 
     let result_x_dim = floor[DType.float64, 1](
-        ((input_shape[-2] + (2 * padding) - kernel_shape[-2]) / stride) + 1
+        ((input_shape[-2] + (2 * padding[0]) - kernel_shape[-2]) / stride) + 1
     ).to_int()
 
     let result_y_dim = floor[DType.float64, 1](
-        ((input_shape[-1] + (2 * padding) - kernel_shape[-1]) / stride) + 1
+        ((input_shape[-1] + (2 * padding[1]) - kernel_shape[-1]) / stride) + 1
     ).to_int()
 
     return StaticIntTuple[2](result_x_dim, result_y_dim)
@@ -32,7 +32,7 @@ fn get_result_shape[
 struct CONV2D:
     @staticmethod
     fn forward[
-        padding: Int, stride: Int, padding_mode: Int = 0
+        padding: StaticIntTuple[2], stride: Int, padding_mode: Int = 0
     ](inputs: Node[dtype], kernel: Node[dtype], bias: Node[dtype]) -> Node[dtype]:
         """
         Performs a 2D convolution on the input tensor using the kernel and bias.
@@ -62,8 +62,8 @@ struct CONV2D:
             for in_ch in range(inputs.tensor.dim(1)):
                 for kx in range(kernel.tensor.dim(2)):
                     for ky in range(kernel.tensor.dim(3)):
-                        let ix = x * stride - padding + kx
-                        let iy = y * stride - padding + ky
+                        let ix = x * stride - padding[0] + kx
+                        let iy = y * stride - padding[1] + ky
 
                         let kernel_index = (
                             out_ch * kernel.strides[0]
@@ -104,16 +104,16 @@ struct CONV2D:
             outputs[output_index] = result + bias.tensor[out_ch]
 
         let oH_border_0 = 0
-        let oH_border_1 = (padding + stride + 1) / stride
+        let oH_border_1 = (padding[0] + stride + 1) / stride
         let oH_border_2 = (
-            inputs.tensor.dim(2) + padding - kernel.tensor.dim(2)
+            inputs.tensor.dim(2) + padding[0] - kernel.tensor.dim(2)
         ) / stride
         let oH_border_3 = outputs.dim(2)
 
         let oW_border_0 = 0
-        let oW_border_1 = (padding + stride + 1) / stride
+        let oW_border_1 = (padding[1] + stride + 1) / stride
         let oW_border_2 = (
-            inputs.tensor.dim(3) + padding - kernel.tensor.dim(3)
+            inputs.tensor.dim(3) + padding[1] - kernel.tensor.dim(3)
         ) / stride
         let oW_border_3 = outputs.dim(3)
 
@@ -147,7 +147,7 @@ struct CONV2D:
 
     @staticmethod
     fn backward[
-        padding: Int, stride: Int
+        padding: StaticIntTuple[2], stride: Int
     ](ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[
         dtype
     ]:
@@ -179,8 +179,8 @@ struct CONV2D:
                             for out_ch in range(ug.dim(1)):
                                 for kx in range(kernel.dim(2)):
                                     for ky in range(kernel.dim(3)):
-                                        let ux = ix * stride - kx + padding
-                                        let uy = iy * stride - ky + padding
+                                        let ux = ix * stride - kx + padding[0]
+                                        let uy = iy * stride - ky + padding[1]
 
                                         if (
                                             ux < 0
@@ -229,8 +229,8 @@ struct CONV2D:
                             for batch in range(inputs.dim(0)):
                                 for ux in range(ug.dim(2)):
                                     for uy in range(ug.dim(3)):
-                                        let ix = kx * stride - padding + ux
-                                        let iy = ky * stride - padding + uy
+                                        let ix = kx * stride - padding[0] + ux
+                                        let iy = ky * stride - padding[1] + uy
 
                                         if (
                                             ix < 0

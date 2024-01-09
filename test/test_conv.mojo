@@ -36,6 +36,16 @@ fn test_get_result_shape() raises:
     assert_equal(res[0], 31)
     assert_equal(res[1], 16)
 
+    # padding=(3, 1), stride=1,
+    # input shape: (4, 32, 17)  kernel shape: (2, 2)
+    # result:  (37, 18)
+    inputs = Tensor[dtype](4, 32, 17)
+    kernel = Tensor[dtype](2, 2)
+
+    res = get_result_shape[StaticIntTuple[2](3, 1), 1](inputs.shape(), kernel.shape())
+    assert_equal(res[0], 37)
+    assert_equal(res[1], 18)
+
 
 def to_numpy(tensor: Tensor) -> PythonObject:
     let np = Python.import_module("numpy")
@@ -84,7 +94,7 @@ fn torch_conv2d(
     inputs: Tensor,
     kernel: Tensor,
     bias: Tensor,
-    padding: Int,
+    padding: StaticIntTuple[2],
     stride: Int,
     upper_grad: Tensor,
 ) -> torch_conv2d_output:
@@ -99,7 +109,7 @@ fn torch_conv2d(
         let weights = torch.from_numpy(to_numpy(kernel)).requires_grad_(True)
         let bias = torch.from_numpy(to_numpy(bias)).requires_grad_(True)
 
-        let expected = F.conv2d(inputs, weights, bias, stride, padding)
+        let expected = F.conv2d(inputs, weights, bias, stride, (padding[0], padding[1]))
 
         # uppergrad & backwards
         let upper_grad = torch.from_numpy(to_numpy(upper_grad))
@@ -163,10 +173,10 @@ fn test_forward_2() raises:
 
 
 fn test_forward_3() raises:
-    # padding=3, stride=3,
+    # padding=(3, 1), stride=3,
     # input shape: (4, 3, 32, 17)  kernel shape: (2, 3, 2, 2)
-    # result_shape:  (4, 2, 13, 8)
-    alias padding = 3
+    # result_shape:  (4, 2, 13, 6)
+    alias padding = StaticIntTuple[2](3, 1)
     alias stride = 3
     var inputs = Tensor[dtype](4, 3, 32, 17)
     var kernel = Tensor[dtype](2, 3, 2, 2)
@@ -216,6 +226,39 @@ fn test_backward_1() raises:
     GRAPH.reset_all()
 
 
+fn test_backward_2() raises:
+    # padding=(2, 4), stride=1
+    alias padding = StaticIntTuple[2](2, 4)
+    alias stride = 1
+    alias batch = 4
+    alias in_channels = 2
+    alias out_channels = 3
+    var inputs = Tensor[dtype](batch, in_channels, 28, 28)
+    var kernel = Tensor[dtype](out_channels, in_channels, 1, 16)
+    fill[dtype, nelts](inputs, 1.0)
+    fill[dtype, nelts](kernel, 1.0)
+    let bias: Tensor[dtype] = rand[dtype](out_channels)
+
+    let res = CONV2D.forward[padding, stride](inputs, kernel, bias)
+
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 3)
+    let upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)  # inputs.grad
+    let ug2 = gn.backward_fn(upper_grad, gn.parents, 1)  # kernel.grad
+    let ug3 = gn.backward_fn(upper_grad, gn.parents, 2)  # bias.grad
+
+    let torch_out = torch_conv2d(
+        inputs, kernel, bias=bias, padding=padding, stride=stride, upper_grad=upper_grad
+    )
+    assert_tensors_equal(res.tensor, torch_out.expected)
+    assert_tensors_equal(ug1, torch_out.expected_inputs_grad, "almost")
+    assert_tensors_equal(ug2, torch_out.expected_kernel_grad, "almost")
+    assert_tensors_equal(ug3, torch_out.expected_bias_grad, "almost")
+    GRAPH.reset_all()
+
+
 fn main():
     try:
         test_get_result_shape()
@@ -223,6 +266,7 @@ fn main():
         test_forward_2()
         test_forward_3()
         test_backward_1()
+        test_backward_2()
     except e:
         print("Error")
         print(e)
