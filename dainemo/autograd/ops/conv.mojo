@@ -1,5 +1,5 @@
 from tensor import Tensor, TensorShape
-from math import floor
+from math import floor, max
 
 from dainemo import GRAPH
 from dainemo.autograd.node import Node
@@ -32,7 +32,7 @@ fn get_result_shape[
 struct CONV2D:
     @staticmethod
     fn forward[
-        padding: StaticIntTuple[2], stride: Int, padding_mode: Int = 0
+        padding: StaticIntTuple[2], stride: StaticIntTuple[2]
     ](inputs: Node[dtype], kernel: Node[dtype], bias: Node[dtype]) -> Node[dtype]:
         """
         Performs a 2D convolution on the input tensor using the kernel and bias.
@@ -41,8 +41,7 @@ struct CONV2D:
             bias.shape       [out_channels].
             output.shape     [batch, out_channels, oX, oY].
         """
-        # TODO: Add bias
-
+        # TODO: Add Dilation
         alias nelts: Int = simdwidthof[dtype]()
 
         let result_shape = get_result_shape[padding, stride](
@@ -62,15 +61,8 @@ struct CONV2D:
             for in_ch in range(inputs.tensor.dim(1)):
                 for kx in range(kernel.tensor.dim(2)):
                     for ky in range(kernel.tensor.dim(3)):
-                        let ix = x * stride - padding[0] + kx
-                        let iy = y * stride - padding[1] + ky
-
-                        let kernel_index = (
-                            out_ch * kernel.strides[0]
-                            + in_ch * kernel.strides[1]
-                            + kx * kernel.strides[2]
-                            + ky
-                        )
+                        let ix = x * stride[0] - padding[0] + kx
+                        let iy = y * stride[1] - padding[1] + ky
 
                         @parameter
                         if all_checks:
@@ -80,8 +72,14 @@ struct CONV2D:
                                 or ix >= inputs.tensor.dim(2)
                                 or iy >= inputs.tensor.dim(3)
                             ):
-                                result += padding_mode * kernel.tensor[kernel_index]
                                 continue
+
+                        let kernel_index = (
+                            out_ch * kernel.strides[0]
+                            + in_ch * kernel.strides[1]
+                            + kx * kernel.strides[2]
+                            + ky
+                        )
 
                         let input_index = (
                             batch * inputs.strides[0]
@@ -104,17 +102,17 @@ struct CONV2D:
             outputs[output_index] = result + bias.tensor[out_ch]
 
         let oH_border_0 = 0
-        let oH_border_1 = (padding[0] + stride + 1) / stride
+        let oH_border_1 = (padding[0] + stride[0] + 1) / stride[0]
         let oH_border_2 = (
             inputs.tensor.dim(2) + padding[0] - kernel.tensor.dim(2)
-        ) / stride
+        ) / stride[0]
         let oH_border_3 = outputs.dim(2)
 
         let oW_border_0 = 0
-        let oW_border_1 = (padding[1] + stride + 1) / stride
+        let oW_border_1 = (padding[1] + stride[0] + 1) / stride[1]
         let oW_border_2 = (
             inputs.tensor.dim(3) + padding[1] - kernel.tensor.dim(3)
-        ) / stride
+        ) / stride[1]
         let oW_border_3 = outputs.dim(3)
 
         for batch in range(inputs.tensor.dim(0)):
@@ -147,7 +145,7 @@ struct CONV2D:
 
     @staticmethod
     fn backward[
-        padding: StaticIntTuple[2], stride: Int
+        padding: StaticIntTuple[2], stride: StaticIntTuple[2]
     ](ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[
         dtype
     ]:
@@ -172,30 +170,28 @@ struct CONV2D:
             var res = Tensor[dtype](inputs.shape())
 
             for batch in range(inputs.dim(0)):
-                for in_ch in range(inputs.dim(1)):
-                    for ix in range(inputs.dim(2)):
-                        for iy in range(inputs.dim(3)):
-                            var result: SIMD[dtype, 1] = 0
-                            for out_ch in range(ug.dim(1)):
+                for out_ch in range(ug.dim(1)):
+                    for ux in range(ug.dim(2)):
+                        for uy in range(ug.dim(3)):
+                            for in_ch in range(inputs.dim(1)):
                                 for kx in range(kernel.dim(2)):
                                     for ky in range(kernel.dim(3)):
-                                        let ux = ix * stride - kx + padding[0]
-                                        let uy = iy * stride - ky + padding[1]
+                                        let ix = ux * stride[0] - padding[0] + kx
+                                        let iy = uy * stride[1] - padding[1] + ky
 
                                         if (
-                                            ux < 0
-                                            or uy < 0
-                                            or ux >= ug.dim(2)
-                                            or uy >= ug.dim(3)
+                                            ix < 0
+                                            or iy < 0
+                                            or ix >= inputs.dim(2)
+                                            or iy >= inputs.dim(3)
                                         ):
                                             continue
 
                                         let kernel_index = (
                                             out_ch * kernel_strides[0]
                                             + in_ch * kernel_strides[1]
-                                            + (kernel.dim(2) - kx - 1)
-                                            * kernel_strides[2]
-                                            + (kernel.dim(3) - ky - 1)
+                                            + kx * kernel_strides[2]
+                                            + ky
                                         )
 
                                         let ug_index = (
@@ -205,15 +201,15 @@ struct CONV2D:
                                             + uy
                                         )
 
-                                        result += kernel[kernel_index] * ug[ug_index]
-
-                            let input_index = (
-                                batch * inputs_strides[0]
-                                + in_ch * inputs_strides[1]
-                                + ix * inputs_strides[2]
-                                + iy
-                            )
-                            res[input_index] = result
+                                        let input_index = (
+                                            batch * inputs_strides[0]
+                                            + in_ch * inputs_strides[1]
+                                            + ix * inputs_strides[2]
+                                            + iy
+                                        )
+                                        res[input_index] += (
+                                            kernel[kernel_index] * ug[ug_index]
+                                        )
 
             return res
 
@@ -229,8 +225,8 @@ struct CONV2D:
                             for batch in range(inputs.dim(0)):
                                 for ux in range(ug.dim(2)):
                                     for uy in range(ug.dim(3)):
-                                        let ix = kx * stride - padding[0] + ux
-                                        let iy = ky * stride - padding[1] + uy
+                                        let ix = ux * stride[0] - padding[0] + kx
+                                        let iy = uy * stride[1] - padding[1] + ky
 
                                         if (
                                             ix < 0
