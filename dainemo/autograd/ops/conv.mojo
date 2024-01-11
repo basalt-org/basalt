@@ -8,7 +8,7 @@ from dainemo.utils.tensorutils import calculate_strides
 
 # <------------GENERAL CONV METHODS------------>
 fn get_result_shape[
-    padding: StaticIntTuple[2], stride: StaticIntTuple[2]
+    padding: StaticIntTuple[2], stride: StaticIntTuple[2], dilation: StaticIntTuple[2]
 ](input_shape: TensorShape, kernel_shape: TensorShape) -> StaticIntTuple[2]:
     """
     Calculates the X and Y dimensions of the resulting convolution.
@@ -18,11 +18,12 @@ fn get_result_shape[
     """
 
     let result_x_dim = (
-        (input_shape[-2] + (2 * padding[0]) - kernel_shape[-2]) // stride[0]
+        (input_shape[-2] + (2 * padding[0]) - dilation[0] * (kernel_shape[-2] - 1) - 1)
+        // stride[0]
     ) + 1
-
     let result_y_dim = (
-        (input_shape[-1] + (2 * padding[1]) - kernel_shape[-1]) // stride[1]
+        (input_shape[-1] + (2 * padding[1]) - dilation[1] * (kernel_shape[-1] - 1) - 1)
+        // stride[1]
     ) + 1
 
     return StaticIntTuple[2](result_x_dim, result_y_dim)
@@ -32,7 +33,9 @@ fn get_result_shape[
 struct CONV2D:
     @staticmethod
     fn forward[
-        padding: StaticIntTuple[2], stride: StaticIntTuple[2]
+        padding: StaticIntTuple[2] = 0,
+        stride: StaticIntTuple[2] = 1,
+        dilation: StaticIntTuple[2] = 1,
     ](inputs: Node[dtype], kernel: Node[dtype], bias: Node[dtype]) -> Node[dtype]:
         """
         Performs a 2D convolution on the input tensor using the kernel and bias.
@@ -44,7 +47,7 @@ struct CONV2D:
         # TODO: Add Dilation
         alias nelts: Int = simdwidthof[dtype]()
 
-        let result_shape = get_result_shape[padding, stride](
+        let result_shape = get_result_shape[padding, stride, dilation](
             inputs.tensor.shape(), kernel.tensor.shape()
         )
 

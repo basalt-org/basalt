@@ -16,47 +16,49 @@ alias nelts: Int = simdwidthof[dtype]()
 
 
 fn test_get_result_shape() raises:
-    # padding=2, stride=1
+    # padding=2, stride=1, dilation=1
     # input shape: (4, 28, 28)  kernel shape: (1, 16)
     # result:  (32, 17)
     var inputs = Tensor[dtype](4, 28, 28)
     var kernel = Tensor[dtype](1, 16)
 
-    var res = get_result_shape[2, 1](inputs.shape(), kernel.shape())
+    var res = get_result_shape[2, 1, 1](inputs.shape(), kernel.shape())
     assert_equal(res[0], 32)
     assert_equal(res[1], 17)
 
-    # padding=0, stride=1,
+    # padding=0, stride=1, dilation=1
     # input shape: (4, 32, 17)  kernel shape: (2, 2)
     # result:  (31, 16)
     inputs = Tensor[dtype](4, 32, 17)
     kernel = Tensor[dtype](2, 2)
 
-    res = get_result_shape[0, 1](inputs.shape(), kernel.shape())
+    res = get_result_shape[0, 1, 1](inputs.shape(), kernel.shape())
     assert_equal(res[0], 31)
     assert_equal(res[1], 16)
 
-    # padding=(3, 1), stride=1,
+    # padding=(3, 1), stride=1, dilation=2
     # input shape: (4, 32, 17)  kernel shape: (2, 2)
-    # result:  (37, 18)
+    # result:  (36, 17)
     inputs = Tensor[dtype](4, 32, 17)
     kernel = Tensor[dtype](2, 2)
 
-    res = get_result_shape[StaticIntTuple[2](3, 1), 1](inputs.shape(), kernel.shape())
-    assert_equal(res[0], 37)
-    assert_equal(res[1], 18)
+    res = get_result_shape[StaticIntTuple[2](3, 1), 1, 2](
+        inputs.shape(), kernel.shape()
+    )
+    assert_equal(res[0], 36)
+    assert_equal(res[1], 17)
 
-    # padding=(3, 2), stride=(2, 1),
+    # padding=(3, 2), stride=(2, 1), dilaiton=(2, 3)
     # input shape: (4, 32, 17)  kernel shape: (2, 2)
-    # result:  (18, 20)
+    # result:  (18, 18)
     inputs = Tensor[dtype](4, 32, 17)
     kernel = Tensor[dtype](3, 2)
 
-    res = get_result_shape[StaticIntTuple[2](3, 2), StaticIntTuple[2](2, 1)](
-        inputs.shape(), kernel.shape()
-    )
-    assert_equal(res[0], 18)
-    assert_equal(res[1], 20)
+    res = get_result_shape[
+        StaticIntTuple[2](3, 2), StaticIntTuple[2](2, 1), StaticIntTuple[2](2, 3)
+    ](inputs.shape(), kernel.shape())
+    assert_equal(res[0], 17)
+    assert_equal(res[1], 18)
 
 
 def to_numpy(tensor: Tensor) -> PythonObject:
