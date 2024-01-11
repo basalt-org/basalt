@@ -61,11 +61,14 @@ struct CONV2D:
             all_checks: Bool = True
         ](batch: Int, out_ch: Int, x: Int, y: Int):
             var result: SIMD[dtype, 1] = 0
+
+            let ix_base = x * stride[0] - padding[0]
+            let iy_base = y * stride[1] - padding[1]
             for in_ch in range(inputs.tensor.dim(1)):
                 for kx in range(kernel.tensor.dim(2)):
                     for ky in range(kernel.tensor.dim(3)):
-                        let ix = x * stride[0] - padding[0] + kx
-                        let iy = y * stride[1] - padding[1] + ky
+                        let ix = ix_base + kx * dilation[0]
+                        let iy = iy_base + ky * dilation[1]
 
                         @parameter
                         if all_checks:
@@ -105,17 +108,17 @@ struct CONV2D:
             outputs[output_index] = result + bias.tensor[out_ch]
 
         let oH_border_0 = 0
-        let oH_border_1 = (padding[0] + stride[0] + 1) / stride[0]
+        let oH_border_1 = (padding[0] + stride[0] + 1) // stride[0]
         let oH_border_2 = (
-            inputs.tensor.dim(2) + padding[0] - kernel.tensor.dim(2)
-        ) / stride[0]
+            inputs.tensor.dim(2) + padding[0] - kernel.tensor.dim(2) * dilation[0]
+        ) // stride[0]
         let oH_border_3 = outputs.dim(2)
 
         let oW_border_0 = 0
-        let oW_border_1 = (padding[1] + stride[0] + 1) / stride[1]
+        let oW_border_1 = (padding[1] + stride[0] + 1) // stride[1]
         let oW_border_2 = (
-            inputs.tensor.dim(3) + padding[1] - kernel.tensor.dim(3)
-        ) / stride[1]
+            inputs.tensor.dim(3) + padding[1] - kernel.tensor.dim(3) * dilation[1]
+        ) // stride[1]
         let oW_border_3 = outputs.dim(3)
 
         for batch in range(inputs.tensor.dim(0)):
