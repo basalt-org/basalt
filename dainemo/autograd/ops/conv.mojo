@@ -145,13 +145,15 @@ struct CONV2D:
                     for y in range(outputs.dim(3)):
                         kernel_iteration(batch, out_ch, x, y)
 
-        return GRAPH.create_graph_node[Self.backward[padding, stride]](
+        return GRAPH.create_graph_node[Self.backward[padding, stride, dilation]](
             outputs, inputs, kernel, bias
         )
 
     @staticmethod
     fn backward[
-        padding: StaticIntTuple[2], stride: StaticIntTuple[2]
+        padding: StaticIntTuple[2],
+        stride: StaticIntTuple[2],
+        dilation: StaticIntTuple[2],
     ](ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[
         dtype
     ]:
@@ -179,11 +181,13 @@ struct CONV2D:
                 for out_ch in range(ug.dim(1)):
                     for ux in range(ug.dim(2)):
                         for uy in range(ug.dim(3)):
+                            let ix_base = ux * stride[0] - padding[0]
+                            let iy_base = uy * stride[1] - padding[1]
                             for in_ch in range(inputs.dim(1)):
                                 for kx in range(kernel.dim(2)):
                                     for ky in range(kernel.dim(3)):
-                                        let ix = ux * stride[0] - padding[0] + kx
-                                        let iy = uy * stride[1] - padding[1] + ky
+                                        let ix = ix_base + kx * dilation[0]
+                                        let iy = iy_base + ky * dilation[1]
 
                                         if (
                                             ix < 0
@@ -231,8 +235,12 @@ struct CONV2D:
                             for batch in range(inputs.dim(0)):
                                 for ux in range(ug.dim(2)):
                                     for uy in range(ug.dim(3)):
-                                        let ix = ux * stride[0] - padding[0] + kx
-                                        let iy = uy * stride[1] - padding[1] + ky
+                                        let ix = ux * stride[0] - padding[
+                                            0
+                                        ] + kx * dilation[0]
+                                        let iy = uy * stride[1] - padding[
+                                            1
+                                        ] + ky * dilation[1]
 
                                         if (
                                             ix < 0

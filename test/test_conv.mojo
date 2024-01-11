@@ -277,10 +277,10 @@ fn test_backward_1() raises:
 
 
 fn test_backward_2() raises:
-    # padding=(2, 4), stride=(3, 1), dilation=1
+    # padding=(2, 4), stride=(3, 1), dilation=2
     alias padding = StaticIntTuple[2](2, 4)
     alias stride = StaticIntTuple[2](3, 1)
-    alias dilation = 1
+    alias dilation = 2
     alias batch = 4
     alias in_channels = 2
     alias out_channels = 3
@@ -290,7 +290,7 @@ fn test_backward_2() raises:
     fill[dtype, nelts](kernel, 1.0)
     let bias: Tensor[dtype] = rand[dtype](out_channels)
 
-    let res = CONV2D.forward[padding, stride](inputs, kernel, bias)
+    let res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
 
     let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
     assert_equal(gn.parents.size, 3)
@@ -317,10 +317,10 @@ fn test_backward_2() raises:
 
 
 fn test_backward_3() raises:
-    # padding=(2, 4), stride=2, dilation=1
+    # padding=(2, 4), stride=2, dilation=(3, 2)
     alias padding = StaticIntTuple[2](3, 2)
     alias stride = 2
-    alias dilation = 1
+    alias dilation = StaticIntTuple[2](3, 2)
     alias batch = 4
     alias in_channels = 2
     alias out_channels = 3
@@ -366,5 +366,5 @@ fn main():
         test_backward_2()
         test_backward_3()
     except e:
-        print("Error")
+        print("[Error] Error in Conv2D")
         print(e)
