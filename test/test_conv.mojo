@@ -48,7 +48,7 @@ fn test_get_result_shape() raises:
     assert_equal(res[0], 36)
     assert_equal(res[1], 17)
 
-    # padding=(3, 2), stride=(2, 1), dilaiton=(2, 3)
+    # padding=(3, 2), stride=(2, 1), dilation=(2, 3)
     # input shape: (4, 32, 17)  kernel shape: (2, 2)
     # result:  (18, 18)
     inputs = Tensor[dtype](4, 32, 17)
