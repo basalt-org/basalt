@@ -1,5 +1,5 @@
 from tensor import Tensor, TensorShape
-from math import sub, mul, exp, max
+from math import sub, mul, exp, max, pow
 
 from dainemo import GRAPH
 from dainemo.autograd.node import Node
@@ -70,10 +70,40 @@ struct RELU:
     fn backward(
         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
     ) -> Tensor[dtype]:
-        pass
+        """Backward operation of relu."""
         # d(relu(x))/dx = 1 if x > 0 else 0. We also give 0 to x = 0 instead of undefined.
         alias nelts = simdwidthof[dtype]()
         let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
         let res = elwise_transform[dtype, nelts, RELU.relu_derivative](t)
+
+        return elwise_op[dtype, nelts, mul](ug, res)
+
+
+# <------------TANH------------>
+struct TANH:
+    @staticmethod
+    fn tanh[
+        type: DType, simd_width: Int
+    ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+        return (exp(x) - exp(-x)) / (exp(x) + exp(-x))
+
+    @staticmethod
+    fn forward(n: Node[dtype]) -> Node[dtype]:
+        """Forward operation of tanh."""
+        alias nelts = simdwidthof[dtype]()
+        let res: Tensor[dtype] = elwise_transform[dtype, nelts, TANH.tanh](n.tensor)
+        return GRAPH.create_graph_node[Self.backward](res, n)
+
+    @staticmethod
+    fn backward(
+        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
+    ) -> Tensor[dtype]:
+        """Backward operation of tanh."""
+        # d(tanh(x))/dx = 1 - tanh(x) ** 2
+        alias nelts = simdwidthof[dtype]()
+        let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
+        let tanh_res = elwise_transform[dtype, nelts, TANH.tanh](t)
+        let tanh_res_square = elwise_op[dtype, nelts, mul](tanh_res, tanh_res)
+        let res = elwise_op[dtype, nelts, sub](SIMD[dtype, 1](1), tanh_res_square)
 
         return elwise_op[dtype, nelts, mul](ug, res)
