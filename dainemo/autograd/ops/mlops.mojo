@@ -46,8 +46,7 @@ struct SIGMOID:
         # sigmoid(x)
         let sigmoid_res = elwise_transform[dtype, nelts, SIGMOID.sigmoid](t)
         # 1 - sigmoid(x)
-        let one_tensor = Tensor[dtype](1, 1)
-        let sub_res = elwise_op[dtype, nelts, sub](one_tensor, sigmoid_res)
+        let sub_res = elwise_op[dtype, nelts, sub](SIMD[dtype, 1](1), sigmoid_res)
         # sigmoid(x) * (1 - sigmoid(x))
         let res = elwise_op[dtype, nelts, mul](sigmoid_res, sub_res)
 
