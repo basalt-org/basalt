@@ -28,6 +28,7 @@ struct SIGMOID:
 
     @staticmethod
     fn forward(n: Node[dtype]) -> Node[dtype]:
+        """Forward operation of sigmoid."""
         alias nelts = simdwidthof[dtype]()
         let res: Tensor[dtype] = elwise_transform[dtype, nelts, SIGMOID.sigmoid](
             n.tensor
@@ -38,6 +39,7 @@ struct SIGMOID:
     fn backward(
         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
     ) -> Tensor[dtype]:
+        """Backward operation of sigmoid."""
         # d(sigmod(x))/dx = sigmoid(x) * (1 - sigmoid(x))
         alias nelts = simdwidthof[dtype]()
         let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
