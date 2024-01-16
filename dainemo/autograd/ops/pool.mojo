@@ -4,6 +4,7 @@ from math import floor, min , max
 from dainemo import GRAPH
 from dainemo.autograd.node import Node
 from dainemo.autograd.ops.conv import get_result_shape
+from dainemo.utils.tensorutils import calculate_strides
 
 
 # <------------MAXPOOL2D------------>
@@ -22,36 +23,42 @@ struct MAXPOOL2D:
             outputs.shape    [batch_size, out_channels, oX, oY]
             and for maxpool2d (in_channels == out_channels).
         """
-        # TODO: calculate indeces using precalculated strides
 
         alias nelts: Int = simdwidthof[dtype]()
         
-        # TODO: merge conv main
-        let result_shape = get_result_shape[padding[0], stride[0]](
+        let result_shape = get_result_shape[padding, stride, dilation](
             inputs.tensor.shape(), kernel_shape
         )
 
         var outputs = Tensor[dtype](
             inputs.tensor.dim(0), kernel_shape[0], result_shape[0], result_shape[1]
         )
+        let outputs_strides = calculate_strides(outputs.shape())
 
         for batch in range(inputs.tensor.dim(0)):
             for in_ch in range(inputs.tensor.dim(1)):
                 for x in range(outputs.dim(2)):
                     for y in range(outputs.dim(3)):
                         var max_val: SIMD[dtype, 1] = -1e9
+                        let ix_base = x * stride[0] - padding[0]
+                        let iy_base = y * stride[1] - padding[1]
                         for kx in range(kernel_shape[2]):
                             for ky in range(kernel_shape[3]):
-                                let ix = x * stride[0] - padding[0] + kx
-                                let iy = y * stride[1] - padding[1] + ky
+                                let ix = ix_base + kx * dilation[0]
+                                let iy = iy_base + ky * dilation[1]
 
-                                if ix < 0 or iy < 0 or ix >= inputs.tensor.dim(2) or iy >= inputs.tensor.dim(3):
+                                if (
+                                    ix < 0
+                                    or iy < 0
+                                    or ix >= inputs.tensor.dim(2)
+                                    or iy >= inputs.tensor.dim(3)
+                                ):
                                     continue
 
                                 let idx = (
-                                    batch * (inputs.tensor.dim(1) * inputs.tensor.dim(2) * inputs.tensor.dim(3)) 
-                                    + in_ch * (inputs.tensor.dim(2) * inputs.tensor.dim(3))
-                                    + ix * inputs.tensor.dim(3) 
+                                    batch * inputs.strides[0]
+                                    + in_ch * inputs.strides[1]
+                                    + ix * inputs.strides[2]
                                     + iy
                                 )
 
@@ -60,21 +67,22 @@ struct MAXPOOL2D:
                                     max_val = val
 
                         let out_idx = (
-                            batch * (outputs.dim(1) * outputs.dim(2) * outputs.dim(3)) 
-                            + in_ch * (outputs.dim(2) * outputs.dim(3))
-                            + x * outputs.dim(3) 
+                            batch * outputs_strides[0]
+                            + in_ch * outputs_strides[1]
+                            + x * outputs_strides[2]
                             + y
                         )
 
                         outputs[out_idx] = max_val
 
-        return GRAPH.create_graph_node[Self.backward[kernel_shape, padding, stride]](outputs, inputs)
+        return GRAPH.create_graph_node[Self.backward[kernel_shape, padding, stride, dilation]](outputs, inputs)
 
     @staticmethod
     fn backward[
         kernel_shape: TensorShape,
         padding: StaticIntTuple[2],
-        stride: StaticIntTuple[2]
+        stride: StaticIntTuple[2],
+        dilation: StaticIntTuple[2]
     ](
         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
     ) -> Tensor[dtype]:
@@ -84,28 +92,36 @@ struct MAXPOOL2D:
         Upper gradient of shape: [batch_size, out_channels, uX, uY]
         """
         let inputs = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
+        let inputs_strides = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].strides
         var res = Tensor[dtype](inputs.shape())
         
+        let ug_strides = calculate_strides(ug.shape())
+
         for batch in range(inputs.dim(0)):
             for in_ch in range(inputs.dim(1)):
                 for x in range(ug.dim(2)):
                     for y in range(ug.dim(3)):
                         var max_val: SIMD[dtype, 1] = -1e9
                         var max_idx: Int = -1
-
+                        let ix_base = x * stride[0] - padding[0]
+                        let iy_base = y * stride[1] - padding[1]
                         for kx in range(kernel_shape[2]):
                             for ky in range(kernel_shape[3]):
-
-                                let ix = x * stride[0] - padding[0] + kx
-                                let iy = y * stride[1] - padding[1] + ky
+                                let ix = ix_base + kx * dilation[0]
+                                let iy = iy_base + ky * dilation[1]
                                 
-                                if ix < 0 or iy < 0 or ix >= inputs.dim(2) or iy >= inputs.dim(3):
+                                if (
+                                    ix < 0
+                                    or iy < 0
+                                    or ix >= inputs.dim(2)
+                                    or iy >= inputs.dim(3)
+                                ):
                                     continue
 
                                 let idx = (
-                                    batch * (inputs.dim(1) * inputs.dim(2) * inputs.dim(3)) 
-                                    + in_ch * (inputs.dim(2) * inputs.dim(3))
-                                    + ix * inputs.dim(3) 
+                                    batch * inputs_strides[0]
+                                    + in_ch * inputs_strides[1]
+                                    + ix * inputs_strides[2]
                                     + iy
                                 )
 
@@ -115,9 +131,9 @@ struct MAXPOOL2D:
                                     max_idx = idx
 
                         let ug_idx = (
-                            batch * (ug.dim(1) * ug.dim(2) * ug.dim(3)) 
-                            + in_ch * (ug.dim(2) * ug.dim(3))
-                            + x * ug.dim(3) 
+                            batch * ug_strides[0] 
+                            + in_ch * ug_strides[1]
+                            + x * ug_strides[2]
                             + y
                         )
 
