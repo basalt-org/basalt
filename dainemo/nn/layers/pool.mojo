@@ -1,3 +1,4 @@
+from tensor import TensorShape
 from random import rand
 
 from dainemo import GRAPH
@@ -7,37 +8,35 @@ from dainemo.autograd.ops.pool import MAXPOOL2D
 
 # <------------MAXPOOL2D------------>
 
-# struct MaxPool2d[
-#     padding: Int,
-#     stride: Int,
-#     kernel_size: Int,
-# ]:
-#     """
-#     A 2D Max Pooling Layer.
-#     """
+struct MaxPool2d[
+    in_channels: Int,
+    kernel_size: StaticIntTuple[2],
+    padding: StaticIntTuple[2] = 0,
+    stride: StaticIntTuple[2] = 1,
+    dilation: StaticIntTuple[2] = 1
+]:
+    """
+    A 2D Max Pooling Layer.
 
-#     var weight: Node[dtype]
+    Since out_channels == in_channels
+    kernel.shape     [in_channels, in_channels, X, Y]
+    """
+    alias kernel_shape = TensorShape(in_channels, in_channels, kernel_size[0], kernel_size[1])
 
-#     fn __init__(inout self, in_channels: Int):
-#         MaxPool2d[padding, stride, (kernel_size, kernel_size)](in_channels)
+    fn __init__(inout self):
+        # padding should be at most half of the kernel size
+        # TODO: assert padding <= kernel_size / 2 (at compile time)
+        pass
 
+    fn forward(self, inputs: Node[dtype]) -> Node[dtype]:
+        """
+        Forward pass of the MaxPool2d layer.
+        """
+        return MAXPOOL2D.forward[self.kernel_shape, padding, stride, dilation](inputs)
 
-# struct MaxPool2d[
-#     padding: Int,
-#     stride: Int,
-#     kernel_size: Tuple[Int, Int],
-# ]:
-#     """
-#     A 2D Max Pooling Layer.
-#     """
-
-#     fn __init__(inout self, in_channels: Int):
-#         # padding should be at most half of the kernel size
-#         # TODO: assert padding <= kernel_size / 2
-#         # out_channels == in_channels --> kernel (in_channels, in_channels, kernel_size, kernel_size)
-#         self.weight = Node[dtype](
-#             rand[dtype](in_channels, in_channels, kernel_size, kernel_size)
-#         )
+    fn __call__(self, inputs: Node[dtype]) -> Node[dtype]:
+        return self.forward(inputs)
 
 
 # <------------MAXPOOL3D------------>
+# TODO
