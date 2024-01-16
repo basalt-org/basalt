@@ -175,6 +175,45 @@ fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
 fn tmean[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     return tsum[dtype, nelts](t) / t.num_elements()
 
+@always_inline
+fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
+    var m: SIMD[dtype, nelts] = t[0]
+
+    @parameter
+    fn vecmax[_nelts: Int](idx: Int):
+        @parameter
+        if _nelts == 1:
+            m[0] = max(m[0], t.simd_load[_nelts](idx)[0])
+        else:
+            m = max(m, t.simd_load[nelts](idx))
+
+    vectorize[nelts, vecmax](t.num_elements())
+    return m.reduce_max()
+
+@always_inline
+fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
+    let d: Int = 1 if axis == 0 else 0
+    let t_new = Tensor[dtype](1, t.dim(d)) if axis == 0 else Tensor[dtype](t.dim(d), 1)
+
+    @parameter
+    fn parallel_max(i: Int):
+        var m: SIMD[dtype, nelts] = t[i * t.dim(axis)] if axis == 0 else t[i]
+
+        @parameter
+        fn axismax[_nelts: Int](j: Int):
+            let index = j * t.dim(d) + i if axis == 0 else i * t.dim(axis) + j
+            @parameter
+            if _nelts == 1:
+                m[0] = max(m[0], t.simd_load[_nelts](index)[0])
+            else:
+                m = max(m, t.simd_load[nelts](index))
+
+        vectorize[nelts, axismax](t.dim(axis))
+        t_new[i] = m.reduce_max()
+
+    parallelize[parallel_max](t.dim(d), t.dim(d))
+
+    return t_new
 
 @always_inline
 fn tstd[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
