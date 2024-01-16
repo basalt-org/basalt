@@ -1,5 +1,5 @@
 from tensor import Tensor, TensorShape
-from math import sub, mul, exp, max, pow
+from math import sub, mul, exp, max, pow, div
 
 from dainemo import GRAPH
 from dainemo.autograd.node import Node
@@ -8,6 +8,8 @@ from dainemo.utils.tensorutils import (
     elwise_transform,
     fill,
     batch_tensor_elwise_op,
+    tsum,
+    tmax,
 )
 
 
@@ -107,3 +109,38 @@ struct TANH:
         let res = elwise_op[dtype, nelts, sub](SIMD[dtype, 1](1), tanh_res_square)
 
         return elwise_op[dtype, nelts, mul](ug, res)
+
+# <------------SOFTMAX------------>
+struct SOFTMAX:
+    @staticmethod
+    fn softmax[axis: Int](n: Tensor[dtype]) -> Tensor[dtype]:
+        """Softmax operation."""
+        # exp(x_i - max(x_j)) / sum(exp(x_j))
+        alias nelts = simdwidthof[dtype]()
+
+        let max_val = tmax[dtype, nelts](n, axis)
+        let x_minus_max = elwise_op[dtype, nelts, sub](n, max_val)
+
+        let exp_res = elwise_transform[dtype, nelts, exp](x_minus_max)
+        let sum_res = tsum[dtype, nelts](exp_res, axis)
+        let res = elwise_op[dtype, nelts, div](exp_res, sum_res)
+
+        return res
+
+    @staticmethod
+    fn forward[axis: Int](n: Node[dtype]) -> Node[dtype]:
+        """Forward operation of softmax."""
+        # softmax: exp(x_i) / sum(exp(x_j))
+        # stable softmax: exp(x_i - max(x_j)) / sum(exp(x_j))
+        alias nelts = simdwidthof[dtype]()
+        let softmax_res = Self.softmax[axis](n.tensor)
+        let res = elwise_op[dtype, nelts, div](n.tensor, softmax_res)
+
+        return GRAPH.create_graph_node[Self.backward[axis]](res, n)
+
+    @staticmethod
+    fn backward[axis: Int](
+        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
+    ) -> Tensor[dtype]:
+        """Backward operation of softmax."""
+        pass
