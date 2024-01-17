@@ -1,5 +1,6 @@
 from tensor import Tensor, TensorShape
 from math import floor, min , max
+from math.limit import neginf
 
 from dainemo import GRAPH
 from dainemo.autograd.node import Node
@@ -39,7 +40,7 @@ struct MAXPOOL2D:
             for in_ch in range(inputs.tensor.dim(1)):
                 for x in range(outputs.dim(2)):
                     for y in range(outputs.dim(3)):
-                        var max_val: SIMD[dtype, 1] = -1e9
+                        var max_val: SIMD[dtype, 1] = neginf[dtype]()
                         let ix_base = x * stride[0] - padding[0]
                         let iy_base = y * stride[1] - padding[1]
                         for kx in range(kernel_shape[2]):
@@ -101,7 +102,7 @@ struct MAXPOOL2D:
             for in_ch in range(inputs.dim(1)):
                 for x in range(ug.dim(2)):
                     for y in range(ug.dim(3)):
-                        var max_val: SIMD[dtype, 1] = -1e9
+                        var max_val: SIMD[dtype, 1] = neginf[dtype]()
                         var max_idx: Int = -1
                         let ix_base = x * stride[0] - padding[0]
                         let iy_base = y * stride[1] - padding[1]
