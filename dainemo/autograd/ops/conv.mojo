@@ -7,6 +7,7 @@ from dainemo.utils.tensorutils import calculate_strides
 
 
 # <------------GENERAL CONV METHODS------------>
+@always_inline
 fn get_result_shape[
     padding: StaticIntTuple[2], stride: StaticIntTuple[2], dilation: StaticIntTuple[2]
 ](input_shape: TensorShape, kernel_shape: TensorShape) -> StaticIntTuple[2]:
@@ -16,6 +17,8 @@ fn get_result_shape[
         dimension X on index -2.
         dimension Y on index -1.
     """
+
+    alias D = 1 # dilation (not implemented yet)
 
     let result_x_dim = (
         (input_shape[-2] + (2 * padding[0]) - dilation[0] * (kernel_shape[-2] - 1) - 1)
@@ -301,9 +304,4 @@ struct CONV2D:
 
 
 # <------------CONV3D------------>
-
-
-# <------------MAXPOOL2D------------>
-
-
-# <------------MAXPOOL3D------------>
+# TODO
