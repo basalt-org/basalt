@@ -192,27 +192,24 @@ fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
 
 @always_inline
 fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
-    let d: Int = 1 if axis == 0 else 0
-    let t_new = Tensor[dtype](1, t.dim(d)) if axis == 0 else Tensor[dtype](t.dim(d), 1)
+    var new_shape = DynamicVector[Int](t.rank())
+    for i in range(t.rank()):
+        if i == axis:
+            new_shape.push_back(1)
+        else:
+            new_shape.push_back(t.dim(i))
+    var t_new = Tensor[dtype](new_shape)
 
-    @parameter
-    fn parallel_max(i: Int):
-        var m: SIMD[dtype, nelts] = t[i * t.dim(axis)] if axis == 0 else t[i]
+    let strides = calculate_strides(t.shape())
 
-        @parameter
-        fn axismax[_nelts: Int](j: Int):
-            let index = j * t.dim(d) + i if axis == 0 else i * t.dim(axis) + j
-            @parameter
-            if _nelts == 1:
-                m[0] = max(m[0], t.simd_load[_nelts](index)[0])
-            else:
-                m = max(m, t.simd_load[nelts](index))
+    for i in range(t.num_elements() // t.dim(axis)):
+        var m = math.limit.min_finite[dtype]()
+        let index_base = (i % strides[axis]) + (i // strides[axis]) * (strides[axis] * t.dim(axis))
+        for j in range(t.dim(axis)):
+            let index = index_base + j * strides[axis]
+            m = max(m, t[index])
 
-        vectorize[nelts, axismax](t.dim(axis))
-        t_new[i] = m.reduce_max()
-
-    parallelize[parallel_max](t.dim(d), t.dim(d))
-
+        t_new[i] = m
     return t_new
 
 @always_inline
