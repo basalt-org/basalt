@@ -202,9 +202,7 @@ fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
             new_shape.push_back(t.dim(i))
     var t_new = Tensor[dtype](new_shape)
 
-    let strides_temp = calculate_strides(t.shape())
-    let strides = TensorShape(strides_temp)
-    # NOTE: The reason why we use Tensorshape is because it seems there is a *bug* when using a dynamic vector inside a parallelized function.
+    let strides = calculate_strides(t.shape())
 
     @parameter
     fn parallel_max(i: Int):
@@ -224,6 +222,8 @@ fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
         t_new[i] = m.reduce_max()
     
     parallelize[parallel_max](t.num_elements() // t.dim(axis))
+
+    _ = strides
     return t_new
 
 
