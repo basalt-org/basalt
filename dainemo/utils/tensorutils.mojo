@@ -3,7 +3,7 @@ from utils.index import Index
 from algorithm import vectorize, parallelize
 from memory import memset_zero
 
-from math import sqrt, pow, equal, max, min
+from math import sqrt, pow, equal, max, min, abs
 
 
 @always_inline
@@ -466,3 +466,52 @@ fn pad_zeros[
     parallelize[p_pad](t.dim(0))
 
     return t_new
+
+
+@always_inline
+fn broadcast_shapes(s1: TensorShape, s2: TensorShape) -> TensorShape:
+    let ndim = max(s1.rank(), s2.rank())
+    let diff = abs(s1.rank() - s2.rank())
+
+    let big: TensorShape
+    let small: TensorShape
+    if s1.rank() > s2.rank():
+        big = s1
+        small = s2
+    else:
+        big = s2
+        small = s1
+
+    var res = DynamicVector[Int](ndim)
+    res.resize(ndim, -1)
+
+    for i in range(ndim - 1, diff - 1, -1):
+        let a = big[i]
+        let b = small[i - diff]
+        if b == a:
+            res[i] = a
+        elif a == 1 or b == 1:
+            res[i] = a * b
+        else:
+            # NOTE: consider assert and allow the function raises
+            print("[ERROR] Shapes", s1, "and", s2, "cannot be broadcasted together.")
+            return TensorShape(res)
+
+    for i in range(diff - 1, -1, -1):
+        res[i] = big[i]
+
+    return TensorShape(res)
+
+
+@always_inline
+fn broadcast_shapes(*s: TensorShape) -> TensorShape:
+
+    var result_shape = __get_address_as_lvalue(s[0])
+
+    for i in range(1, len(s)):
+        result_shape = broadcast_shapes(
+            result_shape, 
+            __get_address_as_lvalue(s[i])
+        )
+
+    return result_shape
