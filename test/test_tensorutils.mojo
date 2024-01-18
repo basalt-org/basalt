@@ -9,7 +9,7 @@ from dainemo.utils.tensorutils import (
     elwise_op,
     batch_tensor_elwise_op,
 )
-from dainemo.utils.tensorutils import tsum, tmean, tstd, transpose_2D, transpose, pad_zeros
+from dainemo.utils.tensorutils import tsum, tmean, tstd, transpose_2D, transpose, pad_zeros, tmax
 
 from math import sqrt, exp, round
 from math import add, sub, mul, div
@@ -219,6 +219,37 @@ fn test_sum_mean_std() raises:
 
     # TODO: mean / std across a specified axis
 
+# <-------------MAX------------->
+fn test_max() raises:
+    var t = Tensor[dtype](2, 3, 2)
+    for i in range(12):
+        t[i] = i + 1
+
+    let tensor_max = tmax[dtype, nelts](t)
+    assert_equal(tensor_max, 12)
+
+    @parameter
+    fn fill_tensor[size: Int](inout tensor: Tensor[dtype], values: StaticIntTuple[size]):
+        for i in range(tensor.num_elements()):
+            tensor[i] = values[i]
+
+    let tensor_max_axis_0 = tmax[dtype, nelts](t, axis=0)
+    var expected_max_axis_0_temp = StaticIntTuple[6](7, 8, 9, 10, 11, 12)
+    var expected_max_axis_0 = Tensor[dtype](1, 3, 2)
+    fill_tensor(expected_max_axis_0, expected_max_axis_0_temp)
+    assert_tensors_equal(tensor_max_axis_0, expected_max_axis_0)
+
+    let tensor_max_axis_1 = tmax[dtype, nelts](t, axis=1)
+    var expected_max_axis_1_temp = StaticIntTuple[4](5, 6, 11, 12)
+    var expected_max_axis_1 = Tensor[dtype](2, 1, 2)
+    fill_tensor(expected_max_axis_1, expected_max_axis_1_temp)
+    assert_tensors_equal(tensor_max_axis_1, expected_max_axis_1)
+
+    let tensor_max_axis_2 = tmax[dtype, nelts](t, axis=2)
+    var expected_max_axis_2_temp = StaticIntTuple[6](2, 4, 6, 8, 10, 12)
+    var expected_max_axis_2 = Tensor[dtype](2, 3, 1)
+    fill_tensor(expected_max_axis_2, expected_max_axis_2_temp)
+    assert_tensors_equal(tensor_max_axis_2, expected_max_axis_2)
 
 # <-------------TRANSPOSE------------->
 from test_tensorutils_data import TransposeData
@@ -328,6 +359,7 @@ fn main():
         test_elwise_tensor_scalar()
         test_elwise_batch_tensor()
         test_sum_mean_std()
+        test_max()
         test_transpose()
         test_flatten()
         test_padding()
