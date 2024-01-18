@@ -219,6 +219,7 @@ fn test_sum_mean_std() raises:
 
     # TODO: mean / std across a specified axis
 
+
 # <-------------MAX------------->
 fn test_max() raises:
     var t = Tensor[dtype](2, 3, 2)
@@ -250,6 +251,7 @@ fn test_max() raises:
     var expected_max_axis_2 = Tensor[dtype](2, 3, 1)
     fill_tensor(expected_max_axis_2, expected_max_axis_2_temp)
     assert_tensors_equal(tensor_max_axis_2, expected_max_axis_2)
+
 
 # <-------------TRANSPOSE------------->
 from test_tensorutils_data import TransposeData

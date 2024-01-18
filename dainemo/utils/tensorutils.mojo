@@ -175,6 +175,7 @@ fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
 fn tmean[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     return tsum[dtype, nelts](t) / t.num_elements()
 
+
 @always_inline
 fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     var m: SIMD[dtype, nelts] = t[0]
@@ -190,6 +191,7 @@ fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     vectorize[nelts, vecmax](t.num_elements())
     return m.reduce_max()
 
+
 @always_inline
 fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
     var new_shape = DynamicVector[Int](t.rank())
@@ -200,17 +202,30 @@ fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
             new_shape.push_back(t.dim(i))
     var t_new = Tensor[dtype](new_shape)
 
-    let strides = calculate_strides(t.shape())
+    let strides_temp = calculate_strides(t.shape())
+    let strides = TensorShape(strides_temp)
+    # NOTE: The reason why we use Tensorshape is because it seems there is a *bug* when using a dynamic vector inside a parallelized function.
 
-    for i in range(t.num_elements() // t.dim(axis)):
-        var m = math.limit.min_finite[dtype]()
+    @parameter
+    fn parallel_max(i: Int):
+        var m: SIMD[dtype, nelts] = math.limit.min_finite[dtype]()
+
         let index_base = (i % strides[axis]) + (i // strides[axis]) * (strides[axis] * t.dim(axis))
-        for j in range(t.dim(axis)):
+        @parameter
+        fn axismax[_nelts: Int](j: Int):
             let index = index_base + j * strides[axis]
-            m = max(m, t[index])
+            if _nelts == 1:
+                m[0] = max(m[0], t.simd_load[_nelts](index)[0])
+            else:
+                m = max(m, t.simd_load[nelts](index))
 
-        t_new[i] = m
+        vectorize[nelts, axismax](t.dim(axis))
+
+        t_new[i] = m.reduce_max()
+    
+    parallelize[parallel_max](t.num_elements() // t.dim(axis))
     return t_new
+
 
 @always_inline
 fn tstd[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
