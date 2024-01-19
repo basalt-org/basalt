@@ -3,7 +3,7 @@ from utils.index import Index
 from algorithm import vectorize, parallelize
 from memory import memset_zero
 
-from math import sqrt, pow, equal, max, min, abs
+from math import sqrt, pow, equal, max, min, abs, add
 
 
 @always_inline
@@ -137,38 +137,23 @@ fn batch_tensor_elwise_op[
 
 
 @always_inline
+fn _reduce_sum[
+    type: DType, simd_width: Int
+](x: SIMD[type, simd_width]) -> SIMD[type, 1]:
+    return x.reduce_add()
+
+
+@always_inline
 fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
-    var s: SIMD[dtype, 1] = 0
-
-    @parameter
-    fn vecsum[nelts: Int](idx: Int):
-        s += t.simd_load[nelts](idx).reduce_add()
-
-    vectorize[nelts, vecsum](t.num_elements())
-    return s
+    let starting_value = 0
+    return reduce[dtype, nelts, add, _reduce_sum](t, starting_value)
 
 
 # from testing import assert_equal
 @always_inline
 fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
-    let d: Int = 1 if axis == 0 else 0
-    let t_new = Tensor[dtype](1, t.dim(d)) if axis == 0 else Tensor[dtype](t.dim(d), 1)
-
-    @parameter
-    fn parallel_sum(i: Int):
-        var s: SIMD[dtype, 1] = 0
-
-        @parameter
-        fn axissum[nelts: Int](j: Int):
-            let index = j * t.dim(d) + i if axis == 0 else i * t.dim(axis) + j
-            s += t.simd_load[nelts](index).reduce_add()
-
-        vectorize[nelts, axissum](t.dim(axis))
-        t_new[i] = s
-
-    parallelize[parallel_sum](t.dim(d), t.dim(d))
-
-    return t_new
+    let starting_value = 0
+    return reduce[dtype, nelts, add, _reduce_sum](t, axis, starting_value)
 
 
 @always_inline
@@ -253,7 +238,7 @@ fn reduce[
         type, 1
     ],
 ](t: Tensor[dtype], starting_value: SIMD[dtype, nelts]) -> SIMD[dtype, 1]:
-    var m: SIMD[dtype, nelts] = t[0]
+    var m: SIMD[dtype, nelts] = starting_value
 
     @parameter
     fn vecreduce[_nelts: Int](idx: Int):
