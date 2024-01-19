@@ -10,6 +10,7 @@ from dainemo.utils.tensorutils import (
     elwise_pow,
     elwise_transform,
     fill,
+    broadcast_elwise_op,
     batch_tensor_elwise_op,
     transpose
 )
@@ -286,27 +287,7 @@ struct SUM:
         var res = Tensor[dtype](t.shape())
         fill[dtype, nelts](res, 1.0)
 
-        if axis == -1:
-            # Upper gradient will be a Tensor of shape: 1 scalar, as it was constructed by summing all elements of node.tensor
-            return elwise_op[dtype, nelts, mul](res, ug[0])
-
-        elif axis == 0:
-            # Upper gradient will be a Tensor of shape: sum of node.tensor along axis 0
-            return batch_tensor_elwise_op[dtype, nelts, mul](res, ug)
-
-        elif axis == 1:
-            # Upper gradient will be a Tensor of shape: sum of node.tensor along axis 1
-            # TODO: Workaround since batch_tensor_elwise_op is only implemented across axis = 0
-            # Waiting for proper broadcasting
-            return transpose[dtype, nelts](
-                batch_tensor_elwise_op[dtype, nelts, mul](
-                    transpose[dtype, nelts](res), transpose[dtype, nelts](ug)
-                )
-            )
-
-        else:
-            print("NotImplemented: Tensor Sum only support up to rank 2.")
-            return res
+        return broadcast_elwise_op[dtype, nelts, mul](res, ug)
 
 
 # <---------TRANSPOSE--------->
