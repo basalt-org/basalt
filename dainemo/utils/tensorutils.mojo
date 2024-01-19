@@ -177,23 +177,35 @@ fn tmean[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
 
 
 @always_inline
+fn _reduce_max[
+    type: DType, simd_width: Int
+](x: SIMD[type, simd_width]) -> SIMD[type, 1]:
+    return x.reduce_max()
+
+
+@always_inline
 fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
-    var m: SIMD[dtype, nelts] = t[0]
-
-    @parameter
-    fn vecmax[_nelts: Int](idx: Int):
-        @parameter
-        if _nelts == 1:
-            m[0] = max(m[0], t.simd_load[_nelts](idx)[0])
-        else:
-            m = max(m, t.simd_load[nelts](idx))
-
-    vectorize[nelts, vecmax](t.num_elements())
-    return m.reduce_max()
+    let starting_value = math.limit.min_finite[dtype]()
+    return reduce[dtype, nelts, max, _reduce_max](t, starting_value)
 
 
 @always_inline
 fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
+    let starting_value = math.limit.min_finite[dtype]()
+    return reduce[dtype, nelts, max, _reduce_max](t, axis, starting_value)
+
+
+@always_inline
+fn reduce[
+    dtype: DType,
+    nelts: Int,
+    op: fn[type: DType, simd_width: Int] (
+        x: SIMD[type, simd_width], y: SIMD[type, simd_width]
+    ) -> SIMD[type, simd_width],
+    reduce_op: fn[type: DType, simd_width: Int] (x: SIMD[type, simd_width]) -> SIMD[
+        type, 1
+    ],
+](t: Tensor[dtype], axis: Int, starting_value: SIMD[dtype, nelts]) -> Tensor[dtype]:
     var new_shape = DynamicVector[Int](t.rank())
     for i in range(t.rank()):
         if i == axis:
@@ -205,26 +217,54 @@ fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
     let strides = calculate_strides(t.shape())
 
     @parameter
-    fn parallel_max(i: Int):
-        var m: SIMD[dtype, nelts] = math.limit.min_finite[dtype]()
+    fn parallel_reduce(i: Int):
+        var m: SIMD[dtype, nelts] = starting_value
 
-        let index_base = (i % strides[axis]) + (i // strides[axis]) * (strides[axis] * t.dim(axis))
+        let index_base = (i % strides[axis]) + (i // strides[axis]) * (
+            strides[axis] * t.dim(axis)
+        )
+
         @parameter
-        fn axismax[_nelts: Int](j: Int):
+        fn axisreduce[_nelts: Int](j: Int):
             let index = index_base + j * strides[axis]
             if _nelts == 1:
-                m[0] = max(m[0], t.simd_load[_nelts](index)[0])
+                m[0] = op(m[0], t.simd_load[_nelts](index)[0])
             else:
-                m = max(m, t.simd_load[nelts](index))
+                m = op(m, t.simd_load[nelts](index))
 
-        vectorize[nelts, axismax](t.dim(axis))
+        vectorize[nelts, axisreduce](t.dim(axis))
 
-        t_new[i] = m.reduce_max()
-    
-    parallelize[parallel_max](t.num_elements() // t.dim(axis))
+        t_new[i] = reduce_op(m)
+
+    parallelize[parallel_reduce](t.num_elements() // t.dim(axis))
 
     _ = strides
     return t_new
+
+
+@always_inline
+fn reduce[
+    dtype: DType,
+    nelts: Int,
+    op: fn[type: DType, simd_width: Int] (
+        x: SIMD[type, simd_width], y: SIMD[type, simd_width]
+    ) -> SIMD[type, simd_width],
+    reduce_op: fn[type: DType, simd_width: Int] (x: SIMD[type, simd_width]) -> SIMD[
+        type, 1
+    ],
+](t: Tensor[dtype], starting_value: SIMD[dtype, nelts]) -> SIMD[dtype, 1]:
+    var m: SIMD[dtype, nelts] = t[0]
+
+    @parameter
+    fn vecreduce[_nelts: Int](idx: Int):
+        @parameter
+        if _nelts == 1:
+            m[0] = op(m[0], t.simd_load[_nelts](idx)[0])
+        else:
+            m = op(m, t.simd_load[nelts](idx))
+
+    vectorize[nelts, vecreduce](t.num_elements())
+    return reduce_op(m)
 
 
 @always_inline
@@ -419,7 +459,7 @@ fn pad_zeros[
     Number of values padded to the edges of each axis.
     Example: ((before_1, after_1), ... (before_N, after_N)).
     """
-    
+
     # NOTE: The rank of of the t tensor should be equal to the size of pad_with devided by 2.
     # As pad_with contains (before, after) number of paddings for each axis.
     var new_shape = DynamicVector[Int](t.rank())
@@ -443,14 +483,12 @@ fn pad_zeros[
 
     @parameter
     fn p_pad(i: Int):
-        
         for j in range(t.num_elements() // t.dim(0)):
-
             let original_index = i * original_strides_shape[0] + j
-            
+
             # Padding contribution of the first dimention
             var dest_index = (i + pad_with[0]) * result_strides_shape[0]
-            
+
             # Calculate the contribution from each dimension
             var remaining_index = j % original_strides_shape[0]
             for dim in range(1, t.rank()):
@@ -459,7 +497,7 @@ fn pad_zeros[
                 remaining_index = remaining_index % stride
 
                 dest_index += (index + pad_with[dim * 2]) * result_strides_shape[dim]
-            
+
             # TODO: figure out vectorization
             t_new[dest_index] = t[original_index]
 
@@ -505,13 +543,9 @@ fn broadcast_shapes(s1: TensorShape, s2: TensorShape) -> TensorShape:
 
 @always_inline
 fn broadcast_shapes(*s: TensorShape) -> TensorShape:
-
     var result_shape = __get_address_as_lvalue(s[0])
 
     for i in range(1, len(s)):
-        result_shape = broadcast_shapes(
-            result_shape, 
-            __get_address_as_lvalue(s[i])
-        )
+        result_shape = broadcast_shapes(result_shape, __get_address_as_lvalue(s[i]))
 
     return result_shape
