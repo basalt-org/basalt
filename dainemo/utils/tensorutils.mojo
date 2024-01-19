@@ -152,7 +152,7 @@ fn broadcast_elwise_op[
     let strides_new = calculate_strides(new_shape)
 
     @parameter
-    fn get_real_index(i: Int, shape: TensorShape, strides: TensorShape) -> Int:
+    fn get_real_index(i: Int, shape: TensorShape, strides: DynamicVector[Int]) -> Int:
         var index_res = 0
         var linear_index = i
         for j in range(shape.rank() - 1, -1, -1):
@@ -382,11 +382,14 @@ fn calculate_strides(shape: TensorShape) -> DynamicVector[Int]:
 
     return strides
 
+
 @always_inline
-fn broadcast_calculate_strides(shape: TensorShape, broadcast_shape: TensorShape) -> DynamicVector[Int]:
+fn broadcast_calculate_strides(
+    shape: TensorShape, broadcast_shape: TensorShape
+) -> DynamicVector[Int]:
     var strides = DynamicVector[Int](broadcast_shape.rank())
     strides.resize(broadcast_shape.rank(), 0)
-    
+
     let diff = broadcast_shape.rank() - shape.rank()
     var stride = 1
     for i in range(shape.rank() - 1, -1, -1):
@@ -395,6 +398,7 @@ fn broadcast_calculate_strides(shape: TensorShape, broadcast_shape: TensorShape)
             stride *= shape[i]
 
     return strides ^
+
 
 @always_inline
 fn transpose[
