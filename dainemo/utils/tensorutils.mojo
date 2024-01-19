@@ -136,6 +136,51 @@ fn batch_tensor_elwise_op[
     return t_new
 
 
+fn broadcast_elwise_op[
+    dtype: DType,
+    nelts: Int,
+    func: fn[dtype: DType, nelts: Int] (
+        x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]
+    ) -> SIMD[dtype, nelts],
+](t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
+    let new_shape = broadcast_shapes(t1.shape(), t2.shape())
+    var t_new = Tensor[dtype](new_shape)
+
+    var strides1 = broadcast_calculate_strides(t1.shape(), t_new.shape())
+    var strides2 = broadcast_calculate_strides(t2.shape(), t_new.shape())
+
+    let strides_new = calculate_strides(new_shape)
+
+    @parameter
+    fn get_real_index(i: Int, shape: TensorShape, strides: TensorShape) -> Int:
+        var index_res = 0
+        var linear_index = i
+        for j in range(shape.rank() - 1, -1, -1):
+            let stride = strides[j]
+            let index = linear_index % shape[j]
+            linear_index = linear_index // shape[j]
+            index_res += index * stride
+
+        return index_res
+
+    @parameter
+    fn vec_op[nelts: Int](i: Int):
+        let index1 = get_real_index(i, t_new.shape(), strides1)
+        let index2 = get_real_index(i, t_new.shape(), strides2)
+        t_new.simd_store[nelts](
+            i,
+            func[dtype, nelts](
+                t1.simd_load[nelts](index1), t2.simd_load[nelts](index2)
+            ),
+        )
+
+    vectorize[1, vec_op](t_new.num_elements())
+
+    _ = (strides1, strides2, strides_new)
+
+    return t_new
+
+
 @always_inline
 fn _reduce_sum[
     type: DType, simd_width: Int
@@ -337,6 +382,19 @@ fn calculate_strides(shape: TensorShape) -> DynamicVector[Int]:
 
     return strides
 
+@always_inline
+fn broadcast_calculate_strides(shape: TensorShape, broadcast_shape: TensorShape) -> DynamicVector[Int]:
+    var strides = DynamicVector[Int](broadcast_shape.rank())
+    strides.resize(broadcast_shape.rank(), 0)
+    
+    let diff = broadcast_shape.rank() - shape.rank()
+    var stride = 1
+    for i in range(shape.rank() - 1, -1, -1):
+        if shape[i] != 1:
+            strides[i + diff] = stride
+            stride *= shape[i]
+
+    return strides ^
 
 @always_inline
 fn transpose[
