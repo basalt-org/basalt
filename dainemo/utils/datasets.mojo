@@ -79,7 +79,8 @@ struct MNIST[dtype: DType]:
                         self.data[Index(i, 0, m, n)] = atol(s[idx_low:idx_high])
 
         # Normalize data
-        self.data = elwise_op[dtype, simdwidthof[dtype](), div](self.data, 255.0)
+        alias nelts = simdwidthof[dtype]()
+        self.data = elwise_op[dtype, nelts, div](self.data, 255.0)
 
 
 fn read_file(file_path: String) raises -> String:

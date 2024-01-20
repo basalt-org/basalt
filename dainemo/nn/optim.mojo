@@ -35,7 +35,6 @@ struct Adam:
 
     fn step(inout self):
         '''Update parameters.'''
-        alias nelts = simdwidthof[dtype]()
         self.iter += 1
 
         for idx in range(GRAPH.graph.size):

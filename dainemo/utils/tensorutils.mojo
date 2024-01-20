@@ -114,7 +114,11 @@ fn broadcast_elwise_op[
         x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]
     ) -> SIMD[dtype, nelts],
 ](t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
-    let new_shape = broadcast_shapes(t1.shape(), t2.shape())
+    let new_shape: TensorShape
+    try:
+        new_shape = broadcast_shapes(t1.shape(), t2.shape())
+    except e:
+        print(e)
     var t_new = Tensor[dtype](new_shape)
 
     var strides1 = broadcast_calculate_strides(t1.shape(), t_new.shape())
@@ -550,7 +554,7 @@ fn pad_zeros[
 
 
 @always_inline
-fn broadcast_shapes(s1: TensorShape, s2: TensorShape) -> TensorShape:
+fn broadcast_shapes(s1: TensorShape, s2: TensorShape) raises -> TensorShape:
     let ndim = max(s1.rank(), s2.rank())
     let diff = abs(s1.rank() - s2.rank())
 
@@ -575,8 +579,9 @@ fn broadcast_shapes(s1: TensorShape, s2: TensorShape) -> TensorShape:
             res[i] = a * b
         else:
             # NOTE: consider assert and allow the function raises
-            print("[ERROR] Shapes", s1, "and", s2, "cannot be broadcasted together.")
-            return TensorShape(res)
+            # print()
+            let message: String = "[ERROR] Shapes " + str(s1) + " and " + str(s2) + " cannot be broadcasted together."
+            raise Error(message)
 
     for i in range(diff - 1, -1, -1):
         res[i] = big[i]
@@ -585,7 +590,7 @@ fn broadcast_shapes(s1: TensorShape, s2: TensorShape) -> TensorShape:
 
 
 @always_inline
-fn broadcast_shapes(*s: TensorShape) -> TensorShape:
+fn broadcast_shapes(*s: TensorShape) raises -> TensorShape:
     var result_shape = __get_address_as_lvalue(s[0])
 
     for i in range(1, len(s)):

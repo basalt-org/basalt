@@ -45,9 +45,7 @@ struct CONV2D:
         """
         # TODO: Add bias
         # TODO: calculate kernel_index and input_index using precalculated strides
-
-        alias nelts: Int = simdwidthof[dtype]()
-
+        
         let result_shape = get_result_shape[padding, stride](
             inputs.tensor.shape(), kernel.tensor.shape()
         )
@@ -127,7 +125,6 @@ struct CONV2D:
         Upper gradient of shape: [batch, out_channels, uX, uY].
         """
         
-        alias nelts: Int = simdwidthof[dtype]()
         let inputs = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
         let kernel = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])].tensor
         let bias = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[2])].tensor
