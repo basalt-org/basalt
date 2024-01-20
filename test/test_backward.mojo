@@ -7,7 +7,7 @@ from test_tensorutils import assert_tensors_equal
 from dainemo import GRAPH
 from dainemo.autograd.node import Node
 from dainemo.utils.tensorutils import fill
-from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, SUM, TRANSPOSE, FLATTEN, RESHAPE
+from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, SUM, MAX, TRANSPOSE, FLATTEN, RESHAPE
 
 alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
@@ -275,6 +275,116 @@ fn test_SUM_1() raises:
     GRAPH.reset_all()
 
 
+# <------------MAX------------>
+fn test_MAX() raises:
+    # SUM ALL ELEMENTS
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](t1, 1.0)
+    t1[0] = 2.0
+    t1[1] = 2.0
+
+    let res = MAX.forward(t1)
+
+    # uppergrad has always to same shape as res
+    var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
+    fill[dtype, nelts](upper_grad, 9.0)
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 1)  # one parent
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+
+    var expected_ug1 = Tensor[dtype](2, 3)
+    expected_ug1[0] = 4.5
+    expected_ug1[1] = 4.5
+    assert_tensors_equal(ug1, expected_ug1)
+    GRAPH.reset_all()
+
+
+fn test_MAX_0() raises:
+    # MAX ALONG AXIS 0
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3, 2)
+    for i in range(t1.num_elements()):
+        t1[i] = i + 1
+    t1[0] = 7.0
+
+    let res = MAX.forward[axis=0](t1)
+
+    # uppergrad has always to same shape as res
+    var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    fill[dtype, nelts](upper_grad, 2.0)
+    assert_equal(gn.parents.size, 1)  # one parent
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+
+    var expected_ug1 = Tensor[dtype](2, 3, 2)
+    expected_ug1[0] = 1.0
+    expected_ug1[6] = 1.0
+    expected_ug1[7] = 2.0
+    expected_ug1[8] = 2.0
+    expected_ug1[9] = 2.0
+    expected_ug1[10] = 2.0
+    expected_ug1[11] = 2.0
+    assert_tensors_equal(ug1, expected_ug1)
+    GRAPH.reset_all()
+
+
+fn test_MAX_1() raises:
+    # MAX ALONG AXIS 1
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3, 2)
+    for i in range(t1.num_elements()):
+        t1[i] = i + 1
+    t1[0] = 5.0
+
+    let res = MAX.forward[axis=1](t1)
+
+    # uppergrad has always to same shape as res
+    var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    fill[dtype, nelts](upper_grad, 2.0)
+    assert_equal(gn.parents.size, 1)  # one parent
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+
+    var expected_ug1 = Tensor[dtype](2, 3, 2)
+    expected_ug1[0] = 1.0
+    expected_ug1[4] = 1.0
+    expected_ug1[5] = 2.0
+    expected_ug1[10] = 2.0
+    expected_ug1[11] = 2.0
+    assert_tensors_equal(ug1, expected_ug1)
+    GRAPH.reset_all()
+
+
+fn test_MAX_2() raises:
+    # MAX ALONG AXIS 2
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3, 2)
+    for i in range(t1.num_elements()):
+        t1[i] = i + 1
+    t1[0] = 2.0
+
+    let res = MAX.forward[axis=2](t1)
+
+    # uppergrad has always to same shape as res
+    var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    fill[dtype, nelts](upper_grad, 2.0)
+    assert_equal(gn.parents.size, 1)  # one parent
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+
+    var expected_ug1 = Tensor[dtype](2, 3, 2)
+    expected_ug1[0] = 1.0
+    expected_ug1[1] = 1.0
+    expected_ug1[3] = 2.0
+    expected_ug1[5] = 2.0
+    expected_ug1[7] = 2.0
+    expected_ug1[9] = 2.0
+    expected_ug1[11] = 2.0
+    assert_tensors_equal(ug1, expected_ug1)
+    GRAPH.reset_all()
+
+
 # <------------TRANSPOSE------------>
 fn test_TRANSPOSE() raises:
     let t1 = Tensor[dtype](2, 3)
@@ -357,8 +467,13 @@ fn main():
         test_SUM()
         test_SUM_0()
         test_SUM_1()
+        test_MAX()
+        test_MAX_0()
+        test_MAX_1()
+        test_MAX_2()
         test_TRANSPOSE()
         test_FLATTEN()
         test_RESHAPE()
-    except:
+    except e:
+        print(e)
         print("[ERROR] Error in backward pass.")
