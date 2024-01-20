@@ -36,9 +36,36 @@ fn test_SOFTMAX() raises:
     GRAPH.reset_all()
 
 
+fn test_LOGSOFTMAX() raises:
+    var x = Tensor[dtype](2, 3, 2)
+    fill[dtype, nelts](x, 4)
+
+    var res = nn.LogSoftmax.forward[0](x)
+    var expected = Tensor[dtype](2, 3, 2)
+    fill[dtype, nelts](expected, -0.69314718)
+    assert_tensors_equal(res.tensor, expected)
+    assert_equal(GRAPH.graph.size, 7)
+    GRAPH.reset_all()
+
+    res = nn.LogSoftmax.forward[1](x)
+    expected = Tensor[dtype](2, 3, 2)
+    fill[dtype, nelts](expected, -1.09861231)
+    assert_tensors_equal(res.tensor, expected, "almost")
+    assert_equal(GRAPH.graph.size, 7)
+    GRAPH.reset_all()
+
+    res = nn.LogSoftmax.forward[2](x)
+    expected = Tensor[dtype](2, 3, 2)
+    fill[dtype, nelts](expected, -0.69314718)
+    assert_tensors_equal(res.tensor, expected)
+    assert_equal(GRAPH.graph.size, 7)
+    GRAPH.reset_all()
+
+
 fn main():
     try:
         test_SOFTMAX()
+        test_LOGSOFTMAX()
     except e:
         print("[ERROR] Error in activations")
         print(e)
