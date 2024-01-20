@@ -88,7 +88,8 @@ WIP: Work in progress
 | RELU      |   ✅   |
 | SIGMOID   |   ✅   |
 | TANH      |   ✅   |
-| SOFTMAX   |   ❌   |
+| SOFTMAX   |   ✅   |
+| LOGSOFTMAX|   ✅   |
 | LEAKYRELU |   ❌   |
 
 ### Optimizers

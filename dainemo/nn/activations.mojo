@@ -7,30 +7,47 @@ import dainemo.autograd.ops.mlops
 '''Activation functions.'''
 
 # <------------RELU------------>
-struct RELU:
-    @staticmethod
-    fn forward(input: Node[dtype]) -> Node[dtype]:
+struct ReLU:
+    fn __init__(inout self):
+        pass
+    
+    fn forward(inout self, input: Node[dtype]) -> Node[dtype]:
         return mlops.RELU.forward(input)
+
+    fn __call__(inout self, input: Node[dtype]) -> Node[dtype]:
+        return self.forward(input)
 
 
 # <------------SIGMOID------------>
 struct Sigmoid:
-    @staticmethod
-    fn forward(input: Node[dtype]) -> Node[dtype]:
+    fn __init__(inout self):
+        pass
+
+    fn forward(inout self, input: Node[dtype]) -> Node[dtype]:
         return mlops.SIGMOID.forward(input)
+
+    fn __call__(inout self, input: Node[dtype]) -> Node[dtype]:
+        return self.forward(input)
 
 
 # <------------TANH------------>
 struct Tanh:
-    @staticmethod
-    fn forward(input: Node[dtype]) -> Node[dtype]:
+    fn __init__(inout self):
+        pass
+
+    fn forward(inout self, input: Node[dtype]) -> Node[dtype]:
         return mlops.TANH.forward(input)
+
+    fn __call__(inout self, input: Node[dtype]) -> Node[dtype]:
+        return self.forward(input)
 
 
 # <------------SOFTMAX------------>
-struct Softmax:
-    @staticmethod
-    fn forward[axis: Int](input: Node[dtype]) -> Node[dtype]:
+struct Softmax[axis: Int]:
+    fn __init__(inout self):
+        pass
+
+    fn forward(inout self, input: Node[dtype]) -> Node[dtype]:
         # softmax: exp(x_i) / sum(exp(x_j))
         # stable softmax: exp(x_i - max(x_j)) / sum(exp(x_j))
 
@@ -41,11 +58,16 @@ struct Softmax:
 
         return DIV.forward(exp_values, sum_values)
 
+    fn __call__(inout self, input: Node[dtype]) -> Node[dtype]:
+        return self.forward(input)
+
 
 # <------------LOGSOFTMAX------------>
-struct LogSoftmax:
-    @staticmethod
-    fn forward[axis: Int](input: Node[dtype]) -> Node[dtype]:
+struct LogSoftmax[axis: Int]:
+    fn __init__(inout self):
+        pass
+
+    fn forward(inout self, input: Node[dtype]) -> Node[dtype]:
         # logsoftmax: log(exp(x_i) / sum(exp(x_j)))
         # logsoftmax: x_i - log(sum(exp(x_j)))
 
@@ -56,6 +78,9 @@ struct LogSoftmax:
         let log_values = LOG.forward(sum_values)
 
         return SUB.forward(input_minus_max, log_values)
+
+    fn __call__(inout self, input: Node[dtype]) -> Node[dtype]:
+        return self.forward(input)
 
 
 # <------------LEAKYRELU------------>
