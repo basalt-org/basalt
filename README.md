@@ -63,7 +63,8 @@ WIP: Work in progress
 | EXP        |   ✅   |
 | LOG        |   ✅   |
 | POW        |   ✅   |
-| SUM        |   ✅*  |
+| SUM        |   ✅   |
+| MAX        |   ✅   |
 | TRANSPOSE  |   ✅   |
 | FLATTEN    |   ✅   |
 | RESHAPE    |   ✅   |
