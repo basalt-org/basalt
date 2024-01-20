@@ -10,6 +10,7 @@ alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
 
 
+# <------------SOFTMAX------------>
 fn test_SOFTMAX() raises:
     var x = Tensor[dtype](2, 3, 2)
     fill[dtype, nelts](x, 4)
@@ -36,6 +37,7 @@ fn test_SOFTMAX() raises:
     GRAPH.reset_all()
 
 
+# <------------LOGSOFTMAX------------>
 fn test_LOGSOFTMAX() raises:
     var x = Tensor[dtype](2, 3, 2)
     fill[dtype, nelts](x, 4)
@@ -62,10 +64,67 @@ fn test_LOGSOFTMAX() raises:
     GRAPH.reset_all()
 
 
+# <------------RELU------------>
+fn test_RELU() raises:
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    for i in range(3):
+        t1[i] = 3
+    for i in range(3, 6):
+        t1[i] = -3
+
+    let res = nn.RELU.forward(t1)
+
+    var expected = Tensor[dtype](2, 3)
+    for i in range(3):
+        expected[i] = 3
+    for i in range(3, 6):
+        expected[i] = 0
+    assert_tensors_equal(res.tensor, expected)
+    assert_equal(GRAPH.graph.size, 2)
+    GRAPH.reset_all()
+
+
+# <------------SIGMOID------------>
+fn test_SIGMOID() raises:
+    let t1: Tensor[dtype] = Tensor[dtype](2, 3)  # filled with zeroes
+
+    var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
+    fill[dtype, nelts](upper_grad, 5.0)
+
+    let res = nn.Sigmoid.forward(t1)
+
+    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    assert_equal(gn.parents.size, 1)
+
+    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+
+    var expected_ug1 = Tensor[dtype](2, 3)
+    fill[dtype, nelts](
+        expected_ug1, 5.0 * 0.25
+    )  # 0.25 = d(sigmoid(0))/dx = sigmoid(0) * (1 - sigmoid(0))
+    assert_tensors_equal(ug1, expected_ug1)
+    GRAPH.reset_all()
+
+
+# <------------TANH------------>
+fn test_TANH() raises:
+    let t1: Tensor[dtype] = Tensor[dtype](2, 3)
+    let res = nn.Tanh.forward(t1)
+
+    var expected = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected, 0.0)
+    assert_tensors_equal(res.tensor, expected)
+    assert_equal(GRAPH.graph.size, 2)
+    GRAPH.reset_all()
+
+
 fn main():
     try:
         test_SOFTMAX()
         test_LOGSOFTMAX()
+        test_RELU()
+        test_SIGMOID()
+        test_TANH()
     except e:
         print("[ERROR] Error in activations")
         print(e)

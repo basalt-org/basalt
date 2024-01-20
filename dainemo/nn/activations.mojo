@@ -2,20 +2,29 @@ from tensor import Tensor
 
 from dainemo.autograd.node import Node
 from dainemo.autograd.ops.basics import SUM, SUB, DIV, EXP, MAX, LOG
+import dainemo.autograd.ops.mlops
 
 '''Activation functions.'''
 
 # <------------RELU------------>
 struct RELU:
-    pass
+    @staticmethod
+    fn forward(input: Node[dtype]) -> Node[dtype]:
+        return mlops.RELU.forward(input)
 
 
 # <------------SIGMOID------------>
-
+struct Sigmoid:
+    @staticmethod
+    fn forward(input: Node[dtype]) -> Node[dtype]:
+        return mlops.SIGMOID.forward(input)
 
 
 # <------------TANH------------>
-
+struct Tanh:
+    @staticmethod
+    fn forward(input: Node[dtype]) -> Node[dtype]:
+        return mlops.TANH.forward(input)
 
 
 # <------------SOFTMAX------------>
