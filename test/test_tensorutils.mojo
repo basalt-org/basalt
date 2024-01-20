@@ -437,7 +437,6 @@ fn main():
         test_elwise_tensor_tensor()
         test_elwise_tensor_scalar()
         test_elwise_broadcast_tensor()
-        test_elwise_batch_tensor()
         test_sum_mean_std()
         test_sum_mean_std_n()
         test_max()

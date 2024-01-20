@@ -5,7 +5,21 @@ from test_tensorutils import assert_tensors_equal
 from math import exp, log
 
 from dainemo import GRAPH
-from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, SUM, TRANSPOSE, FLATTEN, RESHAPE
+from dainemo.autograd.ops.basics import (
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    DOT,
+    EXP,
+    LOG,
+    POW,
+    SUM,
+    MAX,
+    TRANSPOSE,
+    FLATTEN,
+    RESHAPE,
+)
 from dainemo.utils.tensorutils import fill
 
 alias dtype = DType.float32
@@ -175,15 +189,49 @@ fn test_SUM() raises:
     GRAPH.reset_all()
 
 
+# <------------MAX------------>
+fn test_MAX() raises:
+    var t = Tensor[dtype](2, 3, 2)
+    for i in range(12):
+        t[i] = i + 1
+
+    let tensor_max = MAX.forward(t)
+    var expected = Tensor[dtype](1)
+    fill[dtype, nelts](expected, 12)
+    assert_tensors_equal(tensor_max.tensor, expected)
+    assert_equal(GRAPH.graph.size, 2)
+    GRAPH.reset_all()
+
+    @parameter
+    fn fill_tensor[size: Int](inout tensor: Tensor[dtype], values: StaticIntTuple[size]):
+        for i in range(tensor.num_elements()):
+            tensor[i] = values[i]
+
+    let tensor_max_axis_0 = MAX.forward[axis=0](t)
+    var expected_max_axis_0_temp = StaticIntTuple[6](7, 8, 9, 10, 11, 12)
+    expected = Tensor[dtype](1, 3, 2)
+    fill_tensor(expected, expected_max_axis_0_temp)
+    assert_tensors_equal(tensor_max_axis_0.tensor, expected)
+    assert_equal(GRAPH.graph.size, 2)
+    GRAPH.reset_all()
+
+    let tensor_max_axis_1 = MAX.forward[axis=1](t)
+    var expected_max_axis_1_temp = StaticIntTuple[4](5, 6, 11, 12)
+    expected = Tensor[dtype](2, 1, 2)
+    fill_tensor(expected, expected_max_axis_1_temp)
+    assert_tensors_equal(tensor_max_axis_1.tensor, expected)
+    GRAPH.reset_all()
+
+
 # <------------TRANSPOSE------------>
 fn test_TRANSPOSE() raises:
     var A = Tensor[dtype](2, 3)
     var B = Tensor[dtype](3, 2)
     for i in range(6):
-        A[i] = i+1
+        A[i] = i + 1
     for i in range(3):
-        B[2*i] = i+1
-        B[2*i+1] = i+4
+        B[2 * i] = i + 1
+        B[2 * i + 1] = i + 4
 
     let res = TRANSPOSE.forward(A)
 
@@ -197,8 +245,8 @@ fn test_FLATTEN() raises:
     var A = Tensor[dtype](2, 3)
     var B = Tensor[dtype](6)
     for i in range(6):
-        A[i] = i+1
-        B[i] = i+1
+        A[i] = i + 1
+        B[i] = i + 1
 
     let res = FLATTEN.forward(A)
 
@@ -211,18 +259,17 @@ fn test_FLATTEN() raises:
 fn test_RESHAPE() raises:
     var A = Tensor[dtype](2, 2, 5)
     let new_shape = TensorShape(2, 10)
-    
+
     var B = Tensor[dtype](new_shape)
     for i in range(20):
-        A[i] = i+1
-        B[i] = i+1
+        A[i] = i + 1
+        B[i] = i + 1
 
     let res = RESHAPE.forward(A, new_shape)
 
     assert_tensors_equal(res.tensor, B)
     assert_equal(GRAPH.graph.size, 2)
     GRAPH.reset_all()
-
 
 
 fn main():
@@ -236,9 +283,11 @@ fn main():
         test_LOG()
         test_POW()
         test_SUM()
+        test_MAX()
         test_TRANSPOSE()
         test_FLATTEN()
         test_RESHAPE()
-    except:
+    except e:
         print("[ERROR] Error in ops")
+        print(e)
         return
