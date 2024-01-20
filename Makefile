@@ -36,6 +36,5 @@ test:
 	mojo run -I . test/test_loss.mojo
 	mojo run -I . test/test_regression.mojo
 	mojo run -I . test/test_traits.mojo
-
-conv:
 	. .venv/bin/activate && mojo run -I . test/test_conv.mojo
+	. .venv/bin/activate && mojo run -I . test/test_pool.mojo

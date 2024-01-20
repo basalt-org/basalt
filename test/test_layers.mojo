@@ -81,11 +81,37 @@ fn test_conv2d_b() raises:
     GRAPH.reset_all()
 
 
+# <------------MAXPOOL2D------------>
+fn test_maxpool2d() raises:
+    let f = nn.MaxPool2d[
+        in_channels=3,
+        kernel_size=5,
+        padding=2,
+        stride=1
+    ]()
+
+    let inputs: Tensor[dtype] = rand[dtype](4, 3, 32, 17)
+
+    let outputs = f(Node[dtype](inputs))
+
+    print("Input batch of 4 with 3x32x17 inputs:", inputs.shape())
+    print("Output batch of 4 with 3x32x17 outputs:", outputs.tensor.shape())
+    assert_equal(outputs.tensor.dim(0), 4)
+    assert_equal(outputs.tensor.dim(1), 3)
+    assert_equal(outputs.tensor.dim(2), 32)
+    assert_equal(outputs.tensor.dim(3), 17)
+
+    # 2 Nodes added to the graph: inputs, outputs(maxpool2d)
+    assert_equal(GRAPH.graph.size, 2)
+    GRAPH.reset_all()
+
+
 fn main():
 
     try:
         test_linear()
         test_conv2d()
         test_conv2d_b()
+        test_maxpool2d()
     except:
         print("[ERROR] Error in layers")

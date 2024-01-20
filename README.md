@@ -69,7 +69,7 @@ WIP: Work in progress
 | RESHAPE    |   ✅   |
 | CONV2D     |   ✅   |
 | CONV3D     |   ❌   |
-| MAXPOOL2D  |   ❌   |
+| MAXPOOL2D  |   ✅   |
 | MAXPOOL3D  |   ❌   |
 
 ### Loss Functions
@@ -85,9 +85,9 @@ WIP: Work in progress
 
 | Task      | Status |
 |-----------|--------|
-| RELU      |   ❌   |
-| SIGMOID   |   ❌   |
-| TANH      |   ❌   |
+| RELU      |   ✅   |
+| SIGMOID   |   ✅   |
+| TANH      |   ✅   |
 | SOFTMAX   |   ❌   |
 | LEAKYRELU |   ❌   |
 
@@ -106,7 +106,7 @@ WIP: Work in progress
 | DROPOUT    |   ❌   |
 | CONV2D     |   ✅   |
 | CONV3D     |   ❌   |
-| MAXPOOL2D  |   ❌   |
+| MAXPOOL2D  |   ✅   |
 | MAXPOOL3D  |   ❌   |
 
 ### Other
