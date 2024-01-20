@@ -3,7 +3,7 @@ from utils.index import Index
 from algorithm import vectorize, parallelize
 from memory import memset_zero
 
-from math import sqrt, pow, equal, max, min, abs, add
+from math import sqrt, pow, equal, max, min, abs, add, div
 
 
 @always_inline
@@ -253,18 +253,20 @@ fn tstd[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
 
 
     for i in range(t.num_elements() // t.dim(axis)):
+
+        let mu_index = get_mu_index(i, axis, mu.shape(), strides_mu)
         
-        for j in range(t.dim(axis)):
+        @parameter
+        fn vecvar[nelts: Int](j: Int):
             let t_index = get_t_index(i, j, axis, t.shape(), strides)
-            let mu_index = get_mu_index(i, axis, mu.shape(), strides_mu)
-            
-            let diff = t[t_index] - mu[mu_index]
-        
-            variance[i] += diff * diff
+            let diff = t.simd_load[nelts](t_index) - mu[mu_index]
+            variance[i] += (diff * diff).reduce_add()
+
+        vectorize[nelts, vecvar](t.dim(axis))
 
         variance[i] /= num_elements_axis
-    
-    
+
+
     _ = (strides, strides_mu)
     return elwise_transform[dtype, nelts, sqrt](variance)
 
