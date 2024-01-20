@@ -44,7 +44,7 @@ fn test_LOGSOFTMAX() raises:
     var expected = Tensor[dtype](2, 3, 2)
     fill[dtype, nelts](expected, -0.69314718)
     assert_tensors_equal(res.tensor, expected)
-    assert_equal(GRAPH.graph.size, 7)
+    assert_equal(GRAPH.graph.size, 7) # inputs, max_values, exp_values, sum_values, diff_max_values, log_values, result_sub
     GRAPH.reset_all()
 
     res = nn.LogSoftmax.forward[1](x)
