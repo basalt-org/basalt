@@ -11,7 +11,6 @@ from dainemo.utils.tensorutils import (
     elwise_transform,
     fill,
     broadcast_elwise_op,
-    batch_tensor_elwise_op,
     transpose
 )
 
@@ -31,7 +30,7 @@ struct ADD:
         if n1.tensor.shape() == n2.tensor.shape():
             res = elwise_op[dtype, nelts, add](n1.tensor, n2.tensor)
         else:
-            res = batch_tensor_elwise_op[dtype, nelts, add](n1.tensor, n2.tensor)
+            res = broadcast_elwise_op[dtype, nelts, add](n1.tensor, n2.tensor)
         return GRAPH.create_graph_node[Self.backward](res, n1, n2)
 
     @staticmethod
@@ -53,7 +52,7 @@ struct SUB:
         if n1.tensor.shape() == n2.tensor.shape():
             res = elwise_op[dtype, nelts, sub](n1.tensor, n2.tensor)
         else:
-            res = batch_tensor_elwise_op[dtype, nelts, sub](n1.tensor, n2.tensor)
+            res = broadcast_elwise_op[dtype, nelts, sub](n1.tensor, n2.tensor)
         return GRAPH.create_graph_node[Self.backward](res, n1, n2)
 
     @staticmethod
@@ -81,7 +80,7 @@ struct MUL:
         if n1.tensor.shape() == n2.tensor.shape():
             res = elwise_op[dtype, nelts, mul](n1.tensor, n2.tensor)
         else:
-            res = batch_tensor_elwise_op[dtype, nelts, mul](n1.tensor, n2.tensor)
+            res = broadcast_elwise_op[dtype, nelts, mul](n1.tensor, n2.tensor)
         return GRAPH.create_graph_node[Self.backward](res, n1, n2)
 
     @staticmethod
@@ -116,7 +115,7 @@ struct DIV:
         if n1.tensor.shape() == n2.tensor.shape():
             res = elwise_op[dtype, nelts, div](n1.tensor, n2.tensor)
         else:
-            res = batch_tensor_elwise_op[dtype, nelts, div](n1.tensor, n2.tensor)
+            res = broadcast_elwise_op[dtype, nelts, div](n1.tensor, n2.tensor)
         return GRAPH.create_graph_node[Self.backward](res, n1, n2)
 
     @staticmethod

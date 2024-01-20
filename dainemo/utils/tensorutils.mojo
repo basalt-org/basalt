@@ -107,35 +107,6 @@ fn elwise_op[
     return t_new
 
 
-@always_inline
-fn batch_tensor_elwise_op[
-    dtype: DType,
-    nelts: Int,
-    func: fn[dtype: DType, nelts: Int] (
-        x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]
-    ) -> SIMD[dtype, nelts],
-](t_batch: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
-    """Element-wise operation on between a batch of tensors t_batch and a tensor t2."""
-    var t_new = Tensor[dtype](t_batch.shape())
-
-    @parameter
-    fn row_op(r: Int):
-        @parameter
-        fn vecmath[nelts: Int](c: Int):
-            t_new.simd_store[nelts](
-                r * t_batch.dim(1) + c,
-                func[dtype, nelts](
-                    t_batch.simd_load[nelts](r * t_batch.dim(1) + c),
-                    t2.simd_load[nelts](c),
-                ),
-            )
-
-        vectorize[nelts, vecmath](t_batch.dim(1))
-
-    parallelize[row_op](t_batch.dim(0), t_batch.dim(0))
-    return t_new
-
-
 fn broadcast_elwise_op[
     dtype: DType,
     nelts: Int,

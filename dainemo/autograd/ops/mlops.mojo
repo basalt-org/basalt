@@ -7,7 +7,6 @@ from dainemo.utils.tensorutils import (
     elwise_op,
     elwise_transform,
     fill,
-    batch_tensor_elwise_op,
     tsum,
     tmax,
 )

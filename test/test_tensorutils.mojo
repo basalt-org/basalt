@@ -8,7 +8,6 @@ from dainemo.utils.tensorutils import (
     elwise_pow,
     elwise_op,
     broadcast_elwise_op,
-    batch_tensor_elwise_op,
 )
 from dainemo.utils.tensorutils import tsum, tmean, tstd, transpose_2D, transpose, pad_zeros, tmax
 
@@ -161,27 +160,6 @@ fn test_elwise_tensor_scalar() raises:
     assert_tensors_equal(result5, result5_expected)
 
 
-# <-------------ELEMENT WISE BATCH-TENSOR OPERATORS------------->
-fn test_elwise_batch_tensor() raises:
-    var batch = Tensor[dtype](4, 10)
-    for i in range(40):
-        batch[i] = i
-    # print(batch)
-
-    var t = Tensor[dtype](10)
-    for i in range(10):
-        t[i] = -i
-    # print(t)
-
-    let batch_result1 = batch_tensor_elwise_op[dtype, nelts, add](batch, t)
-    # print(batch_result1)
-
-    let batch_result2 = batch_tensor_elwise_op[dtype, nelts, sub](batch, t)
-    # print(batch_result2)
-
-    let batch_result3 = batch_tensor_elwise_op[dtype, nelts, mul](batch, t)
-    # print(batch_result3)
-
 # <-------------ELEMENT WISE STRIDE ITER OPERATORS------------->
 fn test_elwise_broadcast_tensor() raises:
     var t1 = Tensor[dtype](2, 3, 4)
@@ -198,6 +176,7 @@ fn test_elwise_broadcast_tensor() raises:
             let index = (i % 4) + ((i // 4) * 12) + j * 4
             result1_expected[index] = 3.0 + (i + 1)
     assert_tensors_equal(result1, result1_expected)
+
 
 # <-------------SUM/MEAN/STD------------->
 from test_tensorutils_data import SumMeanStdData
