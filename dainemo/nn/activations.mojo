@@ -1,7 +1,7 @@
 from tensor import Tensor
 
 from dainemo.autograd.node import Node
-from dainemo.autograd.ops.basics import SUM, SUB, DIV, EXP, MAX
+from dainemo.autograd.ops.basics import SUM, SUB, DIV, EXP, MAX, LOG
 
 '''Activation functions.'''
 
@@ -31,6 +31,22 @@ struct Softmax:
         let sum_values = SUM.forward[axis](exp_values)
 
         return DIV.forward(exp_values, sum_values)
+
+
+# <------------LOGSOFTMAX------------>
+struct LogSoftmax:
+    @staticmethod
+    fn forward[axis: Int](input: Node[dtype]) -> Node[dtype]:
+        # logsoftmax: log(exp(x_i) / sum(exp(x_j)))
+        # logsoftmax: x_i - log(sum(exp(x_j)))
+
+        let max_values = MAX.forward[axis](input)
+        let input_minus_max = SUB.forward(input, max_values)
+        let exp_values = EXP.forward(input_minus_max)
+        let sum_values = SUM.forward[axis](exp_values)
+        let log_values = LOG.forward(sum_values)
+
+        return SUB.forward(input_minus_max, log_values)
 
 
 # <------------LEAKYRELU------------>
