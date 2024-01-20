@@ -149,8 +149,6 @@ fn broadcast_elwise_op[
     var strides1 = broadcast_calculate_strides(t1.shape(), t_new.shape())
     var strides2 = broadcast_calculate_strides(t2.shape(), t_new.shape())
 
-    let strides_new = calculate_strides(new_shape)
-
     @parameter
     fn get_real_index(i: Int, shape: TensorShape, strides: DynamicVector[Int]) -> Int:
         var index_res = 0
@@ -176,7 +174,7 @@ fn broadcast_elwise_op[
 
     vectorize[1, vec_op](t_new.num_elements())
 
-    _ = (strides1, strides2, strides_new)
+    _ = (strides1, strides2)
 
     return t_new
 
@@ -194,7 +192,6 @@ fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     return reduce[dtype, nelts, add, _reduce_sum](t, starting_value)
 
 
-# from testing import assert_equal
 @always_inline
 fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
     let starting_value = 0
@@ -204,6 +201,72 @@ fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
 @always_inline
 fn tmean[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
     return tsum[dtype, nelts](t) / t.num_elements()
+
+
+@always_inline
+fn tmean[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
+    let num_elements_axis: SIMD[dtype, 1] = t.dim(axis)
+    return tsum[dtype, nelts](t, axis) / num_elements_axis
+    
+
+@always_inline
+fn tstd[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
+    var mu: SIMD[dtype, 1] = tmean[dtype, nelts](t)
+    var variance: SIMD[dtype, 1] = 0
+
+    @parameter
+    fn vecvar[nelts: Int](idx: Int):
+        let diff = t.simd_load[nelts](idx) - mu
+        variance += (diff * diff).reduce_add()
+
+    vectorize[nelts, vecvar](t.num_elements())
+
+    return sqrt(variance / t.num_elements())
+
+
+@always_inline
+fn tstd[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
+    let mu = tmean[dtype, nelts](t, axis)
+    var variance = Tensor[dtype](mu.shape())
+    let num_elements_axis: SIMD[dtype, 1] = t.dim(axis)
+    
+    let strides = calculate_strides(t.shape())
+    let strides_mu = calculate_strides(mu.shape())
+
+    @parameter
+    fn get_t_index(i: Int, j: Int, axis: Int, shape: TensorShape, strides: DynamicVector[Int]) -> Int:
+        var index_res = 0
+        for k in range(shape.rank()):
+            if k == axis:
+                index_res += j * strides[k]
+            else:
+                index_res += (i % shape[k]) * strides[k]
+        return index_res
+
+    @parameter
+    fn get_mu_index(i: Int, axis: Int, shape: TensorShape, strides: DynamicVector[Int]) -> Int:
+        var index_res = 0
+        for k in range(shape.rank()):
+            if k != axis:
+                index_res += (i % shape[k]) * strides[k]
+        return index_res
+
+
+    for i in range(t.num_elements() // t.dim(axis)):
+        
+        for j in range(t.dim(axis)):
+            let t_index = get_t_index(i, j, axis, t.shape(), strides)
+            let mu_index = get_mu_index(i, axis, mu.shape(), strides_mu)
+            
+            let diff = t[t_index] - mu[mu_index]
+        
+            variance[i] += diff * diff
+
+        variance[i] /= num_elements_axis
+    
+    
+    _ = (strides, strides_mu)
+    return elwise_transform[dtype, nelts, sqrt](variance)
 
 
 @always_inline
@@ -295,33 +358,6 @@ fn reduce[
 
     vectorize[nelts, vecreduce](t.num_elements())
     return reduce_op(m)
-
-
-@always_inline
-fn tstd[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
-    var mu: SIMD[dtype, 1] = tmean[dtype, nelts](t)
-    var variance: SIMD[dtype, 1] = 0
-
-    @parameter
-    fn vecvar[nelts: Int](idx: Int):
-        let diff = t.simd_load[nelts](idx) - mu
-        variance += (diff * diff).reduce_add()
-
-    vectorize[nelts, vecvar](t.num_elements())
-
-    return sqrt(variance / t.num_elements())
-
-
-fn tmean2[dtype: DType](t: Tensor[dtype], axis: Int = 0):
-    """Calculate mean of a 2D tensor along a specified axis."""
-    # TODO: every mean of vector can be calulated in parallel where each mean calculation can be vectorized
-    pass
-
-
-fn tstd2[dtype: DType](t: Tensor[dtype], axis: Int = 0):
-    """Calculate standard deviation of a 2D tensor along a specified axis."""
-    # TODO
-    pass
 
 
 @always_inline
@@ -451,24 +487,16 @@ fn transpose[
     let original_strides = calculate_strides(t.shape())
     let transposed_strides = calculate_strides(t_new.shape())
 
-    # NOTE: The reason why we use original_strides_shape and
-    # transposed_strides_shape is because it seems there is a *bug* when using
-    # dynamic vectors inside a parameter function? or a parameter function that
-    # is used in parallelized. If we use the dynamic vector inside the
-    # parallelized function, the memory of the dynamic vector is not initialized.
-    let original_strides_shape = TensorShape(original_strides)
-    let transposed_strides_shape = TensorShape(transposed_strides)
-
     @parameter
     fn p_transpose(i: Int):
         var new_index = 0
         var linear_index = i
         for j in range(t.rank()):
-            let stride = original_strides_shape[j]
+            let stride = original_strides[j]
             let index = linear_index // stride
             linear_index = linear_index % stride
 
-            new_index += index * transposed_strides_shape[axes[j]]
+            new_index += index * transposed_strides[axes[j]]
 
         t_new[new_index] = t[i]
 
@@ -478,20 +506,22 @@ fn transpose[
             let original_index = i * t.dim(t.rank() - 1) + j
             var linear_index = original_index
             for k in range(t.rank()):
-                let stride = original_strides_shape[k]
+                let stride = original_strides[k]
                 let index = linear_index // stride
                 linear_index = linear_index % stride
 
-                new_index += index * transposed_strides_shape[axes[k]]
+                new_index += index * transposed_strides[axes[k]]
 
             t_new.data().offset(new_index).simd_strided_store[nelts](
                 t.simd_load[nelts](original_index),
-                transposed_strides_shape[axes[t.rank() - 1]],
+                transposed_strides[axes[t.rank() - 1]],
             )
 
         vectorize[nelts, v_transpose](t.dim(t.rank() - 1))
 
     parallelize[p_transpose](t.num_elements() // t.dim(t.rank() - 1))
+
+    _ = (original_strides, transposed_strides)
 
     return t_new
 
@@ -517,38 +547,31 @@ fn pad_zeros[
     let original_strides = calculate_strides(t.shape())
     let result_strides = calculate_strides(t_new.shape())
 
-    # NOTE: The reason why we use original_strides_shape and
-    # transposed_strides_shape is because it seems there is a *bug* when using
-    # dynamic vectors inside a parameter function? or a parameter function that
-    # is used in parallelized. If we use the dynamic vector inside the
-    # parallelized function, the memory of the dynamic vector is not initialized.
-    let original_strides_shape = TensorShape(original_strides)
-    let result_strides_shape = TensorShape(result_strides)
-
     # Parallelize over the first axis
     # NOTE: Possible dynamically choose the axis to parallelize over
-
     @parameter
     fn p_pad(i: Int):
         for j in range(t.num_elements() // t.dim(0)):
-            let original_index = i * original_strides_shape[0] + j
+            let original_index = i * original_strides[0] + j
 
             # Padding contribution of the first dimention
-            var dest_index = (i + pad_with[0]) * result_strides_shape[0]
+            var dest_index = (i + pad_with[0]) * result_strides[0]
 
             # Calculate the contribution from each dimension
-            var remaining_index = j % original_strides_shape[0]
+            var remaining_index = j % original_strides[0]
             for dim in range(1, t.rank()):
-                let stride = original_strides_shape[dim]
+                let stride = original_strides[dim]
                 let index = remaining_index // stride
                 remaining_index = remaining_index % stride
 
-                dest_index += (index + pad_with[dim * 2]) * result_strides_shape[dim]
+                dest_index += (index + pad_with[dim * 2]) * result_strides[dim]
 
             # TODO: figure out vectorization
             t_new[dest_index] = t[original_index]
 
     parallelize[p_pad](t.dim(0))
+
+    _ = (original_strides, result_strides)
 
     return t_new
 

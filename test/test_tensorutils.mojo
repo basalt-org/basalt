@@ -200,6 +200,8 @@ fn test_elwise_broadcast_tensor() raises:
     assert_tensors_equal(result1, result1_expected)
 
 # <-------------SUM/MEAN/STD------------->
+from test_tensorutils_data import SumMeanStdData
+
 fn test_sum_mean_std() raises:
     var t = Tensor[dtype](2, 10)
     var s = 0
@@ -222,19 +224,98 @@ fn test_sum_mean_std() raises:
     assert_equal(tensor_std, expected_std)
 
     # When specifying the axis you can sum across batches
+    # Axis 0
     let batch_sum_0 = tsum[dtype, nelts](t, axis=0)
     var expected_batch_sum_0 = Tensor[dtype](1, 10)
     for i in range(10):
         expected_batch_sum_0[i] = (i + 1) + (i + 1 + 10)
     assert_tensors_equal(batch_sum_0, expected_batch_sum_0)
 
+    let batch_mean_0 = tmean[dtype, nelts](t, axis=0)
+    var expected_batch_mean_0 = Tensor[dtype](1, 10)
+    for i in range(10):
+        expected_batch_mean_0[i] = expected_batch_sum_0[i] / 2
+    assert_tensors_equal(batch_mean_0, expected_batch_mean_0)
+
+    let batch_std_0 = tstd[dtype, nelts](t, axis=0)
+    var expected_batch_std_0 = Tensor[dtype](1, 10)
+    fill[dtype, nelts](expected_batch_std_0, 5)
+    assert_tensors_equal(batch_std_0, expected_batch_std_0)
+
+    # Axis 1
     let batch_sum_1 = tsum[dtype, nelts](t, axis=1)
     var expected_batch_sum_1 = Tensor[dtype](2, 1)
     expected_batch_sum_1[0] = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10
     expected_batch_sum_1[1] = 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19 + 20
     assert_tensors_equal(batch_sum_1, expected_batch_sum_1)
 
-    # TODO: mean / std across a specified axis
+    let batch_mean_1 = tmean[dtype, nelts](t, axis=1)
+    var expected_batch_mean_1 = Tensor[dtype](2, 1)
+    expected_batch_mean_1[0] = expected_batch_sum_1[0] / 10
+    expected_batch_mean_1[1] = expected_batch_sum_1[1] / 10
+    assert_tensors_equal(batch_mean_1, expected_batch_mean_1)
+
+    let batch_std_1 = tstd[dtype, nelts](t, axis=1)
+    var expected_batch_std_1 = Tensor[dtype](2, 1)
+    fill[dtype, nelts](expected_batch_std_1, 2.8722813129425049)
+    assert_tensors_equal(batch_std_1, expected_batch_std_1)
+
+fn test_sum_mean_std_n() raises:
+    var t = Tensor[dtype](3, 4, 5)
+    var s = 0
+    for i in range(60):
+        t[i] = i + 1
+        s += i + 1
+
+    # Not specifying the axis takes all elements regardless of the shape
+    let tensor_sum = tsum[dtype, nelts](t)
+    assert_equal(tensor_sum, s)
+
+    let tensor_mean = tmean[dtype, nelts](t)
+    assert_equal(tensor_mean, s / 60)
+
+    let tensor_std = tstd[dtype, nelts](t)
+    var expected_std: SIMD[dtype, 1] = 0
+    for i in range(60):
+        expected_std += (i + 1 - tensor_mean) ** 2
+    expected_std = sqrt(expected_std / 60)
+    assert_equal(tensor_std, expected_std)
+
+    # When specifying the axis you can sum across batches
+    # Axis 0
+    var data = SumMeanStdData.generate_3d_axis_0()
+    let batch_sum_0 = tsum[dtype, nelts](t, axis=0)
+    assert_tensors_equal(batch_sum_0, data.expected_sum)
+
+    let batch_mean_0 = tmean[dtype, nelts](t, axis=0)
+    assert_tensors_equal(batch_mean_0, data.expected_mean)
+
+    let batch_std_0 = tstd[dtype, nelts](t, axis=0)
+    assert_tensors_equal(batch_std_0, data.expected_std)
+
+    # When specifying the axis you can sum across batches
+    # Axis 1
+    data = SumMeanStdData.generate_3d_axis_1()
+    let batch_sum_1 = tsum[dtype, nelts](t, axis=1)
+    assert_tensors_equal(batch_sum_1, data.expected_sum)
+
+    let batch_mean_1 = tmean[dtype, nelts](t, axis=1)
+    assert_tensors_equal(batch_mean_1, data.expected_mean)
+
+    let batch_std_1 = tstd[dtype, nelts](t, axis=1)
+    assert_tensors_equal(batch_std_1, data.expected_std)
+
+    # When specifying the axis you can sum across batches
+    # Axis 2
+    data = SumMeanStdData.generate_3d_axis_2()
+    let batch_sum_2 = tsum[dtype, nelts](t, axis=2)
+    assert_tensors_equal(batch_sum_2, data.expected_sum)
+
+    let batch_mean_2 = tmean[dtype, nelts](t, axis=2)
+    assert_tensors_equal(batch_mean_2, data.expected_mean)
+
+    let batch_std_2 = tstd[dtype, nelts](t, axis=2)
+    assert_tensors_equal(batch_std_2, data.expected_std)
 
 
 # <-------------MAX------------->
@@ -379,6 +460,7 @@ fn main():
         test_elwise_broadcast_tensor()
         test_elwise_batch_tensor()
         test_sum_mean_std()
+        test_sum_mean_std_n()
         test_max()
         test_transpose()
         test_flatten()
