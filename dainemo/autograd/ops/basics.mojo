@@ -332,35 +332,38 @@ struct MAX:
 
         @parameter
         if axis == -1:
+            # ug size is 1
             let max_res = tmax[dtype, nelts](t)
-            var sum_eq = 0
+            var sum_eq: SIMD[dtype, 1] = 0
             for i in range(t.num_elements()):
                 if t[i] == max_res:
                     sum_eq += 1
 
+            let factor = 1 / sum_eq
             for i in range(res.num_elements()):
                 if t[i] == max_res:
-                    res[i] = ug[i] / sum_eq
+                    res[i] = factor * ug[0]
         else:
+            # max_res.shape == ug.shape
             let max_res = tmax[dtype, nelts](t, axis=axis)
 
-            for i in range(t.num_elements()):
+            for i in range(max_res.num_elements()):
                 let index_base = (i % strides[axis]) + (i // strides[axis]) * (
                     strides[axis] * t.dim(axis)
                 )
 
-                var count_1s: SIMD[DType.float32, 1] = 0
+                var count_1s: SIMD[dtype, 1] = 0
                 # Count the number of values equal to max_res
                 for j in range(t.dim(axis)):
                     let index = index_base + j * strides[axis]
-                    if t[index] == max_res[index]:
+                    if t[index] == max_res[i]:
                         count_1s += 1
                 # Divide 1.0 by the number of max values (n) and multiply by upper gradient value
+                let factor = 1 / count_1s
                 for j in range(t.dim(axis)):
                     let index = index_base + j * strides[axis]
-                    if t[index] == max_res[index]:
-                        res[index] = 1 / count_1s
-                        res[index] *= ug[index]
+                    if t[index] == max_res[i]:
+                        res[index] = factor * ug[i]
 
         return res
 
