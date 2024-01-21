@@ -15,7 +15,7 @@ fn test_SOFTMAX() raises:
     var x = Tensor[dtype](2, 3, 2)
     fill[dtype, nelts](x, 4)
 
-    var f0 = nn.Softmax[0]()
+    let f0 = nn.Softmax[0]()
     var res = f0(x)
     var expected = Tensor[dtype](2, 3, 2)
     fill[dtype, nelts](expected, 0.5)
@@ -23,7 +23,7 @@ fn test_SOFTMAX() raises:
     assert_equal(GRAPH.graph.size, 6) # inputs, max_values, exp_values, sum_values, diff_max_values, result_div
     GRAPH.reset_all()
 
-    var f1 = nn.Softmax[1]()
+    let f1 = nn.Softmax[1]()
     res = f1(x)
     expected = Tensor[dtype](2, 3, 2)
     fill[dtype, nelts](expected, 1.0 / 3.0)
@@ -31,7 +31,7 @@ fn test_SOFTMAX() raises:
     assert_equal(GRAPH.graph.size, 6)
     GRAPH.reset_all()
 
-    var f2 = nn.Softmax[2]()
+    let f2 = nn.Softmax[2]()
     res = f2(x)
     expected = Tensor[dtype](2, 3, 2)
     fill[dtype, nelts](expected, 0.5)
@@ -45,7 +45,7 @@ fn test_LOGSOFTMAX() raises:
     var x = Tensor[dtype](2, 3, 2)
     fill[dtype, nelts](x, 4)
 
-    var f0 = nn.LogSoftmax[0]()
+    let f0 = nn.LogSoftmax[0]()
     var res = f0(x)
     var expected = Tensor[dtype](2, 3, 2)
     fill[dtype, nelts](expected, -0.69314718)
@@ -53,7 +53,7 @@ fn test_LOGSOFTMAX() raises:
     assert_equal(GRAPH.graph.size, 7) # inputs, max_values, exp_values, sum_values, diff_max_values, log_values, result_sub
     GRAPH.reset_all()
 
-    var f1 = nn.LogSoftmax[1]()
+    let f1 = nn.LogSoftmax[1]()
     res = f1(x)
     expected = Tensor[dtype](2, 3, 2)
     fill[dtype, nelts](expected, -1.09861231)
@@ -61,7 +61,7 @@ fn test_LOGSOFTMAX() raises:
     assert_equal(GRAPH.graph.size, 7)
     GRAPH.reset_all()
 
-    var f2 = nn.LogSoftmax[2]()
+    let f2 = nn.LogSoftmax[2]()
     res = f2(x)
     expected = Tensor[dtype](2, 3, 2)
     fill[dtype, nelts](expected, -0.69314718)
@@ -78,7 +78,7 @@ fn test_RELU() raises:
     for i in range(3, 6):
         t1[i] = -3
 
-    var f = nn.ReLU()
+    let f = nn.ReLU()
     let res = f(t1)
 
     var expected = Tensor[dtype](2, 3)
@@ -98,7 +98,7 @@ fn test_SIGMOID() raises:
     var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
     fill[dtype, nelts](upper_grad, 5.0)
 
-    var f = nn.Sigmoid()
+    let f = nn.Sigmoid()
     let res = f(t1)
 
     let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
@@ -118,7 +118,7 @@ fn test_SIGMOID() raises:
 fn test_TANH() raises:
     let t1: Tensor[dtype] = Tensor[dtype](2, 3)
 
-    var f = nn.Tanh()
+    let f = nn.Tanh()
     let res = f(t1)
 
     var expected = Tensor[dtype](2, 3)
