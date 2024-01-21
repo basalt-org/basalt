@@ -63,7 +63,8 @@ WIP: Work in progress
 | EXP        |   ✅   |
 | LOG        |   ✅   |
 | POW        |   ✅   |
-| SUM        |   ✅*  |
+| SUM        |   ✅   |
+| MAX        |   ✅   |
 | TRANSPOSE  |   ✅   |
 | FLATTEN    |   ✅   |
 | RESHAPE    |   ✅   |
@@ -88,7 +89,8 @@ WIP: Work in progress
 | RELU      |   ✅   |
 | SIGMOID   |   ✅   |
 | TANH      |   ✅   |
-| SOFTMAX   |   ❌   |
+| SOFTMAX   |   ✅   |
+| LOGSOFTMAX|   ✅   |
 | LEAKYRELU |   ❌   |
 
 ### Optimizers

@@ -1,7 +1,9 @@
+from math import add
 from tensor import Tensor, TensorShape
+from dainemo.utils.tensorutils import fill, elwise_op
 
 alias dtype = DType.float32
-
+alias nelts = simdwidthof[dtype]()
 
 fn generate_tensor(*shape: Int) -> Tensor[dtype]:
     var A = Tensor[dtype](shape)
@@ -230,3 +232,98 @@ struct PaddingData:
         let B = generate_expected_tensor[81](expected, 3, 3, 3, 3)
 
         return PaddingData(A, B, pad_with)
+
+
+
+struct SumMeanStdData:
+    var A: Tensor[dtype]
+    var axis: Int
+    var expected_sum: Tensor[dtype]
+    var expected_mean: Tensor[dtype]
+    var expected_std: Tensor[dtype]
+    
+
+    fn __init__(inout self, A: Tensor[dtype], axis: Int, expected_sum: Tensor[dtype], expected_mean: Tensor[dtype], expected_std: Tensor[dtype]):
+        self.A = A
+        self.axis = axis
+        self.expected_sum = expected_sum
+        self.expected_mean = expected_mean
+        self.expected_std = expected_std
+        
+    @staticmethod
+    fn generate_3d_axis_0() -> SumMeanStdData:
+        let A = generate_tensor(3, 4, 5)
+        let axis = 0
+
+        let expected_sum = StaticIntTuple[20](
+            63,  66,  69,  72,  75,
+            78,  81,  84,  87,  90,
+            93,  96,  99,  102, 105,
+            108, 111, 114, 117, 120,
+        )
+
+        let expected_mean = StaticIntTuple[20](
+            21, 22, 23, 24, 25,
+            26, 27, 28, 29, 30,
+            31, 32, 33, 34, 35,
+            36, 37, 38, 39, 40,
+        )
+        
+        var expected_std = Tensor[dtype](1, 4, 5)
+        fill[dtype, nelts](expected_std, 16.32993162)
+        
+        let B = generate_expected_tensor[20](expected_sum, 1, 4, 5)
+        let C = generate_expected_tensor[20](expected_mean, 1, 4, 5)
+
+        return SumMeanStdData(A, axis, B, C, expected_std)
+
+    @staticmethod
+    fn generate_3d_axis_1() -> SumMeanStdData:
+        let A = generate_tensor(3, 4, 5)
+        let axis = 1
+
+        let expected_sum = StaticIntTuple[15](
+            34,  38,  42,  46,  50,
+            114, 118, 122, 126, 130,
+            194, 198, 202, 206, 210,
+        )
+
+        let expected_mean = StaticIntTuple[15](
+            8,  9,  10, 11, 12,
+            28, 29, 30, 31, 32,
+            48, 49, 50, 51, 52,
+        ) # 0.5 added afterwards 
+
+        var expected_std = Tensor[dtype](3, 1, 5)
+        fill[dtype, nelts](expected_std, 5.59016994)
+
+        let B = generate_expected_tensor[15](expected_sum, 3, 1, 5)
+        var C = generate_expected_tensor[15](expected_mean, 3, 1, 5)
+        C = elwise_op[dtype, nelts, add](C, 0.5)
+
+        return SumMeanStdData(A, axis, B, C, expected_std)
+
+    @staticmethod
+    fn generate_3d_axis_2() -> SumMeanStdData:
+        let A = generate_tensor(3, 4, 5)
+        let axis = 2
+
+        let expected_sum = StaticIntTuple[12](
+            15,  40,  65,  90,
+            115, 140, 165, 190,
+            215, 240, 265, 290,
+        )
+
+        let expected_mean = StaticIntTuple[12](
+            3,  8,  13, 18,
+            23, 28, 33, 38,
+            43, 48, 53, 58,
+        )
+
+        var expected_std = Tensor[dtype](3, 4, 1)
+        fill[dtype, nelts](expected_std, 1.41421356)
+
+        let B = generate_expected_tensor[12](expected_sum, 3, 4, 1)
+        let C = generate_expected_tensor[12](expected_mean, 3, 4, 1)
+
+        return SumMeanStdData(A, axis, B, C, expected_std)

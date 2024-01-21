@@ -1,8 +1,9 @@
 from tensor import Tensor, TensorShape
 from algorithm import vectorize, parallelize
 
+from dainemo import NONE_BC
 from dainemo.autograd.node import Node
-from dainemo.utils.tensorutils import elwise_op, zero
+from dainemo.utils.tensorutils import elwise_op, zero, broadcast_shapes
 from math import add, max
 
 
@@ -74,9 +75,7 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
 
             # 2. The resulting node in the graph always contains it's backward information
             result_node.backward_fn = backward_fn
-            result_node.parent_broadcast_shape = self.get_broadcasting_shape(
-                operands, result
-            )
+            result_node.parent_broadcast_shape = self.get_broadcasting_shape(operands)
 
             # 3. Add edges to the result node & the operands and adds them to the graph
             self.add_edge(result_node, operands)
@@ -91,6 +90,7 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
         """
         Returns True when at least one of the operand nodes requires grad.
         """
+        #NOTE: unpack arguments not supported yet. result_requires_grad(*operands)
         for operand_ptr in operands:
             if __get_address_as_lvalue(operand_ptr).requires_grad:
                 return True
@@ -98,44 +98,23 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
 
     @staticmethod
     fn get_broadcasting_shape(
-        operands: VariadicListMem[Node[dtype]], result: Tensor[dtype]
+        operands: VariadicListMem[Node[dtype]]
     ) -> TensorShape:
         """
-        Broadcast multiple shapes to find a common compatible shape using only loops.
         Returns the broadcast shape of the given operands.
         """
-        # from testing import assert_true
-        var bc_shape = DynamicVector[Int](2)
-        var max_rank: Int = 0
-        # get max rank of all the operands
-        for i in range(len(operands)):
-            let operand_rank = __get_address_as_lvalue(operands[i]).tensor.rank()
-            if operand_rank > max_rank:
-                max_rank = operand_rank
+        #NOTE: unpack arguments not supported yet. get_broadcasting_shape(*operands) 
+        var broadcast_shape: TensorShape
+        try:
+            broadcast_shape = __get_address_as_lvalue(operands[0]).tensor.shape()
+            for i in range(1, len(operands)):
+                broadcast_shape = broadcast_shapes(
+                    broadcast_shape,
+                    __get_address_as_lvalue(operands[i]).tensor.shape()
+                )
+        except:
+            broadcast_shape = NONE_BC
 
-        # add max_rank number of -1 values to bc_shape
-        for i in range(max_rank):
-            # add default -1 value to bc_shape
-            bc_shape.push_back(-1)
-
-        let none_bc = TensorShape(bc_shape)
-
-        for i in range(max_rank):
-            var current_max: Int = 1
-            for operand_ptr in operands:
-                let operand: Node[dtype] = __get_address_as_lvalue(operand_ptr)
-                # _ = assert_true(operand.tensor.rank() <= 2, "Broadcasting only supports up to rank 2 tensors.")
-                let operand_shape = operand.tensor.shape()
-                if i < operand_shape.rank():
-                    let dim_size = operand_shape[max_rank - i - 1]
-                    if dim_size > 1:
-                        if current_max != 1 and current_max != dim_size:
-                            # Broadcasting not supported for given operands.
-                            return none_bc
-                        current_max = dim_size
-            bc_shape[max_rank - i - 1] = current_max
-
-        let broadcast_shape = TensorShape(bc_shape)
         return broadcast_shape
 
     fn add_node(inout self, inout node: Node[dtype]):

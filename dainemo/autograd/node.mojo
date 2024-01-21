@@ -1,7 +1,7 @@
 from math import add, min
 from tensor import Tensor, TensorShape
 
-from dainemo import GRAPH
+from dainemo import GRAPH, NONE_BC
 from dainemo.utils.uuid import uuid
 from dainemo.utils.tensorutils import fill, elwise_op, tsum, calculate_strides
 
@@ -152,7 +152,6 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         Function overload for: Default upper_grad, tensor of 1.0, with shape equal to the shape of the node's tensor.
         """
         var upper_grad = Tensor[dtype](self.tensor.shape())
-        alias nelts: Int = simdwidthof[dtype]()
         fill[dtype, nelts](upper_grad, 1.0)
         self.backward(upper_grad, retain_graph)
 
@@ -201,6 +200,7 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
                 )
                 self.accumulate_grad2(grad)
 
+
     @staticmethod
     fn unbroadcast_data(
         inout data: Tensor[DType.float32],
@@ -210,12 +210,11 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         """
         Unbroadcasts the data to the original shape of the node.
         """
-        alias none_bc = TensorShape(-1, -1)
-        alias nelts: Int = simdwidthof[dtype]()
-        if broadcast_shape != none_bc:
+        if broadcast_shape != NONE_BC:
             for dim in range(min(original_shape.rank(), broadcast_shape.rank())):
                 if original_shape[dim] != broadcast_shape[dim]:
-                    data = tsum[DType.float32, 1](data, axis=dim)
+                    data = tsum[DType.float32, nelts](data, axis=dim)
+
 
     fn topological_sort(inout self, inout sorted_nodes: DynamicVector[String]):
         """
