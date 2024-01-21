@@ -53,7 +53,7 @@ struct Softmax[axis: Int]:
     @staticmethod
     fn forward(input: Node[dtype]) -> Node[dtype]:
         # softmax: exp(x_i) / sum(exp(x_j))
-        # stable softmax: exp(x_i - max(x_j)) / sum(exp(x_j))
+        # stable softmax: exp(x_i - max(x_j)) / sum(exp(x_j - max(x_j)))
 
         let max_values = MAX.forward[axis](input)
         let input_minus_max = SUB.forward(input, max_values)
@@ -73,8 +73,8 @@ struct LogSoftmax[axis: Int]:
 
     @staticmethod
     fn forward(input: Node[dtype]) -> Node[dtype]:
-        # logsoftmax: log(exp(x_i) / sum(exp(x_j)))
-        # logsoftmax: x_i - log(sum(exp(x_j)))
+        # stable logsoftmax: log(exp(x_i - max(x_j)) / sum(exp(x_j - max(x_j))))
+        # stable logsoftmax: x_i - max(x_j) - log(sum(exp(x_j - max(x_j))))
 
         let max_values = MAX.forward[axis](input)
         let input_minus_max = SUB.forward(input, max_values)

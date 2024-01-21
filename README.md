@@ -78,8 +78,8 @@ WIP: Work in progress
 | Task      | Status |
 |-----------|--------|
 | MSE       |   ✅   |
-| CE        |   ❌   |
-| BCE       |   ❌   |
+| CE        |   ✅   |
+| BCE       |   ✅   |
 | SoftmaxCE |   ❌   |
 
 ### Activations
