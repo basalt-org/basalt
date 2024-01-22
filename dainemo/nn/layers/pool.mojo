@@ -2,6 +2,7 @@ from tensor import TensorShape
 from random import rand
 
 from dainemo import GRAPH
+from dainemo.nn.layers import Layer
 from dainemo.autograd.node import Node
 from dainemo.autograd.ops.pool import MAXPOOL2D
 
@@ -14,7 +15,7 @@ struct MaxPool2d[
     padding: StaticIntTuple[2] = 0,
     stride: StaticIntTuple[2] = 1,
     dilation: StaticIntTuple[2] = 1
-]:
+](Layer):
     """
     A 2D Max Pooling Layer.
 

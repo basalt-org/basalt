@@ -2,6 +2,7 @@ from tensor import Tensor
 from random import rand
 
 from dainemo import GRAPH
+from dainemo.nn.layers import Layer
 from dainemo.autograd.node import Node
 from dainemo.autograd.ops.conv import CONV2D
 
@@ -11,7 +12,7 @@ struct Conv2d[
     padding: StaticIntTuple[2] = 0,
     stride: StaticIntTuple[2] = 1,
     dilation: StaticIntTuple[2] = 1,
-]:
+](Layer):
     """
     A 2D Convolution Layer.
 

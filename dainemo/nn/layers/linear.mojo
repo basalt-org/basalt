@@ -2,12 +2,13 @@ from tensor import Tensor
 from random import rand
 
 from dainemo import GRAPH
+from dainemo.nn.layers import Layer
 from dainemo.autograd.node import Node
 from dainemo.autograd.ops.basics import DOT, ADD
 
 
 
-struct Linear:
+struct Linear(Layer):
     """
     A fully connected layer.
     """
@@ -21,7 +22,7 @@ struct Linear:
         GRAPH.add_node(self.weights)
         GRAPH.add_node(self.bias)
 
-    fn forward(inout self, inputs: Node[dtype]) -> Node[dtype]:
+    fn forward(self, inputs: Node[dtype]) -> Node[dtype]:
         """
         Forward pass of the linear layer.
         """
@@ -31,11 +32,8 @@ struct Linear:
         let weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
         let bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
 
-        ######
-        # TODO: CHECK IF PARAMS CHANGED !!!!!
-
         let res = DOT.forward(inputs, weights)
         return ADD.forward(res, bias)
 
-    fn __call__(inout self, inputs: Node[dtype]) -> Node[dtype]:
+    fn __call__(self, inputs: Node[dtype]) -> Node[dtype]:
         return self.forward(inputs)

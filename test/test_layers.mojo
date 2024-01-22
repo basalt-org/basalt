@@ -11,7 +11,7 @@ alias dtype = DType.float32
 
 # <------------LINEAR------------>
 fn test_linear() raises:
-    var f = nn.Linear(5, 3)                             # 5 inputs, 3 outputs
+    let f = nn.Linear(5, 3)                             # 5 inputs, 3 outputs
     
     let inputs: Tensor[dtype] = rand[dtype](2, 5)       # A batch of 2 with 5 inputs
     
@@ -27,6 +27,22 @@ fn test_linear() raises:
     assert_equal(GRAPH.graph.size, 5)
     GRAPH.reset_all()
 
+
+# <------------SEQUENTIAL------------>
+from dainemo.nn.layers import Layer
+fn test_sequential() raises:
+    let f = nn.Linear(5, 3)
+    let g = nn.Linear(3, 2)
+    let seq = nn.Sequential(f)
+
+    let inputs: Tensor[dtype] = rand[dtype](2, 5)
+    
+    let output_f = f(Node[dtype](inputs))
+    let output_gf = g(output_f)
+    # let output_seq = seq(Node[dtype](inputs))
+
+    print(output_gf)
+    # print(output_seq)
 
 # <------------CONV2D------------>
 fn test_conv2d() raises:   
@@ -113,5 +129,6 @@ fn main():
         test_conv2d()
         test_conv2d_b()
         test_maxpool2d()
+        test_sequential()
     except:
         print("[ERROR] Error in layers")
