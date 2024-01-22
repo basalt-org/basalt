@@ -63,7 +63,7 @@ class CNN(nn.Module):
 
 if __name__ == '__main__':
     batch_size = 32
-    num_epochs = 10
+    num_epochs = 20
     learning_rate = 0.01
 
 
@@ -116,7 +116,7 @@ if __name__ == '__main__':
             loss.backward()               
             optimizer.step()                
             
-            print ('Epoch [{}/{}],\t Step [{}/{}],\t Loss: {:.4f}'
+            print ('Epoch [{}/{}],\t Step [{}/{}],\t Loss: {:.6f}'
                    .format(epoch + 1, num_epochs, i + 1, total_step, loss.item()))
             
 
