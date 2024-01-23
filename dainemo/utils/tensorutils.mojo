@@ -57,6 +57,11 @@ fn elwise_op[
     ) -> SIMD[dtype, nelts],
 ](t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
     """Element-wise operation on two tensors."""
+    if t2.shape() == 1:
+        return elwise_op[dtype, nelts, func](t1, t2[0])
+    if t1.shape() != t2.shape():
+        return broadcast_elwise_op[dtype, nelts, func](t1, t2)
+
     var t_new = Tensor[dtype](t1.shape())
 
     @parameter
