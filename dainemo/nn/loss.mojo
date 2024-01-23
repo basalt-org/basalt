@@ -41,7 +41,7 @@ struct CrossEntropyLoss:
         # -1/N * sum( targets * log(outputs + epsilon) )
 
         alias epsilon = 1e-9
-        outputs.tensor = elwise_op[dtype, nelts, add](outputs.tensor, epsilon)
+        let add_eps = ADD.forward(outputs, epsilon)
 
         let logout = LOG.forward(outputs)
         let targets_logout = MUL.forward(Node[dtype](targets), logout)

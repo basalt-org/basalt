@@ -35,6 +35,14 @@ struct ADD:
         return GRAPH.create_graph_node[Self.backward](res, n1, n2)
 
     @staticmethod
+    fn forward(n1: Node[dtype], a: SIMD[dtype, 1]) -> Node[dtype]:
+        """Forward operation of tensor-scalar addition."""
+        let res: Tensor[dtype] = elwise_op[dtype, nelts, add](n1.tensor, a)
+        var a_tensor: Tensor[dtype] = Tensor[dtype](1)
+        a_tensor[0] = a
+        return GRAPH.create_graph_node[Self.backward](res, n1, Node[dtype](a_tensor))
+
+    @staticmethod
     fn backward(
         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
     ) -> Tensor[dtype]:
