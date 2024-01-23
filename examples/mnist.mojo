@@ -1,9 +1,10 @@
-from tensor import Tensor
+from tensor import Tensor, TensorShape
 
 import dainemo.nn as nn
 from dainemo.autograd.node import Node
 from dainemo.utils.datasets import MNIST
 from dainemo.utils.dataloader import DataLoader
+from dainemo.autograd.ops.basics import RESHAPE
 
 alias dtype = DType.float32
 
@@ -34,6 +35,7 @@ struct CNN:
     var l5: nn.ReLU
     # var l6: nn.MaxPool2d[1, 2]
     var l7: nn.Linear
+    var l8: nn.Softmax[1]
 
     fn __init__(inout self):
         self.l1 = nn.Conv2d[2, 1, 1](
@@ -51,6 +53,7 @@ struct CNN:
         self.l5 = nn.ReLU()
         # self.l6 = nn.MaxPool2d[in_channels=1, kernel_size=2]()
         self.l7 = nn.Linear(n_input = 32*28*28, n_output=10)  #37*7*7 after pooling
+        self.l8 = nn.Softmax[1]()
         
     fn forward(inout self, x: Tensor[dtype]) -> Node[dtype]:
         var output = self.l1(Node[dtype](x))
@@ -59,7 +62,9 @@ struct CNN:
         output = self.l4(output)
         output = self.l5(output)
         # output = self.l6(output)
+        output = RESHAPE.forward(output, TensorShape(4, 32*28*28))
         output = self.l7(output)
+        output = self.l8(output)
         return output 
 
 

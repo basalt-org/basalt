@@ -43,7 +43,7 @@ struct CrossEntropyLoss:
         alias epsilon = 1e-9
         let add_eps = ADD.forward(outputs, epsilon)
 
-        let logout = LOG.forward(outputs)
+        let logout = LOG.forward(add_eps)
         let targets_logout = MUL.forward(Node[dtype](targets), logout)
         let entropy = SUM.forward(targets_logout)
         let negDivN: SIMD[dtype, 1] = (-1/outputs.tensor.num_elements()).cast[dtype]()
