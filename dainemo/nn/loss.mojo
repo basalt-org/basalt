@@ -46,7 +46,7 @@ struct CrossEntropyLoss:
         let logout = LOG.forward(add_eps)
         let targets_logout = MUL.forward(Node[dtype](targets), logout)
         let entropy = SUM.forward(targets_logout)
-        let negDivN: SIMD[dtype, 1] = (-1/outputs.tensor.num_elements()).cast[dtype]()
+        let negDivN: SIMD[dtype, 1] = (-1/outputs.tensor.dim(0)).cast[dtype]() # average over batch (N)
         return MUL.forward(entropy, negDivN)
 
     fn __call__(inout self, inout outputs: Node[dtype], targets: Tensor[dtype]) -> Node[dtype]:

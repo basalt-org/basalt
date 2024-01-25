@@ -58,7 +58,7 @@ fn calc_CE_loss(output: Tensor[dtype], labels: Tensor[dtype]) raises -> SIMD[dty
     alias epsilon = 1e-9
     for i in range(output.num_elements()):
         expected_loss += labels[i] * log[dtype](output[i]+epsilon)
-    expected_loss = -expected_loss / output.num_elements()
+    expected_loss = -expected_loss / output.dim(0)
     return expected_loss
 
 
@@ -78,7 +78,7 @@ fn test_CE_perfect() raises:
     assert_equal(loss.tensor.dim(0), 1)     # CE summed over all elements
     assert_almost_equal(loss.tensor[0], expected_loss, relative_tolerance=1e-5)
 
-    assert_equal(GRAPH.graph.size, 7)        # outputs, entropy, negdivN, targets_logout, targets, logout, outputs
+    assert_equal(GRAPH.graph.size, 9)        # outputs, epsilon, add, entropy, negdivN, targets_logout, targets, logout, outputs
     GRAPH.reset_all()
 
 
@@ -96,7 +96,7 @@ fn test_CE_imperfect() raises:
 
     let expected_loss = calc_CE_loss(output, labels)
     assert_almost_equal(loss.tensor[0], expected_loss, relative_tolerance=1e-5)
-    assert_equal(GRAPH.graph.size, 7)
+    assert_equal(GRAPH.graph.size, 9)
     GRAPH.reset_all()
 
 
@@ -155,6 +155,7 @@ fn main():
         test_CE_imperfect()
         test_BCE_perfect()
         test_BCE_imperfect()
-    except:
+    except e:
         print("[ERROR] Error in loss")
+        print(e)
     
