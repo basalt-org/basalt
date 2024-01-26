@@ -52,7 +52,7 @@ struct CNN:
         )
         self.l5 = nn.ReLU()
         self.l6 = nn.MaxPool2d[kernel_size=2]()
-        self.l7 = nn.Linear(n_input = 37*7*7, n_output=10)
+        self.l7 = nn.Linear(n_input = 32*7*7, n_output=10)
         self.l8 = nn.Softmax[1]()
         
     fn forward(inout self, x: Tensor[dtype]) -> Node[dtype]:
@@ -66,7 +66,6 @@ struct CNN:
         output = self.l7(output)
         output = self.l8(output)
         return output
-
 
 
 fn main():    
@@ -107,16 +106,14 @@ fn main():
 
             # Forward pass
             var output = model.forward(batch.data)
+            var loss = loss_func(output, batch.labels)
 
-            # var loss = loss_func(output, batch.labels)
+            # Backward pass
+            optim.zero_grad()
+            loss.backward()
+            optim.step()
 
-            # # Backward pass
-            # optim.zero_grad()
-            # loss.backward()
-            # optim.step()
+            epoch_loss += loss.tensor[0]
+            num_batches += 1
 
-            # epoch_loss += loss.tensor[0]
-            # num_batches += 1
-
-            # print("Epoch [", epoch + 1, "/", num_epochs, "] \t Step [", num_batches, "/", training_loader._num_batches, "] \t Loss: ", epoch_loss / num_batches)
-            print(epoch+1)
+            print("Epoch [", epoch + 1, "/", num_epochs, "] \t Step [", num_batches, "/", training_loader._num_batches, "] \t Loss: ", epoch_loss / num_batches)
