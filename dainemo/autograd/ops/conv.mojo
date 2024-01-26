@@ -18,8 +18,6 @@ fn get_result_shape[
         dimension Y on index -1.
     """
 
-    alias D = 1 # dilation (not implemented yet)
-
     let result_x_dim = (
         (input_shape[-2] + (2 * padding[0]) - dilation[0] * (kernel_shape[-2] - 1) - 1)
         // stride[0]

@@ -28,51 +28,51 @@ def plot_image[dtype: DType](borrowed data: Tensor[dtype], num: Int):
 
 
 struct CNN:
-    var l1: nn.Conv2d[2, 1, 1]
+    var l1: nn.Conv2d[2, 1]
     var l2: nn.ReLU
-    # var l3: nn.MaxPool2d[1, 2]
-    var l4: nn.Conv2d[2, 1, 1]
+    var l3: nn.MaxPool2d[2]
+    var l4: nn.Conv2d[2, 1]
     var l5: nn.ReLU
-    # var l6: nn.MaxPool2d[1, 2]
+    var l6: nn.MaxPool2d[2]
     var l7: nn.Linear
     var l8: nn.Softmax[1]
 
     fn __init__(inout self):
-        self.l1 = nn.Conv2d[2, 1, 1](
+        self.l1 = nn.Conv2d[2, 1](
             in_channels=1,
             out_channels=16,
             kernel_size=5
         )
         self.l2 = nn.ReLU()
-        # self.l3 = nn.MaxPool2d[in_channels=1, kernel_size=2]()
-        self.l4 = nn.Conv2d[2, 1, 1](
+        self.l3 = nn.MaxPool2d[kernel_size=2]()
+        self.l4 = nn.Conv2d[2, 1](
             in_channels=16, 
             out_channels=32,
             kernel_size=5
         )
         self.l5 = nn.ReLU()
-        # self.l6 = nn.MaxPool2d[in_channels=1, kernel_size=2]()
-        self.l7 = nn.Linear(n_input = 32*28*28, n_output=10)  #37*7*7 after pooling
+        self.l6 = nn.MaxPool2d[kernel_size=2]()
+        self.l7 = nn.Linear(n_input = 37*7*7, n_output=10)
         self.l8 = nn.Softmax[1]()
         
     fn forward(inout self, x: Tensor[dtype]) -> Node[dtype]:
         var output = self.l1(Node[dtype](x))
         output = self.l2(output)
-        # output = self.l3(output)
+        output = self.l3(output)
         output = self.l4(output)
         output = self.l5(output)
-        # output = self.l6(output)
-        output = RESHAPE.forward(output, TensorShape(4, 32*28*28))
+        output = self.l6(output)
+        output = RESHAPE.forward(output, TensorShape(output.tensor.dim(0), 32*7*7))
         output = self.l7(output)
         output = self.l8(output)
-        return output 
+        return output
 
 
 
 fn main():    
     alias num_epochs = 10
     alias batch_size = 4
-    alias learning_rate = 1e-5
+    alias learning_rate = 0.01
     
     
     let train_data: MNIST[dtype]
@@ -87,11 +87,10 @@ fn main():
                             labels=train_data.labels,
                             batch_size=batch_size
                         )
-    
+
 
     var model = CNN()
     var loss_func = nn.CrossEntropyLoss()
-    # var loss_func = nn.MSELoss()
     var optim = nn.optim.Adam(lr=learning_rate)
 
     let batch_data: Tensor[dtype]
@@ -109,14 +108,15 @@ fn main():
             # Forward pass
             var output = model.forward(batch.data)
 
-            var loss = loss_func(output, batch.labels)
+            # var loss = loss_func(output, batch.labels)
 
-            # Backward pass
-            optim.zero_grad()
-            loss.backward()
-            optim.step()
+            # # Backward pass
+            # optim.zero_grad()
+            # loss.backward()
+            # optim.step()
 
-            epoch_loss += loss.tensor[0]
-            num_batches += 1
+            # epoch_loss += loss.tensor[0]
+            # num_batches += 1
 
-            print("Epoch [", epoch + 1, "/", num_epochs, "] \t Step [", num_batches, "/", training_loader._num_batches, "] \t Loss: ", epoch_loss / num_batches)
+            # print("Epoch [", epoch + 1, "/", num_epochs, "] \t Step [", num_batches, "/", training_loader._num_batches, "] \t Loss: ", epoch_loss / num_batches)
+            print(epoch+1)

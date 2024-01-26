@@ -13,7 +13,7 @@
 | Task       | Dataset | Forward | Backward | Training |
 |------------|---------|---------|----------|----------|
 | REGRESSION |   ✅    |   ✅    |    ✅    |    ✅    |
-| MNIST      |   ✅    |   ❌    |    ❌    |    ❌    |
+| MNIST      |   ✅    |   ✅    |    ❌    |    ❌    |
 
 
 <sub>Regression example:</sub>
