@@ -10,6 +10,7 @@ from dainemo.autograd.node import Node
 from dainemo.autograd.ops.basics import DOT, ADD, RESHAPE
 from dainemo.autograd.ops.conv import CONV2D
 import dainemo.nn as nn
+from dainemo.utils.tensorutils import rand_uniform
 from test_tensorutils import assert_tensors_equal
 
 from test_conv import to_numpy, to_tensor
@@ -227,38 +228,22 @@ fn run_torch(
         return out
 
 
-fn run_torch(
-    epochs: Int,
-    learning_rate: FloatLiteral,
-    inputs: Tensor[dtype],
-    labels: Tensor[dtype],
-) raises:
-    let torch = Python.import_module("torch")
-
-
-fn random_uniform(shape: TensorShape, low: FloatLiteral, high: FloatLiteral) -> Tensor[dtype]:
-    """
-    Returns a tensor with random values between low and high.
-    """
-    var res = rand[dtype](shape)
-    for i in range(res.num_elements()):
-        res[i] = low + (high - low) * res[i]
-    return res
-
 fn he_uniform(shape: TensorShape, fan_in: Int) -> Tensor[dtype]:
     """
     Returns a tensor with random values between -h and h.
     """
-    let n_input = shape[0]
-    let h = 6.0 / sqrt(fan_in)
-    return random_uniform(shape, -h, h)
+    alias nelts = simdwidthof[dtype]()
+    let k: SIMD[dtype, 1] = 1.0 / fan_in
+    let h = sqrt(k)
+    return rand_uniform[dtype, nelts](shape, -h, h)
+
 
 fn main():
     let learning_rate = 0.1
     let epochs = 10
-    
+
     let inputs = rand[dtype](4, 1, 28, 28)
-    var labels = Tensor[dtype](4, 10) # one-hot encoded (probabilities)
+    var labels = Tensor[dtype](4, 10)  # one-hot encoded (probabilities)
     for i in range(4):
         labels[i * 10 + i] = 1.0
 
