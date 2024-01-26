@@ -63,6 +63,7 @@ fn test_get_result_shape() raises:
 
 def to_numpy(tensor: Tensor) -> PythonObject:
     let np = Python.import_module("numpy")
+    np.set_printoptions(4)
 
     rank = tensor.rank()
     var pyarray: PythonObject = np.array([0])
