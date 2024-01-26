@@ -21,10 +21,10 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
         self.keys = DynamicVector[String]()
         self.graph = DynamicVector[Node[dtype]]()
 
-    fn add_edge(
+    fn add_edge[lifetime_op: ImmLifetime](
         inout self,
         inout result_node: Node[dtype],
-        operands: VariadicListMem[Node[dtype]],
+        operands: VariadicListMem[Node[dtype], __mlir_attr.`false`, lifetime_op],
     ):
         """
         Adds an edge between result node and the corresponding operand node of the operand tensor.
@@ -33,7 +33,7 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
             - Adds the operand nodes as parents to the result node.
         """
         for operand_ptr in operands:
-            var operand: Node[dtype] = __get_address_as_lvalue(operand_ptr)
+            var operand: Node[dtype] = operand_ptr[]
 
             # 1. Find the operand node in the graph
             var idx = self.get_node_idx(operand.uuid)
@@ -86,19 +86,19 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
             return Node[dtype](result)
 
     @staticmethod
-    fn result_requires_grad(operands: VariadicListMem[Node[dtype]]) -> Bool:
+    fn result_requires_grad[lifetime_op: ImmLifetime](operands: VariadicListMem[Node[dtype], __mlir_attr.`false`, lifetime_op]) -> Bool:
         """
         Returns True when at least one of the operand nodes requires grad.
         """
         #NOTE: unpack arguments not supported yet. result_requires_grad(*operands)
         for operand_ptr in operands:
-            if __get_address_as_lvalue(operand_ptr).requires_grad:
+            if operand_ptr[].requires_grad:
                 return True
         return False
 
     @staticmethod
-    fn get_broadcasting_shape(
-        operands: VariadicListMem[Node[dtype]]
+    fn get_broadcasting_shape[lifetime_op: ImmLifetime](
+        operands: VariadicListMem[Node[dtype], __mlir_attr.`false`, lifetime_op]
     ) -> TensorShape:
         """
         Returns the broadcast shape of the given operands.
@@ -106,11 +106,11 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
         #NOTE: unpack arguments not supported yet. get_broadcasting_shape(*operands) 
         var broadcast_shape: TensorShape
         try:
-            broadcast_shape = __get_address_as_lvalue(operands[0]).tensor.shape()
+            broadcast_shape = operands[0].tensor.shape()
             for i in range(1, len(operands)):
                 broadcast_shape = broadcast_shapes(
                     broadcast_shape,
-                    __get_address_as_lvalue(operands[i]).tensor.shape()
+                    operands[i].tensor.shape()
                 )
         except:
             broadcast_shape = NONE_BC

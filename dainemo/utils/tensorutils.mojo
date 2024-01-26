@@ -591,9 +591,9 @@ fn broadcast_shapes(s1: TensorShape, s2: TensorShape) raises -> TensorShape:
 
 @always_inline
 fn broadcast_shapes(*s: TensorShape) raises -> TensorShape:
-    var result_shape = __get_address_as_lvalue(s[0])
+    var result_shape = s[0]
 
     for i in range(1, len(s)):
-        result_shape = broadcast_shapes(result_shape, __get_address_as_lvalue(s[i]))
+        result_shape = broadcast_shapes(result_shape, s[i])
 
     return result_shape
