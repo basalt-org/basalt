@@ -41,7 +41,7 @@ fn test_sequential() raises:
     let output_gf = g(output_f)
     # let output_seq = seq(Node[dtype](inputs))
 
-    print(output_gf)
+    # print(output_gf)
     # print(output_seq)
 
 # <------------CONV2D------------>
