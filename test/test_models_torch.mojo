@@ -247,10 +247,10 @@ fn main():
     for i in range(4):
         labels[i * 10 + i] = 1.0
 
-    let conv1_weights = he_uniform(TensorShape(2, 1, 5, 5), 1)
+    let conv1_weights = he_uniform(TensorShape(2, 1, 5, 5), 1 * 5 * 5)
     let conv1_bias = Tensor[dtype](2)
 
-    let conv2_weights = he_uniform(TensorShape(4, 2, 5, 5), 2)
+    let conv2_weights = he_uniform(TensorShape(4, 2, 5, 5), 2 * 5 * 5)
     let conv2_bias = Tensor[dtype](4)
 
     let linear1_weights = he_uniform(TensorShape(4 * 28 * 28, 10), 4 * 28 * 28)
