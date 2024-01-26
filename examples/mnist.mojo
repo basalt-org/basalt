@@ -1,3 +1,4 @@
+from utils.index import Index
 from tensor import Tensor, TensorShape
 
 import dainemo.nn as nn
@@ -11,7 +12,6 @@ alias dtype = DType.float32
 
 
 def plot_image[dtype: DType](borrowed data: Tensor[dtype], num: Int):
-    from utils.index import Index
     from python.python import Python, PythonObject
     
     np = Python.import_module("numpy")
@@ -66,9 +66,9 @@ struct CNN:
 
 
 fn main():    
-    alias num_epochs = 10
+    alias num_epochs = 20
     alias batch_size = 4
-    alias learning_rate = 0.01
+    alias learning_rate = 1e-3
     
     
     let train_data: MNIST[dtype]
@@ -103,7 +103,13 @@ fn main():
 
             # Forward pass
             var output = model.forward(batch.data)
-            var loss = loss_func(output, batch.labels)
+            
+            # [ONE HOT ENCODING!]
+            var labels_one_hot = Tensor[dtype](batch.labels.dim(0), 10)
+            for bb in range(batch.labels.dim(0)):
+                labels_one_hot[Index(bb, batch.labels[bb])] = 1.0
+            
+            var loss = loss_func(output, labels_one_hot)
 
             # Backward pass
             optim.zero_grad()

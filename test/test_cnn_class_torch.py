@@ -8,19 +8,17 @@ class CrossEntropyLoss(nn.Module):
         super(CrossEntropyLoss, self).__init__()
 
     def forward(self, output, target):
-        output =  output + 1e-9
         loss = -torch.sum(target * torch.log(output)) / output.size(0)
         return loss
 
 # Implement the class for crossentropy loss with logsoftmax
-# use logsfomtax
+# use logsoftmax
 
 class CrossEntropyLoss2(nn.Module):
     def __init__(self):
         super(CrossEntropyLoss2, self).__init__()
 
     def forward(self, output, target):
-        output =  output + 1e-9
         loss = -torch.sum(target * F.log_softmax(output, dim=-1)) / output.size(0)
         return loss
 
@@ -42,10 +40,11 @@ class CNN(nn.Module):
         x = F.conv2d(x, self.conv1_weights,
                      self.conv1_bias, stride=1, padding=2)
         x = F.relu(x)
+        x = F.max_pool2d(x, 2)
         x = F.conv2d(x, self.conv2_weights,
                      self.conv2_bias, stride=1, padding=2)
         x = F.relu(x)
+        x = F.max_pool2d(x, 2)
         x = x.view(x.size(0), -1)
         output = F.linear(x, self.linear1_weights.T, self.linear1_bias)
-        output = F.softmax(output, dim=-1)
         return output

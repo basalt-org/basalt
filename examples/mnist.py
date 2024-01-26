@@ -62,9 +62,9 @@ class CNN(nn.Module):
 
 
 if __name__ == '__main__':
-    batch_size = 32
     num_epochs = 20
-    learning_rate = 0.01
+    batch_size = 4
+    learning_rate = 1e-3
 
 
     # Load data

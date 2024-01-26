@@ -2,9 +2,9 @@ from tensor import Tensor
 from math import add
 from math.limit import max_finite
 
+import dainemo.nn as nn
 from dainemo.autograd.node import Node
 from dainemo.autograd.ops.basics import ADD, SUM, SUB, DIV, EXP, MAX, LOG, POW, MUL
-from dainemo.utils.tensorutils import elwise_op
 
 
 # <------------MSE------------>
@@ -39,19 +39,15 @@ struct CrossEntropyLoss:
         Epsilons is a small value for numerical stability to prevent log(0).
         """
         # -1/N * sum( targets * log_softmax(outputs) )
-
+        
         # LogSoftmax
-        let max_values = MAX.forward[axis=1](outputs)
-        let input_minus_max = SUB.forward(outputs, max_values)
-        let exp_values = EXP.forward(input_minus_max)
-        let sum_values = SUM.forward[axis=1](exp_values)
-        let log_values = LOG.forward(sum_values)
-        let log_softmax = SUB.forward(input_minus_max, log_values)
+        let act = nn.activations.LogSoftmax[axis=1]()
+        let log_softmax = act(outputs)
         
         # CrossEntropy (reduction Mean)
-        let targets_log_softmax = MUL.forward(log_softmax, Node[dtype](targets))
+        let targets_log_softmax = MUL.forward(Node[dtype](targets), log_softmax)
         let ret = SUM.forward(targets_log_softmax)
-        let negDivN: SIMD[dtype, 1] = (-1/outputs.tensor.num_elements()).cast[dtype]()
+        let negDivN: SIMD[dtype, 1] = (-1/outputs.tensor.dim(0)).cast[dtype]()
         return MUL.forward(ret, negDivN)
 
     fn __call__(inout self, inout outputs: Node[dtype], targets: Tensor[dtype]) -> Node[dtype]:
