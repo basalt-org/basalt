@@ -9,8 +9,8 @@ struct Sequential[dtype: DType]:
 
     var layers: VariadicList[AnyType]
 
-    fn __init__(inout self, *layers: AnyType):
-        self.layers = layers
+    # fn __init__(inout self, *layers: AnyType):
+    #     self.layers = layers
 
     # fn forward(inout self, inputs: Tensor[dtype]):
     #     for i in range(self.layers.__len__()):
