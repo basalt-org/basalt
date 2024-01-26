@@ -1,5 +1,6 @@
 from tensor import Tensor
+from dainemo.nn.layers import Layer
 
 
-struct DropoutTODO:
+struct Dropout:
     pass

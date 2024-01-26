@@ -20,7 +20,7 @@ struct torch_maxpool2d_output:
     
 fn torch_maxpool2d(
     inputs: Tensor,
-    kernel_shape: TensorShape,
+    kernel_size: StaticIntTuple[2],
     padding: StaticIntTuple[2],
     stride: StaticIntTuple[2],
     dilation: StaticIntTuple[2],
@@ -37,7 +37,7 @@ fn torch_maxpool2d(
 
         let expected = F.max_pool2d(
             inputs,
-            (kernel_shape[-2], kernel_shape[-1]),
+            (kernel_size[0], kernel_size[1]),
             (stride[0], stride[1]),
             (padding[0], padding[1]),
             (dilation[0], dilation[1]),
@@ -63,17 +63,17 @@ fn torch_maxpool2d(
 
 fn test_forward_1() raises:
     # padding=2, stride=1, dilation=1
-    # input shape: (4, 1, 28, 28)  kernel shape: (1, 1, 5, 5)
-    alias kernel_shape = TensorShape(1, 1, 5, 5)
+    # input shape: (4, 1, 28, 28)  kernel size: (5, 5)
+    alias kernel_size = 5
     alias padding = 2
     alias stride = 1
     alias dilation = 1
     let inputs = rand[dtype](4, 1, 28, 28)
 
-    let res = MAXPOOL2D.forward[kernel_shape, padding, stride, dilation](inputs)
+    let res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
     let torch_out = torch_maxpool2d(
         inputs,
-        kernel_shape,
+        kernel_size,
         padding=padding,
         stride=stride,
         dilation=dilation,
@@ -85,17 +85,17 @@ fn test_forward_1() raises:
 
 fn test_forward_2() raises:
     # padding=0, stride=1, dilation=1
-    # input shape: (4, 1, 32, 17)  kernel shape: (1, 1, 2, 2)
-    alias kernel_shape = TensorShape(1, 1, 2, 2)
+    # input shape: (4, 1, 32, 17)  kernel size: (2, 2)
+    alias kernel_size = StaticIntTuple[2](2, 2)
     alias padding = 0
     alias stride = 1
     alias dilation = 1
     let inputs = rand[dtype](4, 1, 32, 17)
     
-    let res = MAXPOOL2D.forward[kernel_shape, padding, stride, dilation](inputs)
+    let res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
     let torch_out = torch_maxpool2d(
         inputs,
-        kernel_shape,
+        kernel_size,
         padding=padding,
         stride=stride,
         dilation=dilation,
@@ -108,18 +108,18 @@ fn test_forward_2() raises:
 
 fn test_forward_3() raises:
     # padding=(3, 1), stride=(2, 3), dilation=(2, 3)
-    # input shape: (4, 3, 32, 17)  kernel shape: (2, 3, 2, 2)
-    alias kernel_shape = TensorShape(3, 3, 6, 6)
+    # input shape: (4, 3, 32, 17)  kernel size: (6, 6)
+    alias kernel_size = StaticIntTuple[2](6, 6)
     alias padding = StaticIntTuple[2](3, 1)
     alias stride = StaticIntTuple[2](2, 3)
     alias dilation = StaticIntTuple[2](2, 3)
     var inputs = Tensor[dtype](4, 3, 32, 17)
     fill[dtype, nelts](inputs, 1.0)
 
-    let res = MAXPOOL2D.forward[kernel_shape, padding, stride, dilation](inputs)
+    let res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
     let torch_out = torch_maxpool2d(
         inputs,
-        kernel_shape,
+        kernel_size,
         padding=padding,
         stride=stride,
         dilation=dilation,
@@ -131,14 +131,14 @@ fn test_forward_3() raises:
 
 fn test_backward_1() raises:
     # padding=2, stride=1, dilation=1
-    # input shape: (4, 1, 28, 28)  kernel shape: (1, 1, 5, 5)
-    alias kernel_shape = TensorShape(1, 1, 5, 5)
+    # input shape: (4, 1, 28, 28)  kernel size: (5, 5)
+    alias kernel_size = 5
     alias padding = 2
     alias stride = 1
     alias dilation = 1
     let inputs = rand[dtype](4, 1, 28, 28)
     
-    let res = MAXPOOL2D.forward[kernel_shape, padding, stride, dilation](inputs)
+    let res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
     
     let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
     assert_equal(gn.parents.size, 1)
@@ -147,7 +147,7 @@ fn test_backward_1() raises:
     let ug1 = gn.backward_fn(upper_grad, gn.parents, 0) # inputs.grad
     let torch_out = torch_maxpool2d(
         inputs,
-        kernel_shape,
+        kernel_size,
         padding=padding,
         stride=stride,
         dilation=dilation,
@@ -160,14 +160,14 @@ fn test_backward_1() raises:
 
 fn test_backward_2() raises:
     # padding=0, stride=1, dilation=1
-    # input shape: (4, 1, 32, 17)  kernel shape: (1, 1, 2, 2)
-    alias kernel_shape = TensorShape(1, 1, 2, 2)
+    # input shape: (4, 1, 32, 17)  kernel size: (2, 2)
+    alias kernel_size = 2
     alias padding = 0
     alias stride = 1
     alias dilation = 1
     let inputs = rand[dtype](4, 1, 32, 17)
 
-    let res = MAXPOOL2D.forward[kernel_shape, padding, stride, dilation](inputs)
+    let res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
     
     let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
     assert_equal(gn.parents.size, 1)
@@ -176,7 +176,7 @@ fn test_backward_2() raises:
     let ug1 = gn.backward_fn(upper_grad, gn.parents, 0) # inputs.grad
     let torch_out = torch_maxpool2d(
         inputs,
-        kernel_shape,
+        kernel_size,
         padding=padding,
         stride=stride,
         dilation=dilation,
@@ -189,15 +189,15 @@ fn test_backward_2() raises:
 
 fn test_backward_3() raises:
     # padding=(3, 1), stride=(2, 3), dilation=(2, 3)
-    # input shape: (4, 3, 32, 17)  kernel shape: (2, 3, 2, 2)
-    alias kernel_shape = TensorShape(3, 3, 6, 6)
+    # input shape: (4, 3, 32, 17)  kernel size: (6, 6)
+    alias kernel_size = StaticIntTuple[2](6, 6)
     alias padding = StaticIntTuple[2](3, 1)
     alias stride = StaticIntTuple[2](2, 3)
     alias dilation = StaticIntTuple[2](2, 3)
     var inputs = Tensor[dtype](4, 3, 32, 17)
     fill[dtype, nelts](inputs, 1.0)
 
-    let res = MAXPOOL2D.forward[kernel_shape, padding, stride, dilation](inputs)
+    let res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
     
     let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
     assert_equal(gn.parents.size, 1)
@@ -206,7 +206,7 @@ fn test_backward_3() raises:
     let ug1 = gn.backward_fn(upper_grad, gn.parents, 0) # inputs.grad
     let torch_out = torch_maxpool2d(
         inputs,
-        kernel_shape,
+        kernel_size,
         padding=padding,
         stride=stride,
         dilation=dilation,

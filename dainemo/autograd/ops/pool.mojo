@@ -12,15 +12,15 @@ from dainemo.utils.tensorutils import calculate_strides
 struct MAXPOOL2D:
     @staticmethod
     fn forward[
-        kernel_shape: TensorShape,
-        padding: StaticIntTuple[2] = 0,
-        stride: StaticIntTuple[2] = 1,
+        kernel_size: StaticIntTuple[2],
+        stride: StaticIntTuple[2],
+        padding: StaticIntTuple[2] = 0, 
         dilation: StaticIntTuple[2] = 1
     ](inputs: Node[dtype]) -> Node[dtype]:
         """
         Returns the max value of each kernel in the input tensor.
             inputs.shape     [batch_size, in_channels, iX, iY]
-            kernel.shape     [out_channels, in_channels, kX, kY] 
+            kernel.shape     [_, _, kX, kY]  with kernel_size = (kX, kY)
             outputs.shape    [batch_size, out_channels, oX, oY]
             and for maxpool2d (in_channels == out_channels).
         """
@@ -28,11 +28,11 @@ struct MAXPOOL2D:
         alias nelts: Int = simdwidthof[dtype]()
         
         let result_shape = get_result_shape[padding, stride, dilation](
-            inputs.tensor.shape(), kernel_shape
+            inputs.tensor.shape(), TensorShape(-1, -1, kernel_size[0], kernel_size[1])
         )
 
         var outputs = Tensor[dtype](
-            inputs.tensor.dim(0), kernel_shape[0], result_shape[0], result_shape[1]
+            inputs.tensor.dim(0), inputs.tensor.shape()[1], result_shape[0], result_shape[1]
         )
         let outputs_strides = calculate_strides(outputs.shape())
 
@@ -43,8 +43,8 @@ struct MAXPOOL2D:
                         var max_val: SIMD[dtype, 1] = neginf[dtype]()
                         let ix_base = x * stride[0] - padding[0]
                         let iy_base = y * stride[1] - padding[1]
-                        for kx in range(kernel_shape[2]):
-                            for ky in range(kernel_shape[3]):
+                        for kx in range(kernel_size[0]):
+                            for ky in range(kernel_size[1]):
                                 let ix = ix_base + kx * dilation[0]
                                 let iy = iy_base + ky * dilation[1]
 
@@ -76,11 +76,11 @@ struct MAXPOOL2D:
 
                         outputs[out_idx] = max_val
 
-        return GRAPH.create_graph_node[Self.backward[kernel_shape, padding, stride, dilation]](outputs, inputs)
+        return GRAPH.create_graph_node[Self.backward[kernel_size, padding, stride, dilation]](outputs, inputs)
 
     @staticmethod
     fn backward[
-        kernel_shape: TensorShape,
+        kernel_size: StaticIntTuple[2],
         padding: StaticIntTuple[2],
         stride: StaticIntTuple[2],
         dilation: StaticIntTuple[2]
@@ -106,8 +106,8 @@ struct MAXPOOL2D:
                         var max_idx: Int = -1
                         let ix_base = x * stride[0] - padding[0]
                         let iy_base = y * stride[1] - padding[1]
-                        for kx in range(kernel_shape[2]):
-                            for ky in range(kernel_shape[3]):
+                        for kx in range(kernel_size[0]):
+                            for ky in range(kernel_size[1]):
                                 let ix = ix_base + kx * dilation[0]
                                 let iy = iy_base + ky * dilation[1]
                                 

@@ -11,7 +11,7 @@ alias dtype = DType.float32
 
 # <------------LINEAR------------>
 fn test_linear() raises:
-    var f = nn.Linear(5, 3)                             # 5 inputs, 3 outputs
+    let f = nn.Linear(5, 3)                             # 5 inputs, 3 outputs
     
     let inputs: Tensor[dtype] = rand[dtype](2, 5)       # A batch of 2 with 5 inputs
     
@@ -27,6 +27,22 @@ fn test_linear() raises:
     assert_equal(GRAPH.graph.size, 5)
     GRAPH.reset_all()
 
+
+# <------------SEQUENTIAL------------>
+from dainemo.nn.layers import Layer
+fn test_sequential() raises:
+    let f = nn.Linear(5, 3)
+    let g = nn.Linear(3, 2)
+    let seq = nn.Sequential(f)
+
+    let inputs: Tensor[dtype] = rand[dtype](2, 5)
+    
+    let output_f = f(Node[dtype](inputs))
+    let output_gf = g(output_f)
+    # let output_seq = seq(Node[dtype](inputs))
+
+    # print(output_gf)
+    # print(output_seq)
 
 # <------------CONV2D------------>
 fn test_conv2d() raises:   
@@ -84,10 +100,8 @@ fn test_conv2d_b() raises:
 # <------------MAXPOOL2D------------>
 fn test_maxpool2d() raises:
     let f = nn.MaxPool2d[
-        in_channels=3,
         kernel_size=5,
-        padding=2,
-        stride=1
+        padding=2
     ]()
 
     let inputs: Tensor[dtype] = rand[dtype](4, 3, 32, 17)
@@ -95,11 +109,11 @@ fn test_maxpool2d() raises:
     let outputs = f(Node[dtype](inputs))
 
     print("Input batch of 4 with 3x32x17 inputs:", inputs.shape())
-    print("Output batch of 4 with 3x32x17 outputs:", outputs.tensor.shape())
+    print("Output batch of 4 with 3x15x8 outputs:", outputs.tensor.shape())
     assert_equal(outputs.tensor.dim(0), 4)
     assert_equal(outputs.tensor.dim(1), 3)
-    assert_equal(outputs.tensor.dim(2), 32)
-    assert_equal(outputs.tensor.dim(3), 17)
+    assert_equal(outputs.tensor.dim(2), 7)
+    assert_equal(outputs.tensor.dim(3), 4)
 
     # 2 Nodes added to the graph: inputs, outputs(maxpool2d)
     assert_equal(GRAPH.graph.size, 2)
@@ -113,5 +127,6 @@ fn main():
         test_conv2d()
         test_conv2d_b()
         test_maxpool2d()
+        test_sequential()
     except:
         print("[ERROR] Error in layers")

@@ -2,6 +2,7 @@ from tensor import Tensor, TensorShape
 from utils.index import Index
 from algorithm import vectorize, parallelize
 from memory import memset_zero
+from random import rand
 
 from math import sqrt, pow, equal, max, min, abs, add, div
 
@@ -57,6 +58,11 @@ fn elwise_op[
     ) -> SIMD[dtype, nelts],
 ](t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
     """Element-wise operation on two tensors."""
+    if t2.shape() == 1:
+        return elwise_op[dtype, nelts, func](t1, t2[0])
+    if t1.shape() != t2.shape():
+        return broadcast_elwise_op[dtype, nelts, func](t1, t2)
+
     var t_new = Tensor[dtype](t1.shape())
 
     @parameter
@@ -597,3 +603,17 @@ fn broadcast_shapes(*s: TensorShape) raises -> TensorShape:
         result_shape = broadcast_shapes(result_shape, s[i])
 
     return result_shape
+
+
+@always_inline
+fn rand_uniform[
+        dtype: DType, nelts: Int
+    ](shape: TensorShape, low: SIMD[dtype, 1], high: SIMD[dtype, 1]) -> Tensor[dtype]:
+    var t = rand[dtype](shape) # Uniform initialize the tensor between 0 and 1
+
+    @parameter
+    fn vecscale[nelts: Int](idx: Int):
+        t.simd_store[nelts](idx, t.simd_load[nelts](idx) * (high - low) + low)
+
+    vectorize[nelts, vecscale](t.num_elements())
+    return t

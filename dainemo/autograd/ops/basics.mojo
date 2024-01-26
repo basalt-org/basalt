@@ -11,7 +11,6 @@ from dainemo.utils.tensorutils import (
     elwise_pow,
     elwise_transform,
     fill,
-    broadcast_elwise_op,
     transpose,
     calculate_strides,
 )
@@ -27,12 +26,16 @@ struct ADD:
     @staticmethod
     fn forward(n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
         """Forward operation of element wise addition."""
-        let res: Tensor[dtype]
-        if n1.tensor.shape() == n2.tensor.shape():
-            res = elwise_op[dtype, nelts, add](n1.tensor, n2.tensor)
-        else:
-            res = broadcast_elwise_op[dtype, nelts, add](n1.tensor, n2.tensor)
+        let res = elwise_op[dtype, nelts, add](n1.tensor, n2.tensor)
         return GRAPH.create_graph_node[Self.backward](res, n1, n2)
+
+    @staticmethod
+    fn forward(n1: Node[dtype], a: SIMD[dtype, 1]) -> Node[dtype]:
+        """Forward operation of tensor-scalar addition."""
+        let res: Tensor[dtype] = elwise_op[dtype, nelts, add](n1.tensor, a)
+        var a_tensor: Tensor[dtype] = Tensor[dtype](1)
+        a_tensor[0] = a
+        return GRAPH.create_graph_node[Self.backward](res, n1, Node[dtype](a_tensor))
 
     @staticmethod
     fn backward(
@@ -48,11 +51,7 @@ struct SUB:
     @staticmethod
     fn forward(n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
         """Forward operation of element wise subtraction."""
-        let res: Tensor[dtype]
-        if n1.tensor.shape() == n2.tensor.shape():
-            res = elwise_op[dtype, nelts, sub](n1.tensor, n2.tensor)
-        else:
-            res = broadcast_elwise_op[dtype, nelts, sub](n1.tensor, n2.tensor)
+        let res = elwise_op[dtype, nelts, sub](n1.tensor, n2.tensor)
         return GRAPH.create_graph_node[Self.backward](res, n1, n2)
 
     @staticmethod
@@ -74,11 +73,7 @@ struct MUL:
     @staticmethod
     fn forward(n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
         """Forward operation of element wise multiplication."""
-        let res: Tensor[dtype]
-        if n1.tensor.shape() == n2.tensor.shape():
-            res = elwise_op[dtype, nelts, mul](n1.tensor, n2.tensor)
-        else:
-            res = broadcast_elwise_op[dtype, nelts, mul](n1.tensor, n2.tensor)
+        let res = elwise_op[dtype, nelts, mul](n1.tensor, n2.tensor)
         return GRAPH.create_graph_node[Self.backward](res, n1, n2)
 
     @staticmethod
@@ -106,11 +101,7 @@ struct DIV:
     @staticmethod
     fn forward(n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
         """Forward operation of element wise division."""
-        let res: Tensor[dtype]
-        if n1.tensor.shape() == n2.tensor.shape():
-            res = elwise_op[dtype, nelts, div](n1.tensor, n2.tensor)
-        else:
-            res = broadcast_elwise_op[dtype, nelts, div](n1.tensor, n2.tensor)
+        let res = elwise_op[dtype, nelts, div](n1.tensor, n2.tensor)
         return GRAPH.create_graph_node[Self.backward](res, n1, n2)
 
     @staticmethod
@@ -265,7 +256,7 @@ struct SUM:
         var res = Tensor[dtype](t.shape())
         fill[dtype, nelts](res, 1.0)
 
-        return broadcast_elwise_op[dtype, nelts, mul](res, ug)
+        return elwise_op[dtype, nelts, mul](res, ug)
 
 
 # <------------MAX------------>

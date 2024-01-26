@@ -13,7 +13,7 @@
 | Task       | Dataset | Forward | Backward | Training |
 |------------|---------|---------|----------|----------|
 | REGRESSION |   ✅    |   ✅    |    ✅    |    ✅    |
-| MNIST      |   ✅    |   ❌    |    ❌    |    ❌    |
+| MNIST      |   ✅    |   ✅    |    ❌    |    ❌    |
 
 
 <sub>Regression example:</sub>
@@ -78,8 +78,8 @@ WIP: Work in progress
 | Task      | Status |
 |-----------|--------|
 | MSE       |   ✅   |
-| CE        |   ❌   |
-| BCE       |   ❌   |
+| CE        |   ✅   |
+| BCE       |   ✅   |
 | SoftmaxCE |   ❌   |
 
 ### Activations

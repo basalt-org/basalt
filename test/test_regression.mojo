@@ -36,7 +36,7 @@ fn main():
     optim.zero_grad()
     let output = model.forward(batch_data)
     var loss = loss_func(output, batch_labels)
-    print("OUTPUT: ", output.tensor)
+    # print("OUTPUT: ", output.tensor)
     print("LOSS: ", loss.tensor[0])
 
     #### BACKWARD ####
@@ -46,20 +46,20 @@ fn main():
     loss.backward()
     
     print("After:", GRAPH.graph.size)
-    for i in range(GRAPH.graph.size):
-        print("Gradient: ", GRAPH.graph[i].grad)
+    # for i in range(GRAPH.graph.size):
+    #     print("Gradient: ", GRAPH.graph[i].grad)
 
     
     #### OPTIMIZER ####
     print("------------ OPTIMIZER ------------")
     print("Graph size:", GRAPH.graph.size)
-    for i in range(GRAPH.graph.size):
-        print("Parameters Before: ", GRAPH.graph[i].tensor)
+    # for i in range(GRAPH.graph.size):
+    #     print("Parameters Before: ", GRAPH.graph[i].tensor)
 
     optim.step()
 
-    for i in range(GRAPH.graph.size):
-        print("Parameters After: ", GRAPH.graph[i].tensor)
+    # for i in range(GRAPH.graph.size):
+    #     print("Parameters After: ", GRAPH.graph[i].tensor)
 
 
     #### FORWARD2 ####
@@ -67,7 +67,7 @@ fn main():
     optim.zero_grad()
     let output2 = model.forward(batch_data)
     var loss2 = loss_func(output2, batch_labels)
-    print("OUTPUT: ", output2.tensor)
+    # print("OUTPUT: ", output2.tensor)
     print("LOSS: ", loss2.tensor[0])
     
     print("Graph size:", GRAPH.graph.size)
