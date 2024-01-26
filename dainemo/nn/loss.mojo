@@ -3,7 +3,7 @@ from math import add
 from math.limit import max_finite
 
 from dainemo.autograd.node import Node
-from dainemo.autograd.ops.basics import SUM, MUL, SUB, POW, LOG, ADD
+from dainemo.autograd.ops.basics import ADD, SUM, SUB, DIV, EXP, MAX, LOG, POW, MUL
 from dainemo.utils.tensorutils import elwise_op
 
 
@@ -38,52 +38,21 @@ struct CrossEntropyLoss:
         Forward pass of CrossEntropy.
         Epsilons is a small value for numerical stability to prevent log(0).
         """
-        # -1/N * sum( targets * log(outputs + epsilon) )
+        # -1/N * sum( targets * log_softmax(outputs) )
 
-        alias epsilon = 1e-9
-        let add_eps = ADD.forward(outputs, epsilon)
-
-        let logout = LOG.forward(add_eps)
-        let targets_logout = MUL.forward(Node[dtype](targets), logout)
-        let entropy = SUM.forward(targets_logout)
-        let negDivN: SIMD[dtype, 1] = (-1/outputs.tensor.dim(0)).cast[dtype]() # average over batch (N)
-        return MUL.forward(entropy, negDivN)
-
-    fn __call__(inout self, inout outputs: Node[dtype], targets: Tensor[dtype]) -> Node[dtype]:
-        return self.forward(outputs, targets)
-
-
-# <------------BINARYCROSSENTROPY------------>
-struct BCELoss:
-    fn __init__(inout self):
-        pass
-
-    fn forward(inout self, inout outputs: Node[dtype], targets: Tensor[dtype]) -> Node[dtype]:
-        """
-        Forward pass of BCE.
-        Epsilons is a small value for numerical stability to prevent log(0).
-        """
-        # -1/N * sum( targets * log(outputs+epsilon) + (1-targets) * log(1-outputs+epsilon) )
-
-        alias epsilon = 1e-9
-        outputs.tensor = elwise_op[dtype, nelts, add](outputs.tensor, epsilon)
-        var tensor_1 = Tensor[dtype](1)
-        tensor_1[0] = 1
-        let n_1 = Node[dtype](tensor_1)
-        let n_targets = Node[dtype](targets)
-
-        let logout = LOG.forward(outputs)        
-        let targets_logout = MUL.forward(n_targets, logout)
-        let logout_1min = LOG.forward(SUB.forward(n_1, outputs))
-        let targets_1min = SUB.forward(n_1, n_targets)
-        let targets_logout_1min = MUL.forward(targets_1min, logout_1min)
-        let entropy = SUM.forward(ADD.forward(targets_logout, targets_logout_1min))
+        # LogSoftmax
+        let max_values = MAX.forward[axis=1](outputs)
+        let input_minus_max = SUB.forward(outputs, max_values)
+        let exp_values = EXP.forward(input_minus_max)
+        let sum_values = SUM.forward[axis=1](exp_values)
+        let log_values = LOG.forward(sum_values)
+        let log_softmax = SUB.forward(input_minus_max, log_values)
+        
+        # CrossEntropy (reduction Mean)
+        let targets_log_softmax = MUL.forward(log_softmax, Node[dtype](targets))
+        let ret = SUM.forward(targets_log_softmax)
         let negDivN: SIMD[dtype, 1] = (-1/outputs.tensor.num_elements()).cast[dtype]()
-        return MUL.forward(entropy, negDivN)
-    
+        return MUL.forward(ret, negDivN)
+
     fn __call__(inout self, inout outputs: Node[dtype], targets: Tensor[dtype]) -> Node[dtype]:
         return self.forward(outputs, targets)
-
-
-# <------------SOFTMAXCROSSENTROPY------------>
-# TODO

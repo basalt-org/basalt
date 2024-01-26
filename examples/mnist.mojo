@@ -35,7 +35,6 @@ struct CNN:
     var l5: nn.ReLU
     var l6: nn.MaxPool2d[2]
     var l7: nn.Linear
-    var l8: nn.Softmax[1]
 
     fn __init__(inout self):
         self.l1 = nn.Conv2d[2, 1](
@@ -53,7 +52,6 @@ struct CNN:
         self.l5 = nn.ReLU()
         self.l6 = nn.MaxPool2d[kernel_size=2]()
         self.l7 = nn.Linear(n_input = 32*7*7, n_output=10)
-        self.l8 = nn.Softmax[1]()
         
     fn forward(inout self, x: Tensor[dtype]) -> Node[dtype]:
         var output = self.l1(Node[dtype](x))
@@ -64,7 +62,6 @@ struct CNN:
         output = self.l6(output)
         output = RESHAPE.forward(output, TensorShape(output.tensor.dim(0), 32*7*7))
         output = self.l7(output)
-        output = self.l8(output)
         return output
 
 
