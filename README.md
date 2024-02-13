@@ -143,3 +143,7 @@ We appreciate any and all contributions, whether they're for bug fixes, new feat
 ## License
 
 This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgements
+
+A huge thanks to [pranftw](https://github.com/pranftw) for the inspiration and support! This project is inspired by [neograd](https://github.com/pranftw/neograd).
