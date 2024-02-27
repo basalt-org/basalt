@@ -1,11 +1,15 @@
 from tensor import Tensor
 from utils.index import Index
-
+from algorithm import vectorize
 from math import div
+
+from dainemo import dtype
 from dainemo.utils.tensorutils import elwise_op, tmean, tstd
 
 
-struct BostonHousing[dtype: DType]:
+struct BostonHousing:
+    alias n_inputs = 13
+    
     var data: Tensor[dtype]
     var labels: Tensor[dtype]
 
@@ -14,7 +18,7 @@ struct BostonHousing[dtype: DType]:
         s = s[find_first(s, "\n")+1:]       # Ignore header
 
         let N = num_lines(s)       
-        self.data = Tensor[dtype](N, 13)        # All columns except the last one
+        self.data = Tensor[dtype](N, self.n_inputs)        # All columns except the last one
         self.labels = Tensor[dtype](N, 1)       # Only the last column (MEDV), Always specify 1!
 
         let idx_low: Int
@@ -26,28 +30,27 @@ struct BostonHousing[dtype: DType]:
         for i in range(N):
             s = s[idx_line:]
             idx_line = find_first(s, "\n") + 1
-            for n in range(13):
+            for n in range(self.n_inputs):
                 idx_low = find_nth(s, ",", n) + 1
                 idx_high = find_nth(s, ",", n + 1)
                 
                 self.data[Index(i, n)] = cast_string[dtype](s[idx_low:idx_high])
 
-            idx_low = find_nth(s, ",", 13) + 1 
+            idx_low = find_nth(s, ",", self.n_inputs) + 1 
             self.labels[i] = cast_string[dtype](s[idx_low:idx_line-1])
 
         # Normalize data
         # TODO: redo when tensorutils tmean2 and tstd2 are implemented
         alias nelts = simdwidthof[dtype]()
         var col = Tensor[dtype](N)
-        for j in range(13):
+        for j in range(self.n_inputs):
             for k in range(N):
                 col[k] = self.data[Index(k, j)]
             for i in range(N):
-                self.data[Index(i, j)] = (self.data[Index(i, j)] - tmean[dtype, nelts](col)) / tstd[dtype, nelts](col)
-            
+                self.data[Index(i, j)] = (self.data[Index(i, j)] - tmean(col)) / tstd(col)
 
 
-struct MNIST[dtype: DType]:
+struct MNIST:
     var data: Tensor[dtype]
     var labels: Tensor[dtype]
 
@@ -80,7 +83,12 @@ struct MNIST[dtype: DType]:
 
         # Normalize data
         alias nelts = simdwidthof[dtype]()
-        self.data = elwise_op[dtype, nelts, div](self.data, 255.0)
+        let res = Tensor[dtype](self.data.shape())
+        
+        @parameter
+        fn vecdiv[nelts: Int](idx: Int):
+            res.simd_store[nelts](idx, div(self.data.simd_load[nelts](idx), 255.0))
+        vectorize[nelts, vecdiv](self.data.num_elements())
 
 
 fn read_file(file_path: String) raises -> String:

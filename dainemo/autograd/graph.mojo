@@ -1,200 +1,179 @@
-from tensor import Tensor, TensorShape
-from algorithm import vectorize, parallelize
+from python.python import Python
+from tensor import TensorShape
+from collections.optional import Optional
 
-from dainemo import NONE_BC
-from dainemo.autograd.node import Node
-from dainemo.utils.tensorutils import elwise_op, zero, broadcast_shapes
-from math import add, max
+from .node import Node
+from .symbol import Symbol
+from .ops import OP, static_result_shape
+from .constant import Constant, ConstantDict
+
+from dainemo import seed, dtype
+from dainemo.utils.uuid import UUID, ID
 
 
-struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
-    """
-    Keeps track of all the nodes and its relations in the computational graph.
-    Created during the forward pass and used by the backpard pass to
-    compute gradients through autodiff.
-    """
+@value
+struct Graph:
+    var uuid: UUID
+    var inputs: DynamicVector[Symbol]
+    var output: Symbol
+    var params: DynamicVector[Symbol]
+    var nodes: DynamicVector[Node]
 
-    var keys: DynamicVector[String]
-    var graph: DynamicVector[Node[dtype]]
+    var constants: ConstantDict[dtype]
 
     fn __init__(inout self):
-        self.keys = DynamicVector[String]()
-        self.graph = DynamicVector[Node[dtype]]()
+        self.uuid = UUID(seed)
+        self.inputs = DynamicVector[Symbol]()
+        self.params = DynamicVector[Symbol]()
+        self.nodes = DynamicVector[Node]()
+        self.output = Symbol(ID(), dtype, TensorShape(-1), False)
 
-    fn add_edge[lifetime_op: ImmLifetime](
-        inout self,
-        inout result_node: Node[dtype],
-        operands: VariadicListMem[Node[dtype], __mlir_attr.`false`, lifetime_op],
-    ):
-        """
-        Adds an edge between result node and the corresponding operand node of the operand tensor.
-            - Identify the operand node in the graph corresponding to the operand node
-            - Adds the result node as child to the operand nodes
-            - Adds the operand nodes as parents to the result node.
-        """
-        for operand_ptr in operands:
-            var operand: Node[dtype] = operand_ptr[]
+        self.constants = ConstantDict[dtype]()
 
-            # 1. Find the operand node in the graph
-            var idx = self.get_node_idx(operand.uuid)
-            if idx == -1:
-                # Add operand node to the graph when not found
-                self.add_node(operand)
-                idx = self.graph.size - 1
+    fn input(inout self, shape: TensorShape) -> Symbol:
+        let inp = Symbol(self.uuid.next(), dtype, shape, False)
+        self.inputs.push_back(inp)
+        return inp
 
-            # 2. Adds the result node as child to the operand
-            # TODO: self.graph[idx].add_child(result_node)
-            # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
-            operand = self.graph[idx]
-            operand.add_child(result_node)
-            self.graph[idx] = operand
+    fn param(inout self, shape: TensorShape, requires_grad: Bool = True) -> Symbol:
+        let par = Symbol(self.uuid.next(), dtype, shape, requires_grad)
+        self.params.push_back(par)
+        return par
 
-            # 3. Adds the operand node as parent to the result graph node
-            result_node.add_parent(operand)
+    fn scalar(inout self, value: SIMD[dtype, 1]) -> Symbol:
+        let cst = Constant(value)
+        let scalar_id = Symbol(self.uuid.next(), cst.rank, dtype, cst.static_shape, requires_grad=False, is_constant=True)
 
-        self.add_node(result_node)
+        # self.params.push_back(scalar_id)
+        self.constants.put(scalar_id, cst)
 
-    fn create_graph_node[
-        backward_fn: fn (
-            ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-        ) -> Tensor[dtype]
-    ](inout self, result: Tensor[dtype], *operands: Node[dtype]) -> Node[dtype]:
-        """
-        To be used in every forward operation and responsible for creating the graph.
-        If tracking is enabled it:
-            - Creates a Node in the computaitonal graph for the result_tensor & the operands
-            - Sets the backward_fn & parent_broadcast_shape of the result_node
-            - Adds edges to the graphnodes of the the result_tensor & the operands.
-        """
+        return scalar_id
 
-        if tracking:
-            # 1. Create a Node from the resulting tensor
-            var result_node = Node[dtype](
-                result, requires_grad=self.result_requires_grad(operands)
+    fn out(inout self, symbol: Symbol) -> Symbol:
+        # Go over all node output (in reverse order)
+        for i in range(len(self.nodes) - 1, -1, -1):
+            if self.nodes[i].output == symbol:
+                self.output = symbol
+                return symbol
+
+        # If not found: Identity sub-graph (input -> output)
+        for i in range(len(self.inputs)):
+            if self.inputs[i] == symbol:
+                self.output = self.inputs[i]
+                return symbol
+
+        return symbol
+
+    fn op(inout self, op: OP, operand_1: Symbol, operand_2: Optional[Symbol]) -> Symbol:
+        let res: Symbol
+        if operand_2:
+            res = Symbol(
+                self.uuid.next(),
+                dtype,
+                static_result_shape(op, operand_1.shape(), operand_2.value().shape()),
+                self.result_requires_grad(operand_1, operand_2.value()),
+            )
+        else:
+            res = Symbol(
+                self.uuid.next(),
+                dtype,
+                static_result_shape(op, operand_1.shape()),
+                self.result_requires_grad(operand_1),
             )
 
-            # 2. The resulting node in the graph always contains it's backward information
-            result_node.backward_fn = backward_fn
-            result_node.parent_broadcast_shape = self.get_broadcasting_shape(operands)
+        self.nodes.push_back(Node(op, res, operand_1, operand_2.take()))
+        return res ^
 
-            # 3. Add edges to the result node & the operands and adds them to the graph
-            self.add_edge(result_node, operands)
+    # Maybe the uuid should be something global, so that we can create symbols outside the graph like it is done in max engine
+    fn op(inout self, op: OP, operand_1: Symbol, operand_2: FloatLiteral) -> Symbol:
+        let operand_2_symbol = self.scalar(operand_2)
+        let res = Symbol(
+            self.uuid.next(),
+            dtype,
+            static_result_shape(op, operand_1.shape(), operand_2_symbol.shape()),
+            self.result_requires_grad(operand_1),
+        )
 
-            return result_node
+        self.nodes.push_back(Node(op, res, operand_1, operand_2_symbol))
+        return res ^
 
-        else:
-            return Node[dtype](result)
+    fn op(inout self, op: OP, operand_1: FloatLiteral, operand_2: Symbol) -> Symbol:
+        let operand_1_symbol = self.scalar(operand_1)
+        let res = Symbol(
+            self.uuid.next(),
+            dtype,
+            static_result_shape(op, operand_1_symbol.shape(), operand_2.shape()),
+            self.result_requires_grad(operand_2),
+        )
+
+        self.nodes.push_back(Node(op, res, operand_1_symbol, operand_2))
+        return res ^
 
     @staticmethod
-    fn result_requires_grad[lifetime_op: ImmLifetime](operands: VariadicListMem[Node[dtype], __mlir_attr.`false`, lifetime_op]) -> Bool:
-        """
-        Returns True when at least one of the operand nodes requires grad.
-        """
-        #NOTE: unpack arguments not supported yet. result_requires_grad(*operands)
-        for operand_ptr in operands:
-            if operand_ptr[].requires_grad:
-                return True
-        return False
+    fn result_requires_grad(operand_1: Symbol, operand_2: Symbol) -> Bool:
+        return operand_1.requires_grad or operand_2.requires_grad
 
     @staticmethod
-    fn get_broadcasting_shape[lifetime_op: ImmLifetime](
-        operands: VariadicListMem[Node[dtype], __mlir_attr.`false`, lifetime_op]
-    ) -> TensorShape:
-        """
-        Returns the broadcast shape of the given operands.
-        """
-        #NOTE: unpack arguments not supported yet. get_broadcasting_shape(*operands) 
-        var broadcast_shape: TensorShape
-        try:
-            broadcast_shape = operands[0].tensor.shape()
-            for i in range(1, len(operands)):
-                broadcast_shape = broadcast_shapes(
-                    broadcast_shape,
-                    operands[i].tensor.shape()
-                )
-        except:
-            broadcast_shape = NONE_BC
+    fn result_requires_grad(operand_1: Symbol) -> Bool:
+        return operand_1.requires_grad
 
-        return broadcast_shape
+    fn json(self) -> String:
+        var result: String = '{"graph_name": "Dainemo", "nodes": ['
+        for i in range(len(self.nodes)):
+            result += self.nodes[i].json()
+            if i < len(self.nodes) - 1:
+                result += ", "
+        result += '], "inputs": ['
+        for i in range(len(self.inputs)):
+            result += self.inputs[i].json()
+            if i < len(self.inputs) - 1:
+                result += ", "
+        result += '], "outputs": ['
+        result += self.output.json()
+        result += '], "params": ['
+        for i in range(len(self.constants)):
+            result += self.constants.keys[i].json()
+            result += ", "
+        for i in range(len(self.params)):
+            result += self.params[i].json()
+            if i < len(self.params) - 1:
+                result += ", "
+        result += "]}"
+        return result
 
-    fn add_node(inout self, inout node: Node[dtype]):
-        """
-        Adds a node to the graph.
-        """
-        self.keys.push_back(node.uuid)
-        self.graph.push_back(node)
+    fn render(self, render_type: String = "node") raises:
+        Python.add_to_path("./dainemo/utils")
+        let renderer = Python.import_module("graph_render")
+        let json = Python.import_module("json")
+        _ = renderer.netron_render(json.loads(self.json()), render_type)
 
-    fn get_node_idx(inout self, node_uuid: String) -> Int:
-        """
-        Returns the index of the corresponding node in the graph.
-        When the node is not found in the graph, returns -1.
-        """
-        for i in range(self.keys.size):
-            if self.keys[i] == node_uuid:
-                return i
-        return -1
+    fn compile(inout self):
+        # 0. Sorting the graph
+        # The staticlly defined graph has an implicit topological sorted order because,
+        # each new operation is added the list of nodes after its dependencies have been calculated.
+        # This eliminates the need for explicit topological sorting.
 
-    fn reset(inout self):
-        """
-        Resets the graph.
-        Except for the trainable parameters.
-        """
-        var param_keys = DynamicVector[String]()
-        var param_graph = DynamicVector[Node[dtype]]()
-        for idx in range(self.keys.size):
-            var node = self.graph[idx]
-            if node.param:
-                param_keys.push_back(self.keys[idx])
-                node.reset_relations()
-                param_graph.push_back(node)
+        # Possibilities:
+        # - 1. Graph layout transformation (graph rewrite)
+        #       - Layer pruning (removing nodes that have no effect - with common sub-tree identification)
+        #       - Eliminate redundant intermediate data copies
+        #       - Operator replacement (e.g. replacing (combination of) costly ops with more efficient ones)
+        #       - (exmple of graph rewrite: https://dl.acm.org/doi/pdf/10.1145/3453483.3454083  -  Table 4)
+        #       - Other intra-block optimizations: (e.g. data layout transformation BCHW -> BHWC, etc.)
+        # - 2. Operator fusion (combining ops without materializing intermediate results)
+        #       - Fusion plan exploration
+        #       - Fusion plan generation (with subsequent intra-block optimizations)
+        #       - (example fusion plan algorithm: https://dl.acm.org/doi/pdf/10.1145/3453483.3454083   -   Listing 1)
+        # - 3. Fusion Code generation (behaviour)
+        #       - Code generation for planned fusion blocks
+        #       - Other inter-block optimizations (e.g. data layout transformation BCHW -> BHWC, etc.)
+        # - 4. Auto-tuning (of vectorization-, parallelization-, tiling-, unrolling-parameters)
+        #       - (Might only work when memory is initialized)
 
-        self.keys = param_keys
-        self.graph = param_graph
+        # Other considerations:
+        # - Efficient Memory management:
+        #       - Memory reuse (in-place operations)
+        #       - Data layout from BCHW (batch, channel, height, width) to BHWC can lead to better utilization and efficiency
+        # - VJP, JVP (for automatic differentiation)
 
-    fn reset_all(inout self):
-        """
-        Resets the graph.
-        """
-        self.keys = DynamicVector[String]()
-        self.graph = DynamicVector[Node[dtype]]()
-
-    fn reset_visited(inout self):
-        """
-        Marks visited as False for every Node in the graph.
-        """
-        for idx in range(self.graph.size):
-            # TODO: self.graph[idx].visited = False
-            # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
-            var node = self.graph[idx]
-            node.visited = False
-            self.graph[idx] = node
-
-    fn mark_visited(inout self, node_uuid: String):
-        """
-        Marks the Node corresponding to the given uuid as visited in the graph.
-        """
-        let idx = self.get_node_idx(node_uuid)
-        if idx != -1:
-            # TODO: self.graph[idx].visited = True
-            # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
-            var node = self.graph[idx]
-            node.visited = True
-            self.graph[idx] = node
-
-    fn zero_grad(inout self):
-        """
-        Zeros the grad value of every node in the graph & parameters.
-        """
-        for idx in range(self.graph.size):
-            # TODO: zero[dtype](self.graph[idx].grad)  --> only
-            # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
-            var node = self.graph[idx]
-            zero[dtype](node.grad)
-            self.graph[idx] = node
-
-    fn __str__(self) -> String:
-        var res = String("Graph[\n")
-        for i in range(self.graph.size):
-            res += "\t" + self.graph[i].__str__() + "\n"
-        res += "]"
-        return res
+        pass

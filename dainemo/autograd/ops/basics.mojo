@@ -1,412 +1,537 @@
-from tensor import Tensor, TensorShape
-from math import add, sub, mul, div, log, exp
+from tensor import TensorShape
+from math import add, sub, mul
+from algorithm import vectorize
 
-from dainemo import GRAPH
-from dainemo.autograd.node import Node
 from dainemo.utils.tensorutils import (
+    broadcast_shapes,
     dot,
-    tsum,
-    tmax,
     elwise_op,
-    elwise_pow,
-    elwise_transform,
-    fill,
-    transpose,
-    calculate_strides,
+    broadcast_elwise_op,
+    dot_transpose_t1,
+    dot_transpose_t2,
+    tmean,
 )
-
 
 """
 Implement forward and backward operations for basic tensor manipulations.
 """
 
 
+trait BinaryOperator:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
+        """
+        Returns the shape of the result tensor given the shapes of the input tensors.
+        """
+        ...
+
+
+trait UnaryOperator:
+    @staticmethod
+    fn result_shape(t_shape: TensorShape) -> TensorShape:
+        """
+        Returns the shape of the result tensor given the shape of the input tensor.
+        """
+        ...
+
+
 # <------------ADD------------>
-struct ADD:
+@value
+struct ADD(BinaryOperator):
     @staticmethod
-    fn forward(n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
-        """Forward operation of element wise addition."""
-        let res = elwise_op[dtype, nelts, add](n1.tensor, n2.tensor)
-        return GRAPH.create_graph_node[Self.backward](res, n1, n2)
+    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
+        return broadcast_shapes(t1_shape, t2_shape)
 
     @staticmethod
-    fn forward(n1: Node[dtype], a: SIMD[dtype, 1]) -> Node[dtype]:
-        """Forward operation of tensor-scalar addition."""
-        let res: Tensor[dtype] = elwise_op[dtype, nelts, add](n1.tensor, a)
-        var a_tensor: Tensor[dtype] = Tensor[dtype](1)
-        a_tensor[0] = a
-        return GRAPH.create_graph_node[Self.backward](res, n1, Node[dtype](a_tensor))
+    fn forward[
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
+        """
+        Forward pass of the add operation.
+        """
+        elwise_op[t1_shape, t2_shape, add](res, t1, t2)
 
     @staticmethod
-    fn backward(
-        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-    ) -> Tensor[dtype]:
+    fn backward[
+        tensor_id: Int,
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of element wise addition."""
         # d(x + y) / dx = d(x + y) / dy = 1
         return ug
 
 
 # <------------SUB------------>
-struct SUB:
+@value
+struct SUB(BinaryOperator):
     @staticmethod
-    fn forward(n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
-        """Forward operation of element wise subtraction."""
-        let res = elwise_op[dtype, nelts, sub](n1.tensor, n2.tensor)
-        return GRAPH.create_graph_node[Self.backward](res, n1, n2)
+    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
+        return broadcast_shapes(t1_shape, t2_shape)
 
     @staticmethod
-    fn backward(
-        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-    ) -> Tensor[dtype]:
+    fn forward[
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
+        """
+        Forward pass of the subtraction operation.
+        """
+        elwise_op[t1_shape, t2_shape, sub](res, t1, t2)
+
+    @staticmethod
+    fn backward[
+        tensor_id: Int,
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of element wise subtraction."""
+        # d(x - y) / dx = 1
+        # d(x - y) / dy = -1
+        @parameter
         if tensor_id == 0:
-            # d(x - y) / dx = 1
             return ug
         else:
-            # d(x - y) / dy = -1
-            let factor: SIMD[dtype, 1] = -1.0
-            return elwise_op[dtype, nelts, mul](factor, ug)
+            var res_grad = Tensor[dtype](ug_shape)
+            elwise_op[mul](res_grad, ug, -1.0)
+            return res_grad ^
 
 
 # <------------MUL------------>
-struct MUL:
+@value
+struct MUL(BinaryOperator):
     @staticmethod
-    fn forward(n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
-        """Forward operation of element wise multiplication."""
-        let res = elwise_op[dtype, nelts, mul](n1.tensor, n2.tensor)
-        return GRAPH.create_graph_node[Self.backward](res, n1, n2)
+    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
+        return broadcast_shapes(t1_shape, t2_shape)
 
     @staticmethod
-    fn forward(n1: Node[dtype], a: SIMD[dtype, 1]) -> Node[dtype]:
-        """Forward operation of tensor-scalar multiplication."""
-        let res: Tensor[dtype] = elwise_op[dtype, nelts, mul](n1.tensor, a)
-        var a_tensor: Tensor[dtype] = Tensor[dtype](1)
-        a_tensor[0] = a
-        return GRAPH.create_graph_node[Self.backward](res, n1, Node[dtype](a_tensor))
+    fn forward[
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
+        """
+        Forward pass of the multiplication operation.
+        """
+        elwise_op[t1_shape, t2_shape, mul](res, t1, t2)
 
     @staticmethod
-    fn backward(
-        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-    ) -> Tensor[dtype]:
+    fn backward[
+        tensor_id: Int,
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of element wise multiplication."""
-        # d(x*y) / dx = y
-        # d(x*y) / dy = x
-        let other_id: Int = (tensor_id + 1) % 2
-        let other_node = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[other_id])]
-        return elwise_op[dtype, nelts, mul](other_node.tensor, ug)
-
+        # d(x * y) / dx = y
+        # d(x * y) / dy = x
+        @parameter
+        if tensor_id == 0:
+            var res_grad = Tensor[dtype](ug_shape)
+            elwise_op[mul](res_grad, ug, t2)
+            return res_grad ^
+        else:
+            var res_grad = Tensor[dtype](ug_shape)
+            elwise_op[mul](res_grad, ug, t1)
+            return res_grad ^
 
 # <------------DIV------------>
-struct DIV:
-    @staticmethod
-    fn forward(n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
-        """Forward operation of element wise division."""
-        let res = elwise_op[dtype, nelts, div](n1.tensor, n2.tensor)
-        return GRAPH.create_graph_node[Self.backward](res, n1, n2)
-
-    @staticmethod
-    fn forward(n1: Node[dtype], a: SIMD[dtype, 1]) -> Node[dtype]:
-        """Forward operation of tensor-scalar division."""
-        let res: Tensor[dtype] = elwise_op[dtype, nelts, div](n1.tensor, a)
-        var a_tensor: Tensor[dtype] = Tensor[dtype](1)
-        a_tensor[0] = a
-        return GRAPH.create_graph_node[Self.backward](res, n1, Node[dtype](a_tensor))
-
-    @staticmethod
-    fn backward(
-        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-    ) -> Tensor[dtype]:
-        """Backward operation of element wise division."""
-        # d(x/y) / dx = 1/y
-        # d(x/y) / dy = -x/y^2
-        if tensor_id == 0:
-            let n2 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])]
-            let res = elwise_op[dtype, nelts, div](1.0, n2.tensor)
-            return elwise_op[dtype, nelts, mul](res, ug)
-        else:
-            let n1 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])]
-            let n2 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])]
-            let n2_sq = elwise_pow[dtype, nelts](n2.tensor, 2)
-            let div_n1_n2_sq = elwise_op[dtype, nelts, div](n1.tensor, n2_sq)
-            let res = elwise_op[dtype, nelts, mul](div_n1_n2_sq, -1.0)
-            return elwise_op[dtype, nelts, mul](res, ug)
-
+# TODO
 
 # <------------DOT------------>
-struct DOT:
+@value
+struct DOT(BinaryOperator):
     @staticmethod
-    fn forward(n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
-        """Forward operation of dot product."""
-        let res: Tensor[dtype] = dot[dtype, nelts](n1.tensor, n2.tensor)
-        return GRAPH.create_graph_node[Self.backward](res, n1, n2)
+    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
+        return TensorShape(t1_shape[0], t2_shape[1])
 
     @staticmethod
-    fn backward(
-        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-    ) -> Tensor[dtype]:
+    fn forward[
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
+        """
+        Forward pass of the dot operation.
+        """
+        dot[t1_shape, t2_shape](res, t1, t2)
+
+    @staticmethod
+    fn backward[
+        tensor_id: Int,
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of dot product."""
-        if tensor_id == 0:
-            let n2 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])]
-            return dot[dtype, nelts](
-                ug, transpose[dtype, nelts](n2.tensor)
-            )  # dot(ug, n2.T)
-        else:
-            let n1 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])]
-            return dot[dtype, nelts](
-                transpose[dtype, nelts](n1.tensor), ug
-            )  # dot(n1.T, ug)
-
-
-# <------------EXP------------>
-struct EXP:
-    @staticmethod
-    fn forward(n: Node[dtype]) -> Node[dtype]:
-        """Forward operation of exp."""
-        let res: Tensor[dtype] = elwise_transform[dtype, nelts, exp](n.tensor)
-        return GRAPH.create_graph_node[Self.backward](res, n)
-
-    @staticmethod
-    fn backward(
-        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-    ) -> Tensor[dtype]:
-        """Backward operation of exp."""
-        # d(exp(x)) / dx = exp(x)
-        let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
-        let res = elwise_transform[dtype, nelts, exp](t)
-        return elwise_op[dtype, nelts, mul](res, ug)
-
-
-# <------------LOG------------>
-struct LOG:
-    @staticmethod
-    fn forward(n: Node[dtype]) -> Node[dtype]:
-        """Forward operation of log."""
-        let res: Tensor[dtype] = elwise_transform[dtype, nelts, log](n.tensor)
-        return GRAPH.create_graph_node[Self.backward](res, n)
-
-    @staticmethod
-    fn backward(
-        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-    ) -> Tensor[dtype]:
-        """Backward operation of log."""
-        # d(log(x)) / dx = 1 / x
-        let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
-        let res = elwise_op[dtype, nelts, div](1.0, t)
-        return elwise_op[dtype, nelts, mul](res, ug)
-
-
-# <------------POW------------>
-struct POW:
-    @staticmethod
-    fn forward(n1: Node[dtype], a: Int) -> Node[dtype]:
-        """Forward operation of element wise pow."""
-        let res: Tensor[dtype] = elwise_pow[dtype, nelts](n1.tensor, a)
-        var a_tensor: Tensor[dtype] = Tensor[dtype](1)
-        a_tensor[0] = a
-        return GRAPH.create_graph_node[Self.backward](res, n1, Node[dtype](a_tensor))
-
-    @staticmethod
-    fn backward(
-        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-    ) -> Tensor[dtype]:
-        """Backward operation of element wise pow."""
-        # By design: tensor has id = 0 and scalar has id 1
-        let a: SIMD[dtype, 1] = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])].tensor[0]
-        let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
-
-        if tensor_id == 0:
-            # d(x^y) / dx = y * x^(y-1)
-            let res = elwise_op[dtype, nelts, mul](
-                a, elwise_pow[dtype, nelts](t, a.to_int() - 1)
-            )  # a * t^(a-1)
-            return elwise_op[dtype, nelts, mul](res, ug)  # a * t^(a-1) * ug
-        else:
-            # d(x^y) / dy = x^y * log(x)
-            let t_a = elwise_pow[dtype, nelts](t, a.to_int())  # t^a
-            let log_t = elwise_transform[dtype, nelts, log](t)  # log(t)
-            let res = elwise_op[dtype, nelts, mul](t_a, log_t)  # t^a * log(t)
-            return elwise_op[dtype, nelts, mul](res, ug)  # t^a * log(t) * ug
-
-
-# <------------SUM------------>
-struct SUM:
-    @staticmethod
-    fn forward[axis: Int](n: Node[dtype]) -> Node[dtype]:
-        """Forward pass of sum operation: along axis."""
-        let res: Tensor[dtype] = tsum[dtype, nelts](n.tensor, axis=axis)
-        return GRAPH.create_graph_node[Self.backward[axis=axis]](res, n)
-
-    @staticmethod
-    fn forward(n: Node[dtype]) -> Node[dtype]:
-        """Forward pass of sum operation: all elements."""
-        let res: SIMD[dtype, 1] = tsum[dtype, nelts](n.tensor)
-        var res_tensor = Tensor[dtype](1)
-        res_tensor[0] = res
-        return GRAPH.create_graph_node[Self.backward[axis=-1]](res_tensor, n)
-
-    @staticmethod
-    fn backward[
-        axis: Int = -1
-    ](ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[
-        dtype
-    ]:
-        """Backward pass of sum operation."""
-        # Expand the upper gradient to the same shape as the input tensor
-        let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
-        var res = Tensor[dtype](t.shape())
-        fill[dtype, nelts](res, 1.0)
-
-        return elwise_op[dtype, nelts, mul](res, ug)
-
-
-# <------------MAX------------>
-struct MAX:
-    @staticmethod
-    fn forward[axis: Int](n: Node[dtype]) -> Node[dtype]:
-        """Forward pass of max operation: along axis."""
-        alias nelts: Int = simdwidthof[dtype]()
-        let res: Tensor[dtype] = tmax[dtype, nelts](n.tensor, axis=axis)
-        return GRAPH.create_graph_node[Self.backward[axis=axis]](res, n)
-
-    @staticmethod
-    fn forward(n: Node[dtype]) -> Node[dtype]:
-        """Forward pass of max operation: all elements."""
-        alias nelts: Int = simdwidthof[dtype]()
-        let res: SIMD[dtype, 1] = tmax[dtype, nelts](n.tensor)
-        var res_tensor = Tensor[dtype](1)
-        res_tensor[0] = res
-        return GRAPH.create_graph_node[Self.backward[axis= -1]](res_tensor, n)
-
-    @staticmethod
-    fn backward[
-        axis: Int = -1
-    ](ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[
-        dtype
-    ]:
-        """Backward pass of max operation."""
-        # This could be changed to something like in tinygrad:
-        # max_1s = CMPEQ(original_tensor, expanded(max_tensor), axis=axis)
-        # sum_max_1s = SUM(max_1s)
-        # div_sum_max_1s = DIV(max_1, sum_max_1s)
-
-        # The selected element is 1.0, the others are 0.0. And if there are
-        # multiple max values, the gradient is divided by the number of max
-        # values (1/n) for each max value.
-        alias nelts: Int = simdwidthof[dtype]()
-        let t_node = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])]
-        let t = t_node.tensor
-        let strides = calculate_strides(t.shape())
-        var res = Tensor[dtype](t.shape())
 
         @parameter
-        if axis == -1:
-            # ug size is 1
-            let max_res = tmax[dtype, nelts](t)
-            var sum_eq: SIMD[dtype, 1] = 0
-            for i in range(t.num_elements()):
-                if t[i] == max_res:
-                    sum_eq += 1
-
-            let factor = 1 / sum_eq
-            for i in range(res.num_elements()):
-                if t[i] == max_res:
-                    res[i] = factor * ug[0]
+        if tensor_id == 0:
+            # dot(ug, t2.T)
+            var res_grad = Tensor[dtype](ug_shape[0], t2_shape[0])
+            dot_transpose_t2[ug_shape, t2_shape](res_grad, ug, t2)
+            return res_grad ^
         else:
-            # max_res.shape == ug.shape
-            let max_res = tmax[dtype, nelts](t, axis=axis)
-
-            for i in range(max_res.num_elements()):
-                let index_base = (i % strides[axis]) + (i // strides[axis]) * (
-                    strides[axis] * t.dim(axis)
-                )
-
-                var count_1s: SIMD[dtype, 1] = 0
-                # Count the number of values equal to max_res
-                for j in range(t.dim(axis)):
-                    let index = index_base + j * strides[axis]
-                    if t[index] == max_res[i]:
-                        count_1s += 1
-                # Divide 1.0 by the number of max values (n) and multiply by upper gradient value
-                let factor = 1 / count_1s
-                for j in range(t.dim(axis)):
-                    let index = index_base + j * strides[axis]
-                    if t[index] == max_res[i]:
-                        res[index] = factor * ug[i]
-
-        return res
+            # dot(t1.T, ug)
+            var res_grad = Tensor[dtype](t1_shape[1], ug_shape[1])
+            dot_transpose_t1[t1_shape, ug_shape](res_grad, t1, ug)
+            return res_grad ^
 
 
-# <---------TRANSPOSE--------->
-struct TRANSPOSE:
+# <------------MEAN------------>
+# TODO: include the axis capabilities
+@value
+struct MEAN(UnaryOperator):
     @staticmethod
-    fn forward(n: Node[dtype]) -> Node[dtype]:
-        """Forward pass of transpose operation."""
-        let res = transpose[dtype, nelts](n.tensor)
-        return GRAPH.create_graph_node[Self.backward](res, n)
+    fn result_shape(t_shape: TensorShape) -> TensorShape:
+        # This is the result shape for mean without an axis
+        return TensorShape(1)  
 
     @staticmethod
-    fn backward(
-        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-    ) -> Tensor[dtype]:
-        """No local gradient. Transpose is its own inverse."""
-        return transpose[dtype, nelts](ug)
-
-
-# <----------FLATTEN---------->
-struct FLATTEN:
-    @staticmethod
-    fn forward(n: Node[dtype]) -> Node[dtype]:
-        var res = n.tensor
-        try:
-            res.ireshape(TensorShape(res.num_elements()))
-        except:
-            print("[ERROR]: Cannot flatten tensor in forward pass.")
-
-        return GRAPH.create_graph_node[Self.backward](res, n)
-
-    @staticmethod
-    fn backward(
-        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-    ) -> Tensor[dtype]:
+    fn forward[t_shape: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
         """
-        Reshape upper gradient to original shape.
+        Forward pass of the mean operation.
         """
-        var res = ug
-        let shape = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor.shape()
 
-        try:
-            res.ireshape(shape)
-        except:
-            print("[ERROR]: Cannot reshape tensor in flatten backward pass.")
-
-        return res
-
-
-# <----------RESHAPE---------->
-struct RESHAPE:
-    @staticmethod
-    fn forward(n: Node[dtype], new_shape: TensorShape) -> Node[dtype]:
-        var res = n.tensor
-        try:
-            res.ireshape(new_shape)
-        except:
-            print("[ERROR]: Cannot reshape tensor in forward pass.")
-
-        return GRAPH.create_graph_node[Self.backward](res, n)
+        var res_simd = tmean(t)
+        
+        # there is only one value in the result tensor because wher are not using a specific axis to calculate the mean
+        res[0] = res_simd
 
     @staticmethod
-    fn backward(
-        ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-    ) -> Tensor[dtype]:
-        """
-        Reshape upper gradient to original shape.
-        """
-        var res = ug
-        let shape = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor.shape()
+    fn backward[
+        tensor_id: Int, ug_shape: TensorShape, t_shape: TensorShape
+    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of mean."""
+        # d(mean(t)) / dt = 1 / t.num_elements()
+        var res_grad = Tensor[dtype](t_shape)
 
-        try:
-            res.ireshape(shape)
-        except:
-            print("[ERROR]: Cannot reshape tensor in reshape backward pass.")
+        var grad: SIMD[dtype, 1] = 1.0 / t_shape.num_elements()
 
-        return res
+        grad = grad * ug[0] # because ug is a tensor of size 1 when mean is used without an axis
+
+        @parameter
+        fn v_mean_d[nelts: Int](i: Int):
+            res_grad.simd_store[nelts](i, grad)
+
+        vectorize[nelts, v_mean_d](ug_shape.num_elements())
+
+        return res_grad ^
+
+
+
+
+
+
+
+
+# from tensor import Tensor, TensorShape
+# from math import add, sub, mul, div, log, exp
+
+# from dainemo import GRAPH
+# from dainemo.autograd.node import Node
+# from dainemo.utils.tensorutils import (
+#     dot,
+#     tsum,
+#     tmax,
+#     elwise_op,
+#     elwise_pow,
+#     elwise_transform,
+#     fill,
+#     transpose,
+#     calculate_strides,
+# )
+
+
+# # <------------DIV------------>
+# struct DIV:
+#     @staticmethod
+#     fn forward(n1: Node[dtype], n2: Node[dtype]) -> Node[dtype]:
+#         """Forward operation of element wise division."""
+#         let res = elwise_op[dtype, nelts, div](n1.tensor, n2.tensor)
+#         return GRAPH.create_graph_node[Self.backward](res, n1, n2)
+
+#     @staticmethod
+#     fn forward(n1: Node[dtype], a: SIMD[dtype, 1]) -> Node[dtype]:
+#         """Forward operation of tensor-scalar division."""
+#         let res: Tensor[dtype] = elwise_op[dtype, nelts, div](n1.tensor, a)
+#         var a_tensor: Tensor[dtype] = Tensor[dtype](1)
+#         a_tensor[0] = a
+#         return GRAPH.create_graph_node[Self.backward](res, n1, Node[dtype](a_tensor))
+
+#     @staticmethod
+#     fn backward(
+#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
+#     ) -> Tensor[dtype]:
+#         """Backward operation of element wise division."""
+#         # d(x/y) / dx = 1/y
+#         # d(x/y) / dy = -x/y^2
+#         if tensor_id == 0:
+#             let n2 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])]
+#             let res = elwise_op[dtype, nelts, div](1.0, n2.tensor)
+#             return elwise_op[dtype, nelts, mul](res, ug)
+#         else:
+#             let n1 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])]
+#             let n2 = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])]
+#             let n2_sq = elwise_pow[dtype, nelts](n2.tensor, 2)
+#             let div_n1_n2_sq = elwise_op[dtype, nelts, div](n1.tensor, n2_sq)
+#             let res = elwise_op[dtype, nelts, mul](div_n1_n2_sq, -1.0)
+#             return elwise_op[dtype, nelts, mul](res, ug)
+
+
+
+
+# # <------------EXP------------>
+# struct EXP:
+#     @staticmethod
+#     fn forward(n: Node[dtype]) -> Node[dtype]:
+#         """Forward operation of exp."""
+#         let res: Tensor[dtype] = elwise_transform[dtype, nelts, exp](n.tensor)
+#         return GRAPH.create_graph_node[Self.backward](res, n)
+
+#     @staticmethod
+#     fn backward(
+#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
+#     ) -> Tensor[dtype]:
+#         """Backward operation of exp."""
+#         # d(exp(x)) / dx = exp(x)
+#         let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
+#         let res = elwise_transform[dtype, nelts, exp](t)
+#         return elwise_op[dtype, nelts, mul](res, ug)
+
+
+# # <------------LOG------------>
+# struct LOG:
+#     @staticmethod
+#     fn forward(n: Node[dtype]) -> Node[dtype]:
+#         """Forward operation of log."""
+#         let res: Tensor[dtype] = elwise_transform[dtype, nelts, log](n.tensor)
+#         return GRAPH.create_graph_node[Self.backward](res, n)
+
+#     @staticmethod
+#     fn backward(
+#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
+#     ) -> Tensor[dtype]:
+#         """Backward operation of log."""
+#         # d(log(x)) / dx = 1 / x
+#         let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
+#         let res = elwise_op[dtype, nelts, div](1.0, t)
+#         return elwise_op[dtype, nelts, mul](res, ug)
+
+
+# # <------------POW------------>
+# struct POW:
+#     @staticmethod
+#     fn forward(n1: Node[dtype], a: Int) -> Node[dtype]:
+#         """Forward operation of element wise pow."""
+#         let res: Tensor[dtype] = elwise_pow[dtype, nelts](n1.tensor, a)
+#         var a_tensor: Tensor[dtype] = Tensor[dtype](1)
+#         a_tensor[0] = a
+#         return GRAPH.create_graph_node[Self.backward](res, n1, Node[dtype](a_tensor))
+
+#     @staticmethod
+#     fn backward(
+#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
+#     ) -> Tensor[dtype]:
+#         """Backward operation of element wise pow."""
+#         # By design: tensor has id = 0 and scalar has id 1
+#         let a: SIMD[dtype, 1] = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])].tensor[0]
+#         let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
+
+#         if tensor_id == 0:
+#             # d(x^y) / dx = y * x^(y-1)
+#             let res = elwise_op[dtype, nelts, mul](
+#                 a, elwise_pow[dtype, nelts](t, a.to_int() - 1)
+#             )  # a * t^(a-1)
+#             return elwise_op[dtype, nelts, mul](res, ug)  # a * t^(a-1) * ug
+#         else:
+#             # d(x^y) / dy = x^y * log(x)
+#             let t_a = elwise_pow[dtype, nelts](t, a.to_int())  # t^a
+#             let log_t = elwise_transform[dtype, nelts, log](t)  # log(t)
+#             let res = elwise_op[dtype, nelts, mul](t_a, log_t)  # t^a * log(t)
+#             return elwise_op[dtype, nelts, mul](res, ug)  # t^a * log(t) * ug
+
+
+# # <------------SUM------------>
+# struct SUM:
+#     @staticmethod
+#     fn forward[axis: Int](n: Node[dtype]) -> Node[dtype]:
+#         """Forward pass of sum operation: along axis."""
+#         let res: Tensor[dtype] = tsum[dtype, nelts](n.tensor, axis=axis)
+#         return GRAPH.create_graph_node[Self.backward[axis=axis]](res, n)
+
+#     @staticmethod
+#     fn forward(n: Node[dtype]) -> Node[dtype]:
+#         """Forward pass of sum operation: all elements."""
+#         let res: SIMD[dtype, 1] = tsum[dtype, nelts](n.tensor)
+#         var res_tensor = Tensor[dtype](1)
+#         res_tensor[0] = res
+#         return GRAPH.create_graph_node[Self.backward[axis=-1]](res_tensor, n)
+
+#     @staticmethod
+#     fn backward[
+#         axis: Int = -1
+#     ](ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[
+#         dtype
+#     ]:
+#         """Backward pass of sum operation."""
+#         # Expand the upper gradient to the same shape as the input tensor
+#         let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
+#         var res = Tensor[dtype](t.shape())
+#         fill[dtype, nelts](res, 1.0)
+
+#         return elwise_op[dtype, nelts, mul](res, ug)
+
+
+# # <------------MAX------------>
+# struct MAX:
+#     @staticmethod
+#     fn forward[axis: Int](n: Node[dtype]) -> Node[dtype]:
+#         """Forward pass of max operation: along axis."""
+#         alias nelts: Int = simdwidthof[dtype]()
+#         let res: Tensor[dtype] = tmax[dtype, nelts](n.tensor, axis=axis)
+#         return GRAPH.create_graph_node[Self.backward[axis=axis]](res, n)
+
+#     @staticmethod
+#     fn forward(n: Node[dtype]) -> Node[dtype]:
+#         """Forward pass of max operation: all elements."""
+#         alias nelts: Int = simdwidthof[dtype]()
+#         let res: SIMD[dtype, 1] = tmax[dtype, nelts](n.tensor)
+#         var res_tensor = Tensor[dtype](1)
+#         res_tensor[0] = res
+#         return GRAPH.create_graph_node[Self.backward[axis= -1]](res_tensor, n)
+
+#     @staticmethod
+#     fn backward[
+#         axis: Int = -1
+#     ](ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[
+#         dtype
+#     ]:
+#         """Backward pass of max operation."""
+#         # This could be changed to something like in tinygrad:
+#         # max_1s = CMPEQ(original_tensor, expanded(max_tensor), axis=axis)
+#         # sum_max_1s = SUM(max_1s)
+#         # div_sum_max_1s = DIV(max_1, sum_max_1s)
+
+#         # The selected element is 1.0, the others are 0.0. And if there are
+#         # multiple max values, the gradient is divided by the number of max
+#         # values (1/n) for each max value.
+#         alias nelts: Int = simdwidthof[dtype]()
+#         let t_node = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])]
+#         let t = t_node.tensor
+#         let strides = calculate_strides(t.shape())
+#         var res = Tensor[dtype](t.shape())
+
+#         @parameter
+#         if axis == -1:
+#             # ug size is 1
+#             let max_res = tmax[dtype, nelts](t)
+#             var sum_eq: SIMD[dtype, 1] = 0
+#             for i in range(t.num_elements()):
+#                 if t[i] == max_res:
+#                     sum_eq += 1
+
+#             let factor = 1 / sum_eq
+#             for i in range(res.num_elements()):
+#                 if t[i] == max_res:
+#                     res[i] = factor * ug[0]
+#         else:
+#             # max_res.shape == ug.shape
+#             let max_res = tmax[dtype, nelts](t, axis=axis)
+
+#             for i in range(max_res.num_elements()):
+#                 let index_base = (i % strides[axis]) + (i // strides[axis]) * (
+#                     strides[axis] * t.dim(axis)
+#                 )
+
+#                 var count_1s: SIMD[dtype, 1] = 0
+#                 # Count the number of values equal to max_res
+#                 for j in range(t.dim(axis)):
+#                     let index = index_base + j * strides[axis]
+#                     if t[index] == max_res[i]:
+#                         count_1s += 1
+#                 # Divide 1.0 by the number of max values (n) and multiply by upper gradient value
+#                 let factor = 1 / count_1s
+#                 for j in range(t.dim(axis)):
+#                     let index = index_base + j * strides[axis]
+#                     if t[index] == max_res[i]:
+#                         res[index] = factor * ug[i]
+
+#         return res
+
+
+# # <---------TRANSPOSE--------->
+# struct TRANSPOSE:
+#     @staticmethod
+#     fn forward(n: Node[dtype]) -> Node[dtype]:
+#         """Forward pass of transpose operation."""
+#         let res = transpose[dtype, nelts](n.tensor)
+#         return GRAPH.create_graph_node[Self.backward](res, n)
+
+#     @staticmethod
+#     fn backward(
+#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
+#     ) -> Tensor[dtype]:
+#         """No local gradient. Transpose is its own inverse."""
+#         return transpose[dtype, nelts](ug)
+
+
+# # <----------FLATTEN---------->
+# struct FLATTEN:
+#     @staticmethod
+#     fn forward(n: Node[dtype]) -> Node[dtype]:
+#         var res = n.tensor
+#         try:
+#             res.ireshape(TensorShape(res.num_elements()))
+#         except:
+#             print("[ERROR]: Cannot flatten tensor in forward pass.")
+
+#         return GRAPH.create_graph_node[Self.backward](res, n)
+
+#     @staticmethod
+#     fn backward(
+#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
+#     ) -> Tensor[dtype]:
+#         """
+#         Reshape upper gradient to original shape.
+#         """
+#         var res = ug
+#         let shape = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor.shape()
+
+#         try:
+#             res.ireshape(shape)
+#         except:
+#             print("[ERROR]: Cannot reshape tensor in flatten backward pass.")
+
+#         return res
+
+
+# # <----------RESHAPE---------->
+# struct RESHAPE:
+#     @staticmethod
+#     fn forward(n: Node[dtype], new_shape: TensorShape) -> Node[dtype]:
+#         var res = n.tensor
+#         try:
+#             res.ireshape(new_shape)
+#         except:
+#             print("[ERROR]: Cannot reshape tensor in forward pass.")
+
+#         return GRAPH.create_graph_node[Self.backward](res, n)
+
+#     @staticmethod
+#     fn backward(
+#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
+#     ) -> Tensor[dtype]:
+#         """
+#         Reshape upper gradient to original shape.
+#         """
+#         var res = ug
+#         let shape = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor.shape()
+
+#         try:
+#             res.ireshape(shape)
+#         except:
+#             print("[ERROR]: Cannot reshape tensor in reshape backward pass.")
+
+#         return res

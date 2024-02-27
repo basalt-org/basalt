@@ -4,6 +4,8 @@ from algorithm import parallelize, vectorize
 from utils.index import Index
 from math import min
 
+from dainemo import dtype
+
 
 @value
 struct MyBatch[dtype: DType](CollectionElement):
@@ -27,7 +29,7 @@ struct MyBatch[dtype: DType](CollectionElement):
 
 
 @value
-struct DataLoader[dtype: DType]:
+struct DataLoader:
     var data: Tensor[dtype]
     var labels: Tensor[dtype]
     var batch_size: Int
@@ -72,7 +74,7 @@ struct DataLoader[dtype: DType]:
         '''
         return self._num_batches
 
-    fn __iter__(inout self) -> DataLoader[dtype]:
+    fn __iter__(inout self) -> Self:
         self._current_index = 0
         let full_batches = self.data.dim(0) // self.batch_size
         let remainder = 1 if self.data.dim(0) % self.batch_size != 0 else 0
