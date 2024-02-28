@@ -1,162 +1,171 @@
-# from random import rand
-# from tensor import Tensor, TensorShape
-# from testing import assert_equal
-# from test_tensorutils import assert_tensors_equal
-# from math import exp, log
+from random import rand
+from tensor import Tensor, TensorShape
+from testing import assert_equal
+from test_tensorutils import assert_tensors_equal
+from math import exp, log
 
-# from dainemo import GRAPH
+from dainemo import Graph, Symbol, OP
+import dainemo.nn as nn
 # from dainemo.autograd.ops.basics import (
-#     ADD,
-#     SUB,
-#     MUL,
-#     DIV,
-#     DOT,
-#     EXP,
-#     LOG,
-#     POW,
-#     SUM,
-#     MAX,
-#     TRANSPOSE,
-#     FLATTEN,
-#     RESHAPE,
+    # ADD,
+    # SUB,
+    # MUL,
+    # DIV,
+    # DOT,
+    # EXP,
+    # LOG,
+    # POW,
+    # SUM,
+    # MAX,
+    # TRANSPOSE,
+    # FLATTEN,
+    # RESHAPE,
 # )
-# from dainemo.utils.tensorutils import fill
+from dainemo.utils.tensorutils import fill
 
-# alias dtype = DType.float32
-# alias nelts: Int = simdwidthof[dtype]()
-
-
-# # <------------ADD------------>
-# fn test_ADD() raises:
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
-#     var t2: Tensor[dtype] = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](t1, 1.0)
-#     fill[dtype, nelts](t2, 1.0)
-
-#     let res = ADD.forward(t1, t2)
-
-#     var expected = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](expected, 2.0)
-#     assert_tensors_equal(res.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 3)
-#     GRAPH.reset_all()
+alias dtype = DType.float32
+alias nelts: Int = simdwidthof[dtype]()
 
 
-# # <------------SUB------------>
-# fn test_SUB() raises:
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
-#     var t2: Tensor[dtype] = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](t1, 1.0)
-#     fill[dtype, nelts](t2, 1.0)
+# ------ Test Binary Ops ------
+fn test_binary_op[
+    op: OP, t1_shape: TensorShape, t2_shape: TensorShape
+](t1: Tensor[dtype], t2: Tensor[dtype], expected: Tensor[dtype]) raises:
+    fn create_graph() -> Graph:
+        var g = Graph()
+        var t1 = g.input(t1_shape)
+        var t2 = g.input(t2_shape)
 
-#     let res = SUB.forward(t1, t2)
+        var res = g.op(op, t1, t2)
+        _ = g.out(res)
 
-#     let expected = Tensor[dtype](2, 3)
-#     assert_tensors_equal(res.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 3)
-#     GRAPH.reset_all()
+        return g ^
+
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+
+    var model = nn.Model[graph]()
+    var res = model.forward(t1, t2)
+
+    assert_tensors_equal(res, expected)
 
 
-# # <------------MUL------------>
-# fn test_MUL() raises:
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
-#     var t2: Tensor[dtype] = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](t1, 1.0)
-#     fill[dtype, nelts](t2, 1.0)
+# <------------ADD------------>
+fn test_ADD() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias t2_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var t2: Tensor[dtype] = Tensor[dtype](t2_shape)
+    fill[dtype, nelts](t1, 1.0)
+    fill[dtype, nelts](t2, 1.0)
 
-#     var res = MUL.forward(t1, t2)
+    var expected = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected, 2.0)
 
-#     var expected = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](expected, 1.0)
-#     assert_tensors_equal(res.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 3)
-#     GRAPH.reset_all()
+    test_binary_op[OP.ADD, t1_shape, t2_shape](t1, t2, expected)
 
-#     res = MUL.forward(t1, 5)
-#     fill[dtype, nelts](expected, 5)
-#     assert_tensors_equal(res.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 3)
-#     GRAPH.reset_all()
+
+# <------------SUB------------>
+fn test_SUB() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias t2_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var t2: Tensor[dtype] = Tensor[dtype](t2_shape)
+    fill[dtype, nelts](t1, 2.0)
+    fill[dtype, nelts](t2, 1.0)
+
+    var expected = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected, 1.0)
+
+    test_binary_op[OP.SUB, t1_shape, t2_shape](t1, t2, expected)
+
+
+#  <------------MUL------------>
+fn test_MUL() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias t2_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var t2: Tensor[dtype] = Tensor[dtype](t2_shape)
+    fill[dtype, nelts](t1, 2.0)
+    fill[dtype, nelts](t2, 3.0)
+
+    var expected = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected, 6.0)
+
+    test_binary_op[OP.MUL, t1_shape, t2_shape](t1, t2, expected)
 
 
 # # <------------DIV------------>
-# fn test_DIV() raises:
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
-#     var t2: Tensor[dtype] = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](t1, 1.0)
-#     fill[dtype, nelts](t2, 3.0)
+fn test_DIV() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias t2_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var t2: Tensor[dtype] = Tensor[dtype](t2_shape)
+    fill[dtype, nelts](t1, 6.0)
+    fill[dtype, nelts](t2, 2.0)
 
-#     var res = DIV.forward(t1, t2)
+    var expected = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected, 3.0)
 
-#     var expected = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](expected, 1.0 / 3.0)
-#     assert_tensors_equal(res.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 3)
-#     GRAPH.reset_all()
-
-#     res = DIV.forward(t1, 5)
-#     fill[dtype, nelts](expected, 1.0 / 5.0)
-#     assert_tensors_equal(res.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 3)
-#     GRAPH.reset_all()
+    test_binary_op[OP.DIV, t1_shape, t2_shape](t1, t2, expected)
 
 
-# # <------------DOT------------>
-# fn test_DOT() raises:
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
-#     var t2: Tensor[dtype] = Tensor[dtype](3, 2)
-#     fill[dtype, nelts](t1, 1.0)
-#     fill[dtype, nelts](t2, 1.0)
+# ------ Test Unary Ops ------
+fn test_unary_op[
+    op: OP, t1_shape: TensorShape
+](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
+    fn create_graph() -> Graph:
+        var g = Graph()
+        var t1 = g.input(t1_shape)
 
-#     let res = DOT.forward(t1, t2)
+        var res = g.op(op, t1)
+        _ = g.out(res)
 
-#     var expected = Tensor[dtype](2, 2)
-#     fill[dtype, nelts](expected, 3.0)
-#     assert_tensors_equal(res.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 3)
-#     GRAPH.reset_all()
+        return g ^
 
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
 
-# # <------------EXP------------>
-# fn test_EXP() raises:
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](t1, 2.0)
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)
 
-#     let res = EXP.forward(t1)
-
-#     var expected = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](expected, exp[dtype, 1](2.0))
-#     assert_tensors_equal(res.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 2)
-#     GRAPH.reset_all()
+    assert_tensors_equal(res, expected)
 
 
-# # <------------LOG------------>
-# fn test_LOG() raises:
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](t1, 2.0)
+# <------------EXP------------>
+fn test_EXP() raises:
+    alias t1_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    fill[dtype, nelts](t1, 2.0)
 
-#     let res = LOG.forward(t1)
+    var expected = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected, exp[dtype, 1](2.0))
 
-#     var expected = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](expected, log[dtype, 1](2.0))
-#     assert_tensors_equal(res.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 2)
-#     GRAPH.reset_all()
+    test_unary_op[OP.EXP, t1_shape](t1, expected)
 
 
-# # <------------POW------------>
-# fn test_POW() raises:
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](t1, 2.0)
+# <------------LOG------------>
+fn test_LOG() raises:
+    alias t1_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    fill[dtype, nelts](t1, 2.0)
 
-#     let res = POW.forward(t1, 2)
+    var expected = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected, log[dtype, 1](2.0))
 
-#     var expected = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](expected, 4.0)
-#     assert_tensors_equal(res.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 3)
-#     GRAPH.reset_all()
+    test_unary_op[OP.LOG, t1_shape](t1, expected)
+
+
+# <------------POW------------>
+fn test_POW() raises:
+    alias t1_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    fill[dtype, nelts](t1, 2.0)
+
+    var expected = Tensor[dtype](2, 3)
+    fill[dtype, nelts](expected, 4.0)
+
+    test_unary_op[OP.POW, t1_shape](t1, expected)
 
 
 # # <------------SUM------------>
@@ -272,22 +281,22 @@
 #     GRAPH.reset_all()
 
 
-# fn main():
-#     try:
-#         test_ADD()
-#         test_SUB()
-#         test_MUL()
-#         test_DIV()
-#         test_DOT()
-#         test_EXP()
-#         test_LOG()
-#         test_POW()
-#         test_SUM()
-#         test_MAX()
-#         test_TRANSPOSE()
-#         test_FLATTEN()
-#         test_RESHAPE()
-#     except e:
-#         print("[ERROR] Error in ops")
-#         print(e)
-#         return
+fn main():
+    try:
+        test_ADD()
+        test_SUB()
+        test_MUL()
+        test_DIV()
+    #         test_DOT()
+    #         test_EXP()
+    #         test_LOG()
+    #         test_POW()
+    #         test_SUM()
+    #         test_MAX()
+    #         test_TRANSPOSE()
+    #         test_FLATTEN()
+    #         test_RESHAPE()
+    except e:
+        print("[ERROR] Error in ops")
+        print(e)
+        return

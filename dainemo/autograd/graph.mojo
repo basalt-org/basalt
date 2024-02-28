@@ -64,7 +64,7 @@ struct Graph:
 
         return symbol
 
-    fn op(inout self, op: OP, operand_1: Symbol, operand_2: Optional[Symbol]) -> Symbol:
+    fn op(inout self, op: OP, operand_1: Symbol, operand_2: Optional[Symbol] = None) -> Symbol:
         let res: Symbol
         if operand_2:
             res = Symbol(
