@@ -370,7 +370,7 @@ struct MEAN(UnaryOperator):
 
     @staticmethod
     fn backward[
-        tensor_id: Int, ug_shape: TensorShape, t_shape: TensorShape
+        ug_shape: TensorShape, t_shape: TensorShape
     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of mean."""
         # d(mean(t)) / dt = 1 / t.num_elements()

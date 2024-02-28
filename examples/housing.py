@@ -50,9 +50,9 @@ if __name__ == "__main__":
     test_data = BostonHousing(test_df)
 
     # Train Parameters
-    batch_size = 64
+    batch_size = 32
     num_epochs = 200
-    learning_rate = 0.05
+    learning_rate = 0.02
 
     # Batchwise data loader
     loaders = {

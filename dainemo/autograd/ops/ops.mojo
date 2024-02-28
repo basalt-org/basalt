@@ -1,6 +1,6 @@
 from tensor import TensorShape 
 
-from .basics import ADD, DOT, SUB, MUL, MEAN
+from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, MEAN
 from dainemo.utils.uuid import bytes
 from dainemo.utils.tensorutils import unbroadcast_add, broadcast_shapes
 
@@ -14,10 +14,14 @@ struct OP:
     """
 
     alias ADD = OP(0, "ADD")
-    alias DOT = OP(1, "DOT")
-    alias SUB = OP(2, "SUB")
-    alias MUL = OP(3, "MUL")
-    alias MEAN = OP(4, "MEAN")
+    alias SUB = OP(1, "SUB")
+    alias MUL = OP(2, "MUL")
+    alias DIV = OP(3, "DIV")
+    alias EXP = OP(4, "EXP")
+    alias LOG = OP(5, "LOG")
+    alias POW = OP(6, "POW")
+    alias DOT = OP(7, "DOT")
+    alias MEAN = OP(8, "MEAN")
 
     var id: UInt8
     var name: bytes[8]
@@ -36,8 +40,11 @@ fn static_result_shape(op: OP, t1_shape: TensorShape) -> TensorShape:
     """
     Static result shape for unary operators.
     """
-    # TODO
-    if op == OP.MEAN:
+    if op == OP.EXP:
+        return EXP.result_shape(t1_shape)
+    elif op == OP.LOG:
+        return LOG.result_shape(t1_shape)
+    elif op == OP.MEAN:
         return MEAN.result_shape(t1_shape)
     else:
         print("[ERROR] Operator not found.")
@@ -52,12 +59,16 @@ fn static_result_shape(
     """
     if op == OP.ADD:
         return ADD.result_shape(t1_shape, t2_shape)
-    elif op == OP.DOT:
-        return DOT.result_shape(t1_shape, t2_shape)
     elif op == OP.SUB:
         return SUB.result_shape(t1_shape, t2_shape)
     elif op == OP.MUL:
         return MUL.result_shape(t1_shape, t2_shape)
+    elif op == OP.DIV:
+        return DIV.result_shape(t1_shape, t2_shape)
+    elif op == OP.POW:
+        return POW.result_shape(t1_shape, t2_shape)
+    elif op == OP.DOT:
+        return DOT.result_shape(t1_shape, t2_shape)
     else:
         # We can't print at compile time (at least for now it crashes at comp time with an error)
         print("[ERROR] Operator not found.")
@@ -74,12 +85,16 @@ fn forward_op[
     @parameter
     if op == OP.ADD:
         ADD.forward[t1_shape, t2_shape](res, t1, t2)
-    elif op == OP.DOT:
-        DOT.forward[t1_shape, t2_shape](res, t1, t2)
     elif op == OP.SUB:
         SUB.forward[t1_shape, t2_shape](res, t1, t2)
     elif op == OP.MUL:
         MUL.forward[t1_shape, t2_shape](res, t1, t2)
+    elif op == OP.DIV:
+        DIV.forward[t1_shape, t2_shape](res, t1, t2)
+    elif op == OP.POW:
+        POW.forward[t1_shape, t2_shape](res, t1, t2)
+    elif op == OP.DOT:
+        DOT.forward[t1_shape, t2_shape](res, t1, t2)
     else:
         print("[ERROR] Operator not found.")
 
@@ -93,7 +108,11 @@ fn forward_op[
     """
 
     @parameter
-    if op == OP.MEAN:
+    if op == OP.EXP:
+        EXP.forward[t1_shape](res, t1)
+    elif op == OP.LOG:
+        LOG.forward[t1_shape](res, t1)
+    elif op == OP.MEAN:
         MEAN.forward[t1_shape](res, t1)
     else:
         print("[ERROR] Operator not found.")
@@ -114,12 +133,16 @@ fn backward_op[
     @parameter
     if op == OP.ADD:
         res_grad = ADD.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
-    elif op == OP.DOT:
-        res_grad = DOT.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
     elif op == OP.SUB:
         res_grad = SUB.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
     elif op == OP.MUL:
         res_grad = MUL.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+    elif op == OP.DIV:
+        res_grad = DIV.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+    elif op == OP.POW:
+        res_grad = POW.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+    elif op == OP.DOT:
+        res_grad = DOT.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)
@@ -168,8 +191,12 @@ fn backward_op[
     let res_grad: Tensor[dtype]  # Resulting gradient of the operation
 
     @parameter
-    if op == OP.MEAN:
-        res_grad = MEAN.backward[tensor_id, ug_shape, t1_shape](ug, t1)
+    if op == OP.EXP:
+        res_grad = EXP.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.LOG:
+        res_grad = LOG.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.MEAN:
+        res_grad = MEAN.backward[ug_shape, t1_shape](ug, t1)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1)

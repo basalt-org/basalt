@@ -10,11 +10,14 @@ from dainemo.utils.dataloader import DataLoader
 
 fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
 
-    let diff = g.op(OP.SUB, y_true, y_pred)
-    let loss = g.op(OP.MUL, diff, diff)
-    let mean_loss = g.op(OP.MEAN, loss, None)
+    # PyTorch: 1/2N * sum( (outputs - targets)^2 )
 
-    return mean_loss ^
+    let diff = g.op(OP.SUB, y_true, y_pred)
+    let loss = g.op(OP.POW, diff, 2)
+    let mean_loss = g.op(OP.MEAN, loss, None)
+    let mean_loss_2 = g.op(OP.DIV, mean_loss, 2)
+
+    return mean_loss_2 ^
 
 
 
@@ -44,9 +47,9 @@ fn main():
         print("Could not load data")
     
     # Train Parameters
-    alias batch_size = 64
-    alias num_epochs = 100
-    alias learning_rate = 1e-4
+    alias batch_size = 32
+    alias num_epochs = 200
+    alias learning_rate = 0.02
 
     # Batchwise data loader
     var training_loader = DataLoader(
