@@ -77,7 +77,8 @@ struct DataLoader:
     fn __iter__(inout self) -> Self:
         self._current_index = 0
         let full_batches = self.data.dim(0) // self.batch_size
-        let remainder = 1 if self.data.dim(0) % self.batch_size != 0 else 0
+        # let remainder = 1 if self.data.dim(0) % self.batch_size != 0 else 0
+        let remainder = 0
         self._num_batches = full_batches + remainder
         return self
 
