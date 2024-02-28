@@ -84,7 +84,6 @@ struct Graph:
         self.nodes.push_back(Node(op, res, operand_1, operand_2.take()))
         return res ^
 
-    # Maybe the uuid should be something global, so that we can create symbols outside the graph like it is done in max engine
     fn op(inout self, op: OP, operand_1: Symbol, operand_2: FloatLiteral) -> Symbol:
         let operand_2_symbol = self.scalar(operand_2)
         let res = Symbol(
