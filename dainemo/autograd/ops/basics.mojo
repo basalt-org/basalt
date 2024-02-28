@@ -27,6 +27,7 @@ trait UnaryOperator:
         ...
 
 
+# ----- Binary operators -----
 # <------------ADD------------>
 @value
 struct ADD(BinaryOperator):
@@ -201,6 +202,46 @@ struct DIV(BinaryOperator):
             return res_grad ^
 
 
+# <------------DOT------------>
+@value
+struct DOT(BinaryOperator):
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
+        return TensorShape(t1_shape[0], t2_shape[1])
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
+        """
+        Forward pass of the dot operation.
+        """
+        dot[t1_shape, t2_shape](res, t1, t2)
+
+    @staticmethod
+    fn backward[
+        tensor_id: Int,
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of dot product."""
+
+        @parameter
+        if tensor_id == 0:
+            # dot(ug, t2.T)
+            var res_grad = Tensor[dtype](ug_shape[0], t2_shape[0])
+            dot_transpose_t2[ug_shape, t2_shape](res_grad, ug, t2)
+            return res_grad ^
+        else:
+            # dot(t1.T, ug)
+            var res_grad = Tensor[dtype](t1_shape[1], ug_shape[1])
+            dot_transpose_t1[t1_shape, ug_shape](res_grad, t1, ug)
+            return res_grad ^
+
+
+# ----- Unary operators -----
 # <------------EXP------------>
 @value
 struct EXP(UnaryOperator):
@@ -309,45 +350,7 @@ struct POW(BinaryOperator):
         return res_grad ^
 
 
-# <------------DOT------------>
-@value
-struct DOT(BinaryOperator):
-    @staticmethod
-    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
-        return TensorShape(t1_shape[0], t2_shape[1])
-
-    @staticmethod
-    fn forward[
-        t1_shape: TensorShape,
-        t2_shape: TensorShape,
-    ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
-        """
-        Forward pass of the dot operation.
-        """
-        dot[t1_shape, t2_shape](res, t1, t2)
-
-    @staticmethod
-    fn backward[
-        tensor_id: Int,
-        ug_shape: TensorShape,
-        t1_shape: TensorShape,
-        t2_shape: TensorShape,
-    ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
-        """Backward operation of dot product."""
-
-        @parameter
-        if tensor_id == 0:
-            # dot(ug, t2.T)
-            var res_grad = Tensor[dtype](ug_shape[0], t2_shape[0])
-            dot_transpose_t2[ug_shape, t2_shape](res_grad, ug, t2)
-            return res_grad ^
-        else:
-            # dot(t1.T, ug)
-            var res_grad = Tensor[dtype](t1_shape[1], ug_shape[1])
-            dot_transpose_t1[t1_shape, ug_shape](res_grad, t1, ug)
-            return res_grad ^
-
-
+# ----- Reduce operators -----
 # <------------MEAN------------>
 # TODO: include the axis capabilities
 @value

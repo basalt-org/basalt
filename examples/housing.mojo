@@ -14,7 +14,7 @@ fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
 
     let diff = g.op(OP.SUB, y_true, y_pred)
     let loss = g.op(OP.POW, diff, 2)
-    let mean_loss = g.op(OP.MEAN, loss, None)
+    let mean_loss = g.op(OP.MEAN, loss)
     let mean_loss_2 = g.op(OP.DIV, mean_loss, 2)
 
     return mean_loss_2 ^
