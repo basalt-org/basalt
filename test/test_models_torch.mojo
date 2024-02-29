@@ -36,10 +36,10 @@
 #         """
 #         Forward pass of the linear layer.
 #         """
-#         let weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
-#         let bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
+#         var weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
+#         var bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
 
-#         let res = DOT.forward(inputs, weights)
+#         var res = DOT.forward(inputs, weights)
 #         return ADD.forward(res, bias)
 
 #     fn __call__(self, inputs: Node[dtype]) -> Node[dtype]:
@@ -75,8 +75,8 @@
 #         """
 #         Forward pass of the convolution layer.
 #         """
-#         let weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
-#         let bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
+#         var weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
+#         var bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
 
 #         return CONV2D.forward[padding, stride, dilation](inputs, weights, bias)
 
@@ -178,29 +178,29 @@
 #     var out: DynamicVector[Float32] = DynamicVector[Float32]()
 
 #     try:
-#         let torch = Python.import_module("torch")
-#         let F = Python.import_module("torch.nn.functional")
-#         let np = Python.import_module("numpy")
+#         var torch = Python.import_module("torch")
+#         var F = Python.import_module("torch.nn.functional")
+#         var np = Python.import_module("numpy")
 #         Python.add_to_path("./test")
-#         let cnn_class = Python.import_module("test_cnn_class_torch")
+#         var cnn_class = Python.import_module("test_cnn_class_torch")
 
-#         let inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
-#         let labels = torch.from_numpy(to_numpy(labels)).requires_grad_(True)
+#         var inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
+#         var labels = torch.from_numpy(to_numpy(labels)).requires_grad_(True)
 
-#         let conv1_weights = torch.from_numpy(to_numpy(conv1_weights)).requires_grad_(
+#         var conv1_weights = torch.from_numpy(to_numpy(conv1_weights)).requires_grad_(
 #             True
 #         )
-#         let conv1_bias = torch.from_numpy(to_numpy(conv1_bias)).requires_grad_(True)
-#         let conv2_weights = torch.from_numpy(to_numpy(conv2_weights)).requires_grad_(
+#         var conv1_bias = torch.from_numpy(to_numpy(conv1_bias)).requires_grad_(True)
+#         var conv2_weights = torch.from_numpy(to_numpy(conv2_weights)).requires_grad_(
 #             True
 #         )
-#         let conv2_bias = torch.from_numpy(to_numpy(conv2_bias)).requires_grad_(True)
-#         let linear1_weights = torch.from_numpy(
+#         var conv2_bias = torch.from_numpy(to_numpy(conv2_bias)).requires_grad_(True)
+#         var linear1_weights = torch.from_numpy(
 #             to_numpy(linear1_weights)
 #         ).requires_grad_(True)
-#         let linear1_bias = torch.from_numpy(to_numpy(linear1_bias)).requires_grad_(True)
+#         var linear1_bias = torch.from_numpy(to_numpy(linear1_bias)).requires_grad_(True)
 
-#         let cnn = cnn_class.CNN(
+#         var cnn = cnn_class.CNN(
 #             conv1_weights,
 #             conv1_bias,
 #             conv2_weights,
@@ -209,13 +209,13 @@
 #             linear1_bias,
 #         )
 
-#         # let loss_func = cnn_class.CrossEntropyLoss2()
-#         let loss_func = torch.nn.CrossEntropyLoss()
-#         let optimizer = torch.optim.Adam(cnn.parameters(), learning_rate)
+#         # var loss_func = cnn_class.CrossEntropyLoss2()
+#         var loss_func = torch.nn.CrossEntropyLoss()
+#         var optimizer = torch.optim.Adam(cnn.parameters(), learning_rate)
 
 #         for i in range(epochs):
-#             let output = cnn.forward(inputs)
-#             let loss = loss_func(output, labels)
+#             var output = cnn.forward(inputs)
+#             var loss = loss_func(output, labels)
 
 #             _ = optimizer.zero_grad()
 #             _ = loss.backward()
@@ -236,31 +236,31 @@
 #     Returns a tensor with random values between -h and h.
 #     """
 #     alias nelts = simdwidthof[dtype]()
-#     let k: SIMD[dtype, 1] = 1.0 / fan_in
-#     let h = sqrt(k)
+#     var k: SIMD[dtype, 1] = 1.0 / fan_in
+#     var h = sqrt(k)
 #     return rand_uniform[dtype, nelts](shape, -h, h)
 
 
 # fn main():
-#     let learning_rate = 1e-3
-#     let epochs = 20
-#     let batch_size = 4
+#     var learning_rate = 1e-3
+#     var epochs = 20
+#     var batch_size = 4
 
-#     let inputs = rand[dtype](batch_size, 1, 28, 28)
+#     var inputs = rand[dtype](batch_size, 1, 28, 28)
 #     var labels = Tensor[dtype](batch_size, 10) # one-hot encoded (probabilities)
 #     for i in range(4):
 #         labels[i * 10 + i] = 1.0
 
-#     let conv1_weights = he_uniform(TensorShape(16, 1, 5, 5), 1)
-#     let conv1_bias = Tensor[dtype](16)
+#     var conv1_weights = he_uniform(TensorShape(16, 1, 5, 5), 1)
+#     var conv1_bias = Tensor[dtype](16)
 
-#     let conv2_weights = he_uniform(TensorShape(32, 16, 5, 5), 2)
-#     let conv2_bias = Tensor[dtype](32)
+#     var conv2_weights = he_uniform(TensorShape(32, 16, 5, 5), 2)
+#     var conv2_bias = Tensor[dtype](32)
 
-#     let linear1_weights = he_uniform(TensorShape(32 * 7 * 7, 10), 32 * 7 * 7)
-#     let linear1_bias = Tensor[dtype](10)
+#     var linear1_weights = he_uniform(TensorShape(32 * 7 * 7, 10), 32 * 7 * 7)
+#     var linear1_bias = Tensor[dtype](10)
 
-#     let losses_mojo = run_mojo(
+#     var losses_mojo = run_mojo(
 #         epochs,
 #         learning_rate,
 #         inputs,
@@ -273,7 +273,7 @@
 #         linear1_bias,
 #     )
 
-#     let losses_torch = run_torch(
+#     var losses_torch = run_torch(
 #         epochs,
 #         learning_rate,
 #         inputs,
@@ -290,8 +290,8 @@
 #         print("loss_mojo: ", losses_mojo[i], " loss_torch: ", losses_torch[i])
 
 #     # for i in range(epochs):
-#     #     let loss_mojo = losses_mojo[i]
-#     #     let loss_torch = losses_torch[i]
+#     #     var loss_mojo = losses_mojo[i]
+#     #     var loss_torch = losses_torch[i]
 #     #     print("loss_mojo: ", loss_mojo, " loss_torch: ", loss_torch)
 #     #     try:
 #     #         assert_almost_equal(loss_mojo, loss_torch, 1e-5)

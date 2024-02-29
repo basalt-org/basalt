@@ -59,10 +59,10 @@ struct Adam[g: Graph, N: Int = calc_n_tensors(g)]:
         # Loop over all tensor that require_grad = True (i.e. keys in grad_map)
         @parameter
         fn p_step(i: Int):
-            let param_tensor_id = parameters.params_map.get(
+            var param_tensor_id = parameters.params_map.get(
                 parameters.grads_map.keys[i], -1
             )
-            let tensor_id = parameters.grads_map.get(parameters.grads_map.keys[i], -1)
+            var tensor_id = parameters.grads_map.get(parameters.grads_map.keys[i], -1)
 
             # TODO
             # Investigate most efficient implementation of the Adam optimizer
@@ -80,16 +80,16 @@ struct Adam[g: Graph, N: Int = calc_n_tensors(g)]:
 
             # We should be able to do this operations in a more clean way in the future I think. Like maybe all this operations could be a graph?
 
-            let grads_shape = __get_address_as_lvalue(
+            var grads_shape = __get_address_as_lvalue(
                 parameters.grads.offset(tensor_id).address
             ).shape()
 
-            let momentum_grads_address = self.momentum_grads.offset(
+            var momentum_grads_address = self.momentum_grads.offset(
                 tensor_id
             ).address
-            let rms_grads_address = self.rms_grads.offset(tensor_id).address
-            let grads_address = parameters.grads.offset(tensor_id).address
-            let params_address = parameters.params.offset(param_tensor_id).address
+            var rms_grads_address = self.rms_grads.offset(tensor_id).address
+            var grads_address = parameters.grads.offset(tensor_id).address
+            var params_address = parameters.params.offset(param_tensor_id).address
 
             @parameter
             fn v_step[nelts: Int](j: Int):
@@ -123,7 +123,7 @@ struct Adam[g: Graph, N: Int = calc_n_tensors(g)]:
 
                 __get_address_as_lvalue(params_address).simd_store[nelts](j, params)
 
-            vectorize[nelts, v_step](grads_shape.num_elements())
+            vectorize[v_step, nelts](grads_shape.num_elements())
         
         parallelize[p_step](len(parameters.grads_map.keys), len(parameters.grads_map.keys))
 

@@ -10,4 +10,4 @@ fn rand_uniform(inout res: Tensor[dtype], low: SIMD[dtype, 1], high: SIMD[dtype,
     fn vecscale[nelts: Int](idx: Int):
         res.simd_store[nelts](idx, res.simd_load[nelts](idx) * (high - low) + low)
 
-    vectorize[nelts, vecscale](res.num_elements())
+    vectorize[vecscale, nelts](res.num_elements())

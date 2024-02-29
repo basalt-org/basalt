@@ -82,7 +82,7 @@ struct Model[
                     __get_address_as_lvalue(self.parameters.params.offset(in2_idx).address)
                 )
 
-        unroll[g.nodes.size, fw_unroll]()
+        unroll[fw_unroll, g.nodes.size]()
 
         # 3. Return output from allocated output memory
         var out_idx: Int = 0
@@ -161,7 +161,7 @@ struct Model[
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_in2_idx).address),     # grad to be updated: input_2
                     )
 
-        unroll[g.nodes.size, bw_unroll]()
+        unroll[bw_unroll, g.nodes.size]()
 
 
     fn allocate_tensor_memory(inout self):
@@ -174,7 +174,7 @@ struct Model[
             var par = Tensor[dtype](g.params[i].shape())
             
             # Parameter initialization
-            let k: SIMD[dtype, 1] = 1.0 / par.dim(0)
+            var k: SIMD[dtype, 1] = 1.0 / par.dim(0)
             rand_uniform(par, -sqrt(k), sqrt(k))
             self.parameters.params.append(par)
 

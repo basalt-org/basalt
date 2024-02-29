@@ -43,9 +43,10 @@ struct StringDict[
             self.key_hashes = DTypePointer[KeyCountType].alloc(self.capacity)
         else:
             self.key_hashes = DTypePointer[KeyCountType].alloc(0)
-        self.values = DynamicVector[V](self.capacity)
+        self.values = DynamicVector[V](capacity=self.capacity)
         self.key_map = DTypePointer[KeyCountType].alloc(self.capacity)
         memset_zero(self.key_map, self.capacity)
+
         @parameter
         if destructive:
             self.deleted_mask = DTypePointer[DType.uint8].alloc(self.capacity >> 3)
@@ -94,11 +95,11 @@ struct StringDict[
         if self.count / self.capacity >= 0.87:
             self._rehash()
         
-        let key_hash = hash(key).cast[KeyCountType]()
-        let modulo_mask = self.capacity - 1
+        var key_hash = hash(key).cast[KeyCountType]()
+        var modulo_mask = self.capacity - 1
         var key_map_index = (key_hash & modulo_mask).to_int()
         while True:
-            let key_index = self.key_map.load(key_map_index).to_int()
+            var key_index = self.key_map.load(key_map_index).to_int()
             if key_index == 0:
                 self.keys.add(key)
                 @parameter
@@ -110,9 +111,9 @@ struct StringDict[
                 return
             @parameter
             if caching_hashes:
-                let other_key_hash = self.key_hashes[key_map_index]
+                var other_key_hash = self.key_hashes[key_map_index]
                 if other_key_hash == key_hash:
-                    let other_key = self.keys[key_index - 1]
+                    var other_key = self.keys[key_index - 1]
                     if eq(other_key, key):
                         self.values[key_index - 1] = value # replace value
                         if destructive:
@@ -121,7 +122,7 @@ struct StringDict[
                                 self._not_deleted(key_index - 1)
                         return
             else:
-                let other_key = self.keys[key_index - 1]
+                var other_key = self.keys[key_index - 1]
                 if eq(other_key, key):
                     self.values[key_index - 1] = value # replace value
                     if destructive:
@@ -134,32 +135,32 @@ struct StringDict[
 
     @always_inline
     fn _is_deleted(self, index: Int) -> Bool:
-        let offset = index >> 3
-        let bit_index = index & 7
+        var offset = index >> 3
+        var bit_index = index & 7
         return self.deleted_mask.offset(offset).load() & (1 << bit_index) != 0
 
     @always_inline
     fn _deleted(self, index: Int):
-        let offset = index >> 3
-        let bit_index = index & 7
-        let p = self.deleted_mask.offset(offset)
-        let mask = p.load()
+        var offset = index >> 3
+        var bit_index = index & 7
+        var p = self.deleted_mask.offset(offset)
+        var mask = p.load()
         p.store(mask | (1 << bit_index))
     
     @always_inline
     fn _not_deleted(self, index: Int):
-        let offset = index >> 3
-        let bit_index = index & 7
-        let p = self.deleted_mask.offset(offset)
-        let mask = p.load()
+        var offset = index >> 3
+        var bit_index = index & 7
+        var p = self.deleted_mask.offset(offset)
+        var mask = p.load()
         p.store(mask & ~(1 << bit_index))
 
     @always_inline
     fn _rehash(inout self):
-        let old_key_map = self.key_map
-        let old_capacity = self.capacity
+        var old_key_map = self.key_map
+        var old_capacity = self.capacity
         self.capacity <<= 1
-        let mask_capacity = self.capacity >> 3
+        var mask_capacity = self.capacity >> 3
         self.key_map = DTypePointer[KeyCountType].alloc(self.capacity)
         memset_zero(self.key_map, self.capacity)
         
@@ -170,13 +171,13 @@ struct StringDict[
             
         @parameter
         if destructive:
-            let deleted_mask = DTypePointer[DType.uint8].alloc(mask_capacity)
+            var deleted_mask = DTypePointer[DType.uint8].alloc(mask_capacity)
             memset_zero(deleted_mask, mask_capacity)
             memcpy(deleted_mask, self.deleted_mask, old_capacity >> 3)
             self.deleted_mask.free()
             self.deleted_mask = deleted_mask
 
-        let modulo_mask = self.capacity - 1
+        var modulo_mask = self.capacity - 1
         for i in range(old_capacity):
             if old_key_map[i] == 0:
                 continue
@@ -191,7 +192,7 @@ struct StringDict[
 
             var searching = True
             while searching:
-                let key_index = self.key_map.load(key_map_index).to_int()
+                var key_index = self.key_map.load(key_map_index).to_int()
 
                 if key_index == 0:
                     self.key_map.store(key_map_index, old_key_map[i])
@@ -209,27 +210,27 @@ struct StringDict[
         old_key_map.free()
 
     fn get(self, key: String, default: V) -> V:
-        let key_hash = hash(key).cast[KeyCountType]()
-        let modulo_mask = self.capacity - 1
+        var key_hash = hash(key).cast[KeyCountType]()
+        var modulo_mask = self.capacity - 1
 
         var key_map_index = (key_hash & modulo_mask).to_int()
         while True:
-            let key_index = self.key_map.load(key_map_index).to_int()
+            var key_index = self.key_map.load(key_map_index).to_int()
             if key_index == 0:
                 return default
             
             @parameter
             if caching_hashes:
-                let other_key_hash = self.key_hashes[key_map_index]
+                var other_key_hash = self.key_hashes[key_map_index]
                 if key_hash == other_key_hash:
-                    let other_key = self.keys[key_index - 1]
+                    var other_key = self.keys[key_index - 1]
                     if eq(other_key, key):
                         if destructive: 
                             if self._is_deleted(key_index - 1):
                                 return default
                         return self.values[key_index - 1]
             else:
-                let other_key = self.keys[key_index - 1]
+                var other_key = self.keys[key_index - 1]
                 if eq(other_key, key):
                     if destructive: 
                         if self._is_deleted(key_index - 1):
@@ -239,27 +240,27 @@ struct StringDict[
             key_map_index = (key_map_index + 1) & modulo_mask
 
     fn __contains__(self, key: String) -> Bool:
-        let key_hash = hash(key).cast[KeyCountType]()
-        let modulo_mask = self.capacity - 1
+        var key_hash = hash(key).cast[KeyCountType]()
+        var modulo_mask = self.capacity - 1
 
         var key_map_index = (key_hash & modulo_mask).to_int()
         while True:
-            let key_index = self.key_map.load(key_map_index).to_int()
+            var key_index = self.key_map.load(key_map_index).to_int()
             if key_index == 0:
                 return False
             
             @parameter
             if caching_hashes:
-                let other_key_hash = self.key_hashes[key_map_index]
+                var other_key_hash = self.key_hashes[key_map_index]
                 if key_hash == other_key_hash:
-                    let other_key = self.keys[key_index - 1]
+                    var other_key = self.keys[key_index - 1]
                     if eq(other_key, key):
                         if destructive: 
                             if self._is_deleted(key_index - 1):
                                 return False
                         return True
             else:
-                let other_key = self.keys[key_index - 1]
+                var other_key = self.keys[key_index - 1]
                 if eq(other_key, key):
                     if destructive: 
                         if self._is_deleted(key_index - 1):
@@ -272,26 +273,26 @@ struct StringDict[
         @parameter
         if not destructive:
             return
-        let key_hash = hash(key).cast[KeyCountType]()
-        let modulo_mask = self.capacity - 1
+        var key_hash = hash(key).cast[KeyCountType]()
+        var modulo_mask = self.capacity - 1
 
         var key_map_index = (key_hash & modulo_mask).to_int()
         while True:
-            let key_index = self.key_map.load(key_map_index).to_int()
+            var key_index = self.key_map.load(key_map_index).to_int()
             if key_index == 0:
                 return
             @parameter
             if caching_hashes:
-                let other_key_hash = self.key_hashes[key_map_index]
+                var other_key_hash = self.key_hashes[key_map_index]
                 if key_hash == other_key_hash:
-                    let other_key = self.keys[key_index - 1]
+                    var other_key = self.keys[key_index - 1]
                     if eq(other_key, key):
                         if not self._is_deleted(key_index - 1):
                             self.count -= 1
                         self._deleted(key_index - 1)
                         return
             else:
-                let other_key = self.keys[key_index - 1]
+                var other_key = self.keys[key_index - 1]
                 if eq(other_key, key):
                     # if String(other_key) != key:
                         # print("!!!!", key, other_key)

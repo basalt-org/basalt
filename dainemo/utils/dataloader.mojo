@@ -59,7 +59,7 @@ struct DataLoader:
             self._label_shape.push_back(self.labels.dim(i))
 
         # Handle data as a (total x flattened data element) tensor
-        let total = data.shape()[0]
+        var total = data.shape()[0]
         try:
             assert_equal(labels.shape()[0], total)
             self.data.ireshape(TensorShape(total, data.num_elements() // total))
@@ -76,21 +76,21 @@ struct DataLoader:
 
     fn __iter__(inout self) -> Self:
         self._current_index = 0
-        let full_batches = self.data.dim(0) // self.batch_size
-        # let remainder = 1 if self.data.dim(0) % self.batch_size != 0 else 0
-        let remainder = 0
+        var full_batches = self.data.dim(0) // self.batch_size
+        # var remainder = 1 if self.data.dim(0) % self.batch_size != 0 else 0
+        var remainder = 0
         self._num_batches = full_batches + remainder
         return self
 
     fn __next__(inout self) -> MyBatch[dtype]:
-        let start = self._current_index
-        let end = min(self._current_index + self.batch_size, self.data.dim(0))
+        var start = self._current_index
+        var end = min(self._current_index + self.batch_size, self.data.dim(0))
         
         self._data_shape[0] = end - start
         self._label_shape[0] = end - start
 
-        let data_batch = self.create_batch(self.data, TensorShape(self._data_shape), start)
-        let label_batch = self.create_batch(self.labels, TensorShape(self._label_shape), start) 
+        var data_batch = self.create_batch(self.data, TensorShape(self._data_shape), start)
+        var label_batch = self.create_batch(self.labels, TensorShape(self._label_shape), start) 
         
         self._current_index += self.batch_size
         self._num_batches -= 1
@@ -113,7 +113,7 @@ struct DataLoader:
                     tensor.simd_load[nelts](Index(start + n, i))
                 )
 
-            vectorize[nelts, calc_batch](shape.num_elements() // shape[0])
+            vectorize[calc_batch, nelts](shape.num_elements() // shape[0])
 
         parallelize[calc_row](shape[0], shape[0])
 

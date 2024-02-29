@@ -17,9 +17,9 @@
 #     #       node_1   \
 #     #                  [-] --> node_3
 #     #       node_2   / 
-#     let node_1 = Node(rand[dtype](1, 10))
-#     let node_2 = Node(rand[dtype](1, 10))
-#     let tensor_3 = rand[dtype](1, 10)
+#     var node_1 = Node(rand[dtype](1, 10))
+#     var node_2 = Node(rand[dtype](1, 10))
+#     var tensor_3 = rand[dtype](1, 10)
 
 #     # Define node relationships using operation [-] with:
 #     #      result: tensor_3
@@ -29,9 +29,9 @@
 
 
 # fn test_graph_relations() raises:
-#     let n1 = GRAPH.graph[0]
-#     let n2 = GRAPH.graph[1]
-#     let n3 = GRAPH.graph[2]
+#     var n1 = GRAPH.graph[0]
+#     var n2 = GRAPH.graph[1]
+#     var n3 = GRAPH.graph[2]
 
 #     assert_equal(GRAPH.graph.size, 3)
 #     assert_equal(n1.children.size, 1)
@@ -49,7 +49,7 @@
 
 # fn all_grads_zero() -> Bool:
 #     for idx in range(GRAPH.graph.size):
-#         let grad = GRAPH.graph[idx].grad
+#         var grad = GRAPH.graph[idx].grad
 #         for i in range(grad.num_elements()):
 #             if grad[i] != 0:
 #                 return False

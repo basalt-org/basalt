@@ -12,10 +12,10 @@ fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
 
     # PyTorch: 1/2N * sum( (outputs - targets)^2 )
 
-    let diff = g.op(OP.SUB, y_true, y_pred)
-    let loss = g.op(OP.POW, diff, 2)
-    let mean_loss = g.op(OP.MEAN, loss)
-    let mean_loss_2 = g.op(OP.DIV, mean_loss, 2)
+    var diff = g.op(OP.SUB, y_true, y_pred)
+    var loss = g.op(OP.POW, diff, 2)
+    var mean_loss = g.op(OP.MEAN, loss)
+    var mean_loss_2 = g.op(OP.DIV, mean_loss, 2)
 
     return mean_loss_2 ^
 
@@ -24,15 +24,15 @@ fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
 fn linear_regression(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
     var g = Graph()
 
-    let x = g.input(TensorShape(batch_size, n_inputs))
-    let y_true = g.input(TensorShape(batch_size, n_outputs))
+    var x = g.input(TensorShape(batch_size, n_inputs))
+    var y_true = g.input(TensorShape(batch_size, n_outputs))
 
-    let W = g.param(TensorShape(n_inputs, n_outputs))
-    let b = g.param(TensorShape(n_outputs))
-    let res = g.op(OP.DOT, x, W)
+    var W = g.param(TensorShape(n_inputs, n_outputs))
+    var b = g.param(TensorShape(n_outputs))
+    var res = g.op(OP.DOT, x, W)
 
-    let y_pred = g.op(OP.ADD, res, b)
-    let loss = mse(g, y_true, y_pred)
+    var y_pred = g.op(OP.ADD, res, b)
+    var loss = mse(g, y_true, y_pred)
     _ = g.out(loss)
 
     return g^
@@ -40,7 +40,7 @@ fn linear_regression(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
 
 
 fn main():
-    let train_data: BostonHousing
+    var train_data: BostonHousing
     try:
         train_data = BostonHousing(file_path='./examples/data/housing.csv')
     except:
@@ -65,7 +65,7 @@ fn main():
     optim.allocate_rms_and_momentum(model.parameters)
 
     print("Training started")
-    let start = now()
+    var start = now()
 
     for epoch in range(num_epochs):
         var num_batches: Int = 0
@@ -73,7 +73,7 @@ fn main():
         for batch in training_loader:
 
             # Forward pass
-            let loss = model.forward(batch.data, batch.labels)
+            var loss = model.forward(batch.data, batch.labels)
             # print(loss)
 
             # Backward pass

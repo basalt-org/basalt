@@ -172,25 +172,25 @@ struct DIV(BinaryOperator):
 
             @parameter
             if is_scalar:
-                let factor: SIMD[dtype, 1] = - 1.0 / (t2[0] ** 2)
+                var factor: SIMD[dtype, 1] = - 1.0 / (t2[0] ** 2)
                 @parameter
                 fn vec_div_bw_scalar[nelts: Int](i: Int):
                     res_grad.simd_store[nelts](i,
                         factor * t1.simd_load[nelts](i) * ug.simd_load[nelts](i)
                     )
-                vectorize[nelts, vec_div_bw_scalar](ug_shape.num_elements())
+                vectorize[vec_div_bw_scalar, nelts](ug_shape.num_elements())
 
             elif broadcast and not is_scalar:
                 alias strides1 = broadcast_calculate_strides(t1_shape, ug_shape)
                 alias strides2 = broadcast_calculate_strides(t2_shape, ug_shape)
                 @parameter
                 fn vec_div_bw_broadcast[netls: Int](i: Int):
-                    let index1 = get_real_index[ug_shape](i, strides1)
-                    let index2 = get_real_index[ug_shape](i, strides2)
+                    var index1 = get_real_index[ug_shape](i, strides1)
+                    var index2 = get_real_index[ug_shape](i, strides2)
                     res_grad.simd_store[nelts](i,
                         - t1.simd_load[nelts](index1) / (t2.simd_load[nelts](index2) ** 2) * ug.simd_load[nelts](i)
                     )
-                vectorize[nelts, vec_div_bw_broadcast](ug_shape.num_elements())
+                vectorize[vec_div_bw_broadcast, nelts](ug_shape.num_elements())
 
             else:
                 @parameter
@@ -198,7 +198,7 @@ struct DIV(BinaryOperator):
                     res_grad.simd_store[nelts](i, 
                         - t1.simd_load[nelts](i) / (t2.simd_load[nelts](i) ** 2) * ug.simd_load[nelts](i)
                     )
-                vectorize[nelts, vec_div_bw](ug_shape.num_elements())
+                vectorize[vec_div_bw, nelts](ug_shape.num_elements())
 
             return res_grad ^
 
@@ -271,7 +271,7 @@ struct EXP(UnaryOperator):
             res_grad.simd_store[nelts](i,
                 exp(t1.simd_load[nelts](i)) * ug.simd_load[nelts](i)
             )
-        vectorize[nelts, vec_exp_bw](ug_shape.num_elements())
+        vectorize[vec_exp_bw, nelts](ug_shape.num_elements())
         return res_grad ^
 
 
@@ -329,7 +329,7 @@ struct POW(BinaryOperator):
         # d(x^y) / dx = y * x^(y-1)
         # d(x^y) / dy = x^y * log(x)
         var res_grad = Tensor[dtype](ug_shape)
-        let a = t2[0].to_int()
+        var a = t2[0].to_int()
 
         @parameter
         if tensor_id == 0:
@@ -338,7 +338,7 @@ struct POW(BinaryOperator):
                 res_grad.simd_store[nelts](i,
                     a * (t1.simd_load[nelts](i) ** (a - 1)) * ug.simd_load[nelts](i)
                 )
-            vectorize[nelts, vec_pow_bw_x](ug_shape.num_elements())
+            vectorize[vec_pow_bw_x, nelts](ug_shape.num_elements())
 
         else:
             @parameter
@@ -346,7 +346,7 @@ struct POW(BinaryOperator):
                 res_grad.simd_store[nelts](i,
                     (t1.simd_load[nelts](i) ** a) * log(t1.simd_load[nelts](i)) * ug.simd_load[nelts](i)
                 )
-            vectorize[nelts, vec_pow_bw_y](ug_shape.num_elements()) 
+            vectorize[vec_pow_bw_y, nelts](ug_shape.num_elements()) 
 
         return res_grad ^
 
@@ -388,7 +388,7 @@ struct MEAN(UnaryOperator):
         fn v_mean_d[nelts: Int](i: Int):
             res_grad.simd_store[nelts](i, grad)
 
-        vectorize[nelts, v_mean_d](ug_shape.num_elements())
+        vectorize[v_mean_d, nelts](ug_shape.num_elements())
 
         return res_grad ^
 
@@ -398,13 +398,13 @@ struct MEAN(UnaryOperator):
 #     @staticmethod
 #     fn forward[axis: Int](n: Node[dtype]) -> Node[dtype]:
 #         """Forward pass of sum operation: along axis."""
-#         let res: Tensor[dtype] = tsum[dtype, nelts](n.tensor, axis=axis)
+#         var res: Tensor[dtype] = tsum[dtype, nelts](n.tensor, axis=axis)
 #         return GRAPH.create_graph_node[Self.backward[axis=axis]](res, n)
 
 #     @staticmethod
 #     fn forward(n: Node[dtype]) -> Node[dtype]:
 #         """Forward pass of sum operation: all elements."""
-#         let res: SIMD[dtype, 1] = tsum[dtype, nelts](n.tensor)
+#         var res: SIMD[dtype, 1] = tsum[dtype, nelts](n.tensor)
 #         var res_tensor = Tensor[dtype](1)
 #         res_tensor[0] = res
 #         return GRAPH.create_graph_node[Self.backward[axis=-1]](res_tensor, n)
@@ -417,7 +417,7 @@ struct MEAN(UnaryOperator):
 #     ]:
 #         """Backward pass of sum operation."""
 #         # Expand the upper gradient to the same shape as the input tensor
-#         let t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
+#         var t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
 #         var res = Tensor[dtype](t.shape())
 #         fill[dtype, nelts](res, 1.0)
 
@@ -430,14 +430,14 @@ struct MEAN(UnaryOperator):
 #     fn forward[axis: Int](n: Node[dtype]) -> Node[dtype]:
 #         """Forward pass of max operation: along axis."""
 #         alias nelts: Int = simdwidthof[dtype]()
-#         let res: Tensor[dtype] = tmax[dtype, nelts](n.tensor, axis=axis)
+#         var res: Tensor[dtype] = tmax[dtype, nelts](n.tensor, axis=axis)
 #         return GRAPH.create_graph_node[Self.backward[axis=axis]](res, n)
 
 #     @staticmethod
 #     fn forward(n: Node[dtype]) -> Node[dtype]:
 #         """Forward pass of max operation: all elements."""
 #         alias nelts: Int = simdwidthof[dtype]()
-#         let res: SIMD[dtype, 1] = tmax[dtype, nelts](n.tensor)
+#         var res: SIMD[dtype, 1] = tmax[dtype, nelts](n.tensor)
 #         var res_tensor = Tensor[dtype](1)
 #         res_tensor[0] = res
 #         return GRAPH.create_graph_node[Self.backward[axis= -1]](res_tensor, n)
@@ -458,43 +458,43 @@ struct MEAN(UnaryOperator):
 #         # multiple max values, the gradient is divided by the number of max
 #         # values (1/n) for each max value.
 #         alias nelts: Int = simdwidthof[dtype]()
-#         let t_node = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])]
-#         let t = t_node.tensor
-#         let strides = calculate_strides(t.shape())
+#         var t_node = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])]
+#         var t = t_node.tensor
+#         var strides = calculate_strides(t.shape())
 #         var res = Tensor[dtype](t.shape())
 
 #         @parameter
 #         if axis == -1:
 #             # ug size is 1
-#             let max_res = tmax[dtype, nelts](t)
+#             var max_res = tmax[dtype, nelts](t)
 #             var sum_eq: SIMD[dtype, 1] = 0
 #             for i in range(t.num_elements()):
 #                 if t[i] == max_res:
 #                     sum_eq += 1
 
-#             let factor = 1 / sum_eq
+#             var factor = 1 / sum_eq
 #             for i in range(res.num_elements()):
 #                 if t[i] == max_res:
 #                     res[i] = factor * ug[0]
 #         else:
 #             # max_res.shape == ug.shape
-#             let max_res = tmax[dtype, nelts](t, axis=axis)
+#             var max_res = tmax[dtype, nelts](t, axis=axis)
 
 #             for i in range(max_res.num_elements()):
-#                 let index_base = (i % strides[axis]) + (i // strides[axis]) * (
+#                 var index_base = (i % strides[axis]) + (i // strides[axis]) * (
 #                     strides[axis] * t.dim(axis)
 #                 )
 
 #                 var count_1s: SIMD[dtype, 1] = 0
 #                 # Count the number of values equal to max_res
 #                 for j in range(t.dim(axis)):
-#                     let index = index_base + j * strides[axis]
+#                     var index = index_base + j * strides[axis]
 #                     if t[index] == max_res[i]:
 #                         count_1s += 1
 #                 # Divide 1.0 by the number of max values (n) and multiply by upper gradient value
-#                 let factor = 1 / count_1s
+#                 var factor = 1 / count_1s
 #                 for j in range(t.dim(axis)):
-#                     let index = index_base + j * strides[axis]
+#                     var index = index_base + j * strides[axis]
 #                     if t[index] == max_res[i]:
 #                         res[index] = factor * ug[i]
 
@@ -507,7 +507,7 @@ struct MEAN(UnaryOperator):
 #     @staticmethod
 #     fn forward(n: Node[dtype]) -> Node[dtype]:
 #         """Forward pass of transpose operation."""
-#         let res = transpose[dtype, nelts](n.tensor)
+#         var res = transpose[dtype, nelts](n.tensor)
 #         return GRAPH.create_graph_node[Self.backward](res, n)
 
 #     @staticmethod
@@ -562,7 +562,7 @@ struct FLATTEN(UnaryOperator):
 #         Reshape upper gradient to original shape.
 #         """
 #         var res = ug
-#         let shape = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor.shape()
+#         var shape = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor.shape()
 
 #         try:
 #             res.ireshape(shape)

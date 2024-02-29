@@ -13,7 +13,7 @@
 
 
 # fn np_broadcast_shapes(s1: TensorShape, s2: TensorShape) raises -> TensorShape:
-#     let np = Python.import_module("numpy")
+#     var np = Python.import_module("numpy")
 #     # Convert to python list
 #     var s1_py: PythonObject = []
 #     var s2_py: PythonObject = []
@@ -23,7 +23,7 @@
 #         s2_py += [s2[i]]
 
 #     # Numpy broadcast_shapes
-#     let py_shape = np.broadcast_shapes(s1_py, s2_py)
+#     var py_shape = np.broadcast_shapes(s1_py, s2_py)
 
 #     return to_tensor_shape(py_shape)
 
@@ -85,7 +85,7 @@
 
 
 # fn test_broadcast_shapes_multiple() raises:
-#     let np = Python.import_module("numpy")
+#     var np = Python.import_module("numpy")
 
 #     var s1 = TensorShape(1, 2)
 #     var s2 = TensorShape(3, 1)
@@ -97,7 +97,7 @@
 #     s1 = TensorShape(6, 7)
 #     s2 = TensorShape(5, 6, 1)
 #     s3 = TensorShape(7)
-#     let s4 = TensorShape(5, 1, 7)
+#     var s4 = TensorShape(5, 1, 7)
 #     res = broadcast_shapes(s1, s2, s3, s4)
 #     res_np = to_tensor_shape(np.broadcast_shapes((6, 7), (5, 6, 1), (7), (5, 1, 7)))
 #     assert_true(res == res_np)

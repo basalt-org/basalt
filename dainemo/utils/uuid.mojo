@@ -97,7 +97,7 @@ fn random_mt(inout MT: StaticTuple[624, Int32], inout index: Int) -> Int32:
         # if index > N:
         #     print("[ERROR] Generator was never seeded")      
         for i in range(N):
-            let x = (MT[i] & UPPER_MASK) + (MT[(i+1) % N] & LOWER_MASK)
+            var x = (MT[i] & UPPER_MASK) + (MT[(i+1) % N] & LOWER_MASK)
             var xA = x >> 1
             if x % 2 != 0:
                 xA ^= A
@@ -170,7 +170,7 @@ struct UUID:
         var uuid = ID()
         
         for i in range(16):
-            let ui8_value: UInt8 = random_ui8(self.MT, self.index)
+            var ui8_value: UInt8 = random_ui8(self.MT, self.index)
             uuid[i] = ui8_value
         
         # Version 4, variant 10xx

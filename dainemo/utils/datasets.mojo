@@ -17,12 +17,12 @@ struct BostonHousing:
         var s = read_file(file_path)
         s = s[find_first(s, "\n")+1:]       # Ignore header
 
-        let N = num_lines(s)       
+        var N = num_lines(s)       
         self.data = Tensor[dtype](N, self.n_inputs)        # All columns except the last one
         self.labels = Tensor[dtype](N, 1)       # Only the last column (MEDV), Always specify 1!
 
-        let idx_low: Int
-        let idx_high: Int
+        var idx_low: Int
+        var idx_high: Int
         var idx_line: Int = 0
 
         # Load data in Tensor   
@@ -58,12 +58,12 @@ struct MNIST:
         var s = read_file(file_path)
         s = s[find_first(s, "\n")+1:]   # Ignore header
 
-        let N = num_lines(s)                   
+        var N = num_lines(s)                   
         self.data = Tensor[dtype](N, 1, 28, 28)
         self.labels = Tensor[dtype](N, 1)       # Always specify 1!
 
-        let idx_low: Int
-        let idx_high: Int
+        var idx_low: Int
+        var idx_high: Int
         var idx_line: Int = 0
 
         # Load data in Tensor   
@@ -83,7 +83,7 @@ struct MNIST:
 
         # Normalize data
         alias nelts = simdwidthof[dtype]()
-        let res = Tensor[dtype](self.data.shape())
+        var res = Tensor[dtype](self.data.shape())
         
         @parameter
         fn vecdiv[nelts: Int](idx: Int):
@@ -92,7 +92,7 @@ struct MNIST:
 
 
 fn read_file(file_path: String) raises -> String:
-    let s: String
+    var s: String
     with open(file_path, "r") as f:
         s = f.read()
     return s
@@ -130,7 +130,7 @@ fn cast_string[dtype: DType](s: String) raises -> SIMD[dtype, 1]:
     Cast a string with decimal to a SIMD vector of dtype.
     '''
     
-    let idx = find_first(s, delimiter=".")
+    var idx = find_first(s, delimiter=".")
     var x: SIMD[dtype, 1] = -1
 
     if idx == -1:
@@ -138,8 +138,8 @@ fn cast_string[dtype: DType](s: String) raises -> SIMD[dtype, 1]:
         x = atol(s)
         return x
     else:
-        let c_int: SIMD[dtype, 1]
-        let c_frac: SIMD[dtype, 1]
+        var c_int: SIMD[dtype, 1]
+        var c_frac: SIMD[dtype, 1]
         c_int = atol(s[:idx])
         c_frac = atol(s[idx+1:])
         x = c_int + c_frac / (10 ** len(s[idx+1:]))

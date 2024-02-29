@@ -62,7 +62,7 @@
 
 
 # def to_numpy(tensor: Tensor) -> PythonObject:
-#     let np = Python.import_module("numpy")
+#     var np = Python.import_module("numpy")
 #     np.set_printoptions(4)
 
 #     rank = tensor.rank()
@@ -114,18 +114,18 @@
 #     dilation: StaticIntTuple[2],
 #     upper_grad: Tensor,
 # ) -> torch_conv2d_output:
-#     let out: torch_conv2d_output
+#     var out: torch_conv2d_output
 
 #     try:
-#         let torch = Python.import_module("torch")
-#         let F = Python.import_module("torch.nn.functional")
-#         let np = Python.import_module("numpy")
+#         var torch = Python.import_module("torch")
+#         var F = Python.import_module("torch.nn.functional")
+#         var np = Python.import_module("numpy")
 
-#         let inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
-#         let weights = torch.from_numpy(to_numpy(kernel)).requires_grad_(True)
-#         let bias = torch.from_numpy(to_numpy(bias)).requires_grad_(True)
+#         var inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
+#         var weights = torch.from_numpy(to_numpy(kernel)).requires_grad_(True)
+#         var bias = torch.from_numpy(to_numpy(bias)).requires_grad_(True)
 
-#         let expected = F.conv2d(
+#         var expected = F.conv2d(
 #             inputs,
 #             weights,
 #             bias,
@@ -135,7 +135,7 @@
 #         )
 
 #         # uppergrad & backwards
-#         let upper_grad = torch.from_numpy(to_numpy(upper_grad))
+#         var upper_grad = torch.from_numpy(to_numpy(upper_grad))
 #         _ = expected.backward(upper_grad)
 
 #         # expected output
@@ -149,8 +149,8 @@
 
 #     except:
 #         print("Error importing torch")
-#         let d = Tensor[dtype](1)
-#         let out: torch_conv2d_output = torch_conv2d_output(d, d, d, d)
+#         var d = Tensor[dtype](1)
+#         var out: torch_conv2d_output = torch_conv2d_output(d, d, d, d)
 #         return out
 
 
@@ -165,10 +165,10 @@
 #     var kernel = Tensor[dtype](1, 1, 1, 16)
 #     fill[dtype, nelts](inputs, 1.0)
 #     fill[dtype, nelts](kernel, 1.0)
-#     let bias = Tensor[dtype](1)
+#     var bias = Tensor[dtype](1)
 
-#     let res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
-#     let torch_out = torch_conv2d(
+#     var res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
+#     var torch_out = torch_conv2d(
 #         inputs,
 #         kernel,
 #         bias=bias,
@@ -195,8 +195,8 @@
 #     var bias = Tensor[dtype](1)
 #     fill[dtype, nelts](bias, 66.99)
 
-#     let res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
-#     let torch_out = torch_conv2d(
+#     var res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
+#     var torch_out = torch_conv2d(
 #         inputs,
 #         kernel,
 #         bias=bias,
@@ -223,8 +223,8 @@
 #     var bias = Tensor[dtype](2)
 #     fill[dtype, nelts](bias, 3)
 
-#     let res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
-#     let torch_out = torch_conv2d(
+#     var res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
+#     var torch_out = torch_conv2d(
 #         inputs,
 #         kernel,
 #         bias=bias,
@@ -249,19 +249,19 @@
 #     var kernel = Tensor[dtype](out_channels, in_channels, 1, 16)
 #     fill[dtype, nelts](inputs, 1.0)
 #     fill[dtype, nelts](kernel, 1.0)
-#     let bias: Tensor[dtype] = rand[dtype](out_channels)
+#     var bias: Tensor[dtype] = rand[dtype](out_channels)
 
-#     let res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
+#     var res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
 
-#     let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+#     var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
 #     assert_equal(gn.parents.size, 3)
-#     let upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
+#     var upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
 
-#     let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)  # inputs.grad
-#     let ug2 = gn.backward_fn(upper_grad, gn.parents, 1)  # kernel.grad
-#     let ug3 = gn.backward_fn(upper_grad, gn.parents, 2)  # bias.grad
+#     var ug1 = gn.backward_fn(upper_grad, gn.parents, 0)  # inputs.grad
+#     var ug2 = gn.backward_fn(upper_grad, gn.parents, 1)  # kernel.grad
+#     var ug3 = gn.backward_fn(upper_grad, gn.parents, 2)  # bias.grad
 
-#     let torch_out = torch_conv2d(
+#     var torch_out = torch_conv2d(
 #         inputs,
 #         kernel,
 #         bias=bias,
@@ -289,19 +289,19 @@
 #     var kernel = Tensor[dtype](out_channels, in_channels, 4, 8)
 #     fill[dtype, nelts](inputs, 3.0)
 #     fill[dtype, nelts](kernel, 1.0)
-#     let bias: Tensor[dtype] = rand[dtype](out_channels)
+#     var bias: Tensor[dtype] = rand[dtype](out_channels)
 
-#     let res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
+#     var res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
 
-#     let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+#     var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
 #     assert_equal(gn.parents.size, 3)
-#     let upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
+#     var upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
 
-#     let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)  # inputs.grad
-#     let ug2 = gn.backward_fn(upper_grad, gn.parents, 1)  # kernel.grad
-#     let ug3 = gn.backward_fn(upper_grad, gn.parents, 2)  # bias.grad
+#     var ug1 = gn.backward_fn(upper_grad, gn.parents, 0)  # inputs.grad
+#     var ug2 = gn.backward_fn(upper_grad, gn.parents, 1)  # kernel.grad
+#     var ug3 = gn.backward_fn(upper_grad, gn.parents, 2)  # bias.grad
 
-#     let torch_out = torch_conv2d(
+#     var torch_out = torch_conv2d(
 #         inputs,
 #         kernel,
 #         bias=bias,
@@ -329,19 +329,19 @@
 #     var kernel = Tensor[dtype](out_channels, in_channels, 5, 6)
 #     fill[dtype, nelts](inputs, 3.0)
 #     fill[dtype, nelts](kernel, 4.0)
-#     let bias: Tensor[dtype] = rand[dtype](out_channels)
+#     var bias: Tensor[dtype] = rand[dtype](out_channels)
 
-#     let res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
+#     var res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
 
-#     let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+#     var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
 #     assert_equal(gn.parents.size, 3)
-#     let upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
+#     var upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
 
-#     let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)  # inputs.grad
-#     let ug2 = gn.backward_fn(upper_grad, gn.parents, 1)  # kernel.grad
-#     let ug3 = gn.backward_fn(upper_grad, gn.parents, 2)  # bias.grad
+#     var ug1 = gn.backward_fn(upper_grad, gn.parents, 0)  # inputs.grad
+#     var ug2 = gn.backward_fn(upper_grad, gn.parents, 1)  # kernel.grad
+#     var ug3 = gn.backward_fn(upper_grad, gn.parents, 2)  # bias.grad
 
-#     let torch_out = torch_conv2d(
+#     var torch_out = torch_conv2d(
 #         inputs,
 #         kernel,
 #         bias=bias,

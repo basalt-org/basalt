@@ -133,7 +133,7 @@ fn backward_op[
     """
     Backward pass for binary operators.
     """
-    let res_grad: Tensor[dtype]  # Resulting gradient of the operation
+    var res_grad: Tensor[dtype]  # Resulting gradient of the operation
 
     @parameter
     if op == OP.ADD:
@@ -193,7 +193,7 @@ fn backward_op[
     """
     Backward pass for binary operators.
     """
-    let res_grad: Tensor[dtype]  # Resulting gradient of the operation
+    var res_grad: Tensor[dtype]  # Resulting gradient of the operation
 
     @parameter
     if op == OP.EXP:

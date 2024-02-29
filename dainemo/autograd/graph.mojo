@@ -31,18 +31,18 @@ struct Graph:
         self.constants = ConstantDict[dtype]()
 
     fn input(inout self, shape: TensorShape) -> Symbol:
-        let inp = Symbol(self.uuid.next(), dtype, shape, False)
+        var inp = Symbol(self.uuid.next(), dtype, shape, False)
         self.inputs.push_back(inp)
         return inp
 
     fn param(inout self, shape: TensorShape, requires_grad: Bool = True) -> Symbol:
-        let par = Symbol(self.uuid.next(), dtype, shape, requires_grad)
+        var par = Symbol(self.uuid.next(), dtype, shape, requires_grad)
         self.params.push_back(par)
         return par
 
     fn scalar(inout self, value: SIMD[dtype, 1]) -> Symbol:
-        let cst = Constant(value)
-        let scalar_id = Symbol(self.uuid.next(), cst.rank, dtype, cst.static_shape, requires_grad=False, is_constant=True)
+        var cst = Constant(value)
+        var scalar_id = Symbol(self.uuid.next(), cst.rank, dtype, cst.static_shape, requires_grad=False, is_constant=True)
 
         # self.params.push_back(scalar_id)
         self.constants.put(scalar_id, cst)
@@ -65,7 +65,7 @@ struct Graph:
         return symbol
 
     fn op(inout self, op: OP, operand_1: Symbol, operand_2: Optional[Symbol] = None) -> Symbol:
-        let res: Symbol
+        var res: Symbol
         if operand_2:
             res = Symbol(
                 self.uuid.next(),
@@ -85,8 +85,8 @@ struct Graph:
         return res ^
 
     fn op(inout self, op: OP, operand_1: Symbol, operand_2: FloatLiteral) -> Symbol:
-        let operand_2_symbol = self.scalar(operand_2)
-        let res = Symbol(
+        var operand_2_symbol = self.scalar(operand_2)
+        var res = Symbol(
             self.uuid.next(),
             dtype,
             static_result_shape(op, operand_1.shape(), operand_2_symbol.shape()),
@@ -97,8 +97,8 @@ struct Graph:
         return res ^
 
     fn op(inout self, op: OP, operand_1: FloatLiteral, operand_2: Symbol) -> Symbol:
-        let operand_1_symbol = self.scalar(operand_1)
-        let res = Symbol(
+        var operand_1_symbol = self.scalar(operand_1)
+        var res = Symbol(
             self.uuid.next(),
             dtype,
             static_result_shape(op, operand_1_symbol.shape(), operand_2.shape()),
@@ -142,8 +142,8 @@ struct Graph:
 
     fn render(self, render_type: String = "node") raises:
         Python.add_to_path("./dainemo/utils")
-        let renderer = Python.import_module("graph_render")
-        let json = Python.import_module("json")
+        var renderer = Python.import_module("graph_render")
+        var json = Python.import_module("json")
         _ = renderer.netron_render(json.loads(self.json()), render_type)
 
     fn compile(inout self):

@@ -36,7 +36,7 @@ struct Symbol(CollectionElement, Stringable):
         return self.name == other.name
     
     fn shape(self) -> TensorShape:
-        var tmp = DynamicVector[Int](self.rank)
+        var tmp = DynamicVector[Int]()
         for i in range(self.rank):
             tmp.push_back(self.static_shape[i])
         return TensorShape(tmp)

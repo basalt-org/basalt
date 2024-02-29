@@ -19,9 +19,9 @@
 #     var labels = Tensor[dtype](2, 10)       
 #     fill[dtype, nelts](output, 1)
 #     fill[dtype, nelts](labels, 1)
-#     let outputs = Node[dtype](output)
+#     var outputs = Node[dtype](output)
 
-#     let loss = loss_func(outputs, labels)
+#     var loss = loss_func(outputs, labels)
 
 #     assert_equal(loss.tensor.dim(0), 1)     # MSE summed over all elements
 #     assert_equal(loss.tensor[0], 0)         # loss is 0
@@ -36,11 +36,11 @@
 #     var output = Tensor[dtype](1, 10)       # batch of 1, 10 classes
 #     var labels = Tensor[dtype](1, 10)       
 #     fill[dtype, nelts](output, 1)
-#     let outputs = Node[dtype](output)
+#     var outputs = Node[dtype](output)
 #     for i in range(10):
 #         labels[i] = i
 
-#     let loss = loss_func(outputs, labels)
+#     var loss = loss_func(outputs, labels)
     
 #     var expected_loss: SIMD[dtype, 1] = 0.0
 #     for i in range(10):

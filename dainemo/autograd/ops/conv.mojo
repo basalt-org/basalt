@@ -18,11 +18,11 @@
 #         dimension Y on index -1.
 #     """
 
-#     let result_x_dim = (
+#     var result_x_dim = (
 #         (input_shape[-2] + (2 * padding[0]) - dilation[0] * (kernel_shape[-2] - 1) - 1)
 #         // stride[0]
 #     ) + 1
-#     let result_y_dim = (
+#     var result_y_dim = (
 #         (input_shape[-1] + (2 * padding[1]) - dilation[1] * (kernel_shape[-1] - 1) - 1)
 #         // stride[1]
 #     ) + 1
@@ -46,7 +46,7 @@
 #             output.shape     [batch, out_channels, oX, oY].
 #         """
 
-#         let result_shape = get_result_shape[padding, stride, dilation](
+#         var result_shape = get_result_shape[padding, stride, dilation](
 #             inputs.tensor.shape(), kernel.tensor.shape()
 #         )
 
@@ -61,13 +61,13 @@
 #         ](batch: Int, out_ch: Int, x: Int, y: Int):
 #             var result: SIMD[dtype, 1] = 0
 
-#             let ix_base = x * stride[0] - padding[0]
-#             let iy_base = y * stride[1] - padding[1]
+#             var ix_base = x * stride[0] - padding[0]
+#             var iy_base = y * stride[1] - padding[1]
 #             for in_ch in range(inputs.tensor.dim(1)):
 #                 for kx in range(kernel.tensor.dim(2)):
 #                     for ky in range(kernel.tensor.dim(3)):
-#                         let ix = ix_base + kx * dilation[0]
-#                         let iy = iy_base + ky * dilation[1]
+#                         var ix = ix_base + kx * dilation[0]
+#                         var iy = iy_base + ky * dilation[1]
 
 #                         @parameter
 #                         if all_checks:
@@ -79,14 +79,14 @@
 #                             ):
 #                                 continue
 
-#                         let kernel_index = (
+#                         var kernel_index = (
 #                             out_ch * kernel.strides[0]
 #                             + in_ch * kernel.strides[1]
 #                             + kx * kernel.strides[2]
 #                             + ky
 #                         )
 
-#                         let input_index = (
+#                         var input_index = (
 #                             batch * inputs.strides[0]
 #                             + in_ch * inputs.strides[1]
 #                             + ix * inputs.strides[2]
@@ -97,7 +97,7 @@
 #                             inputs.tensor[input_index] * kernel.tensor[kernel_index]
 #                         )
 
-#             let output_index = (
+#             var output_index = (
 #                 batch * outputs_strides[0]
 #                 + out_ch * outputs_strides[1]
 #                 + x * outputs_strides[2]
@@ -106,24 +106,24 @@
 
 #             outputs[output_index] = result + bias.tensor[out_ch]
 
-#         let oH_border_0 = 0
-#         let oH_border_1 = (padding[0] + stride[0] + 1) // stride[0]
-#         let oH_border_2 = (
+#         var oH_border_0 = 0
+#         var oH_border_1 = (padding[0] + stride[0] + 1) // stride[0]
+#         var oH_border_2 = (
 #             inputs.tensor.dim(2) + padding[0] - kernel.tensor.dim(2) * dilation[0]
 #         ) // stride[0]
-#         let oH_border_3 = outputs.dim(2)
+#         var oH_border_3 = outputs.dim(2)
 
-#         let oW_border_0 = 0
-#         let oW_border_1 = (padding[1] + stride[0] + 1) // stride[1]
-#         let oW_border_2 = (
+#         var oW_border_0 = 0
+#         var oW_border_1 = (padding[1] + stride[0] + 1) // stride[1]
+#         var oW_border_2 = (
 #             inputs.tensor.dim(3) + padding[1] - kernel.tensor.dim(3) * dilation[1]
 #         ) // stride[1]
-#         let oW_border_3 = outputs.dim(3)
+#         var oW_border_3 = outputs.dim(3)
 
 #         for batch in range(inputs.tensor.dim(0)):
 #             for out_ch in range(outputs.dim(1)):
-#                 let batch_o_idx = batch * outputs_strides[0]
-#                 let out_ch_o_idx = out_ch * outputs_strides[1]
+#                 var batch_o_idx = batch * outputs_strides[0]
+#                 var out_ch_o_idx = out_ch * outputs_strides[1]
 #                 # Case 1: oh might put us out of bounds
 #                 for x in range(oH_border_0, oH_border_1):
 #                     for y in range(outputs.dim(3)):
@@ -162,14 +162,14 @@
 #         Upper gradient of shape: [batch, out_channels, uX, uY].
 #         """
 
-#         let inputs = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
-#         let inputs_strides = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].strides
-#         let kernel = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])].tensor
-#         let kernel_strides = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])].strides
-#         let bias = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[2])].tensor
-#         let bias_strides = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[2])].strides
+#         var inputs = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
+#         var inputs_strides = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].strides
+#         var kernel = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])].tensor
+#         var kernel_strides = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])].strides
+#         var bias = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[2])].tensor
+#         var bias_strides = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[2])].strides
 
-#         let ug_strides = calculate_strides(ug.shape())
+#         var ug_strides = calculate_strides(ug.shape())
 
 #         if tensor_id == 0:
 #             # Inputs
@@ -179,13 +179,13 @@
 #                 for out_ch in range(ug.dim(1)):
 #                     for ux in range(ug.dim(2)):
 #                         for uy in range(ug.dim(3)):
-#                             let ix_base = ux * stride[0] - padding[0]
-#                             let iy_base = uy * stride[1] - padding[1]
+#                             var ix_base = ux * stride[0] - padding[0]
+#                             var iy_base = uy * stride[1] - padding[1]
 #                             for in_ch in range(inputs.dim(1)):
 #                                 for kx in range(kernel.dim(2)):
 #                                     for ky in range(kernel.dim(3)):
-#                                         let ix = ix_base + kx * dilation[0]
-#                                         let iy = iy_base + ky * dilation[1]
+#                                         var ix = ix_base + kx * dilation[0]
+#                                         var iy = iy_base + ky * dilation[1]
 
 #                                         if (
 #                                             ix < 0
@@ -195,21 +195,21 @@
 #                                         ):
 #                                             continue
 
-#                                         let kernel_index = (
+#                                         var kernel_index = (
 #                                             out_ch * kernel_strides[0]
 #                                             + in_ch * kernel_strides[1]
 #                                             + kx * kernel_strides[2]
 #                                             + ky
 #                                         )
 
-#                                         let ug_index = (
+#                                         var ug_index = (
 #                                             batch * ug_strides[0]
 #                                             + out_ch * ug_strides[1]
 #                                             + ux * ug_strides[2]
 #                                             + uy
 #                                         )
 
-#                                         let input_index = (
+#                                         var input_index = (
 #                                             batch * inputs_strides[0]
 #                                             + in_ch * inputs_strides[1]
 #                                             + ix * inputs_strides[2]
@@ -233,10 +233,10 @@
 #                             for batch in range(inputs.dim(0)):
 #                                 for ux in range(ug.dim(2)):
 #                                     for uy in range(ug.dim(3)):
-#                                         let ix = ux * stride[0] - padding[
+#                                         var ix = ux * stride[0] - padding[
 #                                             0
 #                                         ] + kx * dilation[0]
-#                                         let iy = uy * stride[1] - padding[
+#                                         var iy = uy * stride[1] - padding[
 #                                             1
 #                                         ] + ky * dilation[1]
 
@@ -248,14 +248,14 @@
 #                                         ):
 #                                             continue
 
-#                                         let input_index = (
+#                                         var input_index = (
 #                                             batch * inputs_strides[0]
 #                                             + in_ch * inputs_strides[1]
 #                                             + ix * inputs_strides[2]
 #                                             + iy
 #                                         )
 
-#                                         let ug_index = (
+#                                         var ug_index = (
 #                                             batch * ug_strides[0]
 #                                             + out_ch * ug_strides[1]
 #                                             + ux * ug_strides[2]
@@ -264,7 +264,7 @@
 
 #                                         result += inputs[input_index] * ug[ug_index]
 
-#                             let kernel_index = (
+#                             var kernel_index = (
 #                                 out_ch * kernel_strides[0]
 #                                 + in_ch * kernel_strides[1]
 #                                 + kx * kernel_strides[2]
@@ -285,7 +285,7 @@
 #                 for batch in range(ug.dim(0)):
 #                     for ux in range(ug.dim(2)):
 #                         for uy in range(ug.dim(3)):
-#                             let ug_index = (
+#                             var ug_index = (
 #                                 batch * ug_strides[0]
 #                                 + out_ch * ug_strides[1]
 #                                 + ux * ug_strides[2]

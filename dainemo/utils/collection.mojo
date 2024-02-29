@@ -29,7 +29,7 @@ struct Collection:
     fn resize(inout self, new_capacity: Int):
         print("[COLLECTION] Resize called")
         if new_capacity >= self.size:
-            let new_data: Pointer[Tensor[dtype]]
+            var new_data: Pointer[Tensor[dtype]]
             new_data = new_data.alloc(new_capacity)
             for i in range(self.size):
                 __get_address_as_uninit_lvalue(new_data.offset(i).address) = __get_address_as_lvalue(self.data.offset(i).address)

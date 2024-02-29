@@ -7,7 +7,7 @@
 
 # fn generate_tensor(*shape: Int) -> Tensor[dtype]:
 #     var A = Tensor[dtype](shape)
-#     let size = A.num_elements()
+#     var size = A.num_elements()
 #     for i in range(size):
 #         A[i] = i + 1
 #     return A ^
@@ -34,37 +34,37 @@
 
 #     @staticmethod
 #     fn generate_1_2dim_test_case() -> TransposeData:
-#         let A = generate_tensor(2, 3)
-#         let expected = StaticIntTuple[6](1, 4, 2, 5, 3, 6)
-#         let tranpose_dims = VariadicList[Int](0, 1)
-#         let B = generate_expected_tensor(expected, 3, 2)
+#         var A = generate_tensor(2, 3)
+#         var expected = StaticIntTuple[6](1, 4, 2, 5, 3, 6)
+#         var tranpose_dims = VariadicList[Int](0, 1)
+#         var B = generate_expected_tensor(expected, 3, 2)
 
 #         return TransposeData(A, B, tranpose_dims)
 
 #     @staticmethod
 #     fn generate_2_2dim_test_case() -> TransposeData:
-#         let A = generate_tensor(2, 3, 2)
-#         let expected = StaticIntTuple[12](1, 7, 3, 9, 5, 11, 2, 8, 4, 10, 6, 12)
-#         let tranpose_dims = VariadicList[Int](0, 2)
-#         let B = generate_expected_tensor(expected, 2, 3, 2)
+#         var A = generate_tensor(2, 3, 2)
+#         var expected = StaticIntTuple[12](1, 7, 3, 9, 5, 11, 2, 8, 4, 10, 6, 12)
+#         var tranpose_dims = VariadicList[Int](0, 2)
+#         var B = generate_expected_tensor(expected, 2, 3, 2)
 
 #         return TransposeData(A, B, tranpose_dims)
 
 #     @staticmethod
 #     fn generate_3_2dim_test_case() -> TransposeData:
-#         let A = generate_tensor(2, 3, 2, 3)
-#         let expected = StaticIntTuple[36](1, 2, 3, 7, 8, 9, 13, 14, 15, 4, 5, 6, 
+#         var A = generate_tensor(2, 3, 2, 3)
+#         var expected = StaticIntTuple[36](1, 2, 3, 7, 8, 9, 13, 14, 15, 4, 5, 6, 
 #         10, 11, 12, 16, 17, 18, 19, 20, 21, 25, 26, 27, 31, 32, 33, 22, 23, 24, 
 #         28, 29, 30, 34, 35, 36)
-#         let tranpose_dims = VariadicList[Int](1, 2)
-#         let B = generate_expected_tensor(expected, 2, 2, 3, 3)
+#         var tranpose_dims = VariadicList[Int](1, 2)
+#         var B = generate_expected_tensor(expected, 2, 2, 3, 3)
 
 #         return TransposeData(A, B, tranpose_dims)
 
 #     @staticmethod
 #     fn generate_4_2dim_test_case() -> TransposeData:
-#         let A = generate_tensor(3, 2, 3, 2, 3)
-#         let expected = StaticIntTuple[108](1, 2, 3, 19, 20, 21, 7, 8, 9, 25, 
+#         var A = generate_tensor(3, 2, 3, 2, 3)
+#         var expected = StaticIntTuple[108](1, 2, 3, 19, 20, 21, 7, 8, 9, 25, 
 #         26, 27, 13, 14, 15, 31, 32, 33, 4, 5, 6, 22, 23, 24, 10, 11, 12, 28, 
 #         29, 30, 16, 17, 18, 34, 35, 36, 37, 38, 39, 55, 56, 57, 43, 44, 45, 61, 
 #         62, 63, 49, 50, 51, 67, 68, 69, 40, 41, 42, 58, 59, 60, 46, 47, 48, 64, 
@@ -72,28 +72,28 @@
 #         98, 99, 85, 86, 87, 103, 104, 105, 76, 77, 78, 94, 95, 96, 82, 83, 84, 
 #         100, 101, 102, 88, 89, 90, 106, 107, 108
 #         )
-#         let tranpose_dims = VariadicList[Int](1, 3)
-#         let B = generate_expected_tensor(expected, 3, 2, 3, 2, 3)
+#         var tranpose_dims = VariadicList[Int](1, 3)
+#         var B = generate_expected_tensor(expected, 3, 2, 3, 2, 3)
 
 #         return TransposeData(A, B, tranpose_dims)
 
 #     @staticmethod
 #     fn generate_1_alldim_test_case() -> TransposeData:
-#         let A = generate_tensor(2, 3, 2, 3)
-#         let expected = StaticIntTuple[36](1,4,2,5,3,6,19,22,20,23,21,24,7,10,8,
+#         var A = generate_tensor(2, 3, 2, 3)
+#         var expected = StaticIntTuple[36](1,4,2,5,3,6,19,22,20,23,21,24,7,10,8,
 #         11,9,12,25,28,26,29,27,30,13,16,14,17,15,18,31,34,32,35,33,36)
-#         let tranpose_dims = VariadicList[Int](1, 0, 3, 2)
-#         let B = generate_expected_tensor(expected, 3, 2, 3, 2)
+#         var tranpose_dims = VariadicList[Int](1, 0, 3, 2)
+#         var B = generate_expected_tensor(expected, 3, 2, 3, 2)
 
 #         return TransposeData(A, B, tranpose_dims)
 
 #     @staticmethod
 #     fn generate_1_transpose_test_case() -> TransposeData:
-#         let A = generate_tensor(2, 3, 2, 3)
-#         let expected = StaticIntTuple[36](1,19,7,25,13,31,4,22,10,28,16,34,2,20,
+#         var A = generate_tensor(2, 3, 2, 3)
+#         var expected = StaticIntTuple[36](1,19,7,25,13,31,4,22,10,28,16,34,2,20,
 #         8,26,14,32,5,23,11,29,17,35,3,21,9,27,15,33,6,24,12,30,18,36)
-#         let tranpose_dims = VariadicList[Int](3, 2, 1, 0)
-#         let B = generate_expected_tensor(expected, 3, 2, 3, 2)
+#         var tranpose_dims = VariadicList[Int](3, 2, 1, 0)
+#         var B = generate_expected_tensor(expected, 3, 2, 3, 2)
 
 #         return TransposeData(A, B, tranpose_dims)
 
@@ -110,35 +110,35 @@
 
 #     @staticmethod
 #     fn generate_1d_test_case_after() -> PaddingData:
-#         let A = generate_tensor(2)
+#         var A = generate_tensor(2)
 
-#         let expected = StaticIntTuple[4](1, 2, 0, 0)
+#         var expected = StaticIntTuple[4](1, 2, 0, 0)
 #         var pad_with = DynamicVector[Int]()
 #         pad_with.push_back(0) # before
 #         pad_with.push_back(2) # after
 
-#         let B = generate_expected_tensor(expected, 4)
+#         var B = generate_expected_tensor(expected, 4)
 
 #         return PaddingData(A, B, pad_with)
 
 #     @staticmethod
 #     fn generate_1d_test_case_before_after() -> PaddingData:
-#         let A = generate_tensor(3)
+#         var A = generate_tensor(3)
 
-#         let expected = StaticIntTuple[6](0, 0, 1, 2, 3, 0)
+#         var expected = StaticIntTuple[6](0, 0, 1, 2, 3, 0)
 #         var pad_with = DynamicVector[Int]()
 #         pad_with.push_back(2) # before
 #         pad_with.push_back(1) # after
 
-#         let B = generate_expected_tensor(expected, 6)
+#         var B = generate_expected_tensor(expected, 6)
 
 #         return PaddingData(A, B, pad_with)
 
 #     @staticmethod
 #     fn generate_2d_test_case() -> PaddingData:
-#         let A = generate_tensor(2, 2)
+#         var A = generate_tensor(2, 2)
 
-#         let expected = StaticTuple[45](
+#         var expected = StaticTuple[45](
 #             0, 0, 0, 0, 0, 0, 0, 0, 0,
 #             0, 0, 0, 1, 2, 0, 0, 0, 0,
 #             0, 0, 0, 3, 4, 0, 0, 0, 0,
@@ -151,15 +151,15 @@
 #         pad_with.push_back(3) # before_2
 #         pad_with.push_back(4) # after_2
 
-#         let B = generate_expected_tensor[45](expected, 5, 9)
+#         var B = generate_expected_tensor[45](expected, 5, 9)
 
 #         return PaddingData(A, B, pad_with)
 
 #     @staticmethod
 #     fn generate_3d_test_case_simple() -> PaddingData:
-#         let A = generate_tensor(2, 2, 2)
+#         var A = generate_tensor(2, 2, 2)
 
-#         let expected = StaticIntTuple[16](
+#         var expected = StaticIntTuple[16](
 #             0, 0, 1, 2, 3, 4, 0, 0,
 #             0, 0, 5, 6, 7, 8, 0, 0
 #         )
@@ -171,15 +171,15 @@
 #         pad_with.push_back(0) # before_3
 #         pad_with.push_back(0) # after_3
 
-#         let B = generate_expected_tensor[16](expected, 2, 4, 2)
+#         var B = generate_expected_tensor[16](expected, 2, 4, 2)
 
 #         return PaddingData(A, B, pad_with)
 
 #     @staticmethod
 #     fn generate_3d_test_case() -> PaddingData:
-#         let A = generate_tensor(1, 2, 3)
+#         var A = generate_tensor(1, 2, 3)
 
-#         let expected = StaticIntTuple[45](
+#         var expected = StaticIntTuple[45](
 #             0, 0, 0, 0, 0,
 #             0, 0, 0, 0, 0,
 #             0, 0, 0, 0, 0,
@@ -198,16 +198,16 @@
 #         pad_with.push_back(0) # before_3
 #         pad_with.push_back(2) # after_3
 
-#         let B = generate_expected_tensor[45](expected, 3, 3, 5)
+#         var B = generate_expected_tensor[45](expected, 3, 3, 5)
 
 #         return PaddingData(A, B, pad_with)
 
     
 #     @staticmethod
 #     fn generate_4d_test_case() -> PaddingData:
-#         let A = generate_tensor(2, 2, 2, 2)
+#         var A = generate_tensor(2, 2, 2, 2)
 
-#         let expected = StaticIntTuple[81](
+#         var expected = StaticIntTuple[81](
 #             1,  2,  0,  3,  4,  0,  0,  0,  0,
 #             5,  6,  0,  7,  8,  0,  0,  0,  0,
 #             0,  0,  0,  0,  0,  0,  0,  0,  0,
@@ -229,7 +229,7 @@
 #         pad_with.push_back(0) # before_4
 #         pad_with.push_back(1) # after_4
 
-#         let B = generate_expected_tensor[81](expected, 3, 3, 3, 3)
+#         var B = generate_expected_tensor[81](expected, 3, 3, 3, 3)
 
 #         return PaddingData(A, B, pad_with)
 
@@ -252,17 +252,17 @@
         
 #     @staticmethod
 #     fn generate_3d_axis_0() -> SumMeanStdData:
-#         let A = generate_tensor(3, 4, 5)
-#         let axis = 0
+#         var A = generate_tensor(3, 4, 5)
+#         var axis = 0
 
-#         let expected_sum = StaticIntTuple[20](
+#         var expected_sum = StaticIntTuple[20](
 #             63,  66,  69,  72,  75,
 #             78,  81,  84,  87,  90,
 #             93,  96,  99,  102, 105,
 #             108, 111, 114, 117, 120,
 #         )
 
-#         let expected_mean = StaticIntTuple[20](
+#         var expected_mean = StaticIntTuple[20](
 #             21, 22, 23, 24, 25,
 #             26, 27, 28, 29, 30,
 #             31, 32, 33, 34, 35,
@@ -272,23 +272,23 @@
 #         var expected_std = Tensor[dtype](1, 4, 5)
 #         fill[dtype, nelts](expected_std, 16.32993162)
         
-#         let B = generate_expected_tensor[20](expected_sum, 1, 4, 5)
-#         let C = generate_expected_tensor[20](expected_mean, 1, 4, 5)
+#         var B = generate_expected_tensor[20](expected_sum, 1, 4, 5)
+#         var C = generate_expected_tensor[20](expected_mean, 1, 4, 5)
 
 #         return SumMeanStdData(A, axis, B, C, expected_std)
 
 #     @staticmethod
 #     fn generate_3d_axis_1() -> SumMeanStdData:
-#         let A = generate_tensor(3, 4, 5)
-#         let axis = 1
+#         var A = generate_tensor(3, 4, 5)
+#         var axis = 1
 
-#         let expected_sum = StaticIntTuple[15](
+#         var expected_sum = StaticIntTuple[15](
 #             34,  38,  42,  46,  50,
 #             114, 118, 122, 126, 130,
 #             194, 198, 202, 206, 210,
 #         )
 
-#         let expected_mean = StaticIntTuple[15](
+#         var expected_mean = StaticIntTuple[15](
 #             8,  9,  10, 11, 12,
 #             28, 29, 30, 31, 32,
 #             48, 49, 50, 51, 52,
@@ -297,7 +297,7 @@
 #         var expected_std = Tensor[dtype](3, 1, 5)
 #         fill[dtype, nelts](expected_std, 5.59016994)
 
-#         let B = generate_expected_tensor[15](expected_sum, 3, 1, 5)
+#         var B = generate_expected_tensor[15](expected_sum, 3, 1, 5)
 #         var C = generate_expected_tensor[15](expected_mean, 3, 1, 5)
 #         C = elwise_op[dtype, nelts, add](C, 0.5)
 
@@ -305,16 +305,16 @@
 
 #     @staticmethod
 #     fn generate_3d_axis_2() -> SumMeanStdData:
-#         let A = generate_tensor(3, 4, 5)
-#         let axis = 2
+#         var A = generate_tensor(3, 4, 5)
+#         var axis = 2
 
-#         let expected_sum = StaticIntTuple[12](
+#         var expected_sum = StaticIntTuple[12](
 #             15,  40,  65,  90,
 #             115, 140, 165, 190,
 #             215, 240, 265, 290,
 #         )
 
-#         let expected_mean = StaticIntTuple[12](
+#         var expected_mean = StaticIntTuple[12](
 #             3,  8,  13, 18,
 #             23, 28, 33, 38,
 #             43, 48, 53, 58,
@@ -323,7 +323,7 @@
 #         var expected_std = Tensor[dtype](3, 4, 1)
 #         fill[dtype, nelts](expected_std, 1.41421356)
 
-#         let B = generate_expected_tensor[12](expected_sum, 3, 4, 1)
-#         let C = generate_expected_tensor[12](expected_mean, 3, 4, 1)
+#         var B = generate_expected_tensor[12](expected_sum, 3, 4, 1)
+#         var C = generate_expected_tensor[12](expected_mean, 3, 4, 1)
 
 #         return SumMeanStdData(A, axis, B, C, expected_std)

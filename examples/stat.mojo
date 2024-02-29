@@ -10,9 +10,9 @@ from dainemo.utils.tensorutils import fill
 
 fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
 
-    let diff = g.op(OP.SUB, y_true, y_pred)
-    let loss = g.op(OP.MUL, diff, diff)
-    let mean_loss = g.op(OP.MEAN, loss, None)
+    var diff = g.op(OP.SUB, y_true, y_pred)
+    var loss = g.op(OP.MUL, diff, diff)
+    var mean_loss = g.op(OP.MEAN, loss, None)
 
     return mean_loss ^
 
@@ -20,15 +20,15 @@ fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
 fn create_linear_graph(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
     var g = Graph()
 
-    let x = g.input(TensorShape(batch_size, n_inputs))
-    let y_true = g.input(TensorShape(batch_size, n_outputs))
+    var x = g.input(TensorShape(batch_size, n_inputs))
+    var y_true = g.input(TensorShape(batch_size, n_outputs))
 
-    let W = g.param(TensorShape(n_inputs, n_outputs))
-    let b = g.param(TensorShape(n_outputs))
-    let res = g.op(OP.DOT, x, W)
+    var W = g.param(TensorShape(n_inputs, n_outputs))
+    var b = g.param(TensorShape(n_outputs))
+    var res = g.op(OP.DOT, x, W)
 
-    let y_pred = g.op(OP.ADD, res, b)
-    let loss = mse(g, y_true, y_pred)
+    var y_pred = g.op(OP.ADD, res, b)
+    var loss = mse(g, y_true, y_pred)
     _ = g.out(loss)
 
     g.compile()
@@ -59,11 +59,11 @@ fn main():
     var y = rand[dtype](batch_size, n_outputs)
 
     print("Training started")
-    let start = now()
+    var start = now()
     
     alias epochs = 1000
     for i in range(epochs):
-        let out = model.forward(x, y)
+        var out = model.forward(x, y)
         print("[", i + 1, "/", epochs,"] \tLoss: ", out[0])
 
         # Backward pass

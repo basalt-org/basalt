@@ -32,9 +32,9 @@
 
 
 # fn test_graph_relations() raises:
-#     let n1 = GRAPH.graph[0]
-#     let n2 = GRAPH.graph[1]
-#     let n3 = GRAPH.graph[2]
+#     var n1 = GRAPH.graph[0]
+#     var n2 = GRAPH.graph[1]
+#     var n3 = GRAPH.graph[2]
 
 #     assert_equal(GRAPH.graph.size, 3)
 #     assert_equal(n1.children.size, 1)
@@ -68,7 +68,7 @@
 
 
 # fn test_mark_reset_visited() raises:
-#     let idx = 0
+#     var idx = 0
 
 #     assert_equal(GRAPH.graph[idx].visited, False)
 #     GRAPH.mark_visited(GRAPH.graph[idx].uuid)

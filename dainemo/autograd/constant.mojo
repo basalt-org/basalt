@@ -33,7 +33,7 @@ struct Constant[dtype: DType](CollectionElement, Stringable):
 
     fn tensor(self) -> Tensor[dtype]:
         # May only be called at runtime
-        var tmp = DynamicVector[Int](self.rank)
+        var tmp = DynamicVector[Int]()
         for i in range(self.rank):
             tmp.push_back(self.static_shape[i])
 
