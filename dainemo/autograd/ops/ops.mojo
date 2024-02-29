@@ -1,6 +1,6 @@
 from tensor import TensorShape 
 
-from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, MEAN
+from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, MEAN, FLATTEN
 from dainemo.utils.uuid import bytes
 from dainemo.utils.tensorutils import unbroadcast_add, broadcast_shapes
 
@@ -22,6 +22,7 @@ struct OP:
     alias POW = OP(6, "POW")
     alias DOT = OP(7, "DOT")
     alias MEAN = OP(8, "MEAN")
+    alias FLATTEN = OP(9, "FLATTEN")
 
     var id: UInt8
     var name: bytes[8]
@@ -46,9 +47,11 @@ fn static_result_shape(op: OP, t1_shape: TensorShape) -> TensorShape:
         return LOG.result_shape(t1_shape)
     elif op == OP.MEAN:
         return MEAN.result_shape(t1_shape)
+    elif op == OP.FLATTEN:
+        return FLATTEN.result_shape(t1_shape)
     else:
         print("[ERROR] Operator not found.")
-        return TensorShape(-1, -1)
+        return TensorShape(-1)
 
 
 fn static_result_shape(
@@ -114,6 +117,8 @@ fn forward_op[
         LOG.forward[t1_shape](res, t1)
     elif op == OP.MEAN:
         MEAN.forward[t1_shape](res, t1)
+    elif op == OP.FLATTEN:
+        FLATTEN.forward[t1_shape](res, t1)
     else:
         print("[ERROR] Operator not found.")
 
@@ -197,6 +202,8 @@ fn backward_op[
         res_grad = LOG.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.MEAN:
         res_grad = MEAN.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.FLATTEN:
+        res_grad = FLATTEN.backward[ug_shape, t1_shape](ug, t1)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1)

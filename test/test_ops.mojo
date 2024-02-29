@@ -264,19 +264,31 @@ fn test_POW() raises:
 #     GRAPH.reset_all()
 
 
-# # <------------FLATTEN------------>
-# fn test_FLATTEN() raises:
-#     var A = Tensor[dtype](2, 3)
-#     var B = Tensor[dtype](6)
-#     for i in range(6):
-#         A[i] = i + 1
-#         B[i] = i + 1
+# <------------FLATTEN------------>
+fn test_FLATTEN() raises:
+    alias t1_shape = TensorShape(2, 3, 4)
+    var t1 = Tensor[dtype](t1_shape)
+    fill[dtype, nelts](t1, 1.0)
 
-#     let res = FLATTEN.forward(A)
+    fn create_graph() -> Graph:
+        var g = Graph()
+        var t1 = g.input(t1_shape)
 
-#     assert_tensors_equal(res.tensor, B)
-#     assert_equal(GRAPH.graph.size, 2)
-#     GRAPH.reset_all()
+        var res = g.op(OP.FLATTEN, t1)
+        _ = g.out(res)
+
+        return g ^
+
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)
+
+    var expected = Tensor[dtype](24)
+    fill[dtype, nelts](expected, 1.0)
+
+    assert_tensors_equal(res, expected)
 
 
 # # <------------RESHAPE------------>
@@ -309,7 +321,7 @@ fn main():
     #         test_SUM()
     #         test_MAX()
     #         test_TRANSPOSE()
-    #         test_FLATTEN()
+        test_FLATTEN()
     #         test_RESHAPE()
     except e:
         print("[ERROR] Error in ops")

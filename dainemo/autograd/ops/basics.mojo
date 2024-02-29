@@ -1,6 +1,7 @@
 from tensor import TensorShape
 from math import add, sub, mul, div, log, exp
 from algorithm import vectorize
+from memory import memcpy
 
 from dainemo.utils.tensorutils import *
 
@@ -500,6 +501,7 @@ struct MEAN(UnaryOperator):
 #         return res
 
 
+# ----- Transform operators -----
 # # <---------TRANSPOSE--------->
 # struct TRANSPOSE:
 #     @staticmethod
@@ -516,34 +518,28 @@ struct MEAN(UnaryOperator):
 #         return transpose[dtype, nelts](ug)
 
 
-# # <----------FLATTEN---------->
-# struct FLATTEN:
-#     @staticmethod
-#     fn forward(n: Node[dtype]) -> Node[dtype]:
-#         var res = n.tensor
-#         try:
-#             res.ireshape(TensorShape(res.num_elements()))
-#         except:
-#             print("[ERROR]: Cannot flatten tensor in forward pass.")
+# <----------FLATTEN---------->
+struct FLATTEN(UnaryOperator):
+    @staticmethod
+    fn result_shape(t_shape: TensorShape) -> TensorShape:
+        return TensorShape(t_shape.num_elements())
 
-#         return GRAPH.create_graph_node[Self.backward](res, n)
+    @staticmethod
+    fn forward[t_shape: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
+        """
+        Forward pass of the flatten operation.
+        """
+        memcpy(res.data(), t.data(), t_shape.num_elements())
 
-#     @staticmethod
-#     fn backward(
-#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-#     ) -> Tensor[dtype]:
-#         """
-#         Reshape upper gradient to original shape.
-#         """
-#         var res = ug
-#         let shape = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor.shape()
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape, t_shape: TensorShape
+    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of flatten."""
+        var res_grad = Tensor[dtype](ug_shape)
+        memcpy(res_grad.data(), ug.data(), ug_shape.num_elements())
 
-#         try:
-#             res.ireshape(shape)
-#         except:
-#             print("[ERROR]: Cannot reshape tensor in flatten backward pass.")
-
-#         return res
+        return res_grad ^
 
 
 # # <----------RESHAPE---------->
