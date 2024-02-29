@@ -162,10 +162,25 @@ fn test_POW() raises:
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     fill[dtype, nelts](t1, 2.0)
 
+    fn create_graph() -> Graph:
+        var g = Graph()
+        var t1 = g.input(t1_shape)
+
+        var res = g.op(OP.POW, t1, 2)
+        _ = g.out(res)
+
+        return g ^
+
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)
+
     var expected = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected, 4.0)
-
-    test_unary_op[OP.POW, t1_shape](t1, expected)
+    
+    assert_tensors_equal(res, expected)
 
 
 # # <------------SUM------------>
@@ -288,9 +303,9 @@ fn main():
         test_MUL()
         test_DIV()
     #         test_DOT()
-    #         test_EXP()
-    #         test_LOG()
-    #         test_POW()
+        test_EXP()
+        test_LOG()
+        test_POW()
     #         test_SUM()
     #         test_MAX()
     #         test_TRANSPOSE()
@@ -299,4 +314,3 @@ fn main():
     except e:
         print("[ERROR] Error in ops")
         print(e)
-        return
