@@ -52,9 +52,9 @@ struct Adam:
                 )
                 
                 # 2. Compute bias-corrected adam grads
-                let bias_corrected_momentum_grad = elwise_op[dtype, nelts, div](param.optim_momentum_grad, 1 - (self.beta1 ** self.iter))
-                let bias_corrected_rms_grad = elwise_op[dtype, nelts, div](param.optim_rms_grad, 1 - (self.beta2 ** self.iter))
-                let delta = elwise_op[dtype, nelts, div](
+                var bias_corrected_momentum_grad = elwise_op[dtype, nelts, div](param.optim_momentum_grad, 1 - (self.beta1 ** self.iter))
+                var bias_corrected_rms_grad = elwise_op[dtype, nelts, div](param.optim_rms_grad, 1 - (self.beta2 ** self.iter))
+                var delta = elwise_op[dtype, nelts, div](
                     bias_corrected_momentum_grad, 
                     elwise_op[dtype, nelts, add](elwise_transform[dtype, nelts, sqrt](bias_corrected_rms_grad), self.epsilon)
                 )

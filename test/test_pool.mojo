@@ -26,16 +26,16 @@ fn torch_maxpool2d(
     dilation: StaticIntTuple[2],
     upper_grad: Tensor
 ) -> torch_maxpool2d_output:
-    let out: torch_maxpool2d_output
+    var out: torch_maxpool2d_output
     
     try:
-        let torch = Python.import_module("torch")
-        let F = Python.import_module("torch.nn.functional")
-        let np = Python.import_module("numpy")
+        var torch = Python.import_module("torch")
+        var F = Python.import_module("torch.nn.functional")
+        var np = Python.import_module("numpy")
 
-        let inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
+        var inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
 
-        let expected = F.max_pool2d(
+        var expected = F.max_pool2d(
             inputs,
             (kernel_size[0], kernel_size[1]),
             (stride[0], stride[1]),
@@ -44,7 +44,7 @@ fn torch_maxpool2d(
         )
 
         # uppergrad & backwards
-        let upper_grad = torch.from_numpy(to_numpy(upper_grad))
+        var upper_grad = torch.from_numpy(to_numpy(upper_grad))
         _ = expected.backward(upper_grad)
 
         # expected
@@ -56,8 +56,8 @@ fn torch_maxpool2d(
 
     except:
         print("Error in torch_maxpool2d")
-        let d = Tensor[dtype](1)
-        let out = torch_maxpool2d_output(d, d)
+        var d = Tensor[dtype](1)
+        var out = torch_maxpool2d_output(d, d)
         return out
 
 
@@ -68,10 +68,10 @@ fn test_forward_1() raises:
     alias padding = 2
     alias stride = 1
     alias dilation = 1
-    let inputs = rand[dtype](4, 1, 28, 28)
+    var inputs = rand[dtype](4, 1, 28, 28)
 
-    let res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
-    let torch_out = torch_maxpool2d(
+    var res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
+    var torch_out = torch_maxpool2d(
         inputs,
         kernel_size,
         padding=padding,
@@ -90,10 +90,10 @@ fn test_forward_2() raises:
     alias padding = 0
     alias stride = 1
     alias dilation = 1
-    let inputs = rand[dtype](4, 1, 32, 17)
+    var inputs = rand[dtype](4, 1, 32, 17)
     
-    let res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
-    let torch_out = torch_maxpool2d(
+    var res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
+    var torch_out = torch_maxpool2d(
         inputs,
         kernel_size,
         padding=padding,
@@ -116,8 +116,8 @@ fn test_forward_3() raises:
     var inputs = Tensor[dtype](4, 3, 32, 17)
     fill[dtype, nelts](inputs, 1.0)
 
-    let res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
-    let torch_out = torch_maxpool2d(
+    var res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
+    var torch_out = torch_maxpool2d(
         inputs,
         kernel_size,
         padding=padding,
@@ -136,16 +136,16 @@ fn test_backward_1() raises:
     alias padding = 2
     alias stride = 1
     alias dilation = 1
-    let inputs = rand[dtype](4, 1, 28, 28)
+    var inputs = rand[dtype](4, 1, 28, 28)
     
-    let res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
+    var res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
     
-    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
     assert_equal(gn.parents.size, 1)
-    let upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
+    var upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
     
-    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0) # inputs.grad
-    let torch_out = torch_maxpool2d(
+    var ug1 = gn.backward_fn(upper_grad, gn.parents, 0) # inputs.grad
+    var torch_out = torch_maxpool2d(
         inputs,
         kernel_size,
         padding=padding,
@@ -165,16 +165,16 @@ fn test_backward_2() raises:
     alias padding = 0
     alias stride = 1
     alias dilation = 1
-    let inputs = rand[dtype](4, 1, 32, 17)
+    var inputs = rand[dtype](4, 1, 32, 17)
 
-    let res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
+    var res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
     
-    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
     assert_equal(gn.parents.size, 1)
-    let upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
+    var upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
 
-    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0) # inputs.grad
-    let torch_out = torch_maxpool2d(
+    var ug1 = gn.backward_fn(upper_grad, gn.parents, 0) # inputs.grad
+    var torch_out = torch_maxpool2d(
         inputs,
         kernel_size,
         padding=padding,
@@ -197,14 +197,14 @@ fn test_backward_3() raises:
     var inputs = Tensor[dtype](4, 3, 32, 17)
     fill[dtype, nelts](inputs, 1.0)
 
-    let res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
+    var res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
     
-    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
     assert_equal(gn.parents.size, 1)
-    let upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
+    var upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
 
-    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0) # inputs.grad
-    let torch_out = torch_maxpool2d(
+    var ug1 = gn.backward_fn(upper_grad, gn.parents, 0) # inputs.grad
+    var torch_out = torch_maxpool2d(
         inputs,
         kernel_size,
         padding=padding,

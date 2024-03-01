@@ -98,7 +98,7 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         Checks if all children of the node are visited in the graph.
         """
         for i in range(self.children.size):
-            let idx = GRAPH.get_node_idx(self.children[i])
+            var idx = GRAPH.get_node_idx(self.children[i])
             if not GRAPH.graph[idx].visited:
                 return False
         return True
@@ -108,7 +108,7 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         Checks if all parents of the node are visited in the graph.
         """
         for i in range(self.parents.size):
-            let idx = GRAPH.get_node_idx(self.parents[i])
+            var idx = GRAPH.get_node_idx(self.parents[i])
             if not GRAPH.graph[idx].visited:
                 return False
         return True
@@ -161,7 +161,7 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         """
         # TODO: self.grad = elwise_op[dtype, nelts, add](self.grad, grad) --> only
         # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)
-        let my_idx = GRAPH.get_node_idx(self.uuid)
+        var my_idx = GRAPH.get_node_idx(self.uuid)
         var my_node = GRAPH.graph[my_idx]
         # BUG: my_node.grad has type DType.float32 instead of a generic dtype (also see unbroadcast_data)
         # should be: my_node.grad = elwise_op[dtype, nelts, add](my_node.grad, grad)
@@ -171,7 +171,7 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
 
     fn accumulate_grad2(inout self, grad: Tensor[DType.float32]):
         # BUG: overload as workaround: should be one generic dtype
-        let my_idx = GRAPH.get_node_idx(self.uuid)
+        var my_idx = GRAPH.get_node_idx(self.uuid)
         var my_node = GRAPH.graph[my_idx]
         alias nelts: Int = simdwidthof[DType.float32]()
         my_node.grad = elwise_op[DType.float32, nelts, add](my_node.grad, grad)
@@ -183,8 +183,8 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         """
 
         for c in range(self.children.size):
-            let child_idx = GRAPH.get_node_idx(self.children[c])
-            let child = GRAPH.graph[child_idx]
+            var child_idx = GRAPH.get_node_idx(self.children[c])
+            var child = GRAPH.graph[child_idx]
             if self.requires_grad and calculate_grads:
                 # Identify the index of itself in the child.parents NodeCollection
                 # Required when operation has multiple operands to identify the correct gradient function
@@ -226,7 +226,7 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
         # 1. If not, topological sort on the children
         if not self.are_children_visited():
             for c in range(self.children.size):
-                let idx = GRAPH.get_node_idx(self.children[c])
+                var idx = GRAPH.get_node_idx(self.children[c])
                 var child = GRAPH.graph[idx]
                 if not child.visited:
                     child.topological_sort(sorted_nodes)
@@ -237,7 +237,7 @@ struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
             GRAPH.mark_visited(self.uuid)
             sorted_nodes.push_back(self.uuid)
             for p in range(self.parents.size):
-                let idx = GRAPH.get_node_idx(self.parents[p])
+                var idx = GRAPH.get_node_idx(self.parents[p])
                 var parent = GRAPH.graph[idx]
                 if not parent.visited:
                     parent.topological_sort(sorted_nodes)

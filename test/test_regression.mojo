@@ -19,8 +19,8 @@ struct LinearRegression:
 
 
 fn main():    
-    let batch_size = 4
-    let input_size = 13
+    var batch_size = 4
+    var input_size = 13
 
     var model = LinearRegression(input_size)
     var loss_func = nn.MSELoss()
@@ -34,7 +34,7 @@ fn main():
 
     #### FORWARD ####
     optim.zero_grad()
-    let output = model.forward(batch_data)
+    var output = model.forward(batch_data)
     var loss = loss_func(output, batch_labels)
     # print("OUTPUT: ", output.tensor)
     print("LOSS: ", loss.tensor[0])
@@ -65,7 +65,7 @@ fn main():
     #### FORWARD2 ####
     print("------------ SECOND ITER ------------")
     optim.zero_grad()
-    let output2 = model.forward(batch_data)
+    var output2 = model.forward(batch_data)
     var loss2 = loss_func(output2, batch_labels)
     # print("OUTPUT: ", output2.tensor)
     print("LOSS: ", loss2.tensor[0])

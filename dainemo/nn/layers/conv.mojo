@@ -34,7 +34,7 @@ struct Conv2d[
     fn __init__(
         inout self, in_channels: Int, out_channels: Int, kernel_size: Tuple[Int, Int]
     ):
-        let k: SIMD[dtype, 1] = in_channels * kernel_size.get[0, Int]() * kernel_size.get[1, Int]()
+        var k: SIMD[dtype, 1] = in_channels * kernel_size.get[0, Int]() * kernel_size.get[1, Int]()
         self.weights = Node[dtype](
             rand_uniform[dtype, nelts](
                 TensorShape(out_channels, in_channels, kernel_size.get[0, Int](), kernel_size.get[1, Int]()),
@@ -59,8 +59,8 @@ struct Conv2d[
         # COPY self.weight & self.bias directly from GRAPH
         # Workaround because model parameters are created and change in copies.
         # TODO: Redo when lifetimes are there. [INVESTIGATE HOW TO AVOID THIS]
-        let weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
-        let bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
+        var weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
+        var bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
 
         return CONV2D.forward[padding, stride, dilation](inputs, weights, bias)
 
