@@ -40,8 +40,8 @@ fn uuid() -> String:
     # (Mojo v0.5.0) Can only find the ability of generating random_ui64
     # Adapt the range to 0..2^8-1 to fit the type of UInt8
     for i in range(16):
-        let ui64_value: UInt64 = random.random_ui64(0, 255)
-        let ui8_value: UInt8 = ui64_value.cast[DType.uint8]()
+        var ui64_value: UInt64 = random.random_ui64(0, 255)
+        var ui8_value: UInt8 = ui64_value.cast[DType.uint8]()
 
         uuid[i] = ui8_value
     

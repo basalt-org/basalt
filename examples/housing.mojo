@@ -21,7 +21,7 @@ struct LinearRegression:
 
 
 fn main():
-    let train_data: BostonHousing[dtype]
+    var train_data: BostonHousing[dtype]
     try:
         train_data = BostonHousing[dtype](file_path='./examples/data/housing.csv')
     except:
@@ -51,7 +51,7 @@ fn main():
         for batch in training_loader:
 
             # Forward pass
-            let output = model.forward(batch.data)          
+            var output = model.forward(batch.data)
             var loss = loss_func(output, batch.labels)
 
             # Backward pass

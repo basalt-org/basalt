@@ -13,9 +13,9 @@ alias nelts: Int = simdwidthof[dtype]()
 
 # <------------SIGMOID------------>
 fn test_SIGMOID() raises:
-    let t1: Tensor[dtype] = Tensor[dtype](2, 3)  # filled with zeroes
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)  # filled with zeroes
 
-    let res = SIGMOID.forward(t1)
+    var res = SIGMOID.forward(t1)
 
     var expected = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected, 0.5)
@@ -25,17 +25,17 @@ fn test_SIGMOID() raises:
 
 
 fn test_backward_SIGMOID() raises:
-    let t1: Tensor[dtype] = Tensor[dtype](2, 3)  # filled with zeroes
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)  # filled with zeroes
 
     var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
     fill[dtype, nelts](upper_grad, 5.0)
 
-    let res = SIGMOID.forward(t1)
+    var res = SIGMOID.forward(t1)
 
-    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
     assert_equal(gn.parents.size, 1)
 
-    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+    var ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
 
     var expected_ug1 = Tensor[dtype](2, 3)
     fill[dtype, nelts](
@@ -54,7 +54,7 @@ fn test_RELU() raises:
     for i in range(3, 6):
         t1[i] = -3
 
-    let res = RELU.forward(t1)
+    var res = RELU.forward(t1)
 
     var expected = Tensor[dtype](2, 3)
     for i in range(3):
@@ -75,11 +75,11 @@ fn test_backward_RELU() raises:
     var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
     fill[dtype, nelts](upper_grad, 5.0)
 
-    let res = RELU.forward(t1)
-    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    var res = RELU.forward(t1)
+    var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
     assert_equal(gn.parents.size, 1)
 
-    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+    var ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
 
     var expected_ug1 = Tensor[dtype](2, 3)
     for i in range(3):
@@ -92,9 +92,9 @@ fn test_backward_RELU() raises:
 
 # <------------TANH------------>
 fn test_TANH() raises:
-    let t1: Tensor[dtype] = Tensor[dtype](2, 3)  # filled with zeroes
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)  # filled with zeroes
 
-    let res = TANH.forward(t1)
+    var res = TANH.forward(t1)
 
     var expected = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected, 0.0)
@@ -104,17 +104,17 @@ fn test_TANH() raises:
 
 
 fn test_backward_TANH() raises:
-    let t1: Tensor[dtype] = Tensor[dtype](2, 3)  # filled with zeroes
+    var t1: Tensor[dtype] = Tensor[dtype](2, 3)  # filled with zeroes
 
     var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
     fill[dtype, nelts](upper_grad, 5.0)
 
-    let res = TANH.forward(t1)
+    var res = TANH.forward(t1)
 
-    let gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
+    var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
     assert_equal(gn.parents.size, 1)
 
-    let ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
+    var ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
 
     var expected_ug1 = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected_ug1, 5.0 * 1.0)  # 1.0 = d(tanh(0))/dx = 1 - tanh(0)^2

@@ -3,9 +3,9 @@ from dainemo.utils.uuid import uuid
 
 
 fn test_uuid_length() raises:
-    let id = uuid()
+    var id = uuid()
 
-    let splitted = id.split("-")
+    var splitted = id.split("-")
     var char_count = 0
     for i in range(splitted.size):
         char_count += len(splitted[i])
@@ -16,22 +16,22 @@ fn test_uuid_length() raises:
 
 fn test_uuid_uniqueness() raises:
     for i in range(10):
-        let id1 = uuid()
-        let id2 = uuid()
+        var id1 = uuid()
+        var id2 = uuid()
         assert_not_equal(id1, id2)
 
 
 fn test_uuid_version() raises:
     for i in range(10):
-        let id = uuid()
+        var id = uuid()
         assert_equal(id.split("-")[2][0], '4')
 
 
 fn test_uuid_variant() raises:
     for i in range(10):
-        let id = uuid()
-        let variant = id.split("-")[3][0]
-        let variant_condition = variant == '8' or variant == '9' or variant == 'a' or variant == 'b'
+        var id = uuid()
+        var variant = id.split("-")[3][0]
+        var variant_condition = variant == '8' or variant == '9' or variant == 'a' or variant == 'b'
         assert_true(variant_condition)
 
 

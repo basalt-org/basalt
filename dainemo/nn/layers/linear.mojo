@@ -19,7 +19,7 @@ struct Linear(Layer):
     var bias: Node[dtype]
 
     fn __init__(inout self, n_input: Int, n_output: Int):
-        let k: SIMD[dtype, 1] =  1.0 / n_input
+        var k: SIMD[dtype, 1] =  1.0 / n_input
         self.weights = Node[dtype](
             rand_uniform[dtype, nelts](TensorShape(n_input, n_output), -sqrt(k), sqrt(k)),
             requires_grad=True,
@@ -40,10 +40,10 @@ struct Linear(Layer):
         # COPY self.weight & self.bias directly from GRAPH
         # Workaround because model parameters are created and change in copies. 
         # TODO: Redo when lifetimes are there. [INVESTIGATE HOW TO AVOID THIS]
-        let weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
-        let bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
+        var weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
+        var bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
 
-        let res = DOT.forward(inputs, weights)
+        var res = DOT.forward(inputs, weights)
         return ADD.forward(res, bias)
 
     fn __call__(self, inputs: Node[dtype]) -> Node[dtype]:

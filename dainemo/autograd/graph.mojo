@@ -173,7 +173,7 @@ struct Graph[dtype: DType = DType.float32, tracking: Bool = True](Stringable):
         """
         Marks the Node corresponding to the given uuid as visited in the graph.
         """
-        let idx = self.get_node_idx(node_uuid)
+        var idx = self.get_node_idx(node_uuid)
         if idx != -1:
             # TODO: self.graph[idx].visited = True
             # Lifetimes (__getitem__ of a dynamic vector returns a copy and not a reference)

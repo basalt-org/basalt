@@ -17,7 +17,7 @@ def plot_image[dtype: DType](borrowed data: Tensor[dtype], num: Int):
     np = Python.import_module("numpy")
     plt = Python.import_module("matplotlib.pyplot")
 
-    let pyimage: PythonObject = np.empty((28, 28), np.float64)
+    var pyimage: PythonObject = np.empty((28, 28), np.float64)
     for m in range(28):
         for n in range(28):
             pyimage.itemset((m, n), data[Index(num, 0, m, n)])
@@ -71,7 +71,7 @@ fn main():
     alias learning_rate = 1e-3
     
     
-    let train_data: MNIST[dtype]
+    var train_data: MNIST[dtype]
     try:
         train_data = MNIST[dtype](file_path='./examples/data/mnist_test_small.csv')
         # _ = plot_image[dtype](train_data.data, 1)
@@ -89,8 +89,8 @@ fn main():
     var loss_func = nn.CrossEntropyLoss()
     var optim = nn.optim.Adam(lr=learning_rate)
 
-    let batch_data: Tensor[dtype]
-    let batch_labels: Tensor[dtype]
+    var batch_data: Tensor[dtype]
+    var batch_labels: Tensor[dtype]
     for epoch in range(num_epochs):
         var num_batches: Int = 0
         var epoch_loss: Float32 = 0.0

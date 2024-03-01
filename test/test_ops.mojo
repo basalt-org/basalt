@@ -33,7 +33,7 @@ fn test_ADD() raises:
     fill[dtype, nelts](t1, 1.0)
     fill[dtype, nelts](t2, 1.0)
 
-    let res = ADD.forward(t1, t2)
+    var res = ADD.forward(t1, t2)
 
     var expected = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected, 2.0)
@@ -49,9 +49,9 @@ fn test_SUB() raises:
     fill[dtype, nelts](t1, 1.0)
     fill[dtype, nelts](t2, 1.0)
 
-    let res = SUB.forward(t1, t2)
+    var res = SUB.forward(t1, t2)
 
-    let expected = Tensor[dtype](2, 3)
+    var expected = Tensor[dtype](2, 3)
     assert_tensors_equal(res.tensor, expected)
     assert_equal(GRAPH.graph.size, 3)
     GRAPH.reset_all()
@@ -108,7 +108,7 @@ fn test_DOT() raises:
     fill[dtype, nelts](t1, 1.0)
     fill[dtype, nelts](t2, 1.0)
 
-    let res = DOT.forward(t1, t2)
+    var res = DOT.forward(t1, t2)
 
     var expected = Tensor[dtype](2, 2)
     fill[dtype, nelts](expected, 3.0)
@@ -122,7 +122,7 @@ fn test_EXP() raises:
     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
     fill[dtype, nelts](t1, 2.0)
 
-    let res = EXP.forward(t1)
+    var res = EXP.forward(t1)
 
     var expected = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected, exp[dtype, 1](2.0))
@@ -136,7 +136,7 @@ fn test_LOG() raises:
     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
     fill[dtype, nelts](t1, 2.0)
 
-    let res = LOG.forward(t1)
+    var res = LOG.forward(t1)
 
     var expected = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected, log[dtype, 1](2.0))
@@ -150,7 +150,7 @@ fn test_POW() raises:
     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
     fill[dtype, nelts](t1, 2.0)
 
-    let res = POW.forward(t1, 2)
+    var res = POW.forward(t1, 2)
 
     var expected = Tensor[dtype](2, 3)
     fill[dtype, nelts](expected, 4.0)
@@ -164,7 +164,7 @@ fn test_SUM() raises:
     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
     fill[dtype, nelts](t1, 1.0)
 
-    let res_scalar = SUM.forward(t1)
+    var res_scalar = SUM.forward(t1)
 
     var expected = Tensor[dtype](1)
     fill[dtype, nelts](expected, 6.0)
@@ -172,7 +172,7 @@ fn test_SUM() raises:
     assert_equal(GRAPH.graph.size, 2)
     GRAPH.reset_all()
 
-    let res_0 = SUM.forward[axis=0](t1)
+    var res_0 = SUM.forward[axis=0](t1)
 
     expected = Tensor[dtype](1, 3)
     fill[dtype, nelts](expected, 2.0)
@@ -180,7 +180,7 @@ fn test_SUM() raises:
     assert_equal(GRAPH.graph.size, 2)
     GRAPH.reset_all()
 
-    let res_1 = SUM.forward[axis=1](t1)
+    var res_1 = SUM.forward[axis=1](t1)
 
     expected = Tensor[dtype](2, 1)
     fill[dtype, nelts](expected, 3.0)
@@ -195,7 +195,7 @@ fn test_MAX() raises:
     for i in range(12):
         t[i] = i + 1
 
-    let tensor_max = MAX.forward(t)
+    var tensor_max = MAX.forward(t)
     var expected = Tensor[dtype](1)
     fill[dtype, nelts](expected, 12)
     assert_tensors_equal(tensor_max.tensor, expected)
@@ -207,7 +207,7 @@ fn test_MAX() raises:
         for i in range(tensor.num_elements()):
             tensor[i] = values[i]
 
-    let tensor_max_axis_0 = MAX.forward[axis=0](t)
+    var tensor_max_axis_0 = MAX.forward[axis=0](t)
     var expected_max_axis_0_temp = StaticIntTuple[6](7, 8, 9, 10, 11, 12)
     expected = Tensor[dtype](1, 3, 2)
     fill_tensor(expected, expected_max_axis_0_temp)
@@ -215,7 +215,7 @@ fn test_MAX() raises:
     assert_equal(GRAPH.graph.size, 2)
     GRAPH.reset_all()
 
-    let tensor_max_axis_1 = MAX.forward[axis=1](t)
+    var tensor_max_axis_1 = MAX.forward[axis=1](t)
     var expected_max_axis_1_temp = StaticIntTuple[4](5, 6, 11, 12)
     expected = Tensor[dtype](2, 1, 2)
     fill_tensor(expected, expected_max_axis_1_temp)
@@ -233,7 +233,7 @@ fn test_TRANSPOSE() raises:
         B[2 * i] = i + 1
         B[2 * i + 1] = i + 4
 
-    let res = TRANSPOSE.forward(A)
+    var res = TRANSPOSE.forward(A)
 
     assert_tensors_equal(res.tensor, B)
     assert_equal(GRAPH.graph.size, 2)
@@ -248,7 +248,7 @@ fn test_FLATTEN() raises:
         A[i] = i + 1
         B[i] = i + 1
 
-    let res = FLATTEN.forward(A)
+    var res = FLATTEN.forward(A)
 
     assert_tensors_equal(res.tensor, B)
     assert_equal(GRAPH.graph.size, 2)
@@ -258,14 +258,14 @@ fn test_FLATTEN() raises:
 # <------------RESHAPE------------>
 fn test_RESHAPE() raises:
     var A = Tensor[dtype](2, 2, 5)
-    let new_shape = TensorShape(2, 10)
+    var new_shape = TensorShape(2, 10)
 
     var B = Tensor[dtype](new_shape)
     for i in range(20):
         A[i] = i + 1
         B[i] = i + 1
 
-    let res = RESHAPE.forward(A, new_shape)
+    var res = RESHAPE.forward(A, new_shape)
 
     assert_tensors_equal(res.tensor, B)
     assert_equal(GRAPH.graph.size, 2)
