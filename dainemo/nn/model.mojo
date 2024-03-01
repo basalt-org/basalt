@@ -202,3 +202,17 @@ struct Model[
                 if g.nodes[i].output.requires_grad:
                     self.parameters.grads_map.put(str(g.nodes[i].output.name), self.parameters.grads.size)
                     self.parameters.grads.append(Tensor[dtype](g.nodes[i].output.shape()))
+
+    fn get_grad(inout self, id: String) -> Tensor[dtype]:
+        var index = self.parameters.grads_map.get(id, -1)
+        if index == -1:
+            return Tensor[dtype]()
+
+        return __get_address_as_lvalue(self.parameters.grads.offset(index).address)
+
+    fn get_param(inout self, id: String) -> Tensor[dtype]:
+        var index = self.parameters.params_map.get(id, -1)
+        if index == -1:
+            return Tensor[dtype]()
+
+        return __get_address_as_lvalue(self.parameters.params.offset(index).address)

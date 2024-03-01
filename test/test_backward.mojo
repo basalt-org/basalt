@@ -1,63 +1,64 @@
 # from random import rand
-# from tensor import Tensor, TensorShape
+from tensor import Tensor, TensorShape
 # from math import equal, log, exp
-# from testing import assert_true, assert_equal
-# from test_tensorutils import assert_tensors_equal
+from testing import assert_true, assert_equal
+from test_tensorutils import assert_tensors_equal
 
-# from dainemo import GRAPH
+
 # from dainemo.autograd.node import Node
-# from dainemo.utils.tensorutils import fill
-# from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, SUM, MAX, TRANSPOSE, FLATTEN, RESHAPE
+from dainemo.utils.tensorutils import fill
+from dainemo.autograd.ops.basics import ADD, SUB
 
-# alias dtype = DType.float32
-# alias nelts: Int = simdwidthof[dtype]()
-
-
-# # <------------ADD------------>
-# fn test_ADD() raises:
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
-#     var t2: Tensor[dtype] = Tensor[dtype](2, 3)
-#     var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](t1, 1.0)
-#     fill[dtype, nelts](t2, 2.0)
-#     fill[dtype, nelts](upper_grad, 1.0)
-
-#     var res = ADD.forward(t1, t2)
-
-#     var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-#     assert_equal(gn.parents.size, 2)
-
-#     var ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
-#     var ug2 = gn.backward_fn(upper_grad, gn.parents, 1)
-
-#     assert_tensors_equal(ug1, upper_grad)
-#     assert_tensors_equal(ug1, upper_grad)
-#     GRAPH.reset_all()
+alias dtype = DType.float32
+alias nelts: Int = simdwidthof[dtype]()
 
 
-# # <------------SUB------------>
-# fn test_SUB() raises:
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
-#     var t2: Tensor[dtype] = Tensor[dtype](2, 3)
-#     var upper_grad: Tensor[dtype] = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](t1, 1.0)
-#     fill[dtype, nelts](t2, 2.0)
-#     fill[dtype, nelts](upper_grad, 1.0)
+# <------------ADD------------>
+fn test_ADD() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias t2_shape = TensorShape(2, 3)
+    alias ug_shape = TensorShape(2, 3)
+    var t1 = Tensor[dtype](t1_shape)
+    var t2 = Tensor[dtype](t2_shape)
 
-#     var res = SUB.forward(t1, t2)
+    fill[dtype, nelts](t1, 1.0)
+    fill[dtype, nelts](t2, 2.0)
 
-#     var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-#     assert_equal(gn.parents.size, 2)
+    var ug = Tensor[dtype](ug_shape)
+    fill[dtype, nelts](ug, 1.0)
 
-#     var ug1 = gn.backward_fn(upper_grad, gn.parents, 0)
-#     var ug2 = gn.backward_fn(upper_grad, gn.parents, 1)
+    var expected_grad = Tensor[dtype](t1_shape)
+    fill[dtype, nelts](expected_grad, 1.0)
+   
 
-#     var expected_ug2 = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](expected_ug2, -1.0)
+    var grad = ADD.backward[0, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+    assert_tensors_equal(grad, expected_grad)
+    grad = ADD.backward[1, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+    assert_tensors_equal(grad, expected_grad)
 
-#     assert_tensors_equal(ug1, upper_grad)
-#     assert_tensors_equal(ug2, expected_ug2)
-#     GRAPH.reset_all()
+# <------------SUB------------>
+fn test_SUB() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias t2_shape = TensorShape(2, 3)
+    alias ug_shape = TensorShape(2, 3)
+    var t1 = Tensor[dtype](t1_shape)
+    var t2 = Tensor[dtype](t2_shape)
+
+    fill[dtype, nelts](t1, 2.0)
+    fill[dtype, nelts](t2, 1.0)
+
+    var ug = Tensor[dtype](ug_shape)
+    fill[dtype, nelts](ug, 1.0)
+
+    var expected_grad = Tensor[dtype](t1_shape)
+    fill[dtype, nelts](expected_grad, 1.0)
+
+    var grad = SUB.backward[0, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+    assert_tensors_equal(grad, expected_grad)
+
+    fill[dtype, nelts](expected_grad, -1.0)
+    grad = SUB.backward[1, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+    assert_tensors_equal(grad, expected_grad)
 
 
 # # <------------MUL------------>
@@ -454,10 +455,10 @@
 #     GRAPH.reset_all()
 
 
-# fn main():
-#     try:
-#         test_ADD()
-#         test_SUB()
+fn main():
+    try:
+        test_ADD()
+        test_SUB()
 #         test_MUL()
 #         test_DIV()
 #         test_DOT()
@@ -474,6 +475,6 @@
 #         test_TRANSPOSE()
 #         test_FLATTEN()
 #         test_RESHAPE()
-#     except e:
-#         print(e)
-#         print("[ERROR] Error in backward pass.")
+    except e:
+        print(e)
+        print("[ERROR] Error in backward pass.")
