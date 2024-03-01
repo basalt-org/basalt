@@ -29,7 +29,7 @@ fn assert_tensors_equal(t1: Tensor[dtype], t2: Tensor[dtype], mode: String = "ex
         if mode == "exact":
             assert_equal(t1[i], t2[i])
         elif mode == "almost":
-            assert_almost_equal[dtype, 1](t1[i], t2[i], relative_tolerance=1e-5)
+            assert_almost_equal[dtype, 1](t1[i], t2[i], rtol=1e-5)
         else:
             print("Mode must be 'exact' or 'almost'")
 
