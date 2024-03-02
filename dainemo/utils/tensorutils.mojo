@@ -5,7 +5,6 @@ from math import sqrt, pow, equal, max, min, abs, add, div
 from random import rand
 
 
-
 @always_inline
 fn zero[dtype: DType](inout t: Tensor[dtype]):
     memset_zero[dtype](t.data(), t.num_elements())
@@ -40,7 +39,6 @@ fn get_real_index[
     unroll[unroll_dims, broadcast_shape.rank()]()
 
     return index_res
-
 
 
 # ----- Broadcast functions -----
@@ -271,6 +269,7 @@ fn elwise_op[
 
     vectorize[vecmath, nelts](t1.num_elements())
 
+
 @always_inline
 fn elwise_op[
     func: fn[dtype: DType, nelts: Int] (
@@ -282,7 +281,7 @@ fn elwise_op[
     @parameter
     fn vecmath[nelts: Int](idx: Int):
         res.simd_store[nelts](idx, func[dtype, nelts](a, t1.simd_load[nelts](idx)))
-    
+
     vectorize[vecmath, nelts](t1.num_elements())
 
 
@@ -384,6 +383,47 @@ fn reduce[
 
 
 @always_inline
+fn reduce[
+    op: fn[type: DType, simd_width: Int] (
+        x: SIMD[type, simd_width], y: SIMD[type, simd_width]
+    ) -> SIMD[type, simd_width],
+    reduce_op: fn[type: DType, simd_width: Int] (x: SIMD[type, simd_width]) -> SIMD[
+        type, 1
+    ],
+](
+    inout res: Tensor[dtype],
+    t: Tensor[dtype],
+    starting_value: SIMD[dtype, nelts],
+    axis: Int,
+):
+    var strides = calculate_strides(t.shape())
+
+    @parameter
+    fn parallel_reduce(i: Int):
+        var m: SIMD[dtype, nelts] = starting_value
+
+        var index_base = (i % strides[axis]) + (i // strides[axis]) * (
+            strides[axis] * t.dim(axis)
+        )
+
+        @parameter
+        fn axisreduce[_nelts: Int](j: Int):
+            var index = index_base + j * strides[axis]
+            if _nelts == 1:
+                m[0] = op(m[0], t.simd_load[_nelts](index)[0])
+            else:
+                m = op(m, t.simd_load[nelts](index))
+
+        vectorize[axisreduce, nelts](t.dim(axis))
+
+        res[i] = reduce_op(m)
+
+    parallelize[parallel_reduce](t.num_elements() // t.dim(axis))
+
+    _ = strides
+
+
+@always_inline
 fn _reduce_sum[
     type: DType, simd_width: Int
 ](x: SIMD[type, simd_width]) -> SIMD[type, 1]:
@@ -394,6 +434,12 @@ fn _reduce_sum[
 fn tsum(t: Tensor[dtype]) -> SIMD[dtype, 1]:
     var starting_value = 0
     return reduce[add, _reduce_sum](t, starting_value)
+
+
+@always_inline
+fn tsum(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
+    var starting_value = 0
+    reduce[add, _reduce_sum](res, t, axis, starting_value)
 
 
 @always_inline
@@ -416,9 +462,6 @@ fn tstd(t: Tensor[dtype]) -> SIMD[dtype, 1]:
     return sqrt(variance / t.num_elements())
 
 
-
-
-
 # @always_inline
 # fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
 #     var starting_value = 0
@@ -429,14 +472,14 @@ fn tstd(t: Tensor[dtype]) -> SIMD[dtype, 1]:
 # fn tmean[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
 #     var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)
 #     return tsum[dtype, nelts](t, axis) / num_elements_axis
-    
+
 
 # @always_inline
 # fn tstd[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
 #     var mu = tmean[dtype, nelts](t, axis)
 #     var variance = Tensor[dtype](mu.shape())
 #     var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)
-    
+
 #     var strides = calculate_strides(t.shape())
 #     var strides_mu = calculate_strides(mu.shape())
 
@@ -462,7 +505,7 @@ fn tstd(t: Tensor[dtype]) -> SIMD[dtype, 1]:
 #     for i in range(t.num_elements() // t.dim(axis)):
 
 #         var mu_index = get_mu_index(i, axis, mu.shape(), strides_mu)
-        
+
 #         @parameter
 #         fn vecvar[nelts: Int](j: Int):
 #             var t_index = get_t_index(i, j, axis, t.shape(), strides)
@@ -476,7 +519,6 @@ fn tstd(t: Tensor[dtype]) -> SIMD[dtype, 1]:
 
 #     _ = (strides, strides_mu)
 #     return elwise_transform[dtype, nelts, sqrt](variance)
-
 
 
 # @always_inline
@@ -568,7 +610,6 @@ fn tstd(t: Tensor[dtype]) -> SIMD[dtype, 1]:
 
 #     vectorize[nelts, vecreduce](t.num_elements())
 #     return reduce_op(m)
-
 
 
 # @always_inline

@@ -1,8 +1,9 @@
-from tensor import TensorShape 
+from tensor import TensorShape
 
-from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, MEAN, FLATTEN
+from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, MEAN, FLATTEN, SUM
 from dainemo.utils.uuid import bytes
 from dainemo.utils.tensorutils import unbroadcast_add, broadcast_shapes
+from ..node import Attribute, AttributeVector
 
 
 # Define operators as named parameter expression
@@ -21,8 +22,9 @@ struct OP:
     alias LOG = OP(5, "LOG")
     alias POW = OP(6, "POW")
     alias DOT = OP(7, "DOT")
-    alias MEAN = OP(8, "MEAN")
-    alias FLATTEN = OP(9, "FLATTEN")
+    alias SUM = OP(8, "SUM")
+    alias MEAN = OP(9, "MEAN")
+    alias FLATTEN = OP(10, "FLATTEN")
 
     var id: UInt8
     var name: bytes[8]
@@ -37,7 +39,9 @@ struct OP:
         return Self {id: other.id, name: other.name}
 
 
-fn static_result_shape(op: OP, t1_shape: TensorShape) -> TensorShape:
+fn static_result_shape(
+    op: OP, t1_shape: TensorShape, owned attributes: AttributeVector
+) -> TensorShape:
     """
     Static result shape for unary operators.
     """
@@ -45,6 +49,8 @@ fn static_result_shape(op: OP, t1_shape: TensorShape) -> TensorShape:
         return EXP.result_shape(t1_shape)
     elif op == OP.LOG:
         return LOG.result_shape(t1_shape)
+    elif op == OP.SUM:
+        return SUM.result_shape(t1_shape, attributes)
     elif op == OP.MEAN:
         return MEAN.result_shape(t1_shape)
     elif op == OP.FLATTEN:
@@ -55,7 +61,10 @@ fn static_result_shape(op: OP, t1_shape: TensorShape) -> TensorShape:
 
 
 fn static_result_shape(
-    op: OP, t1_shape: TensorShape, t2_shape: TensorShape
+    op: OP,
+    t1_shape: TensorShape,
+    t2_shape: TensorShape,
+    owned attributes: AttributeVector,
 ) -> TensorShape:
     """
     Static result shape for binary operators.
@@ -79,7 +88,7 @@ fn static_result_shape(
 
 
 fn forward_op[
-    op: OP, t1_shape: TensorShape, t2_shape: TensorShape
+    op: OP, t1_shape: TensorShape, t2_shape: TensorShape, attributes: AttributeVector
 ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
     """
     Forward pass for binary operators.
@@ -104,7 +113,7 @@ fn forward_op[
 
 # Maybe have a special reduce operator?
 fn forward_op[
-    op: OP, t1_shape: TensorShape
+    op: OP, t1_shape: TensorShape, attributes: AttributeVector
 ](inout res: Tensor[dtype], t1: Tensor[dtype]):
     """
     Forward pass for unary operators.
@@ -117,9 +126,12 @@ fn forward_op[
         LOG.forward[t1_shape](res, t1)
     elif op == OP.MEAN:
         MEAN.forward[t1_shape](res, t1)
+    elif op == OP.SUM:
+        SUM.forward[t1_shape, attributes](res, t1)
     elif op == OP.FLATTEN:
         FLATTEN.forward[t1_shape](res, t1)
     else:
+        print("yeah", op.name)
         print("[ERROR] Operator not found.")
 
 
@@ -129,6 +141,7 @@ fn backward_op[
     ug_shape: TensorShape,
     t1_shape: TensorShape,
     t2_shape: TensorShape,
+    attributes: AttributeVector,
 ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], inout grad: Tensor[dtype]):
     """
     Backward pass for binary operators.
@@ -154,6 +167,7 @@ fn backward_op[
 
     @parameter
     if tensor_id == 0:
+
         @parameter
         fn get_res_shape() -> TensorShape:
             # We should have special broadcast shapes function for matmul and dot operations or maybe the ops class could have a function to return the shape of the backward result for id 0 and 1
@@ -168,6 +182,7 @@ fn backward_op[
         # grad_shape = t1_shape
         unbroadcast_add[t1_shape, res_grad_shape](grad, res_grad)
     elif tensor_id == 1:
+
         @parameter
         fn get_res_shape_2() -> TensorShape:
             # We should have special broadcast shapes function for matmul and dot operations
@@ -189,6 +204,7 @@ fn backward_op[
     op: OP,
     ug_shape: TensorShape,
     t1_shape: TensorShape,
+    attributes: AttributeVector,
 ](ug: Tensor[dtype], t1: Tensor[dtype], inout grad: Tensor[dtype]):
     """
     Backward pass for binary operators.
@@ -202,6 +218,8 @@ fn backward_op[
         res_grad = LOG.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.MEAN:
         res_grad = MEAN.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.SUM:
+        res_grad = SUM.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.FLATTEN:
         res_grad = FLATTEN.backward[ug_shape, t1_shape](ug, t1)
     else:
@@ -209,4 +227,6 @@ fn backward_op[
         res_grad = Tensor[dtype](-1)
 
     # ug_shape != res_grad.shape(), ug_shape is equal to the result of the forward function not the backward function
-    unbroadcast_add[t1_shape, t1_shape](grad, res_grad) # This will just call elwise_op[add] always
+    unbroadcast_add[t1_shape, t1_shape](
+        grad, res_grad
+    )  # This will just call elwise_op[add] always

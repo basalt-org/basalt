@@ -6,6 +6,7 @@ from math import exp, log
 
 from dainemo import Graph, Symbol, OP
 import dainemo.nn as nn
+from dainemo.autograd.node import Attribute, AttributeVector
 # from dainemo.autograd.ops.basics import (
     # ADD,
     # SUB,
@@ -183,34 +184,51 @@ fn test_POW() raises:
     assert_tensors_equal(res, expected)
 
 
-# # <------------SUM------------>
-# fn test_SUM() raises:
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](t1, 1.0)
+# <------------SUM------------>
+fn test_SUM() raises:
+    alias t1_shape = TensorShape(2, 3, 4)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    fill[dtype, nelts](t1, 1.0)
 
-#     var res_scalar = SUM.forward(t1)
+    fn create_graph(owned attributes: AttributeVector = AttributeVector()) -> Graph:
+        var g = Graph()
+        var t1 = g.input(t1_shape)
 
-#     var expected = Tensor[dtype](1)
-#     fill[dtype, nelts](expected, 6.0)
-#     assert_tensors_equal(res_scalar.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 2)
-#     GRAPH.reset_all()
+        var res = g.op(OP.SUM, t1, attributes=attributes ^)
+        _ = g.out(res)
 
-#     var res_0 = SUM.forward[axis=0](t1)
+        return g ^
 
-#     expected = Tensor[dtype](1, 3)
-#     fill[dtype, nelts](expected, 2.0)
-#     assert_tensors_equal(res_0.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 2)
-#     GRAPH.reset_all()
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
 
-#     var res_1 = SUM.forward[axis=1](t1)
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)
 
-#     expected = Tensor[dtype](2, 1)
-#     fill[dtype, nelts](expected, 3.0)
-#     assert_tensors_equal(res_1.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 2)
-#     GRAPH.reset_all()
+    var expected = Tensor[dtype](1)
+    fill[dtype, nelts](expected, 24.0)
+
+    assert_tensors_equal(res, expected)
+
+    # Test axis 1
+    fn create_graph_with_axis_1() -> Graph:
+        var attributes = AttributeVector(Attribute("axis", 1)) # Creating an attribute vector with attributes causes unexpected errors, like it moves the memory pointers of objects and variables in the program. In this simple test the problem is that the graph.nodes[0].operator.name is not "SUM" is empty (probably the operator value is just trash memory)
+        
+        var g = create_graph(attributes ^)
+
+        return g ^
+
+    # alias attributes_axis = AttributeVector(Attribute("axis", 1)) # This doesn't work, lifetimes work very strange at comptime for now it seems
+    alias graph_axis_1 = create_graph_with_axis_1()
+    print(graph_axis_1.nodes[0].operator.name)
+
+    var model_2 = nn.Model[graph_axis_1]()
+    res = model_2.forward(t1)
+
+    expected = Tensor[dtype](2, 1, 4)
+    fill[dtype, nelts](expected, 1.0)
+
+    # assert_tensors_equal(res, expected)
 
 
 # # <------------MAX------------>
@@ -318,7 +336,7 @@ fn main():
         test_EXP()
         test_LOG()
         test_POW()
-    #         test_SUM()
+        test_SUM()
     #         test_MAX()
     #         test_TRANSPOSE()
         test_FLATTEN()
