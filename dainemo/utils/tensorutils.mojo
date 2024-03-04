@@ -319,22 +319,19 @@ fn unbroadcast_add[
     @parameter
     if original_shape == unbroadcast_res_shape:
         elwise_op[add](unbroadcast_res, unbroadcast_res, original)
-        return
     elif original_shape == TensorShape(1):
         elwise_op[add](unbroadcast_res, unbroadcast_res, original[0])
-        return
+    else:
+        alias strides_unbroadcast_res = broadcast_calculate_strides(
+            unbroadcast_res_shape, original_shape
+        )
 
-    alias strides_unbroadcast_res = broadcast_calculate_strides(
-        unbroadcast_res_shape, original_shape
-    )
+        @parameter
+        fn vec_op[nelts: Int](i: Int):
+            var index = get_real_index[original_shape](i, strides_unbroadcast_res)
+            unbroadcast_res[index] += original.simd_load[nelts](i).reduce_add()
 
-    @parameter
-    fn vec_op[nelts: Int](i: Int):
-        var index = get_real_index[original_shape](i, strides_unbroadcast_res)
-
-        unbroadcast_res[index] += original.simd_load[nelts](i).reduce_add()
-
-    vectorize[vec_op, nelts](original.num_elements())
+        vectorize[vec_op, nelts](original.num_elements())
 
 
 # ---- Transform functions -----

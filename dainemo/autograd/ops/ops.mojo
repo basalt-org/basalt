@@ -159,7 +159,7 @@ fn backward_op[
             # We should have special broadcast shapes function for matmul and dot operations or maybe the ops class could have a function to return the shape of the backward result for id 0 and 1
             @parameter
             if op == OP.DOT:
-                return TensorShape(ug_shape[0], t2_shape[0])
+                return t1_shape
             else:
                 return broadcast_shapes(t1_shape, t2_shape)
 
@@ -173,7 +173,7 @@ fn backward_op[
             # We should have special broadcast shapes function for matmul and dot operations
             @parameter
             if op == OP.DOT:
-                return TensorShape(t1_shape[1], ug_shape[1])
+                return t2_shape
             else:
                 return broadcast_shapes(t1_shape, t2_shape)
 
