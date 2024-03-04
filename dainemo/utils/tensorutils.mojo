@@ -381,6 +381,51 @@ fn reduce[
 
 
 @always_inline
+fn reduce[
+    op: fn[type: DType, simd_width: Int] (
+        x: SIMD[type, simd_width], y: SIMD[type, simd_width]
+    ) -> SIMD[type, simd_width],
+    reduce_op: fn[type: DType, simd_width: Int] (x: SIMD[type, simd_width]) -> SIMD[
+        type, 1
+    ],
+](t: Tensor[dtype], axis: Int, starting_value: SIMD[dtype, nelts]) -> Tensor[dtype]:
+    var new_shape = DynamicVector[Int](capacity=t.rank())
+    for i in range(t.rank()):
+        if i == axis:
+            new_shape.push_back(1)
+        else:
+            new_shape.push_back(t.dim(i))
+    var t_new = Tensor[dtype](new_shape)
+
+    var strides = calculate_strides(t.shape())
+
+    @parameter
+    fn parallel_reduce(i: Int):
+        var m: SIMD[dtype, nelts] = starting_value
+
+        var index_base = (i % strides[axis]) + (i // strides[axis]) * (
+            strides[axis] * t.dim(axis)
+        )
+
+        @parameter
+        fn axisreduce[_nelts: Int](j: Int):
+            var index = index_base + j * strides[axis]
+            if _nelts == 1:
+                m[0] = op(m[0], t.simd_load[_nelts](index)[0])
+            else:
+                m = op(m, t.simd_load[nelts](index))
+
+        vectorize[axisreduce, nelts](t.dim(axis))
+
+        t_new[i] = reduce_op(m)
+
+    parallelize[parallel_reduce](t.num_elements() // t.dim(axis))
+
+    _ = strides
+    return t_new ^
+
+
+@always_inline
 fn _reduce_sum[
     type: DType, simd_width: Int
 ](x: SIMD[type, simd_width]) -> SIMD[type, 1]:
@@ -413,158 +458,83 @@ fn tstd(t: Tensor[dtype]) -> SIMD[dtype, 1]:
     return sqrt(variance / t.num_elements())
 
 
+@always_inline
+fn tsum(t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
+    var starting_value = 0
+    return reduce[add, _reduce_sum](t, axis, starting_value)
 
 
-
-# @always_inline
-# fn tsum[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
-#     var starting_value = 0
-#     return reduce[dtype, nelts, add, _reduce_sum](t, axis, starting_value)
-
-
-# @always_inline
-# fn tmean[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
-#     var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)
-#     return tsum[dtype, nelts](t, axis) / num_elements_axis
+@always_inline
+fn tmean(t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
+    var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)
+    return tsum(t, axis) / num_elements_axis
     
 
-# @always_inline
-# fn tstd[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
-#     var mu = tmean[dtype, nelts](t, axis)
-#     var variance = Tensor[dtype](mu.shape())
-#     var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)
+@always_inline
+fn tstd(t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
+    var mu = tmean(t, axis)
+    var variance = Tensor[dtype](mu.shape())
+    var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)
     
-#     var strides = calculate_strides(t.shape())
-#     var strides_mu = calculate_strides(mu.shape())
+    var strides = calculate_strides(t.shape())
+    var strides_mu = calculate_strides(mu.shape())
 
-#     @parameter
-#     fn get_t_index(i: Int, j: Int, axis: Int, shape: TensorShape, strides: DynamicVector[Int]) -> Int:
-#         var index_res = 0
-#         for k in range(shape.rank()):
-#             if k == axis:
-#                 index_res += j * strides[k]
-#             else:
-#                 index_res += (i % shape[k]) * strides[k]
-#         return index_res
+    @parameter
+    fn get_t_index(i: Int, j: Int, axis: Int, shape: TensorShape, strides: DynamicVector[Int]) -> Int:
+        var index_res = 0
+        for k in range(shape.rank()):
+            if k == axis:
+                index_res += j * strides[k]
+            else:
+                index_res += (i % shape[k]) * strides[k]
+        return index_res
 
-#     @parameter
-#     fn get_mu_index(i: Int, axis: Int, shape: TensorShape, strides: DynamicVector[Int]) -> Int:
-#         var index_res = 0
-#         for k in range(shape.rank()):
-#             if k != axis:
-#                 index_res += (i % shape[k]) * strides[k]
-#         return index_res
+    @parameter
+    fn get_mu_index(i: Int, axis: Int, shape: TensorShape, strides: DynamicVector[Int]) -> Int:
+        var index_res = 0
+        for k in range(shape.rank()):
+            if k != axis:
+                index_res += (i % shape[k]) * strides[k]
+        return index_res
 
 
-#     for i in range(t.num_elements() // t.dim(axis)):
+    for i in range(t.num_elements() // t.dim(axis)):
 
-#         var mu_index = get_mu_index(i, axis, mu.shape(), strides_mu)
+        var mu_index = get_mu_index(i, axis, mu.shape(), strides_mu)
         
-#         @parameter
-#         fn vecvar[nelts: Int](j: Int):
-#             var t_index = get_t_index(i, j, axis, t.shape(), strides)
-#             var diff = t.simd_load[nelts](t_index) - mu[mu_index]
-#             variance[i] += (diff * diff).reduce_add()
+        @parameter
+        fn vecvar[nelts: Int](j: Int):
+            var t_index = get_t_index(i, j, axis, t.shape(), strides)
+            var diff = t.simd_load[nelts](t_index) - mu[mu_index]
+            variance[i] += (diff * diff).reduce_add()
 
-#         vectorize[nelts, vecvar](t.dim(axis))
+        vectorize[vecvar, nelts](t.dim(axis))
 
-#         variance[i] /= num_elements_axis
-
-
-#     _ = (strides, strides_mu)
-#     return elwise_transform[dtype, nelts, sqrt](variance)
+        variance[i] /= num_elements_axis
 
 
-
-# @always_inline
-# fn _reduce_max[
-#     type: DType, simd_width: Int
-# ](x: SIMD[type, simd_width]) -> SIMD[type, 1]:
-#     return x.reduce_max()
+    _ = (strides, strides_mu)
+    elwise_transform[sqrt](variance, variance)
+    return variance ^
 
 
-# @always_inline
-# fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype]) -> SIMD[dtype, 1]:
-#     var starting_value = math.limit.min_finite[dtype]()
-#     return reduce[dtype, nelts, max, _reduce_max](t, starting_value)
+@always_inline
+fn _reduce_max[
+    type: DType, simd_width: Int
+](x: SIMD[type, simd_width]) -> SIMD[type, 1]:
+    return x.reduce_max()
 
 
-# @always_inline
-# fn tmax[dtype: DType, nelts: Int](t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
-#     var starting_value = math.limit.min_finite[dtype]()
-#     return reduce[dtype, nelts, max, _reduce_max](t, axis, starting_value)
+@always_inline
+fn tmax(t: Tensor[dtype]) -> SIMD[dtype, 1]:
+    var starting_value = math.limit.min_finite[dtype]()
+    return reduce[max, _reduce_max](t, starting_value)
 
 
-# @always_inline
-# fn reduce[
-#     dtype: DType,
-#     nelts: Int,
-#     op: fn[type: DType, simd_width: Int] (
-#         x: SIMD[type, simd_width], y: SIMD[type, simd_width]
-#     ) -> SIMD[type, simd_width],
-#     reduce_op: fn[type: DType, simd_width: Int] (x: SIMD[type, simd_width]) -> SIMD[
-#         type, 1
-#     ],
-# ](t: Tensor[dtype], axis: Int, starting_value: SIMD[dtype, nelts]) -> Tensor[dtype]:
-#     var new_shape = DynamicVector[Int](t.rank())
-#     for i in range(t.rank()):
-#         if i == axis:
-#             new_shape.push_back(1)
-#         else:
-#             new_shape.push_back(t.dim(i))
-#     var t_new = Tensor[dtype](new_shape)
-
-#     var strides = calculate_strides(t.shape())
-
-#     @parameter
-#     fn parallel_reduce(i: Int):
-#         var m: SIMD[dtype, nelts] = starting_value
-
-#         var index_base = (i % strides[axis]) + (i // strides[axis]) * (
-#             strides[axis] * t.dim(axis)
-#         )
-
-#         @parameter
-#         fn axisreduce[_nelts: Int](j: Int):
-#             var index = index_base + j * strides[axis]
-#             if _nelts == 1:
-#                 m[0] = op(m[0], t.simd_load[_nelts](index)[0])
-#             else:
-#                 m = op(m, t.simd_load[nelts](index))
-
-#         vectorize[nelts, axisreduce](t.dim(axis))
-
-#         t_new[i] = reduce_op(m)
-
-#     parallelize[parallel_reduce](t.num_elements() // t.dim(axis))
-
-#     _ = strides
-#     return t_new
-
-
-# @always_inline
-# fn reduce[
-#     dtype: DType,
-#     nelts: Int,
-#     op: fn[type: DType, simd_width: Int] (
-#         x: SIMD[type, simd_width], y: SIMD[type, simd_width]
-#     ) -> SIMD[type, simd_width],
-#     reduce_op: fn[type: DType, simd_width: Int] (x: SIMD[type, simd_width]) -> SIMD[
-#         type, 1
-#     ],
-# ](t: Tensor[dtype], starting_value: SIMD[dtype, nelts]) -> SIMD[dtype, 1]:
-#     var m: SIMD[dtype, nelts] = starting_value
-
-#     @parameter
-#     fn vecreduce[_nelts: Int](idx: Int):
-#         @parameter
-#         if _nelts == 1:
-#             m[0] = op(m[0], t.simd_load[_nelts](idx)[0])
-#         else:
-#             m = op(m, t.simd_load[nelts](idx))
-
-#     vectorize[nelts, vecreduce](t.num_elements())
-#     return reduce_op(m)
+@always_inline
+fn tmax(t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
+    var starting_value = math.limit.min_finite[dtype]()
+    return reduce[max, _reduce_max](t, axis, starting_value)
 
 
 
