@@ -17,7 +17,7 @@ fn dv_contains(dv: DynamicVector[Symbol], symbol: Symbol) -> Bool:
 
 
 fn calc_n_tensors(g: Graph) -> Int:
-    var num: Int = len(g.inputs) + len(g.params)
+    var num: Int = len(g.inputs) + len(g.params) + len(g.constants)
     var visited_results = DynamicVector[Symbol]()
     for i in range(len(g.nodes)):
         if not dv_contains(visited_results, g.nodes[i].output):

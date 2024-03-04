@@ -95,7 +95,7 @@ fn test_MUL() raises:
     test_binary_op[OP.MUL, t1_shape, t2_shape](t1, t2, expected)
 
 
-# # <------------DIV------------>
+# <------------DIV------------>
 fn test_DIV() raises:
     alias t1_shape = TensorShape(2, 3)
     alias t2_shape = TensorShape(2, 3)
@@ -108,6 +108,21 @@ fn test_DIV() raises:
     fill[dtype, nelts](expected, 3.0)
 
     test_binary_op[OP.DIV, t1_shape, t2_shape](t1, t2, expected)
+
+
+# <------------DOT------------>
+fn test_DOT() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias t2_shape = TensorShape(3, 2)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var t2: Tensor[dtype] = Tensor[dtype](t2_shape)
+    fill[dtype, nelts](t1, 1.0)
+    fill[dtype, nelts](t2, 1.0)
+
+    var expected = Tensor[dtype](2, 2)
+    fill[dtype, nelts](expected, 3.0)
+
+    test_binary_op[OP.DOT, t1_shape, t2_shape](t1, t2, expected)
 
 
 # ------ Test Unary Ops ------
@@ -314,7 +329,7 @@ fn main():
         test_SUB()
         test_MUL()
         test_DIV()
-    #         test_DOT()
+        test_DOT()
         test_EXP()
         test_LOG()
         test_POW()
