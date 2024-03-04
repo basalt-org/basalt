@@ -89,7 +89,7 @@ struct SUB(BinaryOperator):
         if tensor_id == 0:
             return ug
         else:
-            var res_grad = Tensor[dtype](ug_shape)
+            var res_grad = Tensor[dtype](t2_shape)
             elwise_op[mul](res_grad, ug, -1.0)
             return res_grad ^
 
@@ -123,12 +123,12 @@ struct MUL(BinaryOperator):
         # d(x * y) / dy = x
         @parameter
         if tensor_id == 0:
-            var res_grad = Tensor[dtype](ug_shape)
-            elwise_op[ug_shape, t2_shape, mul](res_grad, ug, t2)
+            var res_grad = Tensor[dtype](t1_shape)
+            elwise_op[t1_shape, t2_shape, mul](res_grad, ug, t2)
             return res_grad ^
         else:
-            var res_grad = Tensor[dtype](ug_shape)
-            elwise_op[ug_shape, t1_shape, mul](res_grad, ug, t1)
+            var res_grad = Tensor[dtype](t2_shape)
+            elwise_op[t2_shape, t1_shape, mul](res_grad, ug, t1)
             return res_grad ^
 
 
@@ -162,13 +162,13 @@ struct DIV(BinaryOperator):
 
         @parameter
         if tensor_id == 0:
-            var res_grad = Tensor[dtype](ug_shape)
-            elwise_op[ug_shape, t2_shape, div](res_grad, ug, t2)
+            var res_grad = Tensor[dtype](t1_shape)
+            elwise_op[t1_shape, t2_shape, div](res_grad, ug, t2)
             return res_grad ^
         else:
             alias broadcast = (t1_shape != t2_shape)
             alias is_scalar = (t2_shape == TensorShape(1))
-            var res_grad = Tensor[dtype](ug_shape)
+            var res_grad = Tensor[dtype](t2_shape)
 
             @parameter
             if is_scalar:
@@ -178,7 +178,7 @@ struct DIV(BinaryOperator):
                     res_grad.simd_store[nelts](i,
                         factor * t1.simd_load[nelts](i) * ug.simd_load[nelts](i)
                     )
-                vectorize[vec_div_bw_scalar, nelts](ug_shape.num_elements())
+                vectorize[vec_div_bw_scalar, nelts](t2_shape.num_elements())
 
             elif broadcast and not is_scalar:
                 alias strides1 = broadcast_calculate_strides(t1_shape, ug_shape)
@@ -190,7 +190,7 @@ struct DIV(BinaryOperator):
                     res_grad.simd_store[nelts](i,
                         - t1.simd_load[nelts](index1) / (t2.simd_load[nelts](index2) ** 2) * ug.simd_load[nelts](i)
                     )
-                vectorize[vec_div_bw_broadcast, nelts](ug_shape.num_elements())
+                vectorize[vec_div_bw_broadcast, nelts](t2_shape.num_elements())
 
             else:
                 @parameter
@@ -198,7 +198,7 @@ struct DIV(BinaryOperator):
                     res_grad.simd_store[nelts](i, 
                         - t1.simd_load[nelts](i) / (t2.simd_load[nelts](i) ** 2) * ug.simd_load[nelts](i)
                     )
-                vectorize[vec_div_bw, nelts](ug_shape.num_elements())
+                vectorize[vec_div_bw, nelts](t2_shape.num_elements())
 
             return res_grad ^
 
@@ -232,12 +232,12 @@ struct DOT(BinaryOperator):
         @parameter
         if tensor_id == 0:
             # dot(ug, t2.T)
-            var res_grad = Tensor[dtype](ug_shape[0], t2_shape[0])
+            var res_grad = Tensor[dtype](t1_shape)
             dot_transpose_t2[ug_shape, t2_shape](res_grad, ug, t2)
             return res_grad ^
         else:
             # dot(t1.T, ug)
-            var res_grad = Tensor[dtype](t1_shape[1], ug_shape[1])
+            var res_grad = Tensor[dtype](t2_shape)
             dot_transpose_t1[t1_shape, ug_shape](res_grad, t1, ug)
             return res_grad ^
 
@@ -264,7 +264,7 @@ struct EXP(UnaryOperator):
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of exp."""
         # d(exp(x)) / dx = exp(x)
-        var res_grad = Tensor[dtype](ug_shape)
+        var res_grad = Tensor[dtype](t1_shape)
 
         @parameter
         fn vec_exp_bw[nelts: Int](i: Int):
@@ -296,8 +296,8 @@ struct LOG:
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of log."""
         # d(log(x)) / dx = 1 / x
-        var res_grad = Tensor[dtype](ug_shape)
-        elwise_op[ug_shape, t1_shape, div](res_grad, ug, t1)
+        var res_grad = Tensor[dtype](t1_shape)
+        elwise_op[t1_shape, t1_shape, div](res_grad, ug, t1)
         return res_grad ^
 
 
@@ -327,25 +327,28 @@ struct POW(BinaryOperator):
     ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of element wise pow."""
         # d(x^y) / dx = y * x^(y-1)
-        # d(x^y) / dy = x^y * log(x)
-        var res_grad = Tensor[dtype](ug_shape)
+        # d(x^y) / dy = sum( x^y * log(x) )
+        var res_grad: Tensor[dtype]
         var a = t2[0].to_int()
 
         @parameter
         if tensor_id == 0:
+            res_grad = Tensor[dtype](t1_shape)
             @parameter
             fn vec_pow_bw_x[nelts: Int](i: Int):
                 res_grad.simd_store[nelts](i,
                     a * (t1.simd_load[nelts](i) ** (a - 1)) * ug.simd_load[nelts](i)
                 )
-            vectorize[vec_pow_bw_x, nelts](ug_shape.num_elements())
+            vectorize[vec_pow_bw_x, nelts](t1_shape.num_elements())
 
         else:
+            res_grad = Tensor[dtype](t2_shape)  # t2_shape == TensorShape(1)
             @parameter
             fn vec_pow_bw_y[nelts: Int](i: Int):
-                res_grad.simd_store[nelts](i,
+                res_grad[0] += (
                     (t1.simd_load[nelts](i) ** a) * log(t1.simd_load[nelts](i)) * ug.simd_load[nelts](i)
-                )
+                ).reduce_add()
+
             vectorize[vec_pow_bw_y, nelts](ug_shape.num_elements()) 
 
         return res_grad ^

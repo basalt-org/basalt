@@ -117,10 +117,10 @@ fn test_DOT() raises:
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     var t2: Tensor[dtype] = Tensor[dtype](t2_shape)
     fill[dtype, nelts](t1, 1.0)
-    fill[dtype, nelts](t2, 1.0)
+    fill[dtype, nelts](t2, 2.0)
 
     var expected = Tensor[dtype](2, 2)
-    fill[dtype, nelts](expected, 3.0)
+    fill[dtype, nelts](expected, 6.0)
 
     test_binary_op[OP.DOT, t1_shape, t2_shape](t1, t2, expected)
 
