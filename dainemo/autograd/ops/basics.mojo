@@ -539,7 +539,7 @@ struct FLATTEN(UnaryOperator):
         ug_shape: TensorShape, t_shape: TensorShape
     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of flatten."""
-        var res_grad = Tensor[dtype](ug_shape)
+        var res_grad = Tensor[dtype](t_shape)
         memcpy(res_grad.data(), ug.data(), ug_shape.num_elements())
 
         return res_grad ^

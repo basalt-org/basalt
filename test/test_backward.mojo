@@ -384,25 +384,21 @@ fn test_POW() raises:
 #     GRAPH.reset_all()
     
 
-# # <------------FLATTEN------------>
-# fn test_FLATTEN() raises:
-#     var t1 = Tensor[dtype](2, 3)
+# <------------FLATTEN------------>
+fn test_FLATTEN() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias ug_shape = TensorShape(t1_shape.num_elements())
+    var t1 = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    fill[dtype, nelts](ug, 1.0)
+    assert_equal(ug.dim(0), 6)
 
-#     var res = FLATTEN.forward(t1)
+    var grad1 = FLATTEN.backward[ug_shape, t1_shape](ug, t1)
 
-#     # uppergrad has always to same shape as res
-#     var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
-#     fill[dtype, nelts](upper_grad, 1.0)
-#     assert_equal(upper_grad.dim(0), 6)
-#     var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-#     assert_equal(gn.parents.size, 1)  # one parent
+    var expected_grad1 = Tensor[dtype](t1_shape)
+    fill[dtype, nelts](expected_grad1, 1.0)
 
-#     var grad1 = gn.backward_fn(upper_grad, gn.parents, 0)
-
-#     var expected_grad1 = Tensor[dtype](t1.shape())
-#     fill[dtype, nelts](expected_grad1, 1.0)
-#     assert_tensors_equal(grad1, expected_grad1)
-#     GRAPH.reset_all()
+    assert_tensors_equal(grad1, expected_grad1)
 
 
 # # <------------RESHAPE------------>
@@ -446,7 +442,7 @@ fn main():
 #         test_MAX_1()
 #         test_MAX_2()
 #         test_TRANSPOSE()
-#         test_FLATTEN()
+        test_FLATTEN()
 #         test_RESHAPE()
     except e:
         print(e)
