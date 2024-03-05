@@ -10,6 +10,7 @@ from dainemo.utils.tensorutils import (
     elwise_op,
     broadcast_shapes,
     broadcast_elwise_op,
+    get_reduce_shape,
 )
 from dainemo.utils.tensorutils import tsum, tmean, tstd, tmax #, transpose_2D, transpose, pad_zeros
 
@@ -224,37 +225,43 @@ fn test_sum_mean_std() raises:
 
     # When specifying the axis you can sum across batches
     # Axis 0
-    var batch_sum_0 = tsum(t, axis=0)
+    var batch_sum_0 = Tensor[dtype](get_reduce_shape(t, axis=0))
+    tsum(batch_sum_0, t, axis=0)
     var expected_batch_sum_0 = Tensor[dtype](1, 10)
     for i in range(10):
         expected_batch_sum_0[i] = (i + 1) + (i + 1 + 10)
     assert_tensors_equal(batch_sum_0, expected_batch_sum_0)
 
-    var batch_mean_0 = tmean(t, axis=0)
+    var batch_mean_0 = Tensor[dtype](get_reduce_shape(t, axis=0))
+    tmean(batch_mean_0, t, axis=0)
     var expected_batch_mean_0 = Tensor[dtype](1, 10)
     for i in range(10):
         expected_batch_mean_0[i] = expected_batch_sum_0[i] / 2
     assert_tensors_equal(batch_mean_0, expected_batch_mean_0)
 
-    var batch_std_0 = tstd(t, axis=0)
+    var batch_std_0 = Tensor[dtype](get_reduce_shape(t, axis=0))
+    tstd(batch_std_0, t, axis=0)
     var expected_batch_std_0 = Tensor[dtype](1, 10)
     fill[dtype, nelts](expected_batch_std_0, 5)
     assert_tensors_equal(batch_std_0, expected_batch_std_0)
 
     # Axis 1
-    var batch_sum_1 = tsum(t, axis=1)
+    var batch_sum_1 = Tensor[dtype](get_reduce_shape(t, axis=1))
+    tsum(batch_sum_1, t, axis=1)
     var expected_batch_sum_1 = Tensor[dtype](2, 1)
     expected_batch_sum_1[0] = 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10
     expected_batch_sum_1[1] = 11 + 12 + 13 + 14 + 15 + 16 + 17 + 18 + 19 + 20
     assert_tensors_equal(batch_sum_1, expected_batch_sum_1)
 
-    var batch_mean_1 = tmean(t, axis=1)
+    var batch_mean_1 = Tensor[dtype](get_reduce_shape(t, axis=1))
+    tmean(batch_mean_1, t, axis=1)
     var expected_batch_mean_1 = Tensor[dtype](2, 1)
     expected_batch_mean_1[0] = expected_batch_sum_1[0] / 10
     expected_batch_mean_1[1] = expected_batch_sum_1[1] / 10
     assert_tensors_equal(batch_mean_1, expected_batch_mean_1)
 
-    var batch_std_1 = tstd(t, axis=1)
+    var batch_std_1 = Tensor[dtype](get_reduce_shape(t, axis=1))
+    tstd(batch_std_1, t, axis=1)
     var expected_batch_std_1 = Tensor[dtype](2, 1)
     fill[dtype, nelts](expected_batch_std_1, 2.8722813129425049)
     assert_tensors_equal(batch_std_1, expected_batch_std_1)
@@ -283,37 +290,46 @@ fn test_sum_mean_std_n() raises:
     # When specifying the axis you can sum across batches
     # Axis 0
     var data = SumMeanStdData.generate_3d_axis_0()
-    var batch_sum_0 = tsum(t, axis=0)
+    var batch_sum_0 = Tensor[dtype](get_reduce_shape(t, axis=0))
+    tsum(batch_sum_0, t, axis=0)
     assert_tensors_equal(batch_sum_0, data.expected_sum)
 
-    var batch_mean_0 = tmean(t, axis=0)
+    var batch_mean_0 = Tensor[dtype](get_reduce_shape(t, axis=0))
+    tmean(batch_mean_0, t, axis=0)
     assert_tensors_equal(batch_mean_0, data.expected_mean)
 
-    var batch_std_0 = tstd(t, axis=0)
+    var batch_std_0 = Tensor[dtype](get_reduce_shape(t, axis=0))
+    tstd(batch_std_0, t, axis=0)
     assert_tensors_equal(batch_std_0, data.expected_std)
 
     # When specifying the axis you can sum across batches
     # Axis 1
     data = SumMeanStdData.generate_3d_axis_1()
-    var batch_sum_1 = tsum(t, axis=1)
+    var batch_sum_1 = Tensor[dtype](get_reduce_shape(t, axis=1))
+    tsum(batch_sum_1, t, axis=1)
     assert_tensors_equal(batch_sum_1, data.expected_sum)
 
-    var batch_mean_1 = tmean(t, axis=1)
+    var batch_mean_1 = Tensor[dtype](get_reduce_shape(t, axis=1))
+    tmean(batch_mean_1, t, axis=1)
     assert_tensors_equal(batch_mean_1, data.expected_mean)
 
-    var batch_std_1 = tstd(t, axis=1)
+    var batch_std_1 = Tensor[dtype](get_reduce_shape(t, axis=1))
+    tstd(batch_std_1, t, axis=1)
     assert_tensors_equal(batch_std_1, data.expected_std)
 
     # When specifying the axis you can sum across batches
     # Axis 2
     data = SumMeanStdData.generate_3d_axis_2()
-    var batch_sum_2 = tsum(t, axis=2)
+    var batch_sum_2 = Tensor[dtype](get_reduce_shape(t, axis=2))
+    tsum(batch_sum_2, t, axis=2)
     assert_tensors_equal(batch_sum_2, data.expected_sum)
 
-    var batch_mean_2 = tmean(t, axis=2)
+    var batch_mean_2 = Tensor[dtype](get_reduce_shape(t, axis=2))
+    tmean(batch_mean_2, t, axis=2)
     assert_tensors_equal(batch_mean_2, data.expected_mean)
 
-    var batch_std_2 = tstd(t, axis=2)
+    var batch_std_2 = Tensor[dtype](get_reduce_shape(t, axis=2))
+    tstd(batch_std_2, t, axis=2)
     assert_tensors_equal(batch_std_2, data.expected_std)
 
 
@@ -331,19 +347,22 @@ fn test_max() raises:
         for i in range(tensor.num_elements()):
             tensor[i] = values[i]
 
-    var tensor_max_axis_0 = tmax(t, axis=0)
+    var tensor_max_axis_0 = Tensor[dtype](get_reduce_shape(t, axis=0))
+    tmax(tensor_max_axis_0, t, axis=0)
     var expected_max_axis_0_temp = StaticIntTuple[6](7, 8, 9, 10, 11, 12)
     var expected_max_axis_0 = Tensor[dtype](1, 3, 2)
     fill_tensor(expected_max_axis_0, expected_max_axis_0_temp)
     assert_tensors_equal(tensor_max_axis_0, expected_max_axis_0)
 
-    var tensor_max_axis_1 = tmax(t, axis=1)
+    var tensor_max_axis_1 = Tensor[dtype](get_reduce_shape(t, axis=1))
+    tmax(tensor_max_axis_1, t, axis=1)
     var expected_max_axis_1_temp = StaticIntTuple[4](5, 6, 11, 12)
     var expected_max_axis_1 = Tensor[dtype](2, 1, 2)
     fill_tensor(expected_max_axis_1, expected_max_axis_1_temp)
     assert_tensors_equal(tensor_max_axis_1, expected_max_axis_1)
 
-    var tensor_max_axis_2 = tmax(t, axis=2)
+    var tensor_max_axis_2 = Tensor[dtype](get_reduce_shape(t, axis=2))
+    tmax(tensor_max_axis_2, t, axis=2)
     var expected_max_axis_2_temp = StaticIntTuple[6](2, 4, 6, 8, 10, 12)
     var expected_max_axis_2 = Tensor[dtype](2, 3, 1)
     fill_tensor(expected_max_axis_2, expected_max_axis_2_temp)
