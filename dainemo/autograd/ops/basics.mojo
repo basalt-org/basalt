@@ -4,6 +4,7 @@ from algorithm import vectorize
 from memory import memcpy
 
 from dainemo.utils.tensorutils import *
+from dainemo.autograd.node import Attribute, AttributeVector
 
 """
 Implement forward and backward operations for basic tensor manipulations.
@@ -396,35 +397,80 @@ struct MEAN(UnaryOperator):
         return res_grad ^
 
 
-# # <------------SUM------------>
-# struct SUM:
-#     @staticmethod
-#     fn forward[axis: Int](n: Node[dtype]) -> Node[dtype]:
-#         """Forward pass of sum operation: along axis."""
-#         var res: Tensor[dtype] = tsum[dtype, nelts](n.tensor, axis=axis)
-#         return GRAPH.create_graph_node[Self.backward[axis=axis]](res, n)
+# <------------SUM------------>
+struct SUM(UnaryOperator):
+    @staticmethod
+    fn result_shape(t_shape: TensorShape) -> TensorShape:
+        return TensorShape(1)
+
+    @staticmethod
+    fn result_shape(t_shape: TensorShape, owned attributes: AttributeVector) -> TensorShape:
+        var axis = attributes["axis"]
+
+        if axis:
+            var axis_value = axis.value().value.get[Int]()[]
+    
+            var shape = DynamicVector[Int](capacity=t_shape.rank())
+            for i in range(t_shape.rank()):
+                if i == axis_value:
+                    shape.push_back(1)
+                else:
+                    shape.push_back(t_shape[i])
+
+            return TensorShape(shape)
+        else:
+            return TensorShape(1)
 
 #     @staticmethod
-#     fn forward(n: Node[dtype]) -> Node[dtype]:
-#         """Forward pass of sum operation: all elements."""
-#         var res: SIMD[dtype, 1] = tsum[dtype, nelts](n.tensor)
-#         var res_tensor = Tensor[dtype](1)
-#         res_tensor[0] = res
-#         return GRAPH.create_graph_node[Self.backward[axis=-1]](res_tensor, n)
+#     fn forward[t_shape: TensorShape, attributes: AttributeVector](inout res: Tensor[dtype], t: Tensor[dtype]):
+#         """
+#         Forward pass of the sum operation.
+#         """
+
+#         # We can't use get at comptime because the lifetime can't be resolved at comptime for now. so we cheat using a function that is runned at comptime
+#         fn get_value[T: CollectionElement](attribute: Attribute) -> T:
+#             return attribute.value.take[T]()
+
+#         alias axis = attributes["axis"]
+
+#         @parameter   
+#         if axis:
+#             alias axis_value = get_value[Int](axis.value())
+#             Self.forward[axis_value, t_shape](res, t)
+#         else:
+#             Self.forward[t_shape](res, t)
+    
+#     @staticmethod
+#     fn forward[axis: Int, t_shape: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
+#         """
+#         Forward pass of the sum operation.
+#         """
+#         tsum(res, t, axis)
+
+#     @staticmethod
+#     fn forward[t_shape: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
+#         """
+#         Forward pass of the sum operation.
+#         """
+#         var res_simd = tsum(t)
+#         res[0] = res_simd
+
+#     @staticmethod
+#     fn backward[ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+#         """Backward operation of sum."""
+#         return Self.backward[ug_shape, t_shape](ug, t)
 
 #     @staticmethod
 #     fn backward[
-#         axis: Int = -1
-#     ](ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[
-#         dtype
-#     ]:
-#         """Backward pass of sum operation."""
-#         # Expand the upper gradient to the same shape as the input tensor
-#         var t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
-#         var res = Tensor[dtype](t.shape())
-#         fill[dtype, nelts](res, 1.0)
+#         ug_shape: TensorShape, t_shape: TensorShape
+#     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+#         """Backward operation of sum."""
+#         var res_grad = Tensor[dtype](t_shape)
+#         fill[dtype, nelts](res_grad, 1.0)
 
-#         return elwise_op[dtype, nelts, mul](res, ug)
+#         elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
+
+#         return res_grad ^
 
 
 # # <------------MAX------------>

@@ -71,12 +71,12 @@ struct Model[
             in2_idx = self.parameters.params_map.get(str(g.nodes[i].input_2.value().name), -1)
 
             if in2_idx == -1:
-                forward_op[g.nodes[i].operator, g.nodes[i].input_1.shape()](
+                forward_op[g.nodes[i].operator, g.nodes[i].input_1.shape(), g.nodes[i].attributes](
                     __get_address_as_lvalue(self.parameters.params.offset(res_idx).address),
                     __get_address_as_lvalue(self.parameters.params.offset(in1_idx).address)
                 )
             else:
-                forward_op[g.nodes[i].operator, g.nodes[i].input_1.shape(), g.nodes[i].input_2.value().shape()](
+                forward_op[g.nodes[i].operator, g.nodes[i].input_1.shape(), g.nodes[i].input_2.value().shape(), g.nodes[i].attributes](
                     __get_address_as_lvalue(self.parameters.params.offset(res_idx).address),
                     __get_address_as_lvalue(self.parameters.params.offset(in1_idx).address),
                     __get_address_as_lvalue(self.parameters.params.offset(in2_idx).address)
@@ -126,7 +126,8 @@ struct Model[
                         0,
                         g.nodes[reverse_i].operator,
                         g.nodes[reverse_i].output.shape(),              # uppergrad shape
-                        g.nodes[reverse_i].input_1.shape()              # input_1 shape
+                        g.nodes[reverse_i].input_1.shape(),             # input_1 shape
+                        g.nodes[reverse_i].attributes,
                     ](
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_ug_idx).address),
                         __get_address_as_lvalue(self.parameters.params.offset(tensor_in1_idx).address),
@@ -140,7 +141,7 @@ struct Model[
                         g.nodes[reverse_i].output.shape(),              # uppergrad shape
                         g.nodes[reverse_i].input_1.shape(),             # input_1 shape
                         g.nodes[reverse_i].input_2.value().shape(),     # input_2 shape
-                        
+                        g.nodes[reverse_i].attributes,
                     ](
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_ug_idx).address),
                         __get_address_as_lvalue(self.parameters.params.offset(tensor_in1_idx).address),
@@ -153,7 +154,8 @@ struct Model[
                         g.nodes[reverse_i].operator,
                         g.nodes[reverse_i].output.shape(),              # uppergrad shape
                         g.nodes[reverse_i].input_1.shape(),             # input_1 shape
-                        g.nodes[reverse_i].input_2.value().shape()      # input_2 shape
+                        g.nodes[reverse_i].input_2.value().shape(),      # input_2 shape
+                        g.nodes[reverse_i].attributes,
                     ](
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_ug_idx).address),
                         __get_address_as_lvalue(self.parameters.params.offset(tensor_in1_idx).address),

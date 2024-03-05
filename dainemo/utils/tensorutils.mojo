@@ -5,7 +5,6 @@ from math import sqrt, pow, equal, max, min, abs, add, div
 from random import rand
 
 
-
 @always_inline
 fn zero[dtype: DType](inout t: Tensor[dtype]):
     memset_zero[dtype](t.data(), t.num_elements())
@@ -40,7 +39,6 @@ fn get_real_index[
     unroll[unroll_dims, broadcast_shape.rank()]()
 
     return index_res
-
 
 
 # ----- Broadcast functions -----
@@ -271,6 +269,7 @@ fn elwise_op[
 
     vectorize[vecmath, nelts](t1.num_elements())
 
+
 @always_inline
 fn elwise_op[
     func: fn[dtype: DType, nelts: Int] (
@@ -282,7 +281,7 @@ fn elwise_op[
     @parameter
     fn vecmath[nelts: Int](idx: Int):
         res.simd_store[nelts](idx, func[dtype, nelts](a, t1.simd_load[nelts](idx)))
-    
+
     vectorize[vecmath, nelts](t1.num_elements())
 
 
