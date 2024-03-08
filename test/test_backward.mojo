@@ -324,6 +324,56 @@ fn test_MAX_2() raises:
     assert_tensors_equal(grad, expected_grad)
 
 
+# <------------MEAN------------>
+fn test_MEAN() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias ug_shape = TensorShape(1)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    fill[dtype, nelts](t1, 1.0)
+    fill[dtype, nelts](ug, 9.0)
+
+    var grad = MEAN.backward[ug_shape, t1_shape](ug, t1)
+    var expected_grad = Tensor[dtype](t1_shape)
+    fill[dtype, nelts](expected_grad, 9.0 / 6.0)
+
+    assert_tensors_equal(grad, expected_grad)
+
+
+fn test_MEAN_0() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias ug_shape = TensorShape(1, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    fill[dtype, nelts](t1, 1.0)
+    fill[dtype, nelts](ug, 3.0)
+
+    alias attributes = AttributeVector(Attribute("axis", 0))
+    var grad = MEAN.backward[ug_shape, t1_shape, attributes](ug, t1)
+    var expected_grad = Tensor[dtype](t1_shape)
+    for i in range(expected_grad.num_elements()):
+        expected_grad[i] = 1.0 / t1_shape[0] * 3.0
+
+    assert_tensors_equal(grad, expected_grad)
+
+
+fn test_MEAN_1() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias ug_shape = TensorShape(2, 1)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    fill[dtype, nelts](t1, 1.0)
+    fill[dtype, nelts](ug, 3.0)
+
+    alias attributes = AttributeVector(Attribute("axis", 1))
+    var grad = MEAN.backward[ug_shape, t1_shape, attributes](ug, t1)
+    var expected_grad = Tensor[dtype](t1_shape)
+    for i in range(expected_grad.num_elements()):
+        expected_grad[i] = 1.0 / t1_shape[1] * 3.0
+
+    assert_tensors_equal(grad, expected_grad)
+
+
 # # <------------TRANSPOSE------------>
 # fn test_TRANSPOSE() raises:
 #     var t1 = Tensor[dtype](2, 3)
@@ -400,6 +450,9 @@ fn main():
         test_MAX_0()
         test_MAX_1()
         test_MAX_2()
+        test_MEAN()
+        test_MEAN_0()
+        test_MEAN_1()
 #         test_TRANSPOSE()
         test_FLATTEN()
         test_RESHAPE()

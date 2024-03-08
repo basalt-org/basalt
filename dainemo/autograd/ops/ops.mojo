@@ -52,7 +52,7 @@ fn static_result_shape(
     elif op == OP.SUM:
         return SUM.result_shape(t1_shape, attributes)
     elif op == OP.MEAN:
-        return MEAN.result_shape(t1_shape)
+        return MEAN.result_shape(t1_shape, attributes)
     elif op == OP.MAX:
         return MAX.result_shape(t1_shape, attributes)
     elif op == OP.FLATTEN:
@@ -131,7 +131,7 @@ fn forward_op[
     elif op == OP.SUM:
         SUM.forward[t1_shape, attributes](res, t1)
     elif op == OP.MEAN:
-        MEAN.forward[t1_shape](res, t1)
+        MEAN.forward[t1_shape, attributes](res, t1)
     elif op == OP.MAX:
         MAX.forward[t1_shape, attributes](res, t1)
     elif op == OP.FLATTEN:
