@@ -90,7 +90,7 @@ struct SUB(BinaryOperator):
         if tensor_id == 0:
             return ug
         else:
-            var res_grad = Tensor[dtype](t2_shape)
+            var res_grad = Tensor[dtype](ug_shape)
             elwise_op[mul](res_grad, ug, -1.0)
             return res_grad ^
 
@@ -124,12 +124,12 @@ struct MUL(BinaryOperator):
         # d(x * y) / dy = x
         @parameter
         if tensor_id == 0:
-            var res_grad = Tensor[dtype](t1_shape)
-            elwise_op[t1_shape, t2_shape, mul](res_grad, ug, t2)
+            var res_grad = Tensor[dtype](ug_shape)
+            elwise_op[ug_shape, t2_shape, mul](res_grad, ug, t2)
             return res_grad ^
         else:
-            var res_grad = Tensor[dtype](t2_shape)
-            elwise_op[t2_shape, t1_shape, mul](res_grad, ug, t1)
+            var res_grad = Tensor[dtype](ug_shape)
+            elwise_op[ug_shape, t1_shape, mul](res_grad, ug, t1)
             return res_grad ^
 
 
@@ -163,13 +163,13 @@ struct DIV(BinaryOperator):
 
         @parameter
         if tensor_id == 0:
-            var res_grad = Tensor[dtype](t1_shape)
-            elwise_op[t1_shape, t2_shape, div](res_grad, ug, t2)
+            var res_grad = Tensor[dtype](ug_shape)
+            elwise_op[ug_shape, t2_shape, div](res_grad, ug, t2)
             return res_grad ^
         else:
             alias broadcast = (t1_shape != t2_shape)
             alias is_scalar = (t2_shape == TensorShape(1))
-            var res_grad = Tensor[dtype](t2_shape)
+            var res_grad = Tensor[dtype](ug_shape)
 
             @parameter
             if is_scalar:
@@ -179,7 +179,7 @@ struct DIV(BinaryOperator):
                     res_grad.simd_store[nelts](i,
                         factor * t1.simd_load[nelts](i) * ug.simd_load[nelts](i)
                     )
-                vectorize[vec_div_bw_scalar, nelts](t2_shape.num_elements())
+                vectorize[vec_div_bw_scalar, nelts](ug_shape.num_elements())
 
             elif broadcast and not is_scalar:
                 alias strides1 = broadcast_calculate_strides(t1_shape, ug_shape)
@@ -191,7 +191,7 @@ struct DIV(BinaryOperator):
                     res_grad.simd_store[nelts](i,
                         - t1.simd_load[nelts](index1) / (t2.simd_load[nelts](index2) ** 2) * ug.simd_load[nelts](i)
                     )
-                vectorize[vec_div_bw_broadcast, nelts](t2_shape.num_elements())
+                vectorize[vec_div_bw_broadcast, nelts](ug_shape.num_elements())
 
             else:
                 @parameter
@@ -199,7 +199,7 @@ struct DIV(BinaryOperator):
                     res_grad.simd_store[nelts](i, 
                         - t1.simd_load[nelts](i) / (t2.simd_load[nelts](i) ** 2) * ug.simd_load[nelts](i)
                     )
-                vectorize[vec_div_bw, nelts](t2_shape.num_elements())
+                vectorize[vec_div_bw, nelts](ug_shape.num_elements())
 
             return res_grad ^
 
@@ -265,7 +265,7 @@ struct EXP(UnaryOperator):
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of exp."""
         # d(exp(x)) / dx = exp(x)
-        var res_grad = Tensor[dtype](t1_shape)
+        var res_grad = Tensor[dtype](ug_shape)
 
         @parameter
         fn vec_exp_bw[nelts: Int](i: Int):
@@ -297,8 +297,8 @@ struct LOG:
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of log."""
         # d(log(x)) / dx = 1 / x
-        var res_grad = Tensor[dtype](t1_shape)
-        elwise_op[t1_shape, t1_shape, div](res_grad, ug, t1)
+        var res_grad = Tensor[dtype](ug_shape)
+        elwise_op[ug_shape, t1_shape, div](res_grad, ug, t1)
         return res_grad ^
 
 
@@ -404,73 +404,44 @@ struct SUM(UnaryOperator):
         return TensorShape(1)
 
     @staticmethod
-    fn result_shape(t_shape: TensorShape, owned attributes: AttributeVector) -> TensorShape:
+    fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axis = attributes["axis"]
 
         if axis:
-            var axis_value = axis.value().value.get[Int]()[]
-    
-            var shape = DynamicVector[Int](capacity=t_shape.rank())
-            for i in range(t_shape.rank()):
-                if i == axis_value:
-                    shape.push_back(1)
-                else:
-                    shape.push_back(t_shape[i])
-
-            return TensorShape(shape)
+            return get_reduce_shape(t_shape, axis.value())
         else:
             return TensorShape(1)
 
-#     @staticmethod
-#     fn forward[t_shape: TensorShape, attributes: AttributeVector](inout res: Tensor[dtype], t: Tensor[dtype]):
-#         """
-#         Forward pass of the sum operation.
-#         """
+    @staticmethod
+    fn forward[t_shape: TensorShape, attributes: AttributeVector](inout res: Tensor[dtype], t: Tensor[dtype]):
+        """
+        Forward pass of the sum operation.
+        """
 
-#         # We can't use get at comptime because the lifetime can't be resolved at comptime for now. so we cheat using a function that is runned at comptime
-#         fn get_value[T: CollectionElement](attribute: Attribute) -> T:
-#             return attribute.value.take[T]()
+        alias axis = attributes["axis"]
+        
+        @parameter   
+        if axis:
+            tsum(res, t, axis.value())
+        else:
+            res[0] = tsum(t)
 
-#         alias axis = attributes["axis"]
+    # @staticmethod
+    # fn backward[ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+    #     """Backward operation of sum."""
+    #     return Self.backward[ug_shape, t_shape](ug, t)
 
-#         @parameter   
-#         if axis:
-#             alias axis_value = get_value[Int](axis.value())
-#             Self.forward[axis_value, t_shape](res, t)
-#         else:
-#             Self.forward[t_shape](res, t)
-    
-#     @staticmethod
-#     fn forward[axis: Int, t_shape: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
-#         """
-#         Forward pass of the sum operation.
-#         """
-#         tsum(res, t, axis)
+    # @staticmethod
+    # fn backward[
+    #     ug_shape: TensorShape, t_shape: TensorShape
+    # ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+    #     """Backward operation of sum."""
+    #     var res_grad = Tensor[dtype](t_shape)
+    #     fill[dtype, nelts](res_grad, 1.0)
 
-#     @staticmethod
-#     fn forward[t_shape: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
-#         """
-#         Forward pass of the sum operation.
-#         """
-#         var res_simd = tsum(t)
-#         res[0] = res_simd
+    #     elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
 
-#     @staticmethod
-#     fn backward[ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
-#         """Backward operation of sum."""
-#         return Self.backward[ug_shape, t_shape](ug, t)
-
-#     @staticmethod
-#     fn backward[
-#         ug_shape: TensorShape, t_shape: TensorShape
-#     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
-#         """Backward operation of sum."""
-#         var res_grad = Tensor[dtype](t_shape)
-#         fill[dtype, nelts](res_grad, 1.0)
-
-#         elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
-
-#         return res_grad ^
+    #     return res_grad ^
 
 
 # # <------------MAX------------>
