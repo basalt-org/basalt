@@ -299,6 +299,50 @@ fn test_MAX() raises:
     assert_tensors_equal(res, expected)
 
 
+# <------------MEAN------------>
+fn test_MEAN() raises:
+    alias t1_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    fill[dtype, nelts](t1, 5.0)
+
+    fn create_graph(attributes: AttributeVector = AttributeVector()) -> Graph:
+        var g = Graph()
+        var t1 = g.input(t1_shape)
+
+        var res = g.op(OP.MEAN, t1, attributes=attributes)
+        _ = g.out(res)
+
+        return g ^
+
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)
+
+    var expected = Tensor[dtype](1)
+    fill[dtype, nelts](expected, 5.0)
+    assert_tensors_equal(res, expected)
+
+    # Test axis 0
+    alias graph_axis_1 = create_graph(AttributeVector(Attribute("axis", 0)))
+    var model_2 = nn.Model[graph_axis_1]()
+    res = model_2.forward(t1)
+
+    expected = Tensor[dtype](1, 3)
+    fill[dtype, nelts](expected, 5.0)
+    assert_tensors_equal(res, expected)
+
+    # Test axis 1
+    alias graph_axis_2 = create_graph(AttributeVector(Attribute("axis", 1)))
+    var model_3 = nn.Model[graph_axis_2]()
+    res = model_3.forward(t1)
+
+    expected = Tensor[dtype](2, 1)
+    fill[dtype, nelts](expected, 5.0)
+    assert_tensors_equal(res, expected)
+
+
 # # <------------TRANSPOSE------------>
 # fn test_TRANSPOSE() raises:
 #     var A = Tensor[dtype](2, 3)
@@ -372,6 +416,7 @@ fn main():
         test_POW()
         test_SUM()
         test_MAX()
+        test_MEAN()
     #         test_TRANSPOSE()
         test_FLATTEN()
     #         test_RESHAPE()

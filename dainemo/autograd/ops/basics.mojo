@@ -366,6 +366,29 @@ struct MEAN(UnaryOperator):
         return TensorShape(1)  
 
     @staticmethod
+    fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        var axis = attributes["axis"]
+
+        if axis:
+            return get_reduce_shape(t_shape, axis.value())
+        else:
+            return TensorShape(1)
+
+    @staticmethod
+    fn forward[t_shape: TensorShape, attributes: AttributeVector](inout res: Tensor[dtype], t: Tensor[dtype]):
+        """
+        Forward pass of the mean operation.
+        """
+
+        alias axis = attributes["axis"]
+        
+        @parameter   
+        if axis:
+            tmean(res, t, axis.value())
+        else:
+            res[0] = tmean(t)
+
+    @staticmethod
     fn forward[t_shape: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
         """
         Forward pass of the mean operation.
