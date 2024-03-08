@@ -2,6 +2,7 @@ from tensor import TensorShape
 
 from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, SUM, MEAN, MAX, FLATTEN, RESHAPE
 from .mlops import SIGMOID, RELU, TANH
+from .conv import CONV2D
 from dainemo.utils.uuid import bytes
 from dainemo.utils.tensorutils import unbroadcast_add, broadcast_shapes
 from ..attributes import Attribute, AttributeVector
@@ -31,6 +32,7 @@ struct OP:
     alias SIGMOID = OP(13, "SIGMOID", num_operands=1)
     alias RELU = OP(14, "RELU", num_operands=1)
     alias TANH = OP(15, "TANH", num_operands=1)
+    alias CONV2D = OP(16, "CONV2D", num_operands=3)
 
     var id: UInt8
     var name: bytes[8]
@@ -44,6 +46,8 @@ struct OP:
     fn __eq__(self, other: OP) -> Bool:
         return self.id == other.id
 
+
+# <------------ RESULT SHAPE ------------>
 
 fn static_result_shape(
     op: OP, t1_shape: TensorShape, attributes: AttributeVector
@@ -103,31 +107,26 @@ fn static_result_shape(
         return TensorShape(-1, -1)
 
 
-fn forward_op[
-    op: OP, t1_shape: TensorShape, t2_shape: TensorShape, attributes: AttributeVector
-](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
+fn static_result_shape(
+    op: OP,
+    t1_shape: TensorShape,
+    t2_shape: TensorShape,
+    t3_shape: TensorShape,
+    attributes: AttributeVector,
+) -> TensorShape:
     """
-    Forward pass for binary operators.
+    Static result shape for ternary operators.
     """
 
-    @parameter
-    if op == OP.ADD:
-        ADD.forward[t1_shape, t2_shape](res, t1, t2)
-    elif op == OP.SUB:
-        SUB.forward[t1_shape, t2_shape](res, t1, t2)
-    elif op == OP.MUL:
-        MUL.forward[t1_shape, t2_shape](res, t1, t2)
-    elif op == OP.DIV:
-        DIV.forward[t1_shape, t2_shape](res, t1, t2)
-    elif op == OP.POW:
-        POW.forward[t1_shape, t2_shape](res, t1, t2)
-    elif op == OP.DOT:
-        DOT.forward[t1_shape, t2_shape](res, t1, t2)
+    if op == OP.CONV2D:
+        return CONV2D.result_shape(t1_shape, t2_shape, t3_shape, attributes)
     else:
         print("[ERROR] Operator not found.")
+        return TensorShape(-1, -1)
 
 
-# Maybe have a special reduce operator?
+# <------------ FORWARD ------------>
+
 fn forward_op[
     op: OP, t1_shape: TensorShape, attributes: AttributeVector
 ](inout res: Tensor[dtype], t1: Tensor[dtype]):
@@ -160,6 +159,83 @@ fn forward_op[
         print("[ERROR] Operator not found.")
 
 
+fn forward_op[
+    op: OP, t1_shape: TensorShape, t2_shape: TensorShape, attributes: AttributeVector
+](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
+    """
+    Forward pass for binary operators.
+    """
+
+    @parameter
+    if op == OP.ADD:
+        ADD.forward[t1_shape, t2_shape](res, t1, t2)
+    elif op == OP.SUB:
+        SUB.forward[t1_shape, t2_shape](res, t1, t2)
+    elif op == OP.MUL:
+        MUL.forward[t1_shape, t2_shape](res, t1, t2)
+    elif op == OP.DIV:
+        DIV.forward[t1_shape, t2_shape](res, t1, t2)
+    elif op == OP.POW:
+        POW.forward[t1_shape, t2_shape](res, t1, t2)
+    elif op == OP.DOT:
+        DOT.forward[t1_shape, t2_shape](res, t1, t2)
+    else:
+        print("[ERROR] Operator not found.")
+
+
+fn forward_op[
+    op: OP, t1_shape: TensorShape, t2_shape: TensorShape, t3_shape: TensorShape, attributes: AttributeVector
+](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype]):
+    """
+    Forward pass for ternary operators.
+    """
+    pass
+
+
+# <------------ BACKWARD ------------>
+
+fn backward_op[
+    tensor_id: Int,
+    op: OP,
+    ug_shape: TensorShape,
+    t1_shape: TensorShape,
+    attributes: AttributeVector,
+](ug: Tensor[dtype], t1: Tensor[dtype], inout grad: Tensor[dtype]):
+    """
+    Backward pass for unary operators.
+    """
+    var res_grad: Tensor[dtype]
+
+    @parameter
+    if op == OP.EXP:
+        res_grad = EXP.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.LOG:
+        res_grad = LOG.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.SUM:
+        res_grad = SUM.backward[ug_shape, t1_shape, attributes](ug, t1)
+    elif op == OP.MEAN:
+        res_grad = MEAN.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.MAX:
+        res_grad = MAX.backward[ug_shape, t1_shape, attributes](ug, t1)
+    elif op == OP.FLATTEN:
+        res_grad = FLATTEN.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.RESHAPE:
+        res_grad = RESHAPE.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.SIGMOID:
+        res_grad = SIGMOID.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.RELU:
+        res_grad = RELU.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.TANH:
+        res_grad = TANH.backward[ug_shape, t1_shape](ug, t1)
+    else:
+        print("[ERROR] Operator not found.")
+        res_grad = Tensor[dtype](-1)
+
+    # ug_shape != res_grad.shape(), ug_shape is equal to the result of the forward function not the backward function
+    # This will just call elwise_op[add] always
+    unbroadcast_add[t1_shape, t1_shape](grad, res_grad)
+
+
 fn backward_op[
     tensor_id: Int,
     op: OP,
@@ -171,7 +247,7 @@ fn backward_op[
     """
     Backward pass for binary operators.
     """
-    var res_grad: Tensor[dtype]  # Resulting gradient of the operation
+    var res_grad: Tensor[dtype]
 
     @parameter
     if op == OP.ADD:
@@ -229,38 +305,13 @@ fn backward_op[
     op: OP,
     ug_shape: TensorShape,
     t1_shape: TensorShape,
+    t2_shape: TensorShape,
+    t3_shape: TensorShape,
     attributes: AttributeVector,
-](ug: Tensor[dtype], t1: Tensor[dtype], inout grad: Tensor[dtype]):
+](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype], inout grad: Tensor[dtype]):
     """
-    Backward pass for unary operators.
+    Backward pass for ternary operators.
     """
-    var res_grad: Tensor[dtype]  # Resulting gradient of the operation
-
-    @parameter
-    if op == OP.EXP:
-        res_grad = EXP.backward[ug_shape, t1_shape](ug, t1)
-    elif op == OP.LOG:
-        res_grad = LOG.backward[ug_shape, t1_shape](ug, t1)
-    elif op == OP.SUM:
-        res_grad = SUM.backward[ug_shape, t1_shape, attributes](ug, t1)
-    elif op == OP.MEAN:
-        res_grad = MEAN.backward[ug_shape, t1_shape](ug, t1)
-    elif op == OP.MAX:
-        res_grad = MAX.backward[ug_shape, t1_shape, attributes](ug, t1)
-    elif op == OP.FLATTEN:
-        res_grad = FLATTEN.backward[ug_shape, t1_shape](ug, t1)
-    elif op == OP.RESHAPE:
-        res_grad = RESHAPE.backward[ug_shape, t1_shape](ug, t1)
-    elif op == OP.SIGMOID:
-        res_grad = SIGMOID.backward[ug_shape, t1_shape](ug, t1)
-    elif op == OP.RELU:
-        res_grad = RELU.backward[ug_shape, t1_shape](ug, t1)
-    elif op == OP.TANH:
-        res_grad = TANH.backward[ug_shape, t1_shape](ug, t1)
-    else:
-        print("[ERROR] Operator not found.")
-        res_grad = Tensor[dtype](-1)
-
-    # ug_shape != res_grad.shape(), ug_shape is equal to the result of the forward function not the backward function
-    # This will just call elwise_op[add] always
-    unbroadcast_add[t1_shape, t1_shape](grad, res_grad)
+    var res_grad: Tensor[dtype]
+    # TODO
+    pass

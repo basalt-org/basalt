@@ -3,6 +3,7 @@ from tensor import TensorShape
 # from dainemo import GRAPH
 # from dainemo.autograd.node import Node
 # from dainemo.utils.tensorutils import calculate_strides
+from dainemo.autograd.attributes import Attribute, AttributeVector
 
 
 # <------------GENERAL CONV METHODS------------>
@@ -29,8 +30,13 @@ fn get_result_shape[
     return StaticIntTuple[2](result_x_dim, result_y_dim)
 
 
-# # <------------CONV2D------------>
-# struct CONV2D:
+# <------------CONV2D------------>
+struct CONV2D:
+    @staticmethod
+    fn result_shape(input_shape: TensorShape, kernel_shape: TensorShape, bias_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        # TODO
+        return TensorShape(-1)
+
 #     @staticmethod
 #     fn forward[
 #         padding: StaticIntTuple[2] = 0,

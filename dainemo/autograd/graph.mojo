@@ -65,9 +65,22 @@ struct Graph:
 
         return symbol
 
-    fn op(inout self, op: OP, operand_1: Symbol, operand_2: Optional[Symbol] = None, attributes: AttributeVector = AttributeVector()) -> Symbol:
+    fn op(inout self, op: OP,
+        operand_1: Symbol,
+        operand_2: Optional[Symbol] = None,
+        operand_3: Optional[Symbol] = None,
+        attributes: AttributeVector = AttributeVector()
+    ) -> Symbol:
+        
         var res: Symbol
-        if operand_2:
+        if operand_3:
+            res = Symbol(
+                self.uuid.next(),
+                dtype,
+                static_result_shape(op, operand_1.shape(), operand_2.value().shape(), operand_3.value().shape(), attributes),
+                self.result_requires_grad(operand_1, operand_2.value(), operand_3.value()),
+            )
+        elif operand_2:
             res = Symbol(
                 self.uuid.next(),
                 dtype,
@@ -82,10 +95,15 @@ struct Graph:
                 self.result_requires_grad(operand_1),
             )
 
-        self.nodes.push_back(Node(op, res, operand_1, operand_2.take(), attributes))
+        self.nodes.push_back(Node(op, res, operand_1, operand_2.take(), operand_3.take(), attributes))
         return res ^
 
-    fn op(inout self, op: OP, operand_1: Symbol, operand_2: FloatLiteral, attributes: AttributeVector = AttributeVector()) -> Symbol:
+    fn op(inout self, op: OP,
+        operand_1: Symbol,
+        operand_2: FloatLiteral,
+        attributes: AttributeVector = AttributeVector()
+    ) -> Symbol:
+        
         var operand_2_symbol = self.scalar(operand_2)
         var res = Symbol(
             self.uuid.next(),
@@ -94,10 +112,15 @@ struct Graph:
             self.result_requires_grad(operand_1),
         )
 
-        self.nodes.push_back(Node(op, res, operand_1, operand_2_symbol, attributes))
+        self.nodes.push_back(Node(op, res, operand_1, operand_2_symbol, attributes=attributes))
         return res ^
 
-    fn op(inout self, op: OP, operand_1: FloatLiteral, operand_2: Symbol, attributes: AttributeVector = AttributeVector()) -> Symbol:
+    fn op(inout self, op: OP,
+        operand_1: FloatLiteral,
+        operand_2: Symbol,
+        attributes: AttributeVector = AttributeVector()
+    ) -> Symbol:
+        
         var operand_1_symbol = self.scalar(operand_1)
         var res = Symbol(
             self.uuid.next(),
@@ -106,16 +129,20 @@ struct Graph:
             self.result_requires_grad(operand_2),
         )
 
-        self.nodes.push_back(Node(op, res, operand_1_symbol, operand_2, attributes))
+        self.nodes.push_back(Node(op, res, operand_1_symbol, operand_2, attributes=attributes))
         return res ^
+
+    @staticmethod
+    fn result_requires_grad(operand_1: Symbol) -> Bool:
+        return operand_1.requires_grad
 
     @staticmethod
     fn result_requires_grad(operand_1: Symbol, operand_2: Symbol) -> Bool:
         return operand_1.requires_grad or operand_2.requires_grad
 
     @staticmethod
-    fn result_requires_grad(operand_1: Symbol) -> Bool:
-        return operand_1.requires_grad
+    fn result_requires_grad(operand_1: Symbol, operand_2: Symbol, operand_3: Symbol) -> Bool:
+        return operand_1.requires_grad or operand_2.requires_grad or operand_3.requires_grad
 
     fn json(self) -> String:
         var result: String = '{"graph_name": "Dainemo", "nodes": ['

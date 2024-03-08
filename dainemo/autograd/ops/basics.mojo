@@ -10,29 +10,10 @@ from dainemo.autograd.attributes import Attribute, AttributeVector
 Implement forward and backward operations for basic tensor manipulations.
 """
 
-
-trait BinaryOperator:
-    @staticmethod
-    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
-        """
-        Returns the shape of the result tensor given the shapes of the input tensors.
-        """
-        ...
-
-
-trait UnaryOperator:
-    @staticmethod
-    fn result_shape(t_shape: TensorShape) -> TensorShape:
-        """
-        Returns the shape of the result tensor given the shape of the input tensor.
-        """
-        ...
-
-
 # ----- Binary operators -----
 # <------------ADD------------>
 @value
-struct ADD(BinaryOperator):
+struct ADD:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
@@ -61,7 +42,7 @@ struct ADD(BinaryOperator):
 
 # <------------SUB------------>
 @value
-struct SUB(BinaryOperator):
+struct SUB:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
@@ -97,7 +78,7 @@ struct SUB(BinaryOperator):
 
 # <------------MUL------------>
 @value
-struct MUL(BinaryOperator):
+struct MUL:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
@@ -135,7 +116,7 @@ struct MUL(BinaryOperator):
 
 # <------------DIV------------>
 @value
-struct DIV(BinaryOperator):
+struct DIV:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
@@ -206,7 +187,7 @@ struct DIV(BinaryOperator):
 
 # <------------DOT------------>
 @value
-struct DOT(BinaryOperator):
+struct DOT:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return TensorShape(t1_shape[0], t2_shape[1])
@@ -246,7 +227,7 @@ struct DOT(BinaryOperator):
 # ----- Unary operators -----
 # <------------EXP------------>
 @value
-struct EXP(UnaryOperator):
+struct EXP:
     @staticmethod
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
         return t1_shape
@@ -303,7 +284,7 @@ struct LOG:
 
 
 # <------------POW------------>
-struct POW(BinaryOperator):
+struct POW:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         # t2_shape == TensorShape(1)
@@ -357,11 +338,7 @@ struct POW(BinaryOperator):
 
 # ----- Reduce operators -----
 # <------------SUM------------>
-struct SUM(UnaryOperator):
-    @staticmethod
-    fn result_shape(t_shape: TensorShape) -> TensorShape:
-        return TensorShape(1)
-
+struct SUM:
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axis = attributes["axis"]
@@ -406,12 +383,7 @@ struct SUM(UnaryOperator):
 # <------------MEAN------------>
 # TODO: include the axis capabilities
 @value
-struct MEAN(UnaryOperator):
-    @staticmethod
-    fn result_shape(t_shape: TensorShape) -> TensorShape:
-        # This is the result shape for mean without an axis
-        return TensorShape(1)  
-
+struct MEAN:
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axis = attributes["axis"]
@@ -487,11 +459,7 @@ struct MEAN(UnaryOperator):
 
 
 # <------------MAX------------>
-struct MAX:
-    @staticmethod
-    fn result_shape(t_shape: TensorShape) -> TensorShape:
-        return TensorShape(1)
-    
+struct MAX:    
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axis = attributes["axis"]
@@ -606,7 +574,7 @@ struct MAX:
 
 
 # <----------FLATTEN---------->
-struct FLATTEN(UnaryOperator):
+struct FLATTEN:
     @staticmethod
     fn result_shape(t_shape: TensorShape) -> TensorShape:
         return TensorShape(t_shape.num_elements())

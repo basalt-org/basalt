@@ -63,6 +63,7 @@ struct Model[
         var res_idx: Int = 0
         var in1_idx: Int = 0
         var in2_idx: Int = 0
+        var in3_idx: Int = 0
         
         @parameter
         fn fw_unroll[i: Int]():
@@ -76,7 +77,7 @@ struct Model[
                     __get_address_as_lvalue(self.parameters.params.offset(res_idx).address),
                     __get_address_as_lvalue(self.parameters.params.offset(in1_idx).address)
                 )
-            else:
+            elif g.nodes[i].operator.num_operands == 2:
                 # Binary operator
                 in2_idx = self.parameters.params_map.get(str(g.nodes[i].input_2.value().name), -1)
 
@@ -84,6 +85,17 @@ struct Model[
                     __get_address_as_lvalue(self.parameters.params.offset(res_idx).address),
                     __get_address_as_lvalue(self.parameters.params.offset(in1_idx).address),
                     __get_address_as_lvalue(self.parameters.params.offset(in2_idx).address)
+                )
+            elif g.nodes[i].operator.num_operands == 3:
+                # Ternary operator
+                in2_idx = self.parameters.params_map.get(str(g.nodes[i].input_2.value().name), -1)
+                in3_idx = self.parameters.params_map.get(str(g.nodes[i].input_3.value().name), -1)
+
+                forward_op[g.nodes[i].operator, g.nodes[i].input_1.shape(), g.nodes[i].input_2.value().shape(), g.nodes[i].input_3.value().shape(), g.nodes[i].attributes](
+                    __get_address_as_lvalue(self.parameters.params.offset(res_idx).address),
+                    __get_address_as_lvalue(self.parameters.params.offset(in1_idx).address),
+                    __get_address_as_lvalue(self.parameters.params.offset(in2_idx).address),
+                    __get_address_as_lvalue(self.parameters.params.offset(in3_idx).address)
                 )
 
         unroll[fw_unroll, g.nodes.size]()
@@ -110,8 +122,10 @@ struct Model[
         var grad_ug_idx: Int = 0
         var grad_in1_idx: Int = 0
         var grad_in2_idx: Int = 0
+        var grad_in3_idx: Int = 0
         var tensor_in1_idx: Int = 0
         var tensor_in2_idx: Int = 0
+        var tensor_in3_idx: Int = 0
 
         @parameter
         fn bw_unroll[i: Int]():
@@ -136,7 +150,7 @@ struct Model[
                         __get_address_as_lvalue(self.parameters.params.offset(tensor_in1_idx).address),
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_in1_idx).address),     # grad to be updated: input_1
                     )
-            else:
+            elif g.nodes[reverse_i].operator.num_operands == 2:
                 # Binary operator
                 tensor_in2_idx = self.parameters.params_map.get(str(g.nodes[reverse_i].input_2.value().name), -1)
                 
@@ -172,6 +186,68 @@ struct Model[
                         __get_address_as_lvalue(self.parameters.params.offset(tensor_in1_idx).address),
                         __get_address_as_lvalue(self.parameters.params.offset(tensor_in2_idx).address),
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_in2_idx).address),     # grad to be updated: input_2
+                    )
+            
+            elif g.nodes[reverse_i].operator.num_operands == 3:
+                # Ternary operator
+                tensor_in2_idx = self.parameters.params_map.get(str(g.nodes[reverse_i].input_2.value().name), -1)
+                tensor_in3_idx = self.parameters.params_map.get(str(g.nodes[reverse_i].input_3.value().name), -1)
+
+                @parameter
+                if g.nodes[reverse_i].input_1.requires_grad:
+                    grad_in1_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_1.name), -1)
+                    backward_op[ 
+                        0,
+                        g.nodes[reverse_i].operator,
+                        g.nodes[reverse_i].output.shape(),              # uppergrad shape
+                        g.nodes[reverse_i].input_1.shape(),             # input_1 shape
+                        g.nodes[reverse_i].input_2.value().shape(),     # input_2 shape
+                        g.nodes[reverse_i].input_3.value().shape(),     # input_3 shape
+                        g.nodes[reverse_i].attributes,
+                    ](
+                        __get_address_as_lvalue(self.parameters.grads.offset(grad_ug_idx).address),
+                        __get_address_as_lvalue(self.parameters.params.offset(tensor_in1_idx).address),
+                        __get_address_as_lvalue(self.parameters.params.offset(tensor_in2_idx).address),
+                        __get_address_as_lvalue(self.parameters.params.offset(tensor_in3_idx).address),
+                        __get_address_as_lvalue(self.parameters.grads.offset(grad_in1_idx).address),     # grad to be updated: input_1
+                    )
+
+                @parameter
+                if g.nodes[reverse_i].input_2.value().requires_grad:
+                    grad_in2_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_2.value().name), -1)
+                    backward_op[ 
+                        1,
+                        g.nodes[reverse_i].operator,
+                        g.nodes[reverse_i].output.shape(),              # uppergrad shape
+                        g.nodes[reverse_i].input_1.shape(),             # input_1 shape
+                        g.nodes[reverse_i].input_2.value().shape(),     # input_2 shape
+                        g.nodes[reverse_i].input_3.value().shape(),     # input_3 shape
+                        g.nodes[reverse_i].attributes,
+                    ](
+                        __get_address_as_lvalue(self.parameters.grads.offset(grad_ug_idx).address),
+                        __get_address_as_lvalue(self.parameters.params.offset(tensor_in1_idx).address),
+                        __get_address_as_lvalue(self.parameters.params.offset(tensor_in2_idx).address),
+                        __get_address_as_lvalue(self.parameters.params.offset(tensor_in3_idx).address),
+                        __get_address_as_lvalue(self.parameters.grads.offset(grad_in2_idx).address),     # grad to be updated: input_2
+                    )
+
+                @parameter
+                if g.nodes[reverse_i].input_3.value().requires_grad:
+                    grad_in3_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_3.value().name), -1)
+                    backward_op[ 
+                        2,
+                        g.nodes[reverse_i].operator,
+                        g.nodes[reverse_i].output.shape(),              # uppergrad shape
+                        g.nodes[reverse_i].input_1.shape(),             # input_1 shape
+                        g.nodes[reverse_i].input_2.value().shape(),     # input_2 shape
+                        g.nodes[reverse_i].input_3.value().shape(),     # input_3 shape
+                        g.nodes[reverse_i].attributes,
+                    ](
+                        __get_address_as_lvalue(self.parameters.grads.offset(grad_ug_idx).address),
+                        __get_address_as_lvalue(self.parameters.params.offset(tensor_in1_idx).address),
+                        __get_address_as_lvalue(self.parameters.params.offset(tensor_in2_idx).address),
+                        __get_address_as_lvalue(self.parameters.params.offset(tensor_in3_idx).address),
+                        __get_address_as_lvalue(self.parameters.grads.offset(grad_in3_idx).address),     # grad to be updated: input_3
                     )
 
         unroll[bw_unroll, g.nodes.size]()
@@ -215,17 +291,3 @@ struct Model[
                 if g.nodes[i].output.requires_grad:
                     self.parameters.grads_map.put(str(g.nodes[i].output.name), self.parameters.grads.size)
                     self.parameters.grads.append(Tensor[dtype](g.nodes[i].output.shape()))
-
-    fn get_grad(inout self, id: String) -> Tensor[dtype]:
-        var index = self.parameters.grads_map.get(id, -1)
-        if index == -1:
-            return Tensor[dtype]()
-
-        return __get_address_as_lvalue(self.parameters.grads.offset(index).address)
-
-    fn get_param(inout self, id: String) -> Tensor[dtype]:
-        var index = self.parameters.params_map.get(id, -1)
-        if index == -1:
-            return Tensor[dtype]()
-
-        return __get_address_as_lvalue(self.parameters.params.offset(index).address)
