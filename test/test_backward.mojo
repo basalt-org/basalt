@@ -7,8 +7,8 @@ from test_tensorutils import assert_tensors_equal
 
 # from dainemo.autograd.node import Node
 from dainemo.utils.tensorutils import fill, tsum
-from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, MEAN, FLATTEN, SUM, MAX
-from dainemo.autograd.node import Attribute, AttributeVector
+from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, MEAN, FLATTEN, SUM, MAX, RESHAPE
+from dainemo.autograd.attributes import Attribute, AttributeVector
 
 alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
@@ -367,26 +367,20 @@ fn test_FLATTEN() raises:
 
 
 # # <------------RESHAPE------------>
-# fn test_RESHAPE() raises:
-#     var t1 = Tensor[dtype](2, 2, 5)
-#     var new_shape = TensorShape(2, 10)
+fn test_RESHAPE() raises:
+    alias t1_shape = TensorShape(2, 2, 5)
+    alias ug_shape = TensorShape(2, 10)
 
-#     var res = RESHAPE.forward(t1, new_shape)
+    var t1 = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    var expected_grad = Tensor[dtype](t1_shape)
+    for i in range(20):
+        ug[i] = i + 1
+        expected_grad[i] = i + 1
 
-#     # uppergrad has always to same shape as res
-#     var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
-#     fill[dtype, nelts](upper_grad, 1.0)
-#     assert_equal(upper_grad.dim(0), 2)
-#     assert_equal(upper_grad.dim(1), 10)
-#     var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-#     assert_equal(gn.parents.size, 1)  # one parent
+    var grad = RESHAPE.backward[ug_shape, t1_shape](ug, t1)
 
-#     var grad1 = gn.backward_fn(upper_grad, gn.parents, 0)
-
-#     var expected_grad1 = Tensor[dtype](t1.shape())
-#     fill[dtype, nelts](expected_grad1, 1.0)
-#     assert_tensors_equal(grad1, expected_grad1)
-#     GRAPH.reset_all()
+    assert_tensors_equal(grad, expected_grad)
 
 
 fn main():
@@ -408,7 +402,7 @@ fn main():
         test_MAX_2()
 #         test_TRANSPOSE()
         test_FLATTEN()
-#         test_RESHAPE()
+        test_RESHAPE()
     except e:
         print(e)
         print("[ERROR] Error in backward pass.")

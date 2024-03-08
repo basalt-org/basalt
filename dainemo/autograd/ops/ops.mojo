@@ -1,6 +1,6 @@
 from tensor import TensorShape
 
-from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, MEAN, FLATTEN, SUM, MAX
+from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, SUM, MEAN, MAX, FLATTEN, RESHAPE
 from dainemo.utils.uuid import bytes
 from dainemo.utils.tensorutils import unbroadcast_add, broadcast_shapes
 from ..node import Attribute, AttributeVector
@@ -24,8 +24,9 @@ struct OP:
     alias DOT = OP(7, "DOT")
     alias SUM = OP(8, "SUM")
     alias MEAN = OP(9, "MEAN")
-    alias FLATTEN = OP(10, "FLATTEN")
-    alias MAX = OP(11, "MAX")
+    alias MAX = OP(10, "MAX")
+    alias FLATTEN = OP(11, "FLATTEN")
+    alias RESHAPE = OP(12, "RESHAPE")
 
     var id: UInt8
     var name: bytes[8]
@@ -52,10 +53,12 @@ fn static_result_shape(
         return SUM.result_shape(t1_shape, attributes)
     elif op == OP.MEAN:
         return MEAN.result_shape(t1_shape)
-    elif op == OP.FLATTEN:
-        return FLATTEN.result_shape(t1_shape)
     elif op == OP.MAX:
         return MAX.result_shape(t1_shape, attributes)
+    elif op == OP.FLATTEN:
+        return FLATTEN.result_shape(t1_shape)
+    elif op == OP.RESHAPE:
+        return RESHAPE.result_shape(t1_shape, attributes)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1)
@@ -125,14 +128,16 @@ fn forward_op[
         EXP.forward[t1_shape](res, t1)
     elif op == OP.LOG:
         LOG.forward[t1_shape](res, t1)
-    elif op == OP.MEAN:
-        MEAN.forward[t1_shape](res, t1)
     elif op == OP.SUM:
         SUM.forward[t1_shape, attributes](res, t1)
-    elif op == OP.FLATTEN:
-        FLATTEN.forward[t1_shape](res, t1)
+    elif op == OP.MEAN:
+        MEAN.forward[t1_shape](res, t1)
     elif op == OP.MAX:
         MAX.forward[t1_shape, attributes](res, t1)
+    elif op == OP.FLATTEN:
+        FLATTEN.forward[t1_shape](res, t1)
+    elif op == OP.RESHAPE:
+        RESHAPE.forward[t1_shape](res, t1)
     else:
         print("[ERROR] Operator not found.")
 
@@ -209,7 +214,7 @@ fn backward_op[
     attributes: AttributeVector,
 ](ug: Tensor[dtype], t1: Tensor[dtype], inout grad: Tensor[dtype]):
     """
-    Backward pass for binary operators.
+    Backward pass for unary operators.
     """
     var res_grad: Tensor[dtype]  # Resulting gradient of the operation
 
@@ -218,14 +223,16 @@ fn backward_op[
         res_grad = EXP.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.LOG:
         res_grad = LOG.backward[ug_shape, t1_shape](ug, t1)
-    elif op == OP.MEAN:
-        res_grad = MEAN.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.SUM:
         res_grad = SUM.backward[ug_shape, t1_shape, attributes](ug, t1)
-    elif op == OP.FLATTEN:
-        res_grad = FLATTEN.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.MEAN:
+        res_grad = MEAN.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.MAX:
         res_grad = MAX.backward[ug_shape, t1_shape, attributes](ug, t1)
+    elif op == OP.FLATTEN:
+        res_grad = FLATTEN.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.RESHAPE:
+        res_grad = RESHAPE.backward[ug_shape, t1_shape](ug, t1)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1)

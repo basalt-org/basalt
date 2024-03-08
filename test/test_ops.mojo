@@ -6,7 +6,7 @@ from math import exp, log
 
 from dainemo import Graph, Symbol, OP
 import dainemo.nn as nn
-from dainemo.autograd.node import Attribute, AttributeVector
+from dainemo.autograd.attributes import Attribute, AttributeVector
 # from dainemo.autograd.ops.basics import (
     # ADD,
     # SUB,
@@ -343,21 +343,32 @@ fn test_FLATTEN() raises:
     assert_tensors_equal(res, expected)
 
 
-# # <------------RESHAPE------------>
-# fn test_RESHAPE() raises:
-#     var A = Tensor[dtype](2, 2, 5)
-#     var new_shape = TensorShape(2, 10)
+# <------------RESHAPE------------>
+fn test_RESHAPE() raises:
+    alias t_shape = TensorShape(2, 2, 5)
+    alias new_shape = TensorShape(2, 10)
 
-#     var B = Tensor[dtype](new_shape)
-#     for i in range(20):
-#         A[i] = i + 1
-#         B[i] = i + 1
+    var t = Tensor[dtype](t_shape)
+    var expected = Tensor[dtype](new_shape)
+    for i in range(20):
+        t[i] = i + 1
+        expected[i] = i + 1
 
-#     var res = RESHAPE.forward(A, new_shape)
+    fn create_graph() -> Graph:
+        var g = Graph()
+        var t1 = g.input(t_shape)
 
-#     assert_tensors_equal(res.tensor, B)
-#     assert_equal(GRAPH.graph.size, 2)
-#     GRAPH.reset_all()
+        var res = g.op(OP.RESHAPE, t1, attributes=AttributeVector(Attribute("shape", new_shape)))
+        _ = g.out(res)
+
+        return g ^
+
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+    var model = nn.Model[graph]()
+    var res = model.forward(t)
+
+    assert_tensors_equal(res, expected)
 
 
 fn main():
@@ -374,7 +385,7 @@ fn main():
         test_MAX()
     #         test_TRANSPOSE()
         test_FLATTEN()
-    #         test_RESHAPE()
+        test_RESHAPE()
     except e:
         print("[ERROR] Error in ops")
         print(e)

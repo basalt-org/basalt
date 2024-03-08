@@ -356,6 +356,53 @@ struct POW(BinaryOperator):
 
 
 # ----- Reduce operators -----
+# <------------SUM------------>
+struct SUM(UnaryOperator):
+    @staticmethod
+    fn result_shape(t_shape: TensorShape) -> TensorShape:
+        return TensorShape(1)
+
+    @staticmethod
+    fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        var axis = attributes["axis"]
+
+        if axis:
+            return get_reduce_shape(t_shape, axis.value().to_int())
+        else:
+            return TensorShape(1)
+
+    @staticmethod
+    fn forward[t_shape: TensorShape, attributes: AttributeVector](inout res: Tensor[dtype], t: Tensor[dtype]):
+        """
+        Forward pass of the sum operation.
+        """
+
+        alias axis = attributes["axis"]
+        
+        @parameter   
+        if axis:
+            tsum(res, t, axis.value().to_int())
+        else:
+            res[0] = tsum(t)
+
+    @staticmethod
+    fn backward[ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of sum."""
+        return Self.backward[ug_shape, t_shape](ug, t)
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape, t_shape: TensorShape
+    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of sum."""
+        var res_grad = Tensor[dtype](t_shape)
+        fill[dtype, nelts](res_grad, 1.0)
+
+        elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
+
+        return res_grad ^
+
+
 # <------------MEAN------------>
 # TODO: include the axis capabilities
 @value
@@ -397,53 +444,6 @@ struct MEAN(UnaryOperator):
         return res_grad ^
 
 
-# <------------SUM------------>
-struct SUM(UnaryOperator):
-    @staticmethod
-    fn result_shape(t_shape: TensorShape) -> TensorShape:
-        return TensorShape(1)
-
-    @staticmethod
-    fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
-        var axis = attributes["axis"]
-
-        if axis:
-            return get_reduce_shape(t_shape, axis.value())
-        else:
-            return TensorShape(1)
-
-    @staticmethod
-    fn forward[t_shape: TensorShape, attributes: AttributeVector](inout res: Tensor[dtype], t: Tensor[dtype]):
-        """
-        Forward pass of the sum operation.
-        """
-
-        alias axis = attributes["axis"]
-        
-        @parameter   
-        if axis:
-            tsum(res, t, axis.value())
-        else:
-            res[0] = tsum(t)
-
-    @staticmethod
-    fn backward[ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
-        """Backward operation of sum."""
-        return Self.backward[ug_shape, t_shape](ug, t)
-
-    @staticmethod
-    fn backward[
-        ug_shape: TensorShape, t_shape: TensorShape
-    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
-        """Backward operation of sum."""
-        var res_grad = Tensor[dtype](t_shape)
-        fill[dtype, nelts](res_grad, 1.0)
-
-        elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
-
-        return res_grad ^
-
-
 # <------------MAX------------>
 struct MAX:
     @staticmethod
@@ -455,7 +455,7 @@ struct MAX:
         var axis = attributes["axis"]
 
         if axis:
-            return get_reduce_shape(t_shape, axis.value())
+            return get_reduce_shape(t_shape, axis.value().to_int())
         else:
             return TensorShape(1)
 
@@ -469,7 +469,7 @@ struct MAX:
         
         @parameter   
         if axis:
-            tmax(res, t, axis.value())
+            tmax(res, t, axis.value().to_int())
         else:
             res[0] = tmax(t)
 
@@ -480,7 +480,7 @@ struct MAX:
 
         @parameter
         if axis:
-            return Self.backward[ug_shape, t_shape](ug, t, axis.value())
+            return Self.backward[ug_shape, t_shape](ug, t, axis.value().to_int())
         else:
             return Self.backward[ug_shape, t_shape](ug, t)
 
@@ -587,31 +587,26 @@ struct FLATTEN(UnaryOperator):
         return res_grad ^
 
 
-# # <----------RESHAPE---------->
-# struct RESHAPE:
-#     @staticmethod
-#     fn forward(n: Node[dtype], new_shape: TensorShape) -> Node[dtype]:
-#         var res = n.tensor
-#         try:
-#             res.ireshape(new_shape)
-#         except:
-#             print("[ERROR]: Cannot reshape tensor in forward pass.")
+# <----------RESHAPE---------->
+struct RESHAPE:
+    @staticmethod
+    fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        var new_shape = attributes["shape"]
+        return new_shape.value().to_shape()
+    
+    @staticmethod
+    fn forward[t_shape: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
+        """
+        Forward pass of the reshape operation.
+        """
+        memcpy(res.data(), t.data(), t_shape.num_elements())
 
-#         return GRAPH.create_graph_node[Self.backward](res, n)
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape, t_shape: TensorShape
+    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of reshape."""
+        var res_grad = Tensor[dtype](t_shape)
+        memcpy(res_grad.data(), ug.data(), ug_shape.num_elements())
 
-#     @staticmethod
-#     fn backward(
-#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-#     ) -> Tensor[dtype]:
-#         """
-#         Reshape upper gradient to original shape.
-#         """
-#         var res = ug
-#         var shape = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor.shape()
-
-#         try:
-#             res.ireshape(shape)
-#         except:
-#             print("[ERROR]: Cannot reshape tensor in reshape backward pass.")
-
-#         return res
+        return res_grad ^

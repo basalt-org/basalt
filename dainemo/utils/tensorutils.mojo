@@ -1,5 +1,5 @@
 from algorithm import vectorize, parallelize
-from memory import memset_zero
+from memory import memset_zero, memset
 from tensor import TensorShape
 from math import sqrt, pow, equal, max, min, abs, add, div
 from random import rand
@@ -17,7 +17,6 @@ fn fill[dtype: DType, nelts: Int](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
         t.simd_store[nelts](idx, t.simd_load[nelts](idx).splat(val))
 
     vectorize[fill_vec, nelts](t.num_elements())
-
 
 # ----- Functions to access positions in tensor data -----
 fn get_real_index[
