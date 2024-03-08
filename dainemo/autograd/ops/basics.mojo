@@ -426,22 +426,22 @@ struct SUM(UnaryOperator):
         else:
             res[0] = tsum(t)
 
-    # @staticmethod
-    # fn backward[ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
-    #     """Backward operation of sum."""
-    #     return Self.backward[ug_shape, t_shape](ug, t)
+    @staticmethod
+    fn backward[ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of sum."""
+        return Self.backward[ug_shape, t_shape](ug, t)
 
-    # @staticmethod
-    # fn backward[
-    #     ug_shape: TensorShape, t_shape: TensorShape
-    # ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
-    #     """Backward operation of sum."""
-    #     var res_grad = Tensor[dtype](t_shape)
-    #     fill[dtype, nelts](res_grad, 1.0)
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape, t_shape: TensorShape
+    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of sum."""
+        var res_grad = Tensor[dtype](t_shape)
+        fill[dtype, nelts](res_grad, 1.0)
 
-    #     elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
+        elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
 
-    #     return res_grad ^
+        return res_grad ^
 
 
 # <------------MAX------------>
