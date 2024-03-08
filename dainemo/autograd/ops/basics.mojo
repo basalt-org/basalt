@@ -444,23 +444,34 @@ struct SUM(UnaryOperator):
     #     return res_grad ^
 
 
-# # <------------MAX------------>
-# struct MAX:
-#     @staticmethod
-#     fn forward[axis: Int](n: Node[dtype]) -> Node[dtype]:
-#         """Forward pass of max operation: along axis."""
-#         alias nelts: Int = simdwidthof[dtype]()
-#         var res: Tensor[dtype] = tmax[dtype, nelts](n.tensor, axis=axis)
-#         return GRAPH.create_graph_node[Self.backward[axis=axis]](res, n)
+# <------------MAX------------>
+struct MAX:
+    @staticmethod
+    fn result_shape(t_shape: TensorShape) -> TensorShape:
+        return TensorShape(1)
+    
+    @staticmethod
+    fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        var axis = attributes["axis"]
 
-#     @staticmethod
-#     fn forward(n: Node[dtype]) -> Node[dtype]:
-#         """Forward pass of max operation: all elements."""
-#         alias nelts: Int = simdwidthof[dtype]()
-#         var res: SIMD[dtype, 1] = tmax[dtype, nelts](n.tensor)
-#         var res_tensor = Tensor[dtype](1)
-#         res_tensor[0] = res
-#         return GRAPH.create_graph_node[Self.backward[axis= -1]](res_tensor, n)
+        if axis:
+            return get_reduce_shape(t_shape, axis.value())
+        else:
+            return TensorShape(1)
+
+    @staticmethod
+    fn forward[t_shape: TensorShape, attributes: AttributeVector](inout res: Tensor[dtype], t: Tensor[dtype]):
+        """
+        Forward pass of the max operation.
+        """
+
+        alias axis = attributes["axis"]
+        
+        @parameter   
+        if axis:
+            tmax(res, t, axis.value())
+        else:
+            res[0] = tmax(t)
 
 #     @staticmethod
 #     fn backward[

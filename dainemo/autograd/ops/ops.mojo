@@ -1,6 +1,6 @@
 from tensor import TensorShape
 
-from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, MEAN, FLATTEN, SUM
+from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, MEAN, FLATTEN, SUM, MAX
 from dainemo.utils.uuid import bytes
 from dainemo.utils.tensorutils import unbroadcast_add, broadcast_shapes
 from ..node import Attribute, AttributeVector
@@ -25,6 +25,7 @@ struct OP:
     alias SUM = OP(8, "SUM")
     alias MEAN = OP(9, "MEAN")
     alias FLATTEN = OP(10, "FLATTEN")
+    alias MAX = OP(11, "MAX")
 
     var id: UInt8
     var name: bytes[8]
@@ -53,6 +54,8 @@ fn static_result_shape(
         return MEAN.result_shape(t1_shape)
     elif op == OP.FLATTEN:
         return FLATTEN.result_shape(t1_shape)
+    elif op == OP.MAX:
+        return MAX.result_shape(t1_shape, attributes)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1)
@@ -128,6 +131,8 @@ fn forward_op[
         SUM.forward[t1_shape, attributes](res, t1)
     elif op == OP.FLATTEN:
         FLATTEN.forward[t1_shape](res, t1)
+    elif op == OP.MAX:
+        MAX.forward[t1_shape, attributes](res, t1)
     else:
         print("[ERROR] Operator not found.")
 

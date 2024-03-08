@@ -235,38 +235,68 @@ fn test_SUM() raises:
     assert_tensors_equal(res, expected)
 
 
-# # <------------MAX------------>
-# fn test_MAX() raises:
-#     var t = Tensor[dtype](2, 3, 2)
-#     for i in range(12):
-#         t[i] = i + 1
+# <------------MAX------------>
+fn test_MAX() raises:
+    alias t1_shape = TensorShape(2, 3, 2)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    
+    for i in range(t1_shape.num_elements()):
+        t1[i] = i + 1
 
-#     var tensor_max = MAX.forward(t)
-#     var expected = Tensor[dtype](1)
-#     fill[dtype, nelts](expected, 12)
-#     assert_tensors_equal(tensor_max.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 2)
-#     GRAPH.reset_all()
+    fn create_graph(attributes: AttributeVector = AttributeVector()) -> Graph:
+        var g = Graph()
+        var t1 = g.input(t1_shape)
 
-#     @parameter
-#     fn fill_tensor[size: Int](inout tensor: Tensor[dtype], values: StaticIntTuple[size]):
-#         for i in range(tensor.num_elements()):
-#             tensor[i] = values[i]
+        var res = g.op(OP.MAX, t1, attributes=attributes)
+        _ = g.out(res)
 
-#     var tensor_max_axis_0 = MAX.forward[axis=0](t)
-#     var expected_max_axis_0_temp = StaticIntTuple[6](7, 8, 9, 10, 11, 12)
-#     expected = Tensor[dtype](1, 3, 2)
-#     fill_tensor(expected, expected_max_axis_0_temp)
-#     assert_tensors_equal(tensor_max_axis_0.tensor, expected)
-#     assert_equal(GRAPH.graph.size, 2)
-#     GRAPH.reset_all()
+        return g ^
 
-#     var tensor_max_axis_1 = MAX.forward[axis=1](t)
-#     var expected_max_axis_1_temp = StaticIntTuple[4](5, 6, 11, 12)
-#     expected = Tensor[dtype](2, 1, 2)
-#     fill_tensor(expected, expected_max_axis_1_temp)
-#     assert_tensors_equal(tensor_max_axis_1.tensor, expected)
-#     GRAPH.reset_all()
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)
+
+    var expected = Tensor[dtype](1)
+    fill[dtype, nelts](expected, t1_shape.num_elements())
+
+    assert_tensors_equal(res, expected)
+
+    @parameter
+    fn fill_tensor[size: Int](inout tensor: Tensor[dtype], values: StaticIntTuple[size]):
+        for i in range(tensor.num_elements()):
+            tensor[i] = values[i]
+
+    # Test axis 0
+    alias graph_axis_1 = create_graph(AttributeVector(Attribute("axis", 0)))
+    var model_2 = nn.Model[graph_axis_1]()
+    res = model_2.forward(t1)
+
+    var expected_max_axis_0_temp = StaticIntTuple[6](7, 8, 9, 10, 11, 12)
+    expected = Tensor[dtype](1, 3, 2)
+    fill_tensor(expected, expected_max_axis_0_temp)
+    assert_tensors_equal(res, expected)
+
+    # Test axis 1
+    alias graph_axis_2 = create_graph(AttributeVector(Attribute("axis", 1)))
+    var model_3 = nn.Model[graph_axis_2]()
+    res = model_3.forward(t1)
+
+    var expected_max_axis_1_temp = StaticIntTuple[4](5, 6, 11, 12)
+    expected = Tensor[dtype](2, 1, 2)
+    fill_tensor(expected, expected_max_axis_1_temp)
+    assert_tensors_equal(res, expected)
+
+    # Test axis 2
+    alias graph_axis_3 = create_graph(AttributeVector(Attribute("axis", 2)))
+    var model_4 = nn.Model[graph_axis_3]()
+    res = model_4.forward(t1)
+
+    var expected_max_axis_2_temp = StaticIntTuple[6](2, 4, 6, 8, 10, 12)
+    expected = Tensor[dtype](2, 3, 1)
+    fill_tensor(expected, expected_max_axis_2_temp)
+    assert_tensors_equal(res, expected)
 
 
 # # <------------TRANSPOSE------------>
@@ -341,7 +371,7 @@ fn main():
         test_LOG()
         test_POW()
         test_SUM()
-    #         test_MAX()
+        test_MAX()
     #         test_TRANSPOSE()
         test_FLATTEN()
     #         test_RESHAPE()
