@@ -473,63 +473,77 @@ struct MAX:
         else:
             res[0] = tmax(t)
 
-#     @staticmethod
-#     fn backward[
-#         axis: Int = -1
-#     ](ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[
-#         dtype
-#     ]:
-#         """Backward pass of max operation."""
-#         # This could be changed to something like in tinygrad:
-#         # max_1s = CMPEQ(original_tensor, expanded(max_tensor), axis=axis)
-#         # sum_max_1s = SUM(max_1s)
-#         # div_sum_max_1s = DIV(max_1, sum_max_1s)
+    @staticmethod
+    fn backward[ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of max."""
+        alias axis = attributes["axis"]
 
-#         # The selected element is 1.0, the others are 0.0. And if there are
-#         # multiple max values, the gradient is divided by the number of max
-#         # values (1/n) for each max value.
-#         alias nelts: Int = simdwidthof[dtype]()
-#         var t_node = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])]
-#         var t = t_node.tensor
-#         var strides = calculate_strides(t.shape())
-#         var res = Tensor[dtype](t.shape())
+        @parameter
+        if axis:
+            return Self.backward[ug_shape, t_shape](ug, t, axis.value())
+        else:
+            return Self.backward[ug_shape, t_shape](ug, t)
 
-#         @parameter
-#         if axis == -1:
-#             # ug size is 1
-#             var max_res = tmax[dtype, nelts](t)
-#             var sum_eq: SIMD[dtype, 1] = 0
-#             for i in range(t.num_elements()):
-#                 if t[i] == max_res:
-#                     sum_eq += 1
+    @staticmethod
+    fn backward[ug_shape: TensorShape, t_shape: TensorShape](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of max."""
+        # This could be changed to something like in tinygrad:
+        # max_1s = CMPEQ(original_tensor, expanded(max_tensor), axis=axis)
+        # sum_max_1s = SUM(max_1s)
+        # div_sum_max_1s = DIV(max_1, sum_max_1s)
 
-#             var factor = 1 / sum_eq
-#             for i in range(res.num_elements()):
-#                 if t[i] == max_res:
-#                     res[i] = factor * ug[0]
-#         else:
-#             # max_res.shape == ug.shape
-#             var max_res = tmax[dtype, nelts](t, axis=axis)
+        # The selected element gradient is 1.0, the others are 0.0. And if there are
+        # multiple max values, the gradient is divided by the number of max
+        # values (1/n) for each max value.
 
-#             for i in range(max_res.num_elements()):
-#                 var index_base = (i % strides[axis]) + (i // strides[axis]) * (
-#                     strides[axis] * t.dim(axis)
-#                 )
+        var res_grad = Tensor[dtype](t_shape)
 
-#                 var count_1s: SIMD[dtype, 1] = 0
-#                 # Count the number of values equal to max_res
-#                 for j in range(t.dim(axis)):
-#                     var index = index_base + j * strides[axis]
-#                     if t[index] == max_res[i]:
-#                         count_1s += 1
-#                 # Divide 1.0 by the number of max values (n) and multiply by upper gradient value
-#                 var factor = 1 / count_1s
-#                 for j in range(t.dim(axis)):
-#                     var index = index_base + j * strides[axis]
-#                     if t[index] == max_res[i]:
-#                         res[index] = factor * ug[i]
+        # ug_shape size is 1
+        var max_res = tmax(t)
+        var sum_eq: SIMD[dtype, 1] = 0
+        for i in range(t.num_elements()):
+            if t[i] == max_res:
+                sum_eq += 1
 
-#         return res
+        var factor = 1 / sum_eq
+        for i in range(res_grad.num_elements()):
+            if t[i] == max_res:
+                res_grad[i] = factor * ug[0]
+
+        return res_grad ^
+
+    @staticmethod
+    fn backward[ug_shape: TensorShape, t_shape: TensorShape](ug: Tensor[dtype], t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
+        """Backward operation of max."""
+        # The selected element gradient is 1.0, the others are 0.0. And if there are
+        # multiple max values, the gradient is divided by the number of max
+        # values (1/n) for each max value.
+
+        var res_grad = Tensor[dtype](t_shape)
+        var max_res = Tensor[dtype](ug_shape)
+        var strides = calculate_strides(t.shape())
+
+        tmax(max_res, t, axis)
+
+        for i in range(max_res.num_elements()):
+            var index_base = (i % strides[axis]) + (i // strides[axis]) * (
+                strides[axis] * t.dim(axis)
+            )
+
+            var count_1s: SIMD[dtype, 1] = 0
+            # Count the number of values equal to max_res
+            for j in range(t.dim(axis)):
+                var index = index_base + j * strides[axis]
+                if t[index] == max_res[i]:
+                    count_1s += 1
+            # Divide 1.0 by the number of max values (n) and multiply by upper gradient value
+            var factor = 1 / count_1s
+            for j in range(t.dim(axis)):
+                var index = index_base + j * strides[axis]
+                if t[index] == max_res[i]:
+                    res_grad[index] = factor * ug[i]
+
+        return res_grad ^
 
 
 # ----- Transform operators -----

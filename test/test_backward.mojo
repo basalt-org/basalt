@@ -7,7 +7,7 @@ from test_tensorutils import assert_tensors_equal
 
 # from dainemo.autograd.node import Node
 from dainemo.utils.tensorutils import fill, tsum
-from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, MEAN, FLATTEN, SUM
+from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, MEAN, FLATTEN, SUM, MAX
 from dainemo.autograd.node import Attribute, AttributeVector
 
 alias dtype = DType.float32
@@ -184,7 +184,7 @@ fn test_POW() raises:
 # <------------SUM------------>
 fn test_SUM() raises:
     alias t1_shape = TensorShape(2, 3)
-    alias ug_shape = TensorShape(2, 3)
+    alias ug_shape = TensorShape(1)
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
     fill[dtype, nelts](t1, 1.0)
@@ -232,114 +232,96 @@ fn test_SUM_1() raises:
     assert_tensors_equal(grad1, expected_grad1)
 
 
-# # <------------MAX------------>
-# fn test_MAX() raises:
-#     # SUM ALL ELEMENTS
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3)
-#     fill[dtype, nelts](t1, 1.0)
-#     t1[0] = 2.0
-#     t1[1] = 2.0
+# <------------MAX------------>
+fn test_MAX() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias ug_shape = TensorShape(1)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    fill[dtype, nelts](t1, 1.0)
+    t1[0] = 2.0
+    t1[1] = 2.0
+    fill[dtype, nelts](ug, 9.0)
 
-#     var res = MAX.forward(t1)
+    var grad = MAX.backward[ug_shape, t1_shape](ug, t1)
 
-#     # uppergrad has always to same shape as res
-#     var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
-#     fill[dtype, nelts](upper_grad, 9.0)
-#     var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-#     assert_equal(gn.parents.size, 1)  # one parent
-
-#     var grad1 = gn.backward_fn(upper_grad, gn.parents, 0)
-
-#     var expected_grad1 = Tensor[dtype](2, 3)
-#     expected_grad1[0] = 4.5
-#     expected_grad1[1] = 4.5
-#     assert_tensors_equal(grad1, expected_grad1)
-#     GRAPH.reset_all()
+    var expected_grad = Tensor[dtype](t1_shape)
+    expected_grad[0] = 4.5
+    expected_grad[1] = 4.5
+    assert_tensors_equal(grad, expected_grad)
 
 
-# fn test_MAX_0() raises:
-#     # MAX ALONG AXIS 0
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3, 2)
-#     for i in range(t1.num_elements()):
-#         t1[i] = i + 1
-#     t1[0] = 7.0
+fn test_MAX_0() raises:
+    alias t1_shape = TensorShape(2, 3, 2)
+    alias ug_shape = TensorShape(1, 3, 2)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    for i in range(t1.num_elements()):
+        t1[i] = i + 1
+    t1[0] = 7.0
 
-#     var res = MAX.forward[axis=0](t1)
+    fill[dtype, nelts](ug, 2.0)
 
-#     # uppergrad has always to same shape as res
-#     var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
-#     var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-#     fill[dtype, nelts](upper_grad, 2.0)
-#     assert_equal(gn.parents.size, 1)  # one parent
+    alias attributes = AttributeVector(Attribute("axis", 0))
+    var grad = MAX.backward[ug_shape, t1_shape, attributes](ug, t1)
+    var expected_grad = Tensor[dtype](t1_shape)
+    expected_grad[0] = 1.0
+    expected_grad[6] = 1.0
+    expected_grad[7] = 2.0
+    expected_grad[8] = 2.0
+    expected_grad[9] = 2.0
+    expected_grad[10] = 2.0
+    expected_grad[11] = 2.0
 
-#     var grad1 = gn.backward_fn(upper_grad, gn.parents, 0)
-
-#     var expected_grad1 = Tensor[dtype](2, 3, 2)
-#     expected_grad1[0] = 1.0
-#     expected_grad1[6] = 1.0
-#     expected_grad1[7] = 2.0
-#     expected_grad1[8] = 2.0
-#     expected_grad1[9] = 2.0
-#     expected_grad1[10] = 2.0
-#     expected_grad1[11] = 2.0
-#     assert_tensors_equal(grad1, expected_grad1)
-#     GRAPH.reset_all()
+    assert_tensors_equal(grad, expected_grad)
 
 
-# fn test_MAX_1() raises:
-#     # MAX ALONG AXIS 1
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3, 2)
-#     for i in range(t1.num_elements()):
-#         t1[i] = i + 1
-#     t1[0] = 5.0
+fn test_MAX_1() raises:
+    alias t1_shape = TensorShape(2, 3, 2)
+    alias ug_shape = TensorShape(2, 1, 2)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    for i in range(t1.num_elements()):
+        t1[i] = i + 1
+    t1[0] = 5.0
 
-#     var res = MAX.forward[axis=1](t1)
+    fill[dtype, nelts](ug, 2.0)
 
-#     # uppergrad has always to same shape as res
-#     var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
-#     var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-#     fill[dtype, nelts](upper_grad, 2.0)
-#     assert_equal(gn.parents.size, 1)  # one parent
+    alias attributes = AttributeVector(Attribute("axis", 1))
+    var grad = MAX.backward[ug_shape, t1_shape, attributes](ug, t1)
+    var expected_grad = Tensor[dtype](t1_shape)
+    expected_grad[0] = 1.0
+    expected_grad[4] = 1.0
+    expected_grad[5] = 2.0
+    expected_grad[10] = 2.0
+    expected_grad[11] = 2.0
 
-#     var grad1 = gn.backward_fn(upper_grad, gn.parents, 0)
-
-#     var expected_grad1 = Tensor[dtype](2, 3, 2)
-#     expected_grad1[0] = 1.0
-#     expected_grad1[4] = 1.0
-#     expected_grad1[5] = 2.0
-#     expected_grad1[10] = 2.0
-#     expected_grad1[11] = 2.0
-#     assert_tensors_equal(grad1, expected_grad1)
-#     GRAPH.reset_all()
+    assert_tensors_equal(grad, expected_grad)
 
 
-# fn test_MAX_2() raises:
-#     # MAX ALONG AXIS 2
-#     var t1: Tensor[dtype] = Tensor[dtype](2, 3, 2)
-#     for i in range(t1.num_elements()):
-#         t1[i] = i + 1
-#     t1[0] = 2.0
+fn test_MAX_2() raises:
+    alias t1_shape = TensorShape(2, 3, 2)
+    alias ug_shape = TensorShape(2, 3, 1)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    for i in range(t1.num_elements()):
+        t1[i] = i + 1
+    t1[0] = 2.0
 
-#     var res = MAX.forward[axis=2](t1)
+    fill[dtype, nelts](ug, 2.0)
 
-#     # uppergrad has always to same shape as res
-#     var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
-#     var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-#     fill[dtype, nelts](upper_grad, 2.0)
-#     assert_equal(gn.parents.size, 1)  # one parent
+    alias attributes = AttributeVector(Attribute("axis", 2))
+    var grad = MAX.backward[ug_shape, t1_shape, attributes](ug, t1)
+    var expected_grad = Tensor[dtype](t1_shape)
+    expected_grad[0] = 1.0
+    expected_grad[1] = 1.0
+    expected_grad[3] = 2.0
+    expected_grad[5] = 2.0
+    expected_grad[7] = 2.0
+    expected_grad[9] = 2.0
+    expected_grad[11] = 2.0
 
-#     var grad1 = gn.backward_fn(upper_grad, gn.parents, 0)
-
-#     var expected_grad1 = Tensor[dtype](2, 3, 2)
-#     expected_grad1[0] = 1.0
-#     expected_grad1[1] = 1.0
-#     expected_grad1[3] = 2.0
-#     expected_grad1[5] = 2.0
-#     expected_grad1[7] = 2.0
-#     expected_grad1[9] = 2.0
-#     expected_grad1[11] = 2.0
-#     assert_tensors_equal(grad1, expected_grad1)
-#     GRAPH.reset_all()
+    assert_tensors_equal(grad, expected_grad)
 
 
 # # <------------TRANSPOSE------------>
@@ -420,10 +402,10 @@ fn main():
         test_SUM()
         test_SUM_0()
         test_SUM_1()
-#         test_MAX()
-#         test_MAX_0()
-#         test_MAX_1()
-#         test_MAX_2()
+        test_MAX()
+        test_MAX_0()
+        test_MAX_1()
+        test_MAX_2()
 #         test_TRANSPOSE()
         test_FLATTEN()
 #         test_RESHAPE()

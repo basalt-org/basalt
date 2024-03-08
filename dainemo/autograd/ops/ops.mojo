@@ -220,10 +220,12 @@ fn backward_op[
         res_grad = LOG.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.MEAN:
         res_grad = MEAN.backward[ug_shape, t1_shape](ug, t1)
-    # elif op == OP.SUM:
-    #     res_grad = SUM.backward[ug_shape, t1_shape, attributes](ug, t1)
+    elif op == OP.SUM:
+        res_grad = SUM.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.FLATTEN:
         res_grad = FLATTEN.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.MAX:
+        res_grad = MAX.backward[ug_shape, t1_shape, attributes](ug, t1)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1)
