@@ -389,15 +389,18 @@ struct MEAN(UnaryOperator):
             res[0] = tmean(t)
 
     @staticmethod
-    fn forward[t_shape: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
-        """
-        Forward pass of the mean operation.
-        """
-
-        var res_simd = tmean(t)
+    fn backward[
+        ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector
+    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of mean."""
         
-        # there is only one value in the result tensor because wher are not using a specific axis to calculate the mean
-        res[0] = res_simd
+        alias axis = attributes["axis"]
+
+        @parameter
+        if axis:
+            return Self.backward[ug_shape, t_shape](ug, t, axis.value())
+        else:
+            return Self.backward[ug_shape, t_shape](ug, t)
 
     @staticmethod
     fn backward[
@@ -415,7 +418,23 @@ struct MEAN(UnaryOperator):
         fn v_mean_d[nelts: Int](i: Int):
             res_grad.simd_store[nelts](i, grad)
 
-        vectorize[v_mean_d, nelts](ug_shape.num_elements())
+        vectorize[v_mean_d, nelts](t_shape.num_elements())
+
+        return res_grad ^
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape, t_shape: TensorShape
+    ](ug: Tensor[dtype], t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
+        """Backward operation of mean."""
+        # d(mean(t)) / dt = 1 / t.dim(axis)
+        var res_grad = Tensor[dtype](t_shape)
+
+        var grad: SIMD[dtype, 1] = 1.0 / t_shape[axis]
+
+        fill[dtype, nelts](res_grad, grad)
+
+        elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
 
         return res_grad ^
 
@@ -546,7 +565,7 @@ struct MAX:
         var max_res = Tensor[dtype](ug_shape)
         var strides = calculate_strides(t.shape())
 
-        tmax(max_res, t, axis)
+        tmax(max_res, t, axis) # To not calculate this again we could receive the result of the forward pass as a parameter
 
         for i in range(max_res.num_elements()):
             var index_base = (i % strides[axis]) + (i // strides[axis]) * (
