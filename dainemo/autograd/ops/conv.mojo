@@ -1,33 +1,32 @@
-# from tensor import Tensor, TensorShape
-# from math import floor, max
+from tensor import TensorShape
 
 # from dainemo import GRAPH
 # from dainemo.autograd.node import Node
 # from dainemo.utils.tensorutils import calculate_strides
 
 
-# # <------------GENERAL CONV METHODS------------>
-# @always_inline
-# fn get_result_shape[
-#     padding: StaticIntTuple[2], stride: StaticIntTuple[2], dilation: StaticIntTuple[2]
-# ](input_shape: TensorShape, kernel_shape: TensorShape) -> StaticIntTuple[2]:
-#     """
-#     Calculates the X and Y dimensions of the resulting convolution.
-#     Dimensions X, Y are on the end of the shape (..., X, Y)
-#         dimension X on index -2.
-#         dimension Y on index -1.
-#     """
+# <------------GENERAL CONV METHODS------------>
+@always_inline
+fn get_result_shape[
+    padding: StaticIntTuple[2], stride: StaticIntTuple[2], dilation: StaticIntTuple[2]
+](input_shape: TensorShape, kernel_shape: TensorShape) -> StaticIntTuple[2]:
+    """
+    Calculates the X and Y dimensions of the resulting convolution.
+    Dimensions X, Y are on the end of the shape (..., X, Y)
+        dimension X on index -2.
+        dimension Y on index -1.
+    """
 
-#     var result_x_dim = (
-#         (input_shape[-2] + (2 * padding[0]) - dilation[0] * (kernel_shape[-2] - 1) - 1)
-#         // stride[0]
-#     ) + 1
-#     var result_y_dim = (
-#         (input_shape[-1] + (2 * padding[1]) - dilation[1] * (kernel_shape[-1] - 1) - 1)
-#         // stride[1]
-#     ) + 1
+    var result_x_dim = (
+        (input_shape[-2] + (2 * padding[0]) - dilation[0] * (kernel_shape[-2] - 1) - 1)
+        // stride[0]
+    ) + 1
+    var result_y_dim = (
+        (input_shape[-1] + (2 * padding[1]) - dilation[1] * (kernel_shape[-1] - 1) - 1)
+        // stride[1]
+    ) + 1
 
-#     return StaticIntTuple[2](result_x_dim, result_y_dim)
+    return StaticIntTuple[2](result_x_dim, result_y_dim)
 
 
 # # <------------CONV2D------------>

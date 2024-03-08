@@ -1,5 +1,5 @@
 from math import add
-from tensor import Tensor, TensorShape
+from tensor import TensorShape
 from dainemo.utils.tensorutils import fill, elwise_op
 
 alias dtype = DType.float32

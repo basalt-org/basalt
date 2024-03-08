@@ -4,7 +4,7 @@ from algorithm import vectorize
 from memory import memcpy
 
 from dainemo.utils.tensorutils import *
-from dainemo.autograd.node import Attribute, AttributeVector
+from dainemo.autograd.attributes import Attribute, AttributeVector
 
 """
 Implement forward and backward operations for basic tensor manipulations.

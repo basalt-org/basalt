@@ -1,5 +1,5 @@
 # from utils.index import Index
-# from tensor import Tensor, TensorShape
+# from tensor import TensorShape
 
 # import dainemo.nn as nn
 # from dainemo.autograd.node import Node

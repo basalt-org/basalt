@@ -1,4 +1,4 @@
-# from tensor import Tensor, TensorShape
+# from tensor import TensorShape
 # from random import rand
 # from math import sqrt
 # from python import Python

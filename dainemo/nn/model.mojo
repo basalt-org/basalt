@@ -68,14 +68,18 @@ struct Model[
         fn fw_unroll[i: Int]():
             res_idx = self.parameters.params_map.get(str(g.nodes[i].output.name), -1)
             in1_idx = self.parameters.params_map.get(str(g.nodes[i].input_1.name), -1)
-            in2_idx = self.parameters.params_map.get(str(g.nodes[i].input_2.value().name), -1)
 
-            if in2_idx == -1:
+            @parameter
+            if g.nodes[i].operator.num_operands == 1:
+                # Unary operator
                 forward_op[g.nodes[i].operator, g.nodes[i].input_1.shape(), g.nodes[i].attributes](
                     __get_address_as_lvalue(self.parameters.params.offset(res_idx).address),
                     __get_address_as_lvalue(self.parameters.params.offset(in1_idx).address)
                 )
             else:
+                # Binary operator
+                in2_idx = self.parameters.params_map.get(str(g.nodes[i].input_2.value().name), -1)
+
                 forward_op[g.nodes[i].operator, g.nodes[i].input_1.shape(), g.nodes[i].input_2.value().shape(), g.nodes[i].attributes](
                     __get_address_as_lvalue(self.parameters.params.offset(res_idx).address),
                     __get_address_as_lvalue(self.parameters.params.offset(in1_idx).address),
@@ -113,15 +117,14 @@ struct Model[
         fn bw_unroll[i: Int]():
             alias reverse_i = g.nodes.size - i - 1
             grad_ug_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].output.name), -1)
-            grad_in1_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_1.name), -1)
-            grad_in2_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_2.value().name), -1)
             tensor_in1_idx = self.parameters.params_map.get(str(g.nodes[reverse_i].input_1.name), -1)
-            tensor_in2_idx = self.parameters.params_map.get(str(g.nodes[reverse_i].input_2.value().name), -1)
-
-            # If input_1 or input_2 does not require gradient, grad_in1_idx or grad_in2_idx will be -1
-            # Because they were not added to the keys of grad_map
-            if tensor_in2_idx == -1:
-                if grad_in1_idx != -1:
+            
+            @parameter
+            if g.nodes[reverse_i].operator.num_operands == 1:
+                # Unary operator
+                @parameter
+                if g.nodes[reverse_i].input_1.requires_grad:
+                    grad_in1_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_1.name), -1)
                     backward_op[ 
                         0,
                         g.nodes[reverse_i].operator,
@@ -134,7 +137,12 @@ struct Model[
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_in1_idx).address),     # grad to be updated: input_1
                     )
             else:
-                if grad_in1_idx != -1:
+                # Binary operator
+                tensor_in2_idx = self.parameters.params_map.get(str(g.nodes[reverse_i].input_2.value().name), -1)
+                
+                @parameter
+                if g.nodes[reverse_i].input_1.requires_grad:
+                    grad_in1_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_1.name), -1)
                     backward_op[ 
                         0,
                         g.nodes[reverse_i].operator,
@@ -148,13 +156,16 @@ struct Model[
                         __get_address_as_lvalue(self.parameters.params.offset(tensor_in2_idx).address),
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_in1_idx).address),     # grad to be updated: input_1
                     )
-                if grad_in2_idx != -1:
+                
+                @parameter
+                if g.nodes[reverse_i].input_2.value().requires_grad:
+                    grad_in2_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_2.value().name), -1)
                     backward_op[ 
                         1,
                         g.nodes[reverse_i].operator,
                         g.nodes[reverse_i].output.shape(),              # uppergrad shape
                         g.nodes[reverse_i].input_1.shape(),             # input_1 shape
-                        g.nodes[reverse_i].input_2.value().shape(),      # input_2 shape
+                        g.nodes[reverse_i].input_2.value().shape(),     # input_2 shape
                         g.nodes[reverse_i].attributes,
                     ](
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_ug_idx).address),

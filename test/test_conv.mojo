@@ -1,5 +1,5 @@
 # from python.python import Python
-# from tensor import Tensor, TensorShape
+# from tensor import TensorShape
 # from testing import assert_equal
 # from utils.index import Index
 # from random import rand

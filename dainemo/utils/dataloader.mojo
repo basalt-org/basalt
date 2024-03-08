@@ -1,4 +1,4 @@
-from tensor import Tensor, TensorShape
+from tensor import TensorShape
 from testing import assert_equal
 from algorithm import parallelize, vectorize
 from utils.index import Index

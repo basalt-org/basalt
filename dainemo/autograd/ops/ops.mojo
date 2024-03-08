@@ -15,29 +15,31 @@ struct OP:
     Compile time Operators list.
     """
 
-    alias ADD = OP(0, "ADD")
-    alias SUB = OP(1, "SUB")
-    alias MUL = OP(2, "MUL")
-    alias DIV = OP(3, "DIV")
-    alias EXP = OP(4, "EXP")
-    alias LOG = OP(5, "LOG")
-    alias POW = OP(6, "POW")
-    alias DOT = OP(7, "DOT")
-    alias SUM = OP(8, "SUM")
-    alias MEAN = OP(9, "MEAN")
-    alias MAX = OP(10, "MAX")
-    alias FLATTEN = OP(11, "FLATTEN")
-    alias RESHAPE = OP(12, "RESHAPE")
-    alias SIGMOID = OP(13, "SIGMOID")
-    alias RELU = OP(14, "RELU")
-    alias TANH = OP(15, "TANH")
+    alias ADD = OP(0, "ADD", num_operands=2)
+    alias SUB = OP(1, "SUB", num_operands=2)
+    alias MUL = OP(2, "MUL", num_operands=2)
+    alias DIV = OP(3, "DIV", num_operands=2)
+    alias EXP = OP(4, "EXP", num_operands=1)
+    alias LOG = OP(5, "LOG", num_operands=1)
+    alias POW = OP(6, "POW", num_operands=2)
+    alias DOT = OP(7, "DOT", num_operands=2)
+    alias SUM = OP(8, "SUM", num_operands=1)
+    alias MEAN = OP(9, "MEAN", num_operands=1)
+    alias MAX = OP(10, "MAX", num_operands=1)
+    alias FLATTEN = OP(11, "FLATTEN", num_operands=1)
+    alias RESHAPE = OP(12, "RESHAPE", num_operands=1)
+    alias SIGMOID = OP(13, "SIGMOID", num_operands=1)
+    alias RELU = OP(14, "RELU", num_operands=1)
+    alias TANH = OP(15, "TANH", num_operands=1)
 
     var id: UInt8
     var name: bytes[8]
+    var num_operands: UInt8
 
-    fn __init__(inout self, id: UInt8, name: String):
+    fn __init__(inout self, id: UInt8, name: String, num_operands: UInt8):
         self.id = id
         self.name = bytes[8](name)
+        self.num_operands = num_operands
 
     fn __eq__(self, other: OP) -> Bool:
         return self.id == other.id

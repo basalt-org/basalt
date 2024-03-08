@@ -1,4 +1,4 @@
-# from tensor import Tensor
+from tensor import TensorShape
 # from random import rand
 # from math import sqrt
 
@@ -7,6 +7,47 @@
 # from dainemo.autograd.node import Node
 # from dainemo.autograd.ops.conv import CONV2D
 # from dainemo.utils.tensorutils import rand_uniform
+
+
+
+def Conv2d(
+    inout g: Graph,
+    in_channels: Int,
+    out_channels: Int,
+    kernel_size: StaticIntTuple[2],
+    padding: StaticIntTuple[2] = 0,
+    stride: StaticIntTuple[2] = 1,
+    dilation: StaticIntTuple[2] = 1,
+):
+    """
+    A 2D Convolution Layer.
+
+    Parameters
+        inputs.shape     [batch, in_channels, X, Y]
+        kernel.shape     [out_channels, in_channels, X, Y] (or weights)
+        bias.shape       [out_channels].
+        output.shape     [batch, out_channels, X, Y].
+    """
+
+    # TODO proper initialization of weights and bias parameters
+    var weights = g.param(TensorShape(out_channels, in_channels, kernel_size[0], kernel_size[1]))
+    var bias = g.param(TensorShape(out_channels))
+
+
+    
+#             rand_uniform[dtype, nelts](
+#                 TensorShape(out_channels, in_channels, kernel_size.get[0, Int](), kernel_size.get[1, Int]()),
+#                 -1/sqrt(k), 1/sqrt(k)
+#             ),
+#             requires_grad=True,
+#             param=True,
+#         )
+#         self.bias = Node[dtype](
+#             rand_uniform[dtype, nelts](TensorShape(out_channels), -1/sqrt(k), 1/sqrt(k)),
+#             requires_grad=True, 
+#             param=True
+#         )
+
 
 
 # # <------------CONV2D------------>

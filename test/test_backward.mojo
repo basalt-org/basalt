@@ -1,5 +1,5 @@
 # from random import rand
-from tensor import Tensor, TensorShape
+from tensor import TensorShape
 from math import log, exp
 from testing import assert_true, assert_equal
 from test_tensorutils import assert_tensors_equal

@@ -2,7 +2,8 @@ from python.python import Python
 from tensor import TensorShape
 from collections.optional import Optional
 
-from .node import Node, AttributeVector, Attribute
+from .node import Node
+from .attributes import AttributeVector, Attribute
 from .symbol import Symbol
 from .ops import OP, static_result_shape
 from .constant import Constant, ConstantDict

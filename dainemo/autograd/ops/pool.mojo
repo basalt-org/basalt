@@ -1,4 +1,4 @@
-# from tensor import Tensor, TensorShape
+# from tensor import TensorShape
 # from math import floor, min , max
 # from math.limit import neginf
 
