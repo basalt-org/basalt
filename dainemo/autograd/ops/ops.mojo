@@ -40,7 +40,7 @@ struct OP:
 
 
 fn static_result_shape(
-    op: OP, t1_shape: TensorShape, owned attributes: AttributeVector
+    op: OP, t1_shape: TensorShape, attributes: AttributeVector
 ) -> TensorShape:
     """
     Static result shape for unary operators.
@@ -64,7 +64,7 @@ fn static_result_shape(
     op: OP,
     t1_shape: TensorShape,
     t2_shape: TensorShape,
-    owned attributes: AttributeVector,
+    attributes: AttributeVector,
 ) -> TensorShape:
     """
     Static result shape for binary operators.
@@ -119,9 +119,6 @@ fn forward_op[
     Forward pass for unary operators.
     """
 
-    # elif op == OP.SUM:
-    #     SUM.forward[t1_shape, attributes](res, t1)
-
     @parameter
     if op == OP.EXP:
         EXP.forward[t1_shape](res, t1)
@@ -129,6 +126,8 @@ fn forward_op[
         LOG.forward[t1_shape](res, t1)
     elif op == OP.MEAN:
         MEAN.forward[t1_shape](res, t1)
+    elif op == OP.SUM:
+        SUM.forward[t1_shape, attributes](res, t1)
     elif op == OP.FLATTEN:
         FLATTEN.forward[t1_shape](res, t1)
     else:
@@ -211,9 +210,6 @@ fn backward_op[
     """
     var res_grad: Tensor[dtype]  # Resulting gradient of the operation
 
-    # elif op == OP.SUM:
-    #     res_grad = SUM.backward[ug_shape, t1_shape, attributes](ug, t1)
-
     @parameter
     if op == OP.EXP:
         res_grad = EXP.backward[ug_shape, t1_shape](ug, t1)
@@ -221,6 +217,8 @@ fn backward_op[
         res_grad = LOG.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.MEAN:
         res_grad = MEAN.backward[ug_shape, t1_shape](ug, t1)
+    # elif op == OP.SUM:
+    #     res_grad = SUM.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.FLATTEN:
         res_grad = FLATTEN.backward[ug_shape, t1_shape](ug, t1)
     else:

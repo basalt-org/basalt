@@ -379,13 +379,13 @@ fn reduce[
     return reduce_op(m)
 
 
-fn get_reduce_shape(t: Tensor[dtype], axis: Int) -> TensorShape:
+fn get_reduce_shape(t: TensorShape, axis: Int) -> TensorShape:
     var new_shape = DynamicVector[Int](capacity=t.rank())
     for i in range(t.rank()):
         if i == axis:
             new_shape.push_back(1)
         else:
-            new_shape.push_back(t.dim(i))
+            new_shape.push_back(t[i])
     return TensorShape(new_shape)
 
 
@@ -474,7 +474,7 @@ fn tmean(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 
 @always_inline
 fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
-    var mu = Tensor[dtype](get_reduce_shape(t, axis))
+    var mu = Tensor[dtype](get_reduce_shape(t.shape(), axis))
     tmean(mu, t, axis)
 
     var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)    

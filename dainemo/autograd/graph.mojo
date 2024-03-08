@@ -64,7 +64,7 @@ struct Graph:
 
         return symbol
 
-    fn op(inout self, op: OP, operand_1: Symbol, operand_2: Optional[Symbol] = None, owned attributes: AttributeVector = AttributeVector()) -> Symbol:
+    fn op(inout self, op: OP, operand_1: Symbol, operand_2: Optional[Symbol] = None, attributes: AttributeVector = AttributeVector()) -> Symbol:
         var res: Symbol
         if operand_2:
             res = Symbol(
@@ -81,10 +81,10 @@ struct Graph:
                 self.result_requires_grad(operand_1),
             )
 
-        self.nodes.push_back(Node(op, res, operand_1, operand_2.take(), attributes ^))
+        self.nodes.push_back(Node(op, res, operand_1, operand_2.take(), attributes))
         return res ^
 
-    fn op(inout self, op: OP, operand_1: Symbol, operand_2: FloatLiteral, owned attributes: AttributeVector = AttributeVector()) -> Symbol:
+    fn op(inout self, op: OP, operand_1: Symbol, operand_2: FloatLiteral, attributes: AttributeVector = AttributeVector()) -> Symbol:
         var operand_2_symbol = self.scalar(operand_2)
         var res = Symbol(
             self.uuid.next(),
@@ -93,10 +93,10 @@ struct Graph:
             self.result_requires_grad(operand_1),
         )
 
-        self.nodes.push_back(Node(op, res, operand_1, operand_2_symbol, attributes ^))
+        self.nodes.push_back(Node(op, res, operand_1, operand_2_symbol, attributes))
         return res ^
 
-    fn op(inout self, op: OP, operand_1: FloatLiteral, operand_2: Symbol, owned attributes: AttributeVector = AttributeVector()) -> Symbol:
+    fn op(inout self, op: OP, operand_1: FloatLiteral, operand_2: Symbol, attributes: AttributeVector = AttributeVector()) -> Symbol:
         var operand_1_symbol = self.scalar(operand_1)
         var res = Symbol(
             self.uuid.next(),
@@ -105,7 +105,7 @@ struct Graph:
             self.result_requires_grad(operand_2),
         )
 
-        self.nodes.push_back(Node(op, res, operand_1_symbol, operand_2, attributes ^))
+        self.nodes.push_back(Node(op, res, operand_1_symbol, operand_2, attributes))
         return res ^
 
     @staticmethod

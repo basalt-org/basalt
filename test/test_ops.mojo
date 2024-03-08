@@ -205,11 +205,11 @@ fn test_SUM() raises:
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     fill[dtype, nelts](t1, 1.0)
 
-    fn create_graph(owned attributes: AttributeVector = AttributeVector()) -> Graph:
+    fn create_graph(attributes: AttributeVector = AttributeVector()) -> Graph:
         var g = Graph()
         var t1 = g.input(t1_shape)
 
-        var res = g.op(OP.SUM, t1, attributes=attributes ^)
+        var res = g.op(OP.SUM, t1, attributes=attributes)
         _ = g.out(res)
 
         return g ^
@@ -222,28 +222,17 @@ fn test_SUM() raises:
 
     var expected = Tensor[dtype](1)
     fill[dtype, nelts](expected, 24.0)
-
     assert_tensors_equal(res, expected)
 
     # Test axis 1
-    fn create_graph_with_axis_1() -> Graph:
-        var attributes = AttributeVector(Attribute("axis", 1)) # Creating an attribute vector with attributes causes unexpected errors, like it moves the memory pointers of objects and variables in the program. In this simple test the problem is that the graph.nodes[0].operator.name is not "SUM" is empty (probably the operator value is just trash memory)
-        
-        var g = create_graph(attributes ^)
-
-        return g ^
-
-    # alias attributes_axis = AttributeVector(Attribute("axis", 1)) # This doesn't work, lifetimes work very strange at comptime for now it seems
-    alias graph_axis_1 = create_graph_with_axis_1()
-    print(graph_axis_1.nodes[0].operator.name)
-
+    alias graph_axis_1 = create_graph(AttributeVector(Attribute("axis", 1)))
     var model_2 = nn.Model[graph_axis_1]()
     res = model_2.forward(t1)
 
     expected = Tensor[dtype](2, 1, 4)
-    fill[dtype, nelts](expected, 1.0)
+    fill[dtype, nelts](expected, 3.0)
 
-    # assert_tensors_equal(res, expected)
+    assert_tensors_equal(res, expected)
 
 
 # # <------------MAX------------>
@@ -351,7 +340,7 @@ fn main():
         test_EXP()
         test_LOG()
         test_POW()
-        # test_SUM()
+        test_SUM()
     #         test_MAX()
     #         test_TRANSPOSE()
         test_FLATTEN()

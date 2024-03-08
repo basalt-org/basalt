@@ -3,41 +3,58 @@ from utils.variant import Variant
 
 from dainemo.autograd import Symbol
 from dainemo.autograd.ops import OP
+from dainemo.utils.uuid import bytes
+from math import min
+
+
+alias max_attrs = 10
+alias max_attr_chars = 32
 
 
 @value
-struct AttributeVector:
-    var attributes: DynamicVector[Attribute]
+@register_passable
+struct AttributeVector(Sized, Stringable, CollectionElement):
+    var _attrs: StaticTuple[max_attrs, Attribute]
+    var _size: Int
 
-    fn __init__(inout self, owned *attributes: Attribute):
-        self.attributes = DynamicVector[Attribute]()
-
-        if len(attributes) > 0:
-            for a in attributes:
-                self.attributes.push_back(a[])
+    fn __init__(inout self, *attributes: Attribute):
+        self._attrs = StaticTuple[max_attrs, Attribute]()
+        self._size = min(max_attrs, len(attributes))
+        for i in range(self._size):
+            self._attrs[i] = attributes[i]
 
     fn __len__(self) -> Int:
-        return len(self.attributes)
+        return self._size
 
     fn __getitem__(self, index: Int) -> Attribute:
-        return self.attributes[index]
+        return self._attrs[index]
 
-    fn __getitem__(self, index: StringLiteral) -> Optional[Attribute]:
-        for a in self.attributes:
-            if a[].name == index:
-                return a[]
+    fn __getitem__(self, index: StringLiteral) -> Optional[Int]:
+        for i in range(self._size):
+            if self._attrs[i].name == bytes[max_attr_chars](index):
+                return self._attrs[i].value
         return None
+
+    fn __str__(self) -> String:
+        var s: String = "["
+        for i in range(self._size):
+            s += str(self._attrs[i])
+            if i < self._size - 1: s += ", "
+        return s + "]"
 
 
 @value
-struct Attribute(CollectionElement):
-    alias T = Variant[Int]
-    var name: String
-    var value: Self.T
+@register_passable
+struct Attribute(Stringable):
+    var name: bytes[max_attr_chars] # defines the maximum number of characters in the string
+    var value: Int # Variant doesn't seem to be register passable
 
     fn __init__(inout self, name: String, value: Int):
-        self.name = name
-        self.value = Self.T(value)
+        self.name = bytes[max_attr_chars](name)
+        self.value = value
+
+    fn __str__(self) -> String:
+        return "Attribute(" + str(self.name) + ", " + str(self.value) + ")"
 
 
 @value
@@ -67,7 +84,7 @@ struct Node(CollectionElement, Stringable):
         output: Symbol,
         input_1: Symbol,
         input_2: Optional[Symbol],
-        owned attributes: AttributeVector,
+        attributes: AttributeVector,
     ):
         self.operator = operator
         self.output = output
