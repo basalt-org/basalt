@@ -29,14 +29,12 @@ struct OP:
     var id: UInt8
     var name: bytes[8]
 
-    fn __init__(id: UInt8, name: String) -> Self:
-        return Self {id: id, name: bytes[8](name)}
+    fn __init__(inout self, id: UInt8, name: String):
+        self.id = id
+        self.name = bytes[8](name)
 
     fn __eq__(self, other: OP) -> Bool:
         return self.id == other.id
-
-    fn __copyinit__(other: OP) -> Self:
-        return Self {id: other.id, name: other.name}
 
 
 fn static_result_shape(

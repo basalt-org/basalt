@@ -11,17 +11,17 @@ struct bytes[
     """
     var _vector: StaticTuple[capacity, UInt8]
 
-    fn __init__() -> Self:
+    fn __init__(inout self):
         var _vector = StaticTuple[capacity, UInt8]()
         for i in range(capacity):
             _vector[i] = 0
-        return Self{_vector: _vector}
+        self._vector = _vector
 
-    fn __init__(s: String) -> Self:
+    fn __init__(inout self, s: String):
         var _vector = StaticTuple[capacity, UInt8]()
         for i in range(min(len(s), capacity)):
             _vector[i] = ord(s[i])
-        return Self{_vector: _vector}
+        self._vector = _vector
 
     fn __len__(self) -> Int:
         return len(self._vector)
@@ -127,8 +127,8 @@ fn random_ui8(inout MT: StaticTuple[624, Int32], inout index: Int) -> UInt8:
 struct ID(Stringable, CollectionElement):
     var bytes: bytes[16]
 
-    fn __init__() -> Self:
-        return Self{bytes: bytes[16]()}
+    fn __init__(inout self):
+        self.bytes = bytes[16]()
 
     fn __len__(self) -> Int:
         return 16

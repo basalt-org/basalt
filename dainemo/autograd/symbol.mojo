@@ -14,23 +14,33 @@ struct Symbol(CollectionElement, Stringable):
     var requires_grad: Bool
     var is_constant: Bool
 
-    fn __init__(name: ID, rank: Int, dtype: DType, static_shape: StaticIntTuple[max_rank], requires_grad: Bool, is_constant: Bool = False) -> Self:
-        return Self{name: name, rank: rank, dtype: dtype, static_shape: static_shape, requires_grad: requires_grad, is_constant: is_constant}
+    fn __init__(inout self, name: ID, rank: Int, dtype: DType, static_shape: StaticIntTuple[max_rank], requires_grad: Bool, is_constant: Bool = False):
+        self.name = name
+        self.rank = rank
+        self.dtype = dtype
+        self.static_shape = static_shape
+        self.requires_grad = requires_grad
+        self.is_constant = is_constant
     
-    fn __init__(name: ID, dtype: DType, tensor_shape: TensorShape, requires_grad: Bool, is_constant: Bool = False) -> Self:
-        var static_shape = StaticIntTuple[max_rank]()
+    fn __init__(inout self, name: ID, dtype: DType, tensor_shape: TensorShape, requires_grad: Bool, is_constant: Bool = False):
+        self.name = name
+        self.rank = tensor_shape.rank()
+        self.dtype = dtype
+        self.static_shape = StaticIntTuple[max_rank]()
         for i in range(tensor_shape.rank()):
-            static_shape[i] = tensor_shape[i]
+            self.static_shape[i] = tensor_shape[i]
+        self.requires_grad = requires_grad
+        self.is_constant = is_constant
 
-        return Self{name: name, rank: tensor_shape.rank(), dtype: dtype, static_shape: static_shape, requires_grad: requires_grad, is_constant: is_constant}
-
-    fn __init__(name: ID, dtype: DType) -> Self:
-        var rank = 1
-        var static_shape = StaticIntTuple[max_rank]()
-        for i in range(rank):
-            static_shape[i] = 1
-
-        return Self{name: name, rank: rank, dtype: dtype, static_shape: static_shape, requires_grad: False, is_constant: True}
+    fn __init__(inout self, name: ID, dtype: DType):
+        self.name = name
+        self.rank = 1
+        self.dtype = dtype
+        self.static_shape = StaticIntTuple[max_rank]()
+        for i in range(self.rank):
+            self.static_shape[i] = 1
+        self.requires_grad = False
+        self.is_constant = True
 
     fn __eq__(self, other: Self) -> Bool:
         return self.name == other.name

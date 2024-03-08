@@ -3,7 +3,7 @@ from dainemo.autograd import Symbol
 
 
 @value
-@register_passable("trivial")
+@register_passable
 struct Constant[dtype: DType](CollectionElement, Stringable):
     # TODO: To support general constant (instead of only scalars) find a way to store the data for any size!, which is register passable
     # I tried to do it using DTypePointer. This worked and compiled. 
@@ -13,17 +13,20 @@ struct Constant[dtype: DType](CollectionElement, Stringable):
     var rank: Int
     var static_shape: StaticIntTuple[max_rank]
 
-    fn __init__(a: SIMD[dtype, 1]) -> Self:
-        var data = StaticTuple[1, SIMD[dtype, 1]](a)
-        return Self{data: data, rank: 1, static_shape: StaticIntTuple[max_rank](1)}
+    fn __init__(inout self, a: SIMD[dtype, 1]):
+        self.data = StaticTuple[1, SIMD[dtype, 1]](a)
+        self.rank = 1
+        self.static_shape = StaticIntTuple[max_rank](1)
 
-    fn __init__(a: Int) -> Self:
-        var data = StaticTuple[1, SIMD[dtype, 1]](a)
-        return Self{data: data, rank: 1, static_shape: StaticIntTuple[max_rank](1)}
+    fn __init__(inout self, a: Int):
+        self.data = StaticTuple[1, SIMD[dtype, 1]](a)
+        self.rank = 1
+        self.static_shape = StaticIntTuple[max_rank](1)
 
-    fn __init__(a: IntLiteral) -> Self:
-        var data = StaticTuple[1, SIMD[dtype, 1]](a)
-        return Self{data: data, rank: 1, static_shape: StaticIntTuple[max_rank](1)}
+    fn __init__(inout self, a: IntLiteral):
+        self.data = StaticTuple[1, SIMD[dtype, 1]](a)
+        self.rank = 1
+        self.static_shape = StaticIntTuple[max_rank](1)
 
     fn __getitem__(self, i: Int) -> SIMD[dtype, 1]:
         return self.data[i]
