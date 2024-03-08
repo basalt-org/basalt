@@ -10,14 +10,14 @@ from dainemo.utils.dataloader import DataLoader
 
 fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
 
-    # PyTorch: 1/2N * sum( (outputs - targets)^2 )
+    # 1/N * sum( (outputs - targets)^2 )
 
     var diff = g.op(OP.SUB, y_true, y_pred)
     var loss = g.op(OP.POW, diff, 2)
     var mean_loss = g.op(OP.MEAN, loss)
-    var mean_loss_2 = g.op(OP.DIV, mean_loss, 2)
+    # var mean_loss_2 = g.op(OP.DIV, mean_loss, 2)
 
-    return mean_loss_2 ^
+    return mean_loss ^
 
 
 

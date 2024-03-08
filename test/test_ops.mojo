@@ -7,21 +7,6 @@ from math import exp, log
 from dainemo import Graph, Symbol, OP
 import dainemo.nn as nn
 from dainemo.autograd.attributes import Attribute, AttributeVector
-# from dainemo.autograd.ops.basics import (
-    # ADD,
-    # SUB,
-    # MUL,
-    # DIV,
-    # DOT,
-    # EXP,
-    # LOG,
-    # POW,
-    # SUM,
-    # MAX,
-    # TRANSPOSE,
-    # FLATTEN,
-    # RESHAPE,
-# )
 from dainemo.utils.tensorutils import fill
 
 alias dtype = DType.float32

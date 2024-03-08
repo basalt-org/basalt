@@ -1,107 +1,158 @@
-# from tensor import Tensor, TensorShape
-# from math import sub, mul, exp, max, pow, div
+from algorithm import vectorize
+from tensor import TensorShape
+from math import exp, pow
 
-# from dainemo import GRAPH
-# from dainemo.autograd.node import Node
-# from dainemo.utils.tensorutils import (
-#     elwise_op,
-#     elwise_transform,
-#     fill,
-#     tsum,
-#     tmax,
-# )
+from dainemo.utils.tensorutils import (
+    elwise_transform,
+    # tsum,
+    # tmax,
+)
 
 
-# # --------------UNARY OPERATORS----------------
+# --------------UNARY OPERATORS----------------
 
 
-# # <------------SIGMOID------------>
-# struct SIGMOID:
-#     @staticmethod
-#     fn sigmoid[
-#         type: DType, simd_width: Int
-#     ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
-#         return 1 / (1 + exp(-x))
+# <------------SIGMOID------------>
+@value
+struct SIGMOID:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape) -> TensorShape:
+        return t1_shape
 
-#     @staticmethod
-#     fn forward(n: Node[dtype]) -> Node[dtype]:
-#         """Forward operation of sigmoid."""
-#         var res: Tensor[dtype] = elwise_transform[dtype, nelts, SIGMOID.sigmoid](
-#             n.tensor
-#         )
-#         return GRAPH.create_graph_node[Self.backward](res, n)
+    @staticmethod
+    @always_inline
+    fn sigmoid[
+        type: DType, simd_width: Int
+    ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+        return 1 / (1 + exp(-x))
 
-#     @staticmethod
-#     fn backward(
-#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-#     ) -> Tensor[dtype]:
-#         """Backward operation of sigmoid."""
-#         # d(sigmod(x))/dx = sigmoid(x) * (1 - sigmoid(x))
-#         var t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
-#         # sigmoid(x)
-#         var sigmoid_res = elwise_transform[dtype, nelts, SIGMOID.sigmoid](t)
-#         # 1 - sigmoid(x)
-#         var sub_res = elwise_op[dtype, nelts, sub](SIMD[dtype, 1](1), sigmoid_res)
-#         # sigmoid(x) * (1 - sigmoid(x))
-#         var res = elwise_op[dtype, nelts, mul](sigmoid_res, sub_res)
+    @staticmethod
+    @always_inline
+    fn sidmoid_bw[
+        type: DType, simd_width: Int
+    ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+        return Self.sigmoid(x) * (1 - Self.sigmoid(x))
 
-#         return elwise_op[dtype, nelts, mul](ug, res)
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        """Forward operation of sigmoid."""
+        elwise_transform[Self.sigmoid](res, t1)
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of sigmoid."""
+        # d(sigmod(x))/dx = sigmoid(x) * (1 - sigmoid(x))
+        var res_grad = Tensor[dtype](ug_shape)
+        
+        @parameter
+        fn vec_sigmoid_bw[nelts: Int](idx: Int):
+            res_grad.simd_store[nelts](idx,
+                Self.sidmoid_bw(t1.simd_load[nelts](idx)) * ug.simd_load[nelts](idx)
+            )
+
+        vectorize[vec_sigmoid_bw, nelts](ug_shape.num_elements())
+
+        return res_grad ^
+        
+
+# <------------RELU------------>
+struct RELU:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape) -> TensorShape:
+        return t1_shape
+
+    @staticmethod
+    @always_inline
+    fn relu[
+        type: DType, simd_width: Int
+    ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+        return x if x > 0 else 0    
+    
+    @staticmethod
+    @always_inline
+    fn relu_bw[
+        type: DType, simd_width: Int
+    ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+        return 1 if x > 0 else 0
+    
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        """Forward operation of relu."""
+        elwise_transform[Self.relu](res, t1)
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of relu."""
+        # d(relu(x))/dx = 1 if x > 0 else 0. We also give 0 to x = 0 instead of undefined.
+        var res_grad = Tensor[dtype](ug_shape)
+
+        @parameter
+        fn vec_relu_bw[nelts: Int](idx: Int):
+            res_grad.simd_store[nelts](idx,
+                Self.relu_bw(t1.simd_load[nelts](idx)) * ug.simd_load[nelts](idx)
+            )
+
+        vectorize[vec_relu_bw, nelts](ug_shape.num_elements())
+
+        return res_grad ^
 
 
-# # <------------RELU------------>
-# struct RELU:
-#     @staticmethod
-#     fn forward(n: Node[dtype]) -> Node[dtype]:
-#         """Forward operation of relu."""
-#         var res: Tensor[dtype] = elwise_op[dtype, nelts, max](
-#             n.tensor, SIMD[dtype, 1](0)
-#         )
-#         return GRAPH.create_graph_node[Self.backward](res, n)
+# <------------TANH------------>
+struct TANH:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape) -> TensorShape:
+        return t1_shape
 
-#     @staticmethod
-#     fn relu_derivative[
-#         type: DType, simd_width: Int
-#     ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
-#         return 1 if x > 0 else 0
+    @staticmethod
+    @always_inline
+    fn tanh[
+        type: DType, simd_width: Int
+    ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+        return (exp(x) - exp(-x)) / (exp(x) + exp(-x))
 
-#     @staticmethod
-#     fn backward(
-#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-#     ) -> Tensor[dtype]:
-#         """Backward operation of relu."""
-#         # d(relu(x))/dx = 1 if x > 0 else 0. We also give 0 to x = 0 instead of undefined.
-#         var t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
-#         var res = elwise_transform[dtype, nelts, RELU.relu_derivative](t)
+    @staticmethod
+    @always_inline
+    fn tanh_bw[
+        type: DType, simd_width: Int
+    ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+        return 1 - pow(Self.tanh(x), 2)
 
-#         return elwise_op[dtype, nelts, mul](ug, res)
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        """Forward operation of tanh."""
+        elwise_transform[Self.tanh](res, t1)
 
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of tanh."""
+        # d(tanh(x))/dx = 1 - tanh(x) ** 2
+        var res_grad = Tensor[dtype](ug_shape)
 
-# # <------------TANH------------>
-# struct TANH:
-#     @staticmethod
-#     fn tanh[
-#         type: DType, simd_width: Int
-#     ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
-#         return (exp(x) - exp(-x)) / (exp(x) + exp(-x))
+        @parameter
+        fn vec_tanh_bw[nelts: Int](idx: Int):
+            res_grad.simd_store[nelts](idx,
+                Self.tanh_bw(t1.simd_load[nelts](idx)) * ug.simd_load[nelts](idx)
+            )
 
-#     @staticmethod
-#     fn forward(n: Node[dtype]) -> Node[dtype]:
-#         """Forward operation of tanh."""
-#         var res: Tensor[dtype] = elwise_transform[dtype, nelts, TANH.tanh](n.tensor)
-#         return GRAPH.create_graph_node[Self.backward](res, n)
+        vectorize[vec_tanh_bw, nelts](ug_shape.num_elements())
 
-#     @staticmethod
-#     fn backward(
-#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-#     ) -> Tensor[dtype]:
-#         """Backward operation of tanh."""
-#         # d(tanh(x))/dx = 1 - tanh(x) ** 2
-#         var t = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
-#         var tanh_res = elwise_transform[dtype, nelts, TANH.tanh](t)
-#         var tanh_res_square = elwise_op[dtype, nelts, mul](tanh_res, tanh_res)
-#         var res = elwise_op[dtype, nelts, sub](SIMD[dtype, 1](1), tanh_res_square)
+        return res_grad ^
 
-#         return elwise_op[dtype, nelts, mul](ug, res)
 
 # # <------------SOFTMAX------------>
 # struct SOFTMAX:

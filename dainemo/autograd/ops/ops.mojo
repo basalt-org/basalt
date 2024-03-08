@@ -1,9 +1,10 @@
 from tensor import TensorShape
 
 from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, SUM, MEAN, MAX, FLATTEN, RESHAPE
+from .mlops import SIGMOID, RELU, TANH
 from dainemo.utils.uuid import bytes
 from dainemo.utils.tensorutils import unbroadcast_add, broadcast_shapes
-from ..node import Attribute, AttributeVector
+from ..attributes import Attribute, AttributeVector
 
 
 # Define operators as named parameter expression
@@ -27,6 +28,9 @@ struct OP:
     alias MAX = OP(10, "MAX")
     alias FLATTEN = OP(11, "FLATTEN")
     alias RESHAPE = OP(12, "RESHAPE")
+    alias SIGMOID = OP(13, "SIGMOID")
+    alias RELU = OP(14, "RELU")
+    alias TANH = OP(15, "TANH")
 
     var id: UInt8
     var name: bytes[8]
@@ -59,6 +63,12 @@ fn static_result_shape(
         return FLATTEN.result_shape(t1_shape)
     elif op == OP.RESHAPE:
         return RESHAPE.result_shape(t1_shape, attributes)
+    elif op == OP.SIGMOID:
+        return SIGMOID.result_shape(t1_shape)
+    elif op == OP.RELU:
+        return RELU.result_shape(t1_shape)
+    elif op == OP.TANH:
+        return TANH.result_shape(t1_shape)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1)
@@ -138,6 +148,12 @@ fn forward_op[
         FLATTEN.forward[t1_shape](res, t1)
     elif op == OP.RESHAPE:
         RESHAPE.forward[t1_shape](res, t1)
+    elif op == OP.SIGMOID:
+        SIGMOID.forward[t1_shape](res, t1)
+    elif op == OP.RELU:
+        RELU.forward[t1_shape](res, t1)
+    elif op == OP.TANH:
+        TANH.forward[t1_shape](res, t1)
     else:
         print("[ERROR] Operator not found.")
 
@@ -233,6 +249,12 @@ fn backward_op[
         res_grad = FLATTEN.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.RESHAPE:
         res_grad = RESHAPE.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.SIGMOID:
+        res_grad = SIGMOID.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.RELU:
+        res_grad = RELU.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.TANH:
+        res_grad = TANH.backward[ug_shape, t1_shape](ug, t1)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1)

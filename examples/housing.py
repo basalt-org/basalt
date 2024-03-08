@@ -73,7 +73,8 @@ if __name__ == "__main__":
 
 
     device = torch.device('cpu')
-    model = torch.compile(LinearRegression(train_data.data.shape[1]), fullgraph=True, options={"epilogue_fusion": True, "max_autotune": True})
+    # model = torch.compile(LinearRegression(train_data.data.shape[1]), fullgraph=True, options={"epilogue_fusion": True, "max_autotune": True})
+    model = LinearRegression(train_data.data.shape[1])
     loss_func = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     # optimizer = optim.SGD(model.parameters(), lr=learning_rate)
@@ -102,7 +103,7 @@ if __name__ == "__main__":
             num_batches += 1
 
             # print time in ms
-            print(f'Batch time: {1000 * (time.time() - start_batch):.2f} ms') # The speed of a batch in dainemo and pytorch are similar or pytorch can be faster
+            # print(f'Batch time: {1000 * (time.time() - start_batch):.2f} ms') # The speed of a batch in dainemo and pytorch are similar or pytorch can be faster
             
         print (f'Epoch [{epoch + 1}/{num_epochs}],\t Avg loss per epoch: {epoch_loss / num_batches}')
 
