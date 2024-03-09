@@ -1,10 +1,11 @@
 from tensor import TensorShape
+from math import add
 
 from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, SUM, MEAN, MAX, FLATTEN, RESHAPE, TRANSPOSE
 from .mlops import SIGMOID, RELU, TANH
 from .conv import CONV2D
 from dainemo.utils.uuid import bytes
-from dainemo.utils.tensorutils import unbroadcast_add, broadcast_shapes
+from dainemo.utils.tensorutils import unbroadcast_add, broadcast_shapes, elwise_op
 from ..attributes import Attribute, AttributeVector
 
 
@@ -322,5 +323,13 @@ fn backward_op[
     Backward pass for ternary operators.
     """
     var res_grad: Tensor[dtype]
-    # TODO
-    pass
+    
+    @parameter
+    if op == OP.CONV2D:
+        res_grad = CONV2D.backward[tensor_id, ug_shape, t1_shape, t2_shape, t3_shape, attributes](ug, t1, t2, t3)
+    else:
+        print("[ERROR] Operator not found.")
+        res_grad = Tensor[dtype](-1, -1)
+
+    # Conv backward: for each tesnor_id, grad and res_grad have the same shape
+    elwise_op[add](grad, grad, res_grad)
