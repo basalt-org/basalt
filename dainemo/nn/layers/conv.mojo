@@ -2,37 +2,41 @@ from tensor import TensorShape
 # from random import rand
 # from math import sqrt
 
-# from dainemo import GRAPH
-# from dainemo.nn.layers import Layer
-# from dainemo.autograd.node import Node
-# from dainemo.autograd.ops.conv import CONV2D
+from dainemo import Graph, Symbol, OP
+from dainemo.autograd.attributes import AttributeVector, Attribute
 # from dainemo.utils.tensorutils import rand_uniform
 
 
 
-def Conv2d(
-    inout g: Graph,
-    in_channels: Int,
-    out_channels: Int,
-    kernel_size: StaticIntTuple[2],
-    padding: StaticIntTuple[2] = 0,
-    stride: StaticIntTuple[2] = 1,
-    dilation: StaticIntTuple[2] = 1,
-):
-    """
-    A 2D Convolution Layer.
+# def Conv2d(
+#     inout g: Graph,
+#     inputs: Symbol,
+#     in_channels: Int,
+#     out_channels: Int,
+#     kernel_size: StaticIntTuple[2],
+#     padding: StaticIntTuple[2] = 0,
+#     stride: StaticIntTuple[2] = 1,
+#     dilation: StaticIntTuple[2] = 1,
+# ) -> Symbol:
+#     """
+#     A 2D Convolution Layer.
 
-    Parameters
-        inputs.shape     [batch, in_channels, X, Y]
-        kernel.shape     [out_channels, in_channels, X, Y] (or weights)
-        bias.shape       [out_channels].
-        output.shape     [batch, out_channels, X, Y].
-    """
+#     Parameters
+#         inputs.shape     [batch, in_channels, X, Y]
+#         kernel.shape     [out_channels, in_channels, X, Y] (or weights)
+#         bias.shape       [out_channels].
+#         output.shape     [batch, out_channels, X, Y].
+#     """
 
-    # TODO proper initialization of weights and bias parameters
-    var weights = g.param(TensorShape(out_channels, in_channels, kernel_size[0], kernel_size[1]))
-    var bias = g.param(TensorShape(out_channels))
+#     # TODO proper initialization of weights and bias parameters
+#     var weights = g.param(TensorShape(out_channels, in_channels, kernel_size[0], kernel_size[1]))
+#     var bias = g.param(TensorShape(out_channels))
 
+#     return g.op(OP.CONV2D, inputs, weights, bias, attributes=AttributeVector(
+#         Attribute("padding", padding),
+#         Attribute("stride", stride),
+#         Attribute("dilation", dilation)
+#     ))
 
     
 #             rand_uniform[dtype, nelts](

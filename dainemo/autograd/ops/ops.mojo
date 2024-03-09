@@ -194,7 +194,11 @@ fn forward_op[
     """
     Forward pass for ternary operators.
     """
-    pass
+    @parameter
+    if op == OP.CONV2D:
+        CONV2D.forward[t1_shape, t2_shape, t3_shape, attributes](res, t1, t2, t3)
+    else:
+        print("[ERROR] Operator not found.")
 
 
 # <------------ BACKWARD ------------>

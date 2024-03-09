@@ -60,6 +60,10 @@ struct Attribute(Stringable):
         self.name = bytes[max_attr_char_size](name)
         self.value = AttributeValue(value)
 
+    fn __init__[N: Int](inout self, name: String, value: StaticIntTuple[N]):
+        self.name = bytes[max_attr_char_size](name)
+        self.value = AttributeValue(value)
+
     fn __str__(self) -> String:
         return "Attribute(" + str(self.name) + ", " + "..." + ")"
 
@@ -107,3 +111,16 @@ struct AttributeValue(CollectionElement):
         for i in range(self._size):
             tmp.push_back(self._buffer[i])
         return TensorShape(tmp)
+
+    # AttributeValue: StaticIntTuple (of size N)
+    fn __init__[N: Int](inout self, value: StaticIntTuple[N]):
+        self._buffer = StaticIntTuple[max_attr_value_size]()
+        self._size = N
+        for i in range(N):
+            self._buffer[i] = value[i]
+
+    fn to_static[N: Int](self) -> StaticIntTuple[N]:
+        var result = StaticIntTuple[N]()
+        for i in range(N):
+            result[i] = self._buffer[i]
+        return result
