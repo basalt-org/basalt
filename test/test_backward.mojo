@@ -6,8 +6,8 @@ from test_tensorutils import assert_tensors_equal
 
 
 # from dainemo.autograd.node import Node
-from dainemo.utils.tensorutils import fill, tsum
-from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, MEAN, FLATTEN, SUM, MAX, RESHAPE
+from dainemo.utils.tensorutils import fill, tsum, calculate_strides
+from dainemo.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, MEAN, FLATTEN, SUM, MAX, RESHAPE, TRANSPOSE
 from dainemo.autograd.attributes import Attribute, AttributeVector
 
 alias dtype = DType.float32
@@ -375,6 +375,55 @@ fn test_MEAN_1() raises:
 
 
 # # <------------TRANSPOSE------------>
+fn test_TRANSPOSE() raises:
+    alias t1_shape = TensorShape(2, 3, 4)
+    alias ug_shape = TensorShape(4, 3, 2)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+
+    var t1_strides = calculate_strides(t1_shape)
+
+    alias attributes = AttributeVector(Attribute("axes", TensorShape(2, 1, 0)))
+
+    fn arange(inout t: Tensor[dtype]):
+        var n = t.num_elements()
+        for i in range(n):
+            t[i] = i + 1
+
+    arange(t1)
+    arange(ug)
+
+    var grad = TRANSPOSE.backward[ug_shape, t1_shape, attributes](ug, t1)
+    var expected_grad = Tensor[dtype](t1_shape)
+    
+    for i in range(ug_shape[0]):
+        for j in range(ug_shape[1]):
+            for k in range(ug_shape[2]):
+                expected_grad[k * t1_strides[0] + j * t1_strides[1] + i] = ug[i, j, k]
+
+    assert_tensors_equal(grad, expected_grad)
+
+
+    # Test Transpsoe 1, 2, 0
+
+    alias ug_shape_2 = TensorShape(3, 4, 2)
+    ug = Tensor[dtype](ug_shape_2)
+
+    alias attributes_2 = AttributeVector(Attribute("axes", TensorShape(1, 2, 0)))
+
+    arange(ug)
+
+    grad = TRANSPOSE.backward[ug_shape, t1_shape, attributes_2](ug, t1)
+    expected_grad = Tensor[dtype](t1_shape)
+
+    for i in range(ug_shape_2[0]):
+        for j in range(ug_shape_2[1]):
+            for k in range(ug_shape_2[2]):
+                expected_grad[k * t1_strides[0] + i * t1_strides[1] + j] = ug[i, j, k]
+
+    assert_tensors_equal(grad, expected_grad)
+
+
 # fn test_TRANSPOSE() raises:
 #     var t1 = Tensor[dtype](2, 3)
 
@@ -453,7 +502,7 @@ fn main():
         test_MEAN()
         test_MEAN_0()
         test_MEAN_1()
-#         test_TRANSPOSE()
+        test_TRANSPOSE()
         test_FLATTEN()
         test_RESHAPE()
     except e:

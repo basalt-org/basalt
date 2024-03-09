@@ -7,7 +7,7 @@ from math import exp, log
 from dainemo import Graph, Symbol, OP
 import dainemo.nn as nn
 from dainemo.autograd.attributes import Attribute, AttributeVector
-from dainemo.utils.tensorutils import fill
+from dainemo.utils.tensorutils import fill, calculate_strides
 
 alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
@@ -352,10 +352,12 @@ fn test_TRANSPOSE() raises:
     var res = model.forward(t1)
 
     var expected = Tensor[dtype](4, 3, 2)
-    for i in range(2):
-        for j in range(3):
-            for k in range(4):
-                expected[k * 6 + j * 2 + i] = t1[i, j, k]
+    var expected_strides = calculate_strides(expected.shape())
+
+    for i in range(t1_shape[0]):
+        for j in range(t1_shape[1]):
+            for k in range(t1_shape[2]):
+                expected[k * expected_strides[0] + j * expected_strides[1] + i] = t1[i, j, k]
 
     assert_tensors_equal(res, expected)
 
@@ -367,11 +369,12 @@ fn test_TRANSPOSE() raises:
     res = model_2.forward(t1)
 
     var expected_axis_1 = Tensor[dtype](3, 4, 2)
+    var expected_axis_1_strides = calculate_strides(expected_axis_1.shape())
 
-    for i in range(2):
-        for j in range(3):
-            for k in range(4):
-                expected_axis_1[j * 8 + k * 2 + i] = t1[i, j, k]
+    for i in range(t1_shape[0]):
+        for j in range(t1_shape[1]):
+            for k in range(t1_shape[2]):
+                expected_axis_1[j * expected_axis_1_strides[0] + k * expected_axis_1_strides[1] + i] = t1[i, j, k]
 
     assert_tensors_equal(res, expected_axis_1)
 

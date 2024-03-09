@@ -599,6 +599,45 @@ struct TRANSPOSE:
 
             transpose(res, t, axes_shape)
 
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector
+    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of transpose."""
+        # No local gradient. Transpose is its own inverse.
+        alias axes = attributes["axes"]
+
+        var res_grad = Tensor[dtype](t_shape)
+
+        @parameter
+        if axes:
+            fn create_inverse_axes() -> TensorShape:
+                var axes_shape = axes.value().to_shape()
+
+                var axes_shape_inv = DynamicVector[Int]()
+                axes_shape_inv.resize(axes_shape.rank(), 0)
+
+                for i in range(axes_shape.rank()):
+                    axes_shape_inv[axes_shape[i]] = i
+
+                return TensorShape(axes_shape_inv)
+            
+            alias axes_shape_inv = create_inverse_axes()
+
+            transpose(res_grad, ug, axes_shape_inv)
+        else:
+            fn create_transpose_axes() -> TensorShape:
+                var axes = DynamicVector[Int]()
+                for i in range(t_shape.rank() - 1, -1, -1):
+                    axes.push_back(i)
+                return TensorShape(axes)
+
+            alias axes_shape_inv = create_transpose_axes()
+
+            transpose(res_grad, ug, axes_shape_inv)
+
+        return res_grad ^
+
 
 # <----------FLATTEN---------->
 struct FLATTEN:
