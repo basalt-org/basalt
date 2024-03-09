@@ -1,6 +1,6 @@
 from tensor import TensorShape
 
-from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, SUM, MEAN, MAX, FLATTEN, RESHAPE
+from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, SUM, MEAN, MAX, FLATTEN, RESHAPE, TRANSPOSE
 from .mlops import SIGMOID, RELU, TANH
 from .conv import CONV2D
 from dainemo.utils.uuid import bytes
@@ -33,6 +33,7 @@ struct OP:
     alias RELU = OP(14, "RELU", num_operands=1)
     alias TANH = OP(15, "TANH", num_operands=1)
     alias CONV2D = OP(16, "CONV2D", num_operands=3)
+    alias TRANSPOSE = OP(17, "TRANSPOSE", num_operands=1)
 
     var id: UInt8
     var name: bytes[8]
@@ -75,6 +76,8 @@ fn static_result_shape(
         return RELU.result_shape(t1_shape)
     elif op == OP.TANH:
         return TANH.result_shape(t1_shape)
+    elif op == OP.TRANSPOSE:
+        return TRANSPOSE.result_shape(t1_shape, attributes)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1)
@@ -155,6 +158,8 @@ fn forward_op[
         RELU.forward[t1_shape](res, t1)
     elif op == OP.TANH:
         TANH.forward[t1_shape](res, t1)
+    elif op == OP.TRANSPOSE:
+        TRANSPOSE.forward[t1_shape, attributes](res, t1)
     else:
         print("[ERROR] Operator not found.")
 

@@ -329,20 +329,51 @@ fn test_MEAN() raises:
 
 
 # # <------------TRANSPOSE------------>
-# fn test_TRANSPOSE() raises:
-#     var A = Tensor[dtype](2, 3)
-#     var B = Tensor[dtype](3, 2)
-#     for i in range(6):
-#         A[i] = i + 1
-#     for i in range(3):
-#         B[2 * i] = i + 1
-#         B[2 * i + 1] = i + 4
+fn test_TRANSPOSE() raises:
+    alias t1_shape = TensorShape(2, 3, 4)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    for i in range(t1_shape.num_elements()):
+        t1[i] = i + 1
 
-#     var res = TRANSPOSE.forward(A)
+    fn create_graph(attributes: AttributeVector = AttributeVector()) -> Graph:
+        var g = Graph()
+        var t1 = g.input(t1_shape)
 
-#     assert_tensors_equal(res.tensor, B)
-#     assert_equal(GRAPH.graph.size, 2)
-#     GRAPH.reset_all()
+        var res = g.op(OP.TRANSPOSE, t1, attributes=attributes)
+    
+        _ = g.out(res)
+    
+        return g ^
+
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)
+
+    var expected = Tensor[dtype](4, 3, 2)
+    for i in range(2):
+        for j in range(3):
+            for k in range(4):
+                expected[k * 6 + j * 2 + i] = t1[i, j, k]
+
+    assert_tensors_equal(res, expected)
+
+    # Test tranpose 1, 2, 0
+    alias graph_axis_1 = create_graph(AttributeVector(Attribute("axes", TensorShape(1, 2, 0))))
+
+    var model_2 = nn.Model[graph_axis_1]()
+
+    res = model_2.forward(t1)
+
+    var expected_axis_1 = Tensor[dtype](3, 4, 2)
+
+    for i in range(2):
+        for j in range(3):
+            for k in range(4):
+                expected_axis_1[j * 8 + k * 2 + i] = t1[i, j, k]
+
+    assert_tensors_equal(res, expected_axis_1)
 
 
 # <------------FLATTEN------------>
@@ -413,7 +444,7 @@ fn main():
         test_SUM()
         test_MAX()
         test_MEAN()
-    #         test_TRANSPOSE()
+        test_TRANSPOSE()
         test_FLATTEN()
         test_RESHAPE()
     except e:

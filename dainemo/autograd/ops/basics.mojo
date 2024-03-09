@@ -571,6 +571,47 @@ struct MAX:
 #     ) -> Tensor[dtype]:
 #         """No local gradient. Transpose is its own inverse."""
 #         return transpose[dtype, nelts](ug)
+# <---------TRANSPOSE--------->
+struct TRANSPOSE:
+    @staticmethod
+    fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        var axes = attributes["axes"] # axes to be permuted
+
+        var shape = DynamicVector[Int]()
+    
+        if axes:
+            # NOTE: axis has to be the size of rank of the tensor
+            var axes_shape = axes.value().to_shape()
+
+            for i in range(t_shape.rank()):
+                shape.push_back(t_shape[axes_shape[i]])
+        else:
+            for i in range(t_shape.rank() - 1, -1, -1):
+                shape.push_back(t_shape[i])
+
+        return TensorShape(shape)
+
+    @staticmethod
+    fn forward[t_shape: TensorShape, attributes: AttributeVector](inout res: Tensor[dtype], t: Tensor[dtype]):
+        """
+        Forward pass of the transpose operation.
+        """
+        alias axes = attributes["axes"]
+
+        @parameter
+        if axes:
+            var axes_shape = axes.value().to_shape()
+            transpose(res, t, axes_shape)
+        else:
+            fn create_transpose_axes() -> TensorShape:
+                var axes = DynamicVector[Int]()
+                for i in range(t_shape.rank() - 1, -1, -1):
+                    axes.push_back(i)
+                return TensorShape(axes)
+
+            alias axes_shape = create_transpose_axes()
+
+            transpose(res, t, axes_shape)
 
 
 # <----------FLATTEN---------->
