@@ -12,7 +12,7 @@ from dainemo.utils.tensorutils import (
     broadcast_elwise_op,
     get_reduce_shape,
 )
-from dainemo.utils.tensorutils import tsum, tmean, tstd, tmax #, transpose_2D, transpose, pad_zeros
+from dainemo.utils.tensorutils import tsum, tmean, tstd, tmax, transpose #, transpose_2D, transpose, pad_zeros
 
 from math import sqrt, exp, round
 from math import add, sub, mul, div
@@ -369,48 +369,44 @@ fn test_max() raises:
     assert_tensors_equal(tensor_max_axis_2, expected_max_axis_2)
 
 
-# # <-------------TRANSPOSE------------->
-# from test_tensorutils_data import TransposeData
+# <-------------TRANSPOSE------------->
+from test_tensorutils_data import TransposeData
 
 
-# fn test_transpose() raises:
-#     # Transpose 2D
-#     var data = TransposeData.generate_1_2dim_test_case()
-#     var transposed = transpose_2D[dtype, nelts](data.A)
-#     assert_tensors_equal(transposed, data.expected)
+fn test_transpose() raises:
+    # Transpose 2D
+    var data = TransposeData.generate_1_2dim_test_case()
+    var transposed = transpose(data.A, TensorShape(data.transpose_dims))
+    assert_tensors_equal(transposed, data.expected)
 
-#     # Transpose 2 dimensions
-#     data = TransposeData.generate_2_2dim_test_case()
-#     transposed = transpose[dtype, nelts](
-#         data.A, data.transpose_dims[0], data.transpose_dims[1]
-#     )
-#     assert_tensors_equal(transposed, data.expected)
+    # Transpose 2 dimensions
+    data = TransposeData.generate_2_2dim_test_case()
+    transposed = transpose(data.A, TensorShape(data.transpose_dims))
+    assert_tensors_equal(transposed, data.expected)
 
-#     data = TransposeData.generate_3_2dim_test_case()
-#     transposed = transpose[dtype, nelts](
-#         data.A, data.transpose_dims[0], data.transpose_dims[1]
-#     )
-#     assert_tensors_equal(transposed, data.expected)
+    data = TransposeData.generate_3_2dim_test_case()
+    transposed = transpose(data.A, TensorShape(data.transpose_dims))
+    assert_tensors_equal(transposed, data.expected)
 
-#     data = TransposeData.generate_4_2dim_test_case()
-#     transposed = transpose[dtype, nelts](
-#         data.A, data.transpose_dims[0], data.transpose_dims[1]
-#     )
-#     assert_tensors_equal(transposed, data.expected)
+    data = TransposeData.generate_4_2dim_test_case()
+    transposed = transpose(data.A, TensorShape(data.transpose_dims))
+    assert_tensors_equal(transposed, data.expected)
 
-#     # Transpose all dimensions
-#     data = TransposeData.generate_1_alldim_test_case()
-#     var transpose_dims = DynamicVector[Int]()
-#     for i in range(len(data.transpose_dims)):
-#         transpose_dims.push_back(data.transpose_dims[i])
+    # Transpose all dimensions
+    data = TransposeData.generate_1_alldim_test_case()
 
-#     transposed = transpose[dtype, nelts](data.A, transpose_dims)
-#     assert_tensors_equal(transposed, data.expected)
+    transposed = transpose(data.A, TensorShape(data.transpose_dims))
+    assert_tensors_equal(transposed, data.expected)
 
-#     # Transpose (reverse)
-#     data = TransposeData.generate_1_transpose_test_case()
-#     transposed = transpose[dtype, nelts](data.A)
-#     assert_tensors_equal(transposed, data.expected)
+    data = TransposeData.generate_2_alldim_test_case()
+
+    transposed = transpose(data.A, TensorShape(data.transpose_dims))
+    assert_tensors_equal(transposed, data.expected)
+
+    # Transpose (reverse)
+    data = TransposeData.generate_1_transpose_test_case()
+    transposed = transpose(data.A, TensorShape(data.transpose_dims))
+    assert_tensors_equal(transposed, data.expected)
 
 
 # # <-------------FLATTEN/RESHAPE------------->
@@ -479,7 +475,7 @@ fn main():
         test_sum_mean_std()
         test_sum_mean_std_n()
         test_max()
-        # test_transpose()
+        test_transpose()
         # test_flatten()
         # test_padding()
     except:

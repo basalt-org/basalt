@@ -558,75 +558,112 @@ fn tmax(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 
 
 # @always_inline
-# fn transpose[dtype: DType, nelts: Int](t: Tensor[dtype]) -> Tensor[dtype]:
+# fn transpose(inout res: Tensor[dtype], t: Tensor[dtype]):
 #     """
 #     Create a new transposed tensor of the given tensor t.
 #     """
-#     var axes = DynamicVector[Int](t.rank())
+#     var axes = DynamicVector[Int](capacity=t.rank())
 
 #     for i in range(t.rank() - 1, -1, -1):
 #         axes.push_back(i)
 
-#     return transpose[dtype, nelts](t, axes)
+#     var axes_shape = TensorShape(axes)
+
+#     transpose(res, t, axes_shape)
 
 
-# # It would be better to use VariadiList for axes, but because variadiclist can't be modified it wouldn't be possible to use overloaded transpose functions
 # @always_inline
-# fn transpose[
-#     dtype: DType, nelts: Int
-# ](t: Tensor[dtype], axes: DynamicVector[Int]) -> Tensor[dtype]:
-#     """
-#     Create a new transposed tensor of the given tensor t.
-#     """
-#     # NOTE: The rank of of the t tensor should be 2 or more
-#     # NOTE: Axes should be the same size as the rank of t
-#     var new_shape = DynamicVector[Int](t.rank())
+# fn transpose(t: Tensor[dtype], axes: DynamicVector[Int]) -> Tensor[dtype]:
+#     var new_shape = DynamicVector[Int](capacity=t.rank())
 #     for i in range(t.rank()):
 #         new_shape.push_back(t.dim(axes[i]))
-#     var t_new = Tensor[dtype](new_shape)
 
-#     var original_strides = calculate_strides(t.shape())
-#     var transposed_strides = calculate_strides(t_new.shape())
+#     var t_new_shape = TensorShape(new_shape)
+#     var t_new = Tensor[dtype](t_new_shape)
 
-#     @parameter
-#     fn p_transpose(i: Int):
-#         var new_index = 0
-#         var linear_index = i
-#         for j in range(t.rank()):
-#             var stride = original_strides[j]
-#             var index = linear_index // stride
-#             linear_index = linear_index % stride
-
-#             new_index += index * transposed_strides[axes[j]]
-
-#         t_new[new_index] = t[i]
-
-#         @parameter
-#         fn v_transpose[nelts: Int](j: Int):
-#             var new_index = 0
-#             var original_index = i * t.dim(t.rank() - 1) + j
-#             var linear_index = original_index
-#             for k in range(t.rank()):
-#                 var stride = original_strides[k]
-#                 var index = linear_index // stride
-#                 linear_index = linear_index % stride
-
-#                 new_index += index * transposed_strides[axes[k]]
-
-#             t_new.data().offset(new_index).simd_strided_store[nelts](
-#                 t.simd_load[nelts](original_index),
-#                 transposed_strides[axes[t.rank() - 1]],
-#             )
-
-#         vectorize[nelts, v_transpose](t.dim(t.rank() - 1))
-
-#     parallelize[p_transpose](t.num_elements() // t.dim(t.rank() - 1))
-
-#     _ = (original_strides, transposed_strides)
+#     transpose(t_new, t, t_new_shape)
 
 #     return t_new
 
 
+@always_inline
+fn get_transpose_shape(t: TensorShape, axes: TensorShape) -> TensorShape:
+    var new_shape = DynamicVector[Int](capacity=t.rank())
+
+    for i in range(t.rank()):
+        new_shape.push_back(t[axes[i]])
+
+    return TensorShape(new_shape)
+
+
+@always_inline
+fn transpose(t: Tensor[dtype], axes: TensorShape) -> Tensor[dtype]:
+    var t_new_shape = get_transpose_shape(t.shape(), axes)
+    var t_new = Tensor[dtype](t_new_shape)
+
+    transpose(t_new, t, axes)
+
+    return t_new ^
+
+
+# It would be better to use VariadiList for axes, but because variadiclist can't be modified it wouldn't be possible to use overloaded transpose functions
+@always_inline
+fn transpose(inout res: Tensor[dtype], t: Tensor[dtype], axes: TensorShape):
+    """
+    Create a new transposed tensor of the given tensor t.
+    """
+    # NOTE: The rank of of the t tensor should be 2 or more
+    # NOTE: Axes should be the same size as the rank of t
+
+    var original_strides = calculate_strides(t.shape())
+    var transposed_strides = calculate_strides(res.shape())
+
+
+    var position_of_last_rank_new_shape = 0
+
+    # Get position of where the last dim of the old shape is in the new shape
+    for i in range(axes.rank()):
+       if t.rank() - 1 == axes[i]:
+           position_of_last_rank_new_shape = i
+
+    @parameter
+    fn p_transpose(i: Int):
+        # var new_index = 0
+        # var linear_index = i
+        # for j in range(t.rank() - 1, -1, -1):
+        #     var stride = original_strides[axes[j]]
+        #     var index = (linear_index // stride) % t.dim(axes[j])
+
+        #     new_index += index * transposed_strides[j]
+
+        # res[new_index] = t[i]
+
+        @parameter
+        fn v_transpose[nelts: Int](j: Int):
+            var new_index = 0
+            var original_index = i * t.dim(t.rank() - 1) + j
+            var linear_index = original_index
+            for k in range(t.rank()):
+                # axes tells us the position of where the dim in the transposed shape is located in the original shape
+                var stride = original_strides[axes[k]]
+                var index = linear_index // stride % t.dim(axes[k])
+
+                new_index += index * transposed_strides[k]
+
+            res.data().offset(new_index).simd_strided_store[nelts](
+                t.simd_load[nelts](original_index),
+                transposed_strides[position_of_last_rank_new_shape],
+            )
+
+        vectorize[v_transpose, nelts](t.dim(t.rank() - 1))
+
+    parallelize[p_transpose](t.num_elements() // t.dim(t.rank() - 1))
+    # parallelize[p_transpose](t.num_elements())
+
+    _ = (original_strides, transposed_strides)
+
+
+# # NOTE: This function can be used for later for optimziation (Many operations in gpu is preferred to pad the tensors when using conv or matmul operations)
 # # TODO: Deprecate this function, as it is not used anymore
 # @always_inline
 # fn pad_zeros[
