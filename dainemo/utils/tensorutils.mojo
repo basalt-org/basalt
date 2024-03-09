@@ -658,7 +658,6 @@ fn transpose(inout res: Tensor[dtype], t: Tensor[dtype], axes: TensorShape):
         vectorize[v_transpose, nelts](t.dim(t.rank() - 1))
 
     parallelize[p_transpose](t.num_elements() // t.dim(t.rank() - 1))
-    # parallelize[p_transpose](t.num_elements())
 
     _ = (original_strides, transposed_strides)
 

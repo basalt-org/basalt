@@ -557,20 +557,6 @@ struct MAX:
 
 
 # ----- Transform operators -----
-# # <---------TRANSPOSE--------->
-# struct TRANSPOSE:
-#     @staticmethod
-#     fn forward(n: Node[dtype]) -> Node[dtype]:
-#         """Forward pass of transpose operation."""
-#         var res = transpose[dtype, nelts](n.tensor)
-#         return GRAPH.create_graph_node[Self.backward](res, n)
-
-#     @staticmethod
-#     fn backward(
-#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-#     ) -> Tensor[dtype]:
-#         """No local gradient. Transpose is its own inverse."""
-#         return transpose[dtype, nelts](ug)
 # <---------TRANSPOSE--------->
 struct TRANSPOSE:
     @staticmethod
