@@ -6,7 +6,7 @@ from dainemo.utils.collection import Collection
 from dainemo.utils.tensorutils import fill
 from dainemo.utils.rand_utils import rand_uniform
 from dainemo.utils.string_dict import StringDict
-
+from .initializers import initialize_tensor
 
 
 fn dv_contains(dv: DynamicVector[Symbol], symbol: Symbol) -> Bool:
@@ -262,15 +262,19 @@ struct Model[
             self.parameters.params_map.put(str(g.params.symbols[i].name), self.parameters.params.size)
             
             var par: Tensor[dtype]
-            if g.params.initialized[i]:
+            if g.params.values[i].data:
+                # Parameter initialized with data
                 par = g.params.get_tensor(i)
+            elif g.params.values[i].initializer:
+                # Parameter initialization with attributes
+                var initializer_attr = g.params.values[i].initializer.value()
+                par = initialize_tensor(
+                    shape=g.params.symbols[i].shape(),
+                    type=initializer_attr.value.to_string()
+                )
             else:
                 # Default parameter initialization
                 par = Tensor[dtype](g.params.symbols[i].shape())
-                # Parameter initialization
-                # TODO: Remove
-                var k: SIMD[dtype, 1] = 1.0 / par.dim(0)
-                rand_uniform(par, -sqrt(k), sqrt(k))
             
             self.parameters.params.append(par)
         

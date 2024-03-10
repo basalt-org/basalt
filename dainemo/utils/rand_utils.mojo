@@ -1,4 +1,4 @@
-from random import rand
+from random import rand, randn
 from algorithm import vectorize
 
 
@@ -11,3 +11,8 @@ fn rand_uniform(inout res: Tensor[dtype], low: SIMD[dtype, 1], high: SIMD[dtype,
         res.simd_store[nelts](idx, res.simd_load[nelts](idx) * (high - low) + low)
 
     vectorize[vecscale, nelts](res.num_elements())
+
+
+@always_inline
+fn rand_normal(inout res: Tensor[dtype], mean: Float64, std: Float64):
+    randn[dtype](res.data(), res.num_elements(), mean, std**2) # Normal distribution tensor initialization

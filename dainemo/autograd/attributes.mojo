@@ -7,7 +7,7 @@ from dainemo.utils.uuid import bytes
 
 alias max_attrs = 10
 alias max_attr_char_size = 16
-alias max_attr_value_size = 16
+alias max_attr_value_size = 32
 
 
 @value
@@ -44,7 +44,7 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
 
 @value
 @register_passable
-struct Attribute(Stringable):
+struct Attribute(Stringable, CollectionElement):
     var name: bytes[max_attr_char_size] # defines the maximum number of characters in the string
     var value: AttributeValue # Variant doesn't seem to be register passable
 

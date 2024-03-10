@@ -32,30 +32,31 @@ struct Graph:
         self.inputs.push_back(inp)
         return inp
 
-    fn param(inout self, shape: TensorShape, trainable: Bool = True, init: Optional[Param] = None) -> Symbol:
+    fn param(inout self, shape: TensorShape, init: Param, trainable: Bool = True) -> Symbol:
         var param_id = Symbol(self.uuid.next(), dtype, shape, trainable)
-        
-        if init:
-            self.params.put(param_id, init.value())
-        else:
-            self.params.put(param_id)
+        self.params.put(param_id, init)
+        return param_id
 
+    fn param(inout self, shape: TensorShape, init: String, trainable: Bool = True) -> Symbol:
+        var param_id = Symbol(self.uuid.next(), dtype, shape, trainable)
+        self.params.put(param_id, Param(init))
+        return param_id
+
+    fn param(inout self, shape: TensorShape, trainable: Bool = True) -> Symbol:
+        var param_id = Symbol(self.uuid.next(), dtype, shape, trainable)
+        self.params.put(param_id)
         return param_id
 
     fn scalar(inout self, value: SIMD[dtype, 1]) -> Symbol:
         var scal = Param(value)
         var scalar_id = Symbol(self.uuid.next(), dtype, TensorShape(1), trainable=False)
-
         self.params.put(scalar_id, scal)
-
         return scalar_id
 
     fn constant(inout self, shape: TensorShape, data: DynamicVector[SIMD[dtype, 1]]) -> Symbol:
         var cst = Param(data)
         var constant_id = Symbol(self.uuid.next(), dtype, shape, trainable=False)
-        
         self.params.put(constant_id, cst)
-        
         return constant_id
 
     fn out(inout self, symbol: Symbol):
