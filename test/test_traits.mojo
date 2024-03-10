@@ -6,14 +6,14 @@
 # @value
 # struct Node[dtype: DType = DType.float32](CollectionElement, Stringable):
 #     var tensor: Tensor[dtype]
-#     var requires_grad: Bool
+#     var trainable: Bool
 #     var uuid: String
 #     var children: DynamicVector[String]
 #     var parents: DynamicVector[String]
 
-#     fn __init__(inout self, tensor: Tensor[dtype], requires_grad: Bool = False):
+#     fn __init__(inout self, tensor: Tensor[dtype], trainable: Bool = False):
 #         self.tensor = tensor
-#         self.requires_grad = requires_grad
+#         self.trainable = trainable
 #         self.uuid = uuid()
 #         self.children = DynamicVector[String]()
 #         self.parents = DynamicVector[String]()
@@ -70,8 +70,8 @@
 #     var t0: Tensor[dtype] = rand[dtype](3, 4)
 #     var t1: Tensor[dtype] = rand[dtype](1, 4)
 
-#     var mynode = Node[dtype](t0, requires_grad=True)
-#     var mychild = Node[dtype](t1, requires_grad=True)
+#     var mynode = Node[dtype](t0, trainable=True)
+#     var mychild = Node[dtype](t1, trainable=True)
 
 #     GRAPH.add_node(mynode)
 #     GRAPH.add_node(mychild)

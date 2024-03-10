@@ -22,12 +22,12 @@
 #         var k: SIMD[dtype, 1] =  1.0 / n_input
 #         self.weights = Node[dtype](
 #             rand_uniform[dtype, nelts](TensorShape(n_input, n_output), -sqrt(k), sqrt(k)),
-#             requires_grad=True,
+#             trainable=True,
 #             param=True
 #         )
 #         self.bias = Node[dtype](
 #             rand_uniform[dtype, nelts](TensorShape(n_output), -sqrt(k), sqrt(k)),
-#             requires_grad=True,
+#             trainable=True,
 #             param=True
 #         )
 #         GRAPH.add_node(self.weights)

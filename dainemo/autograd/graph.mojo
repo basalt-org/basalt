@@ -20,7 +20,7 @@ struct Graph:
     var params: DynamicVector[Symbol]
     var nodes: DynamicVector[Node]
 
-    var constants: ConstantDict[dtype]
+    var constants: ConstantDict
 
     fn __init__(inout self):
         self.uuid = UUID(seed)
@@ -29,21 +29,21 @@ struct Graph:
         self.nodes = DynamicVector[Node]()
         self.output = Symbol(ID(), dtype, TensorShape(-1), False)
 
-        self.constants = ConstantDict[dtype]()
+        self.constants = ConstantDict()
 
     fn input(inout self, shape: TensorShape) -> Symbol:
         var inp = Symbol(self.uuid.next(), dtype, shape, False)
         self.inputs.push_back(inp)
         return inp
 
-    fn param(inout self, shape: TensorShape, requires_grad: Bool = True) -> Symbol:
-        var par = Symbol(self.uuid.next(), dtype, shape, requires_grad)
+    fn param(inout self, shape: TensorShape, trainable: Bool = True) -> Symbol:
+        var par = Symbol(self.uuid.next(), dtype, shape, trainable)
         self.params.push_back(par)
         return par
 
     fn scalar(inout self, value: SIMD[dtype, 1]) -> Symbol:
         var cst = Constant(value)
-        var scalar_id = Symbol(self.uuid.next(), cst.rank, dtype, cst.static_shape, requires_grad=False)
+        var scalar_id = Symbol(self.uuid.next(), cst.rank, dtype, cst.static_shape, trainable=False)
 
         # self.params.push_back(scalar_id)
         self.constants.put(scalar_id, cst)
@@ -66,21 +66,21 @@ struct Graph:
                 self.uuid.next(),
                 dtype,
                 static_result_shape(op, operand_1.shape(), operand_2.value().shape(), operand_3.value().shape(), attributes),
-                self.result_requires_grad(operand_1, operand_2.value(), operand_3.value()),
+                self.result_trainable(operand_1, operand_2.value(), operand_3.value()),
             )
         elif operand_2:
             res = Symbol(
                 self.uuid.next(),
                 dtype,
                 static_result_shape(op, operand_1.shape(), operand_2.value().shape(), attributes),
-                self.result_requires_grad(operand_1, operand_2.value()),
+                self.result_trainable(operand_1, operand_2.value()),
             )
         else:
             res = Symbol(
                 self.uuid.next(),
                 dtype,
                 static_result_shape(op, operand_1.shape(), attributes),
-                self.result_requires_grad(operand_1),
+                self.result_trainable(operand_1),
             )
 
         self.nodes.push_back(Node(op, res, operand_1, operand_2.take(), operand_3.take(), attributes))
@@ -97,7 +97,7 @@ struct Graph:
             self.uuid.next(),
             dtype,
             static_result_shape(op, operand_1.shape(), operand_2_symbol.shape(), attributes),
-            self.result_requires_grad(operand_1),
+            self.result_trainable(operand_1),
         )
 
         self.nodes.push_back(Node(op, res, operand_1, operand_2_symbol, attributes=attributes))
@@ -114,23 +114,23 @@ struct Graph:
             self.uuid.next(),
             dtype,
             static_result_shape(op, operand_1_symbol.shape(), operand_2.shape(), attributes),
-            self.result_requires_grad(operand_2),
+            self.result_trainable(operand_2),
         )
 
         self.nodes.push_back(Node(op, res, operand_1_symbol, operand_2, attributes=attributes))
         return res ^
 
     @staticmethod
-    fn result_requires_grad(operand_1: Symbol) -> Bool:
-        return operand_1.requires_grad
+    fn result_trainable(operand_1: Symbol) -> Bool:
+        return operand_1.trainable
 
     @staticmethod
-    fn result_requires_grad(operand_1: Symbol, operand_2: Symbol) -> Bool:
-        return operand_1.requires_grad or operand_2.requires_grad
+    fn result_trainable(operand_1: Symbol, operand_2: Symbol) -> Bool:
+        return operand_1.trainable or operand_2.trainable
 
     @staticmethod
-    fn result_requires_grad(operand_1: Symbol, operand_2: Symbol, operand_3: Symbol) -> Bool:
-        return operand_1.requires_grad or operand_2.requires_grad or operand_3.requires_grad
+    fn result_trainable(operand_1: Symbol, operand_2: Symbol, operand_3: Symbol) -> Bool:
+        return operand_1.trainable or operand_2.trainable or operand_3.trainable
 
     fn json(self) -> String:
         var result: String = '{"graph_name": "Dainemo", "nodes": ['

@@ -137,7 +137,7 @@ struct Model[
             if g.nodes[reverse_i].operator.num_operands == 1:
                 # Unary operator
                 @parameter
-                if g.nodes[reverse_i].input_1.requires_grad:
+                if g.nodes[reverse_i].input_1.trainable:
                     grad_in1_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_1.name), -1)
                     backward_op[ 
                         0,
@@ -155,7 +155,7 @@ struct Model[
                 tensor_in2_idx = self.parameters.params_map.get(str(g.nodes[reverse_i].input_2.value().name), -1)
                 
                 @parameter
-                if g.nodes[reverse_i].input_1.requires_grad:
+                if g.nodes[reverse_i].input_1.trainable:
                     grad_in1_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_1.name), -1)
                     backward_op[ 
                         0,
@@ -172,7 +172,7 @@ struct Model[
                     )
                 
                 @parameter
-                if g.nodes[reverse_i].input_2.value().requires_grad:
+                if g.nodes[reverse_i].input_2.value().trainable:
                     grad_in2_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_2.value().name), -1)
                     backward_op[ 
                         1,
@@ -194,7 +194,7 @@ struct Model[
                 tensor_in3_idx = self.parameters.params_map.get(str(g.nodes[reverse_i].input_3.value().name), -1)
 
                 @parameter
-                if g.nodes[reverse_i].input_1.requires_grad:
+                if g.nodes[reverse_i].input_1.trainable:
                     grad_in1_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_1.name), -1)
                     backward_op[ 
                         0,
@@ -213,7 +213,7 @@ struct Model[
                     )
 
                 @parameter
-                if g.nodes[reverse_i].input_2.value().requires_grad:
+                if g.nodes[reverse_i].input_2.value().trainable:
                     grad_in2_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_2.value().name), -1)
                     backward_op[ 
                         1,
@@ -232,7 +232,7 @@ struct Model[
                     )
 
                 @parameter
-                if g.nodes[reverse_i].input_3.value().requires_grad:
+                if g.nodes[reverse_i].input_3.value().trainable:
                     grad_in3_idx = self.parameters.grads_map.get(str(g.nodes[reverse_i].input_3.value().name), -1)
                     backward_op[ 
                         2,
@@ -282,12 +282,12 @@ struct Model[
         # Inputs don't have gradients.
         # Gradient have same shape as the tensor
         for i in range(len(g.params)):
-            if g.params[i].requires_grad:
+            if g.params[i].trainable:
                 self.parameters.grads_map.put(str(g.params[i].name), self.parameters.grads.size)
                 self.parameters.grads.append(Tensor[dtype](g.params[i].shape()))
 
         for i in range(len(g.nodes)):
             if not self.parameters.grads_map.__contains__(str(g.nodes[i].output.name)):
-                if g.nodes[i].output.requires_grad:
+                if g.nodes[i].output.trainable:
                     self.parameters.grads_map.put(str(g.nodes[i].output.name), self.parameters.grads.size)
                     self.parameters.grads.append(Tensor[dtype](g.nodes[i].output.shape()))

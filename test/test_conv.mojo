@@ -121,9 +121,9 @@ fn torch_conv2d(
         var F = Python.import_module("torch.nn.functional")
         var np = Python.import_module("numpy")
 
-        var inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
-        var weights = torch.from_numpy(to_numpy(kernel)).requires_grad_(True)
-        var bias = torch.from_numpy(to_numpy(bias)).requires_grad_(True)
+        var inputs = torch.from_numpy(to_numpy(inputs)).trainable_(True)
+        var weights = torch.from_numpy(to_numpy(kernel)).trainable_(True)
+        var bias = torch.from_numpy(to_numpy(bias)).trainable_(True)
 
         var expected = F.conv2d(
             inputs,

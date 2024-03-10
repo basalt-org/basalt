@@ -43,12 +43,12 @@ from dainemo.autograd.attributes import AttributeVector, Attribute
 #                 TensorShape(out_channels, in_channels, kernel_size.get[0, Int](), kernel_size.get[1, Int]()),
 #                 -1/sqrt(k), 1/sqrt(k)
 #             ),
-#             requires_grad=True,
+#             trainable=True,
 #             param=True,
 #         )
 #         self.bias = Node[dtype](
 #             rand_uniform[dtype, nelts](TensorShape(out_channels), -1/sqrt(k), 1/sqrt(k)),
-#             requires_grad=True, 
+#             trainable=True, 
 #             param=True
 #         )
 
@@ -85,12 +85,12 @@ from dainemo.autograd.attributes import AttributeVector, Attribute
 #                 TensorShape(out_channels, in_channels, kernel_size.get[0, Int](), kernel_size.get[1, Int]()),
 #                 -1/sqrt(k), 1/sqrt(k)
 #             ),
-#             requires_grad=True,
+#             trainable=True,
 #             param=True,
 #         )
 #         self.bias = Node[dtype](
 #             rand_uniform[dtype, nelts](TensorShape(out_channels), -1/sqrt(k), 1/sqrt(k)),
-#             requires_grad=True, 
+#             trainable=True, 
 #             param=True
 #         )
 #         GRAPH.add_node(self.weights)

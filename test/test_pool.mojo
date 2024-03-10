@@ -36,7 +36,7 @@ fn torch_maxpool2d(
         var F = Python.import_module("torch.nn.functional")
         var np = Python.import_module("numpy")
 
-        var inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
+        var inputs = torch.from_numpy(to_numpy(inputs)).trainable_(True)
 
         var expected = F.max_pool2d(
             inputs,

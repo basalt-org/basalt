@@ -1,32 +1,30 @@
-from dainemo import max_rank
+from dainemo import max_rank, dtype
 from dainemo.autograd import Symbol
 
 
 @value
-@register_passable
-struct Constant[dtype: DType](CollectionElement, Stringable):
-    # TODO: To support general constant (instead of only scalars) find a way to store the data for any size!, which is register passable
-    # I tried to do it using DTypePointer. This worked and compiled. 
-    # But when running it multiple times the compiler cashed and holds only the pointer and the underlying data was overwritten
-    # So when trying to initiate the constant param at runtime. It couldn't find the data anymore.
-    var data: StaticTuple[1, SIMD[dtype, 1]]
+struct Constant(CollectionElement, Stringable):
     var rank: Int
     var static_shape: StaticIntTuple[max_rank]
+    var data: DynamicVector[SIMD[dtype, 1]]
 
     fn __init__(inout self, a: SIMD[dtype, 1]):
-        self.data = StaticTuple[1, SIMD[dtype, 1]](a)
         self.rank = 1
         self.static_shape = StaticIntTuple[max_rank](1)
+        self.data = DynamicVector[SIMD[dtype, 1]]()
+        self.data.push_back(a)
 
     fn __init__(inout self, a: Int):
-        self.data = StaticTuple[1, SIMD[dtype, 1]](a)
         self.rank = 1
         self.static_shape = StaticIntTuple[max_rank](1)
+        self.data = DynamicVector[SIMD[dtype, 1]]()
+        self.data.push_back(a)
 
     fn __init__(inout self, a: IntLiteral):
-        self.data = StaticTuple[1, SIMD[dtype, 1]](a)
         self.rank = 1
         self.static_shape = StaticIntTuple[max_rank](1)
+        self.data = DynamicVector[SIMD[dtype, 1]]()
+        self.data.push_back(a)
 
     fn __getitem__(self, i: Int) -> SIMD[dtype, 1]:
         return self.data[i]
@@ -50,16 +48,16 @@ struct Constant[dtype: DType](CollectionElement, Stringable):
 
 
 @value
-struct ConstantDict[dtype: DType](Sized):
+struct ConstantDict(Sized):
     var keys: DynamicVector[Symbol]
     
-    var values: DynamicVector[Constant[dtype]]
+    var values: DynamicVector[Constant]
 
     fn __init__(inout self):
         self.keys = DynamicVector[Symbol]()
-        self.values = DynamicVector[Constant[dtype]]()
+        self.values = DynamicVector[Constant]()
 
-    fn put(inout self, key: Symbol, value: Constant[dtype]):
+    fn put(inout self, key: Symbol, value: Constant):
         self.keys.push_back(key)
         self.values.push_back(value)
 

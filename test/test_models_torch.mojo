@@ -27,8 +27,8 @@
 #     var bias: Node[dtype]
 
 #     fn __init__(inout self, owned weights: Tensor[dtype], owned bias: Tensor[dtype]):
-#         self.weights = Node[dtype](weights, requires_grad=True, param=True)
-#         self.bias = Node[dtype](bias, requires_grad=True, param=True)
+#         self.weights = Node[dtype](weights, trainable=True, param=True)
+#         self.bias = Node[dtype](bias, trainable=True, param=True)
 #         GRAPH.add_node(self.weights)
 #         GRAPH.add_node(self.bias)
 
@@ -66,8 +66,8 @@
 #     var bias: Node[dtype]
 
 #     fn __init__(inout self, owned weights: Tensor[dtype], owned bias: Tensor[dtype]):
-#         self.weights = Node[dtype](weights, requires_grad=True, param=True)
-#         self.bias = Node[dtype](bias, requires_grad=True, param=True)
+#         self.weights = Node[dtype](weights, trainable=True, param=True)
+#         self.bias = Node[dtype](bias, trainable=True, param=True)
 #         GRAPH.add_node(self.weights)
 #         GRAPH.add_node(self.bias)
 
@@ -184,21 +184,21 @@
 #         Python.add_to_path("./test")
 #         var cnn_class = Python.import_module("test_cnn_class_torch")
 
-#         var inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
-#         var labels = torch.from_numpy(to_numpy(labels)).requires_grad_(True)
+#         var inputs = torch.from_numpy(to_numpy(inputs)).trainable_(True)
+#         var labels = torch.from_numpy(to_numpy(labels)).trainable_(True)
 
-#         var conv1_weights = torch.from_numpy(to_numpy(conv1_weights)).requires_grad_(
+#         var conv1_weights = torch.from_numpy(to_numpy(conv1_weights)).trainable_(
 #             True
 #         )
-#         var conv1_bias = torch.from_numpy(to_numpy(conv1_bias)).requires_grad_(True)
-#         var conv2_weights = torch.from_numpy(to_numpy(conv2_weights)).requires_grad_(
+#         var conv1_bias = torch.from_numpy(to_numpy(conv1_bias)).trainable_(True)
+#         var conv2_weights = torch.from_numpy(to_numpy(conv2_weights)).trainable_(
 #             True
 #         )
-#         var conv2_bias = torch.from_numpy(to_numpy(conv2_bias)).requires_grad_(True)
+#         var conv2_bias = torch.from_numpy(to_numpy(conv2_bias)).trainable_(True)
 #         var linear1_weights = torch.from_numpy(
 #             to_numpy(linear1_weights)
-#         ).requires_grad_(True)
-#         var linear1_bias = torch.from_numpy(to_numpy(linear1_bias)).requires_grad_(True)
+#         ).trainable_(True)
+#         var linear1_bias = torch.from_numpy(to_numpy(linear1_bias)).trainable_(True)
 
 #         var cnn = cnn_class.CNN(
 #             conv1_weights,
