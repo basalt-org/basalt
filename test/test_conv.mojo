@@ -176,7 +176,7 @@ fn test_conv_forward[
             Attribute("stride", stride),
             Attribute("dilation", dilation)
         ))
-        _ = g.out(res)
+        g.out(res)
 
         return g ^
 

@@ -29,7 +29,7 @@ fn create_linear_graph(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
 
     var y_pred = g.op(OP.ADD, res, b)
     var loss = mse(g, y_true, y_pred)
-    _ = g.out(loss)
+    g.out(loss)
 
     g.compile()
 

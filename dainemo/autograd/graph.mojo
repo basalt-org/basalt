@@ -50,21 +50,9 @@ struct Graph:
 
         return scalar_id
 
-    fn out(inout self, symbol: Symbol) -> Symbol:
-        # Go over all node output (in reverse order)
-        for i in range(len(self.nodes) - 1, -1, -1):
-            if self.nodes[i].output == symbol:
-                self.output = symbol
-                return symbol
-
-        # If not found: Identity sub-graph (input -> output)
-        for i in range(len(self.inputs)):
-            if self.inputs[i] == symbol:
-                self.output = self.inputs[i]
-                return symbol
-
-        return symbol
-
+    fn out(inout self, symbol: Symbol):
+        self.output = symbol
+        
     fn op(inout self, op: OP,
         operand_1: Symbol,
         operand_2: Optional[Symbol] = None,

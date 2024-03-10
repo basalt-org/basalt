@@ -24,7 +24,7 @@ fn test_unary_op[
         var t1 = g.input(t1_shape)
 
         var res = g.op(op, t1)
-        _ = g.out(res)
+        g.out(res)
 
         return g ^
 

@@ -23,7 +23,7 @@ fn test_binary_op[
         var t2 = g.input(t2_shape)
 
         var res = g.op(op, t1, t2)
-        _ = g.out(res)
+        g.out(res)
 
         return g ^
 
@@ -120,7 +120,7 @@ fn test_unary_op[
         var t1 = g.input(t1_shape)
 
         var res = g.op(op, t1)
-        _ = g.out(res)
+        g.out(res)
 
         return g ^
 
@@ -168,7 +168,7 @@ fn test_POW() raises:
         var t1 = g.input(t1_shape)
 
         var res = g.op(OP.POW, t1, 2)
-        _ = g.out(res)
+        g.out(res)
 
         return g ^
 
@@ -195,7 +195,7 @@ fn test_SUM() raises:
         var t1 = g.input(t1_shape)
 
         var res = g.op(OP.SUM, t1, attributes=attributes)
-        _ = g.out(res)
+        g.out(res)
 
         return g ^
 
@@ -233,7 +233,7 @@ fn test_MAX() raises:
         var t1 = g.input(t1_shape)
 
         var res = g.op(OP.MAX, t1, attributes=attributes)
-        _ = g.out(res)
+        g.out(res)
 
         return g ^
 
@@ -295,7 +295,7 @@ fn test_MEAN() raises:
         var t1 = g.input(t1_shape)
 
         var res = g.op(OP.MEAN, t1, attributes=attributes)
-        _ = g.out(res)
+        g.out(res)
 
         return g ^
 
@@ -341,7 +341,7 @@ fn test_TRANSPOSE() raises:
 
         var res = g.op(OP.TRANSPOSE, t1, attributes=attributes)
     
-        _ = g.out(res)
+        g.out(res)
     
         return g ^
 
@@ -390,7 +390,7 @@ fn test_FLATTEN() raises:
         var t1 = g.input(t1_shape)
 
         var res = g.op(OP.FLATTEN, t1)
-        _ = g.out(res)
+        g.out(res)
 
         return g ^
 
@@ -422,7 +422,7 @@ fn test_RESHAPE() raises:
         var t1 = g.input(t_shape)
 
         var res = g.op(OP.RESHAPE, t1, attributes=AttributeVector(Attribute("shape", new_shape)))
-        _ = g.out(res)
+        g.out(res)
 
         return g ^
 

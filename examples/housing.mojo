@@ -15,7 +15,6 @@ fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
     var diff = g.op(OP.SUB, y_true, y_pred)
     var loss = g.op(OP.POW, diff, 2)
     var mean_loss = g.op(OP.MEAN, loss)
-    # var mean_loss_2 = g.op(OP.DIV, mean_loss, 2)
 
     return mean_loss ^
 
@@ -33,7 +32,7 @@ fn linear_regression(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
 
     var y_pred = g.op(OP.ADD, res, b)
     var loss = mse(g, y_true, y_pred)
-    _ = g.out(loss)
+    g.out(loss)
 
     return g^
 

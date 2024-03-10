@@ -84,7 +84,7 @@ fn test_pool_forward[
             Attribute("stride", stride),
             Attribute("dilation", dilation)
         ))
-        _ = g.out(res)
+        g.out(res)
 
         return g ^
 
