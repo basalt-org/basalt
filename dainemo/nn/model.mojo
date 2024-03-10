@@ -17,7 +17,7 @@ fn dv_contains(dv: DynamicVector[Symbol], symbol: Symbol) -> Bool:
 
 
 fn calc_n_tensors(g: Graph) -> Int:
-    var num: Int = len(g.inputs) + len(g.params) + len(g.constants)
+    var num: Int = len(g.inputs) + len(g.params)
     var visited_results = DynamicVector[Symbol]()
     for i in range(len(g.nodes)):
         if not dv_contains(visited_results, g.nodes[i].output):
@@ -259,18 +259,20 @@ struct Model[
             self.parameters.params.append(Tensor[dtype](g.inputs[i].shape()))
 
         for i in range(len(g.params)):
-            self.parameters.params_map.put(str(g.params[i].name), self.parameters.params.size)
-            var par = Tensor[dtype](g.params[i].shape())
+            self.parameters.params_map.put(str(g.params.symbols[i].name), self.parameters.params.size)
             
-            # Parameter initialization
-            var k: SIMD[dtype, 1] = 1.0 / par.dim(0)
-            rand_uniform(par, -sqrt(k), sqrt(k))
+            var par: Tensor[dtype]
+            if g.params.initialized[i]:
+                par = g.params.get_tensor(i)
+            else:
+                # Default parameter initialization
+                par = Tensor[dtype](g.params.symbols[i].shape())
+                # Parameter initialization
+                # TODO: Remove
+                var k: SIMD[dtype, 1] = 1.0 / par.dim(0)
+                rand_uniform(par, -sqrt(k), sqrt(k))
+            
             self.parameters.params.append(par)
-
-        for i in range(len(g.constants.keys)):
-            self.parameters.params_map.put(str(g.constants.keys[i].name), self.parameters.params.size)
-            var cst = g.constants.get(g.constants.keys[i])
-            self.parameters.params.append(cst)
         
         for i in range(len(g.nodes)):
             if not self.parameters.params_map.__contains__(str(g.nodes[i].output.name)):
@@ -282,9 +284,9 @@ struct Model[
         # Inputs don't have gradients.
         # Gradient have same shape as the tensor
         for i in range(len(g.params)):
-            if g.params[i].trainable:
-                self.parameters.grads_map.put(str(g.params[i].name), self.parameters.grads.size)
-                self.parameters.grads.append(Tensor[dtype](g.params[i].shape()))
+            if g.params.symbols[i].trainable:
+                self.parameters.grads_map.put(str(g.params.symbols[i].name), self.parameters.grads.size)
+                self.parameters.grads.append(Tensor[dtype](g.params.symbols[i].shape()))
 
         for i in range(len(g.nodes)):
             if not self.parameters.grads_map.__contains__(str(g.nodes[i].output.name)):

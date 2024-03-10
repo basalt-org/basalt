@@ -19,6 +19,14 @@ fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
     return mean_loss ^
 
 
+from dainemo import dtype
+from dainemo.autograd.params import Param
+fn par_init(shape: TensorShape) -> Param:
+    var par = DynamicVector[SIMD[dtype, 1]](capacity=shape.num_elements())
+    for i in range(shape.num_elements()):
+        par.push_back(0.1)
+    return Param(par)
+
 
 fn linear_regression(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
     var g = Graph()
@@ -26,7 +34,7 @@ fn linear_regression(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
     var x = g.input(TensorShape(batch_size, n_inputs))
     var y_true = g.input(TensorShape(batch_size, n_outputs))
 
-    var W = g.param(TensorShape(n_inputs, n_outputs))
+    var W = g.param(TensorShape(n_inputs, n_outputs), init=par_init(TensorShape(n_inputs, n_outputs)))
     var b = g.param(TensorShape(n_outputs))
     var res = g.op(OP.DOT, x, W)
 
@@ -83,6 +91,6 @@ fn main():
             epoch_loss += loss[0]
             num_batches += 1
 
-        print("Epoch: [", epoch+1, "/", num_epochs, "] \t Avg loss per epoch:", epoch_loss / num_batches)
+        # print("Epoch: [", epoch+1, "/", num_epochs, "] \t Avg loss per epoch:", epoch_loss / num_batches)
     
     print("Training finished: ", (now() - start)/1e9, "seconds")

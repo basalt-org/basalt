@@ -6,7 +6,7 @@ from .node import Node
 from .attributes import AttributeVector, Attribute
 from .symbol import Symbol
 from .ops import OP, static_result_shape
-from .constant import Constant, ConstantDict
+from .params import ParamDict, Param
 
 from dainemo import seed, dtype
 from dainemo.utils.uuid import UUID, ID
@@ -16,39 +16,47 @@ from dainemo.utils.uuid import UUID, ID
 struct Graph:
     var uuid: UUID
     var inputs: DynamicVector[Symbol]
-    var output: Symbol
-    var params: DynamicVector[Symbol]
+    var params: ParamDict
     var nodes: DynamicVector[Node]
-
-    var constants: ConstantDict
+    var output: Symbol
 
     fn __init__(inout self):
         self.uuid = UUID(seed)
         self.inputs = DynamicVector[Symbol]()
-        self.params = DynamicVector[Symbol]()
+        self.params = ParamDict()
         self.nodes = DynamicVector[Node]()
         self.output = Symbol(ID(), dtype, TensorShape(-1), False)
-
-        self.constants = ConstantDict()
 
     fn input(inout self, shape: TensorShape) -> Symbol:
         var inp = Symbol(self.uuid.next(), dtype, shape, False)
         self.inputs.push_back(inp)
         return inp
 
-    fn param(inout self, shape: TensorShape, trainable: Bool = True) -> Symbol:
-        var par = Symbol(self.uuid.next(), dtype, shape, trainable)
-        self.params.push_back(par)
-        return par
+    fn param(inout self, shape: TensorShape, trainable: Bool = True, init: Optional[Param] = None) -> Symbol:
+        var param_id = Symbol(self.uuid.next(), dtype, shape, trainable)
+        
+        if init:
+            self.params.put(param_id, init.value())
+        else:
+            self.params.put(param_id)
+
+        return param_id
 
     fn scalar(inout self, value: SIMD[dtype, 1]) -> Symbol:
-        var cst = Constant(value)
-        var scalar_id = Symbol(self.uuid.next(), cst.rank, dtype, cst.static_shape, trainable=False)
+        var scal = Param(value)
+        var scalar_id = Symbol(self.uuid.next(), dtype, TensorShape(1), trainable=False)
 
-        # self.params.push_back(scalar_id)
-        self.constants.put(scalar_id, cst)
+        self.params.put(scalar_id, scal)
 
         return scalar_id
+
+    fn constant(inout self, shape: TensorShape, data: DynamicVector[SIMD[dtype, 1]]) -> Symbol:
+        var cst = Param(data)
+        var constant_id = Symbol(self.uuid.next(), dtype, shape, trainable=False)
+        
+        self.params.put(constant_id, cst)
+        
+        return constant_id
 
     fn out(inout self, symbol: Symbol):
         self.output = symbol
@@ -146,11 +154,8 @@ struct Graph:
         result += '], "outputs": ['
         result += self.output.json()
         result += '], "params": ['
-        for i in range(len(self.constants)):
-            result += self.constants.keys[i].json()
-            result += ", "
         for i in range(len(self.params)):
-            result += self.params[i].json()
+            result += self.params.symbols[i].json()
             if i < len(self.params) - 1:
                 result += ", "
         result += "]}"

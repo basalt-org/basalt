@@ -12,13 +12,6 @@ struct Symbol(CollectionElement, Stringable):
     var dtype: DType
     var static_shape: StaticIntTuple[max_rank]
     var trainable: Bool
-
-    fn __init__(inout self, name: ID, rank: Int, dtype: DType, static_shape: StaticIntTuple[max_rank], trainable: Bool):
-        self.name = name
-        self.rank = rank
-        self.dtype = dtype
-        self.static_shape = static_shape
-        self.trainable = trainable
     
     fn __init__(inout self, name: ID, dtype: DType, tensor_shape: TensorShape, trainable: Bool):
         self.name = name
@@ -28,15 +21,6 @@ struct Symbol(CollectionElement, Stringable):
         for i in range(tensor_shape.rank()):
             self.static_shape[i] = tensor_shape[i]
         self.trainable = trainable
-
-    fn __init__(inout self, name: ID, dtype: DType):
-        self.name = name
-        self.rank = 1
-        self.dtype = dtype
-        self.static_shape = StaticIntTuple[max_rank]()
-        for i in range(self.rank):
-            self.static_shape[i] = 1
-        self.trainable = False
 
     fn __eq__(self, other: Self) -> Bool:
         return self.name == other.name
