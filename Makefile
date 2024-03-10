@@ -44,5 +44,5 @@ test:
 # 	mojo run -I . test/test_broadcasting.mojo
 	mojo run -I . test/test_mlops.mojo
 	. .venv/bin/activate && mojo run -I . test/test_conv.mojo
-# 	. .venv/bin/activate && mojo run -I . test/test_pool.mojo
+	. .venv/bin/activate && mojo run -I . test/test_pool.mojo
 # 	. .venv/bin/activate && mojo run -I . test/test_models_torch.mojo

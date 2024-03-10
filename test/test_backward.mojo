@@ -381,10 +381,6 @@ fn test_TRANSPOSE() raises:
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
 
-    var t1_strides = calculate_strides(t1_shape)
-
-    alias attributes = AttributeVector(Attribute("axes", TensorShape(2, 1, 0)))
-
     fn arange(inout t: Tensor[dtype]):
         var n = t.num_elements()
         for i in range(n):
@@ -393,9 +389,11 @@ fn test_TRANSPOSE() raises:
     arange(t1)
     arange(ug)
 
+    alias attributes = AttributeVector(Attribute("axes", TensorShape(2, 1, 0)))
     var grad = TRANSPOSE.backward[ug_shape, t1_shape, attributes](ug, t1)
     var expected_grad = Tensor[dtype](t1_shape)
-    
+    var t1_strides = calculate_strides(t1_shape)
+
     for i in range(ug_shape[0]):
         for j in range(ug_shape[1]):
             for k in range(ug_shape[2]):
@@ -403,16 +401,13 @@ fn test_TRANSPOSE() raises:
 
     assert_tensors_equal(grad, expected_grad)
 
-
-    # Test Transpsoe 1, 2, 0
+    # Test Transpose 1, 2, 0
 
     alias ug_shape_2 = TensorShape(3, 4, 2)
     ug = Tensor[dtype](ug_shape_2)
-
-    alias attributes_2 = AttributeVector(Attribute("axes", TensorShape(1, 2, 0)))
-
     arange(ug)
 
+    alias attributes_2 = AttributeVector(Attribute("axes", TensorShape(1, 2, 0)))
     grad = TRANSPOSE.backward[ug_shape, t1_shape, attributes_2](ug, t1)
     expected_grad = Tensor[dtype](t1_shape)
 
@@ -423,30 +418,6 @@ fn test_TRANSPOSE() raises:
 
     assert_tensors_equal(grad, expected_grad)
 
-
-# fn test_TRANSPOSE() raises:
-#     var t1 = Tensor[dtype](2, 3)
-
-#     var res = TRANSPOSE.forward(t1)
-
-#     # uppergrad has always to same shape as res
-#     var upper_grad: Tensor[dtype] = Tensor[dtype](res.tensor.shape())
-#     assert_equal(upper_grad.dim(0), 3)
-#     assert_equal(upper_grad.dim(1), 2)
-#     for i in range(3):
-#         upper_grad[2*i] = i+1
-#         upper_grad[2*i+1] = i+4
-#     var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-#     assert_equal(gn.parents.size, 1)  # one parent
-
-#     var grad1 = gn.backward_fn(upper_grad, gn.parents, 0)
-
-#     var expected_grad1 = Tensor[dtype](t1.shape())
-#     for i in range(6):
-#         expected_grad1[i] = i+1
-#     assert_tensors_equal(grad1, expected_grad1)
-#     GRAPH.reset_all()
-    
 
 # <------------FLATTEN------------>
 fn test_FLATTEN() raises:

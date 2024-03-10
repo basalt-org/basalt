@@ -1,9 +1,7 @@
 from tensor import TensorShape
 
-# from dainemo import GRAPH
-# from dainemo.autograd.node import Node
 from dainemo.utils.tensorutils import calculate_strides
-from dainemo.autograd.attributes import Attribute, AttributeVector
+from dainemo.autograd.attributes import AttributeVector
 
 
 # <------------GENERAL CONV METHODS------------>

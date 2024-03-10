@@ -409,23 +409,6 @@ fn test_transpose() raises:
     assert_tensors_equal(transposed, data.expected)
 
 
-# # <-------------FLATTEN/RESHAPE------------->
-# fn test_flatten() raises:
-#     var A = Tensor[dtype](2, 3)
-#     var B = Tensor[dtype](6)
-#     for i in range(6):
-#         A[i] = i + 1
-#         B[i] = i + 1
-
-#     var A_flat = A.reshape(
-#         TensorShape(A.num_elements())
-#     )  # or A.ireshape to modify in place
-#     assert_tensors_equal(A_flat, B)
-
-#     var A_resh = A_flat.reshape(A.shape())  # or A_flat.ireshape to modify in place
-#     assert_tensors_equal(A_resh, A)
-
-
 # # <-------------PADDING------------->
 # from test_tensorutils_data import PaddingData
 
@@ -476,7 +459,6 @@ fn main():
         test_sum_mean_std_n()
         test_max()
         test_transpose()
-        # test_flatten()
         # test_padding()
     except:
         print("[ERROR] Error in tensorutils.py")

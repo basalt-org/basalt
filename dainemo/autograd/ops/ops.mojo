@@ -4,9 +4,10 @@ from math import add
 from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, SUM, MEAN, MAX, FLATTEN, RESHAPE, TRANSPOSE
 from .mlops import SIGMOID, RELU, TANH
 from .conv import CONV2D
+from .pool import MAXPOOL2D
 from dainemo.utils.uuid import bytes
 from dainemo.utils.tensorutils import unbroadcast_add, broadcast_shapes, elwise_op
-from ..attributes import Attribute, AttributeVector
+from ..attributes import AttributeVector
 
 
 # Define operators as named parameter expression
@@ -35,14 +36,15 @@ struct OP:
     alias TANH = OP(15, "TANH", num_operands=1)
     alias CONV2D = OP(16, "CONV2D", num_operands=3)
     alias TRANSPOSE = OP(17, "TRANSPOSE", num_operands=1)
+    alias MAXPOOL2D = OP(18, "MAXPOOL2D", num_operands=1)
 
     var id: UInt8
-    var name: bytes[8]
+    var name: bytes[16]
     var num_operands: UInt8
 
     fn __init__(inout self, id: UInt8, name: String, num_operands: UInt8):
         self.id = id
-        self.name = bytes[8](name)
+        self.name = bytes[16](name)
         self.num_operands = num_operands
 
     fn __eq__(self, other: OP) -> Bool:
@@ -79,6 +81,8 @@ fn static_result_shape(
         return TANH.result_shape(t1_shape)
     elif op == OP.TRANSPOSE:
         return TRANSPOSE.result_shape(t1_shape, attributes)
+    elif op == OP.MAXPOOL2D:
+        return MAXPOOL2D.result_shape(t1_shape, attributes)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1)
@@ -161,6 +165,8 @@ fn forward_op[
         TANH.forward[t1_shape](res, t1)
     elif op == OP.TRANSPOSE:
         TRANSPOSE.forward[t1_shape, attributes](res, t1)
+    elif op == OP.MAXPOOL2D:
+        MAXPOOL2D.forward[t1_shape, attributes](res, t1)
     else:
         print("[ERROR] Operator not found.")
 

@@ -606,7 +606,6 @@ fn transpose(t: Tensor[dtype], axes: TensorShape) -> Tensor[dtype]:
     return t_new ^
 
 
-# It would be better to use VariadiList for axes, but because variadiclist can't be modified it wouldn't be possible to use overloaded transpose functions
 @always_inline
 fn transpose(inout res: Tensor[dtype], t: Tensor[dtype], axes: TensorShape):
     """
@@ -618,7 +617,6 @@ fn transpose(inout res: Tensor[dtype], t: Tensor[dtype], axes: TensorShape):
     var original_strides = calculate_strides(t.shape())
     var transposed_strides = calculate_strides(res.shape())
 
-
     var position_of_last_rank_new_shape = 0
 
     # Get position of where the last dim of the old shape is in the new shape
@@ -628,15 +626,6 @@ fn transpose(inout res: Tensor[dtype], t: Tensor[dtype], axes: TensorShape):
 
     @parameter
     fn p_transpose(i: Int):
-        # var new_index = 0
-        # var linear_index = i
-        # for j in range(t.rank() - 1, -1, -1):
-        #     var stride = original_strides[axes[j]]
-        #     var index = (linear_index // stride) % t.dim(axes[j])
-
-        #     new_index += index * transposed_strides[j]
-
-        # res[new_index] = t[i]
 
         @parameter
         fn v_transpose[nelts: Int](j: Int):
