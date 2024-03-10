@@ -245,6 +245,8 @@ fn backward_op[
         res_grad = TANH.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.TRANSPOSE:
         res_grad = TRANSPOSE.backward[ug_shape, t1_shape, attributes](ug, t1)
+    elif op == OP.MAXPOOL2D:
+        res_grad = MAXPOOL2D.backward[ug_shape, t1_shape, attributes](ug, t1)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1)
