@@ -12,17 +12,15 @@ struct Symbol(CollectionElement, Stringable):
     var dtype: DType
     var static_shape: StaticIntTuple[max_rank]
     var requires_grad: Bool
-    var is_constant: Bool
 
-    fn __init__(inout self, name: ID, rank: Int, dtype: DType, static_shape: StaticIntTuple[max_rank], requires_grad: Bool, is_constant: Bool = False):
+    fn __init__(inout self, name: ID, rank: Int, dtype: DType, static_shape: StaticIntTuple[max_rank], requires_grad: Bool):
         self.name = name
         self.rank = rank
         self.dtype = dtype
         self.static_shape = static_shape
         self.requires_grad = requires_grad
-        self.is_constant = is_constant
     
-    fn __init__(inout self, name: ID, dtype: DType, tensor_shape: TensorShape, requires_grad: Bool, is_constant: Bool = False):
+    fn __init__(inout self, name: ID, dtype: DType, tensor_shape: TensorShape, requires_grad: Bool):
         self.name = name
         self.rank = tensor_shape.rank()
         self.dtype = dtype
@@ -30,7 +28,6 @@ struct Symbol(CollectionElement, Stringable):
         for i in range(tensor_shape.rank()):
             self.static_shape[i] = tensor_shape[i]
         self.requires_grad = requires_grad
-        self.is_constant = is_constant
 
     fn __init__(inout self, name: ID, dtype: DType):
         self.name = name
@@ -40,7 +37,6 @@ struct Symbol(CollectionElement, Stringable):
         for i in range(self.rank):
             self.static_shape[i] = 1
         self.requires_grad = False
-        self.is_constant = True
 
     fn __eq__(self, other: Self) -> Bool:
         return self.name == other.name

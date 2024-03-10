@@ -43,7 +43,7 @@ struct Graph:
 
     fn scalar(inout self, value: SIMD[dtype, 1]) -> Symbol:
         var cst = Constant(value)
-        var scalar_id = Symbol(self.uuid.next(), cst.rank, dtype, cst.static_shape, requires_grad=False, is_constant=True)
+        var scalar_id = Symbol(self.uuid.next(), cst.rank, dtype, cst.static_shape, requires_grad=False)
 
         # self.params.push_back(scalar_id)
         self.constants.put(scalar_id, cst)
@@ -52,7 +52,7 @@ struct Graph:
 
     fn out(inout self, symbol: Symbol):
         self.output = symbol
-        
+
     fn op(inout self, op: OP,
         operand_1: Symbol,
         operand_2: Optional[Symbol] = None,
