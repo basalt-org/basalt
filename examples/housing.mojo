@@ -39,8 +39,10 @@ fn linear_regression(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
     var res = g.op(OP.DOT, x, W)
 
     var y_pred = g.op(OP.ADD, res, b)
+    g.out(y_pred)
+
     var loss = mse(g, y_true, y_pred)
-    g.out(loss)
+    g.loss(loss)
 
     return g^
 
@@ -94,3 +96,15 @@ fn main():
         print("Epoch: [", epoch+1, "/", num_epochs, "] \t Avg loss per epoch:", epoch_loss / num_batches)
     
     print("Training finished: ", (now() - start)/1e9, "seconds")
+
+    # try:
+    #     graph.render("operator")
+    # except:
+    #     print("Could not render graph")
+
+    print("\n\nInferencing model...\n")
+    for batch in training_loader:
+        var output = model.inference(batch.data)
+
+        # Print first (and only output)
+        print("Predicted: ", output[0])

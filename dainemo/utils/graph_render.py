@@ -72,6 +72,15 @@ def create_onnx_graph_from_json(graph, type='node'):
                 intermediates.append(helper.make_tensor_value_info(name, dtype, shape))
                 visited.append(name)    
 
+    # Process loss
+    if 'loss' in graph.keys():
+        loss = graph['loss'][0]
+        name = loss['name']
+        dtype = TensorProto.FLOAT
+        shape = list(map(int, loss['shape'].split("x")))
+        outputs.append(helper.make_tensor_value_info(name, dtype, shape))
+        visited.append(name)
+
     # Create the graph
     graph_def = helper.make_graph(
         nodes,

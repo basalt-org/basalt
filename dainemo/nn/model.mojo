@@ -1,4 +1,5 @@
 from math import sqrt
+from collections.optional import Optional
 
 from dainemo import Graph, Symbol
 from dainemo.autograd.ops import forward_op, backward_op, OP
@@ -17,6 +18,9 @@ fn dv_contains(dv: DynamicVector[Symbol], symbol: Symbol) -> Bool:
 
 
 fn calc_n_tensors(g: Graph) -> Int:
+    """
+    Calculate the number of tensors required to store in a collection.
+    """
     var num: Int = len(g.inputs) + len(g.params)
     var visited_results = DynamicVector[Symbol]()
     for i in range(len(g.nodes)):
@@ -24,6 +28,19 @@ fn calc_n_tensors(g: Graph) -> Int:
             visited_results.push_back(g.nodes[i].output)
             num += 1
     return num
+
+
+fn calc_n_inference_nodes(g: Graph) -> Optional[Int]:
+    """
+    Calculate the index of the node up to wich the forward pass should be executed for a model inference.
+    When looping in revers: Equals the first index on which the node output is also a graph output.
+    The number of inference nodes is that index + 1.
+    """
+    for i in range(len(g.nodes), 0, -1):
+        if dv_contains(g.outputs, g.nodes[i].output):
+            return i + 1
+    return None
+
 
 
 struct Parameters():
@@ -41,19 +58,51 @@ struct Parameters():
 
 struct Model[
     g: Graph,
-    N: Int = calc_n_tensors(g)
+    N: Int = calc_n_tensors(g),
+    n_inference_nodes: Optional[Int] = calc_n_inference_nodes(g)
 ]():
 
     var parameters: Parameters
 
-    fn __init__(inout self):
+    fn __init__(inout self, inference_only: Bool = False):
         self.parameters = Parameters(N)
 
         self.allocate_tensor_memory()
         self.allocate_grad_memory()
+        
+        if not inference_only and not g.loss_out:
+            print("\n\n[WARNING]: No loss defined, model.forward() unavailable!\n\n")
+        if not n_inference_nodes:
+            print("\n\n[WARNING]: No graph out defined, model.inference() unavailable!\n\n")
 
 
-    fn forward(inout self, owned *t_input: Tensor[dtype]) -> Tensor[dtype]:
+    fn forward(inout self, owned *t_inputs: Tensor[dtype]) -> Tensor[dtype]:
+        
+        # 1. Execute a full forward pass (model inference + loss)
+        self.execute[g.nodes.size](t_inputs^)
+
+        # 2. Return loss from allocated output memory
+        var loss_out_idx: Int = self.parameters.params_map.get(str(g.loss_out.value().name), -1)
+
+        return __get_address_as_lvalue(self.parameters.params.offset(loss_out_idx).address)
+
+
+    fn inference(inout self, owned *t_inputs: Tensor[dtype]) -> DynamicVector[Tensor[dtype]]:
+        
+        # 1. Execute forward pass up to model out
+        self.execute[n_inference_nodes.value()](t_inputs^)
+        
+        # 2. Return output from allocated output memory
+        var out_idx: Int
+        var outputs = DynamicVector[Tensor[dtype]]()
+        for i in range(len(g.outputs)):
+            out_idx = self.parameters.params_map.get(str(g.outputs[i].name), -1)
+            outputs.push_back(__get_address_as_lvalue(self.parameters.params.offset(out_idx).address))
+
+        return outputs ^
+
+
+    fn execute[num_nodes: Int](inout self, t_input: VariadicListMem[Tensor[dtype]]):
         # 1. Write inputs to allocated input memory
         for i in range(len(g.inputs)):
             var input_idx = self.parameters.params_map.get(str(g.inputs[i].name), -1)
@@ -98,13 +147,7 @@ struct Model[
                     __get_address_as_lvalue(self.parameters.params.offset(in3_idx).address)
                 )
 
-        unroll[fw_unroll, g.nodes.size]()
-
-        # 3. Return output from allocated output memory
-        var out_idx: Int = 0
-        out_idx = self.parameters.params_map.get(str(g.output.name), -1)
-
-        return __get_address_as_lvalue(self.parameters.params.offset(out_idx).address)
+        unroll[fw_unroll, num_nodes]()
 
 
     fn backward(inout self):
@@ -115,7 +158,7 @@ struct Model[
         # 1. Initialize output gradient at the beginning of the backward pass
         var output_idx: Int = 0
 
-        output_idx = self.parameters.grads_map.get(str(g.output.name), -1)
+        output_idx = self.parameters.grads_map.get(str(g.loss_out.value().name), -1)
         fill[dtype, nelts](__get_address_as_lvalue(self.parameters.grads.offset(output_idx).address), 1.0)
 
         # 2. Loop over all nodes in reverse order and execute backward operations

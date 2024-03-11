@@ -28,8 +28,10 @@ fn create_linear_graph(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
     var res = g.op(OP.DOT, x, W)
 
     var y_pred = g.op(OP.ADD, res, b)
+    g.out(y_pred)
+
     var loss = mse(g, y_true, y_pred)
-    g.out(loss)
+    g.loss(loss)
 
     g.compile()
 
