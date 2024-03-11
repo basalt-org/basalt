@@ -4,7 +4,7 @@ from dainemo import Graph, Symbol, OP
 from dainemo.autograd.attributes import AttributeVector, Attribute
 
 
-def Conv2d( inout g: Graph,
+fn Conv2d( inout g: Graph,
     inputs: Symbol,
     out_channels: Int,
     kernel_size: StaticIntTuple[2],
