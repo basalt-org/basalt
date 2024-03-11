@@ -31,8 +31,8 @@ fn test_unary_op[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph]()
-    var res = model.forward(t1)
+    var model = nn.Model[graph](inference_only=True)
+    var res = model.inference(t1)[0]
 
     assert_tensors_equal(res, expected)
 

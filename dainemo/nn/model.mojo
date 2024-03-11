@@ -36,7 +36,7 @@ fn calc_n_inference_nodes(g: Graph) -> Optional[Int]:
     When looping in revers: Equals the first index on which the node output is also a graph output.
     The number of inference nodes is that index + 1.
     """
-    for i in range(len(g.nodes), 0, -1):
+    for i in range(len(g.nodes) - 1, -1, -1):
         if dv_contains(g.outputs, g.nodes[i].output):
             return i + 1
     return None
@@ -70,16 +70,29 @@ struct Model[
         self.allocate_tensor_memory()
         self.allocate_grad_memory()
         
-        if not inference_only and not g.loss_out:
+        # NOTE: inference_only only used for surpressing the warning.
+        if not inference_only & not g.loss_out:
             print("\n\n[WARNING]: No loss defined, model.forward() unavailable!\n\n")
         if not n_inference_nodes:
             print("\n\n[WARNING]: No graph out defined, model.inference() unavailable!\n\n")
 
 
-    fn forward(inout self, owned *t_inputs: Tensor[dtype]) -> Tensor[dtype]:
+    fn forward(inout self, *t_inputs: Tensor[dtype]) -> Tensor[dtype]:
         
+        # NOTE: Important detail here is that the order of the inputs must be the same as the order the inputs were defined in the graph.
+        # Example: If you were te define the y_true before the x when creating the graph
+        #       
+        #   var g = Graph()
+        #   var y_true = g.input(TensorShape(batch_size, n_outputs))
+        #   var x = g.input(TensorShape(batch_size, n_inputs))
+        #
+        # Then the order of the inputs in the forward call must be the same:
+        #
+        #   model.forward(batch.labels, batch.inputs)
+
+
         # 1. Execute a full forward pass (model inference + loss)
-        self.execute[g.nodes.size](t_inputs^)
+        self.execute[g.nodes.size](t_inputs)
 
         # 2. Return loss from allocated output memory
         var loss_out_idx: Int = self.parameters.params_map.get(str(g.loss_out.value().name), -1)
@@ -87,10 +100,10 @@ struct Model[
         return __get_address_as_lvalue(self.parameters.params.offset(loss_out_idx).address)
 
 
-    fn inference(inout self, owned *t_inputs: Tensor[dtype]) -> DynamicVector[Tensor[dtype]]:
+    fn inference(inout self, *t_inputs: Tensor[dtype]) -> DynamicVector[Tensor[dtype]]:
         
         # 1. Execute forward pass up to model out
-        self.execute[n_inference_nodes.value()](t_inputs^)
+        self.execute[n_inference_nodes.value()](t_inputs)
         
         # 2. Return output from allocated output memory
         var out_idx: Int

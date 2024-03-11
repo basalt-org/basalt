@@ -91,8 +91,8 @@ fn test_pool_forward[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph]()
-    var res = model.forward(inputs)
+    var model = nn.Model[graph](inference_only=True)
+    var res = model.inference(inputs)[0]
 
     var torch_out = torch_maxpool2d(
         inputs,
