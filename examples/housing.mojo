@@ -31,8 +31,8 @@ fn par_init(shape: TensorShape) -> Param:
 fn linear_regression(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
     var g = Graph()
 
-    var y_true = g.input(TensorShape(batch_size, n_outputs))
     var x = g.input(TensorShape(batch_size, n_inputs))
+    var y_true = g.input(TensorShape(batch_size, n_outputs))
     
 
     var W = g.param(TensorShape(n_inputs, n_outputs), init="kaiming_normal")
