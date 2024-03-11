@@ -1,6 +1,9 @@
 from .model import Model
 
-# from .layers.conv import Conv2d
+from .layers.linear import Linear
+from .layers.conv import Conv2d
+
+from .loss import MSELoss
 
 # from dainemo.nn.layers.linear import Linear
 # from dainemo.nn.layers.pool import MaxPool2d

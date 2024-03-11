@@ -8,41 +8,16 @@ from dainemo.utils.dataloader import DataLoader
 
 
 
-fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
-
-    # 1/N * sum( (outputs - targets)^2 )
-
-    var diff = g.op(OP.SUB, y_true, y_pred)
-    var loss = g.op(OP.POW, diff, 2)
-    var mean_loss = g.op(OP.MEAN, loss)
-
-    return mean_loss ^
-
-
-from dainemo import dtype
-from dainemo.autograd.params import Param
-fn par_init(shape: TensorShape) -> Param:
-    var par = DynamicVector[SIMD[dtype, 1]](capacity=shape.num_elements())
-    for i in range(shape.num_elements()):
-        par.push_back(0.1)
-    return Param(par)
-
-
 fn linear_regression(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
     var g = Graph()
 
     var x = g.input(TensorShape(batch_size, n_inputs))
     var y_true = g.input(TensorShape(batch_size, n_outputs))
     
-
-    var W = g.param(TensorShape(n_inputs, n_outputs), init="kaiming_normal")
-    var b = g.param(TensorShape(n_outputs))
-    var res = g.op(OP.DOT, x, W)
-
-    var y_pred = g.op(OP.ADD, res, b)
+    var y_pred = nn.Linear(g, x, n_outputs)
     g.out(y_pred)
 
-    var loss = mse(g, y_true, y_pred)
+    var loss = nn.MSELoss(g, y_true, y_pred)
     g.loss(loss)
 
     return g^

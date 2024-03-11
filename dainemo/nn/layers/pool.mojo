@@ -1,50 +1,31 @@
-# from tensor import TensorShape
-# from random import rand
-# from collections.optional import Optional
+from tensor import TensorShape
 
-# from dainemo import GRAPH
-# from dainemo.nn.layers import Layer
-# from dainemo.autograd.node import Node
-# from dainemo.autograd.ops.pool import MAXPOOL2D
+from dainemo import Graph, Symbol, OP
+from dainemo.autograd.attributes import AttributeVector, Attribute
 
 
-# # <------------MAXPOOL2D------------>
-# fn set_static_stride(kernel_size: StaticIntTuple[2], stride: Optional[Int] = None) -> StaticIntTuple[2]:
-#     if stride:
-#         return StaticIntTuple[2](stride.value(), stride.value())
-#     else:
-#         return kernel_size
+# <------------MAXPOOL2D------------>
+fn MaxPool2d(inout g: Graph,
+    inputs: Symbol,
+    kernel_size: StaticIntTuple[2],
+    padding: StaticIntTuple[2] = 0,
+    stride: StaticIntTuple[2] = 1,
+    dilation: StaticIntTuple[2] = 1,
+) -> Symbol:
+    """
+    A 2D Max Pooling Layer.
 
+    Kernel is unaware of the in_channels and out_channels of the input tensor.
+    kernel.size     (kX, kY)
+    """
+    # TODO: assert padding <= kernel_size / 2 (at compile time)
 
-# struct MaxPool2d[
-#     kernel_size: StaticIntTuple[2],
-#     stride: Optional[Int] = None,
-#     padding: StaticIntTuple[2] = 0,
-#     dilation: StaticIntTuple[2] = 1
-# ](Layer):
-#     """
-#     A 2D Max Pooling Layer.
-
-#     Kernel is unaware of the in_channels and out_channels of the input tensor.
-#     kernel.shape     [_, _, X, Y]
-#     """
-#     alias input_stride: StaticIntTuple[2] = set_static_stride(kernel_size, stride)
-
-#     fn __init__(inout self):
-#         # padding should be at most half of the kernel size
-#         # TODO: assert padding <= kernel_size / 2 (at compile time)
-#         pass
-
-#     fn forward(self, inputs: Node[dtype]) -> Node[dtype]:
-#         """
-#         Forward pass of the MaxPool2d layer.
-#         """
-
-#         return MAXPOOL2D.forward[kernel_size, self.input_stride, padding, dilation](inputs)
-
-
-#     fn __call__(self, inputs: Node[dtype]) -> Node[dtype]:
-#         return self.forward(inputs)
+    return g.op(OP.MAXPOOL2D, inputs, attributes=AttributeVector(
+        Attribute("kernel_size", kernel_size),
+        Attribute("padding", padding),
+        Attribute("stride", stride),
+        Attribute("dilation", dilation)
+    ))
 
 
 # # <------------MAXPOOL3D------------>

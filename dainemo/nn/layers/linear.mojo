@@ -1,50 +1,18 @@
-# from tensor import Tensor
-# from random import rand
-# from math import sqrt
+from tensor import TensorShape
 
-# from dainemo import GRAPH
-# from dainemo.nn.layers import Layer
-# from dainemo.autograd.node import Node
-# from dainemo.autograd.ops.basics import DOT, ADD
-# from dainemo.utils.tensorutils import rand_uniform
+from dainemo import Graph, Symbol, OP
 
 
+fn Linear(inout g: Graph,
+    inputs: Symbol,
+    n_outputs: Int,
+) -> Symbol:
+    """
+    A fully connected layer.
+    """
 
-# struct Linear(Layer):
-#     """
-#     A fully connected layer.
-#     """
+    var weights = g.param(TensorShape(inputs.static_shape[1], n_outputs), init="kaiming_normal")
+    var b = g.param(TensorShape(n_outputs))
+    var res = g.op(OP.DOT, inputs, weights)
 
-#     var weights: Node[dtype]
-#     var bias: Node[dtype]
-
-#     fn __init__(inout self, n_input: Int, n_output: Int):
-#         var k: SIMD[dtype, 1] =  1.0 / n_input
-#         self.weights = Node[dtype](
-#             rand_uniform[dtype, nelts](TensorShape(n_input, n_output), -sqrt(k), sqrt(k)),
-#             trainable=True,
-#             param=True
-#         )
-#         self.bias = Node[dtype](
-#             rand_uniform[dtype, nelts](TensorShape(n_output), -sqrt(k), sqrt(k)),
-#             trainable=True,
-#             param=True
-#         )
-#         GRAPH.add_node(self.weights)
-#         GRAPH.add_node(self.bias)
-
-#     fn forward(self, inputs: Node[dtype]) -> Node[dtype]:
-#         """
-#         Forward pass of the linear layer.
-#         """
-#         # COPY self.weight & self.bias directly from GRAPH
-#         # Workaround because model parameters are created and change in copies. 
-#         # TODO: Redo when lifetimes are there. [INVESTIGATE HOW TO AVOID THIS]
-#         var weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
-#         var bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
-
-#         var res = DOT.forward(inputs, weights)
-#         return ADD.forward(res, bias)
-
-#     fn __call__(self, inputs: Node[dtype]) -> Node[dtype]:
-#         return self.forward(inputs)
+    return g.op(OP.ADD, res, b)

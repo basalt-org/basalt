@@ -1,31 +1,19 @@
-# from tensor import Tensor
-# from math import add
-# from math.limit import max_finite
-
-# import dainemo.nn as nn
-# from dainemo.autograd.node import Node
-# from dainemo.autograd.ops.basics import ADD, SUM, SUB, DIV, EXP, MAX, LOG, POW, MUL
+from dainemo import Graph, Symbol, OP
 
 
-# # <------------MSE------------>
-# struct MSELoss:
-#     fn __init__(inout self):
-#         pass
+# <------------MSE------------>
+fn MSELoss(inout g: Graph,
+    y_true: Symbol,
+    y_pred: Symbol
+) -> Symbol:
 
-#     fn forward(inout self, outputs: Node[dtype], targets: Tensor[dtype]) -> Node[dtype]:
-#         """
-#         Forward pass of MSE.
-#         """
-#         # 1/2N * sum( (outputs - targets)^2 )
+    # 1/N * sum( (outputs - targets)^2 )
 
-#         var difference = SUB.forward(outputs, Node[dtype](targets))
-#         var squared_difference = POW.forward(difference, 2)
-#         var res = SUM.forward(squared_difference)
-#         var div2N: SIMD[dtype, 1] = (1/(2*outputs.tensor.num_elements())).cast[dtype]()
-#         return MUL.forward(res, div2N)
+    var diff = g.op(OP.SUB, y_true, y_pred)
+    var loss = g.op(OP.POW, diff, 2)
+    var mean_loss = g.op(OP.MEAN, loss)
 
-#     fn __call__(inout self, outputs: Node[dtype], targets: Tensor[dtype]) -> Node[dtype]:
-#         return self.forward(outputs, targets)
+    return mean_loss ^
 
 
 # # <------------CROSSENTROPY------------>
