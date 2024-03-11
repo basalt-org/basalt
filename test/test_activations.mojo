@@ -6,7 +6,6 @@ from test_tensorutils import assert_tensors_equal
 import dainemo.nn as nn
 from dainemo import Graph, Symbol, OP
 from dainemo.utils.tensorutils import fill
-from dainemo.nn.activations import Softmax, LogSoftmax, ReLU, Sigmoid, Tanh
 
 
 alias dtype = DType.float32
@@ -22,7 +21,7 @@ fn test_SOFTMAX() raises:
 
         var x = g.input(x_shape)
 
-        var softmax = Softmax(g, x, axis)
+        var softmax = nn.Softmax(g, x, axis)
 
         g.out(softmax)
 
@@ -80,7 +79,7 @@ fn test_LOGSOFTMAX() raises:
 
         var x = g.input(x_shape)
 
-        var logsoftmax = LogSoftmax(g, x, axis)
+        var logsoftmax = nn.LogSoftmax(g, x, axis)
 
         g.out(logsoftmax)
 
@@ -138,7 +137,7 @@ fn test_RELU() raises:
 
         var x = g.input(x_shape)
 
-        var relu = ReLU(g, x)
+        var relu = nn.ReLU(g, x)
 
         g.out(relu)
 
@@ -174,7 +173,7 @@ fn test_SIGMOID() raises:
 
         var x = g.input(x_shape)
 
-        var sigmoid = Sigmoid(g, x)
+        var sigmoid = nn.Sigmoid(g, x)
 
         g.out(sigmoid)
 
@@ -204,7 +203,7 @@ fn test_TANH() raises:
 
         var x = g.input(x_shape)
 
-        var tanh = Tanh(g, x)
+        var tanh = nn.Tanh(g, x)
 
         g.out(tanh)
 

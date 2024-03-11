@@ -5,6 +5,7 @@ from .layers.conv import Conv2d
 from .layers.pool import MaxPool2d
 
 from .loss import MSELoss
+from .activations import Softmax, LogSoftmax, ReLU, Sigmoid, Tanh
 
 # from dainemo.nn.layers.linear import Linear
 # from dainemo.nn.layers.pool import MaxPool2d
