@@ -18,14 +18,16 @@ struct Graph:
     var inputs: DynamicVector[Symbol]
     var params: ParamDict
     var nodes: DynamicVector[Node]
-    var output: Symbol
+    var outputs: DynamicVector[Symbol]
+    var loss_out: Optional[Symbol]
 
     fn __init__(inout self):
         self.uuid = UUID(seed)
         self.inputs = DynamicVector[Symbol]()
         self.params = ParamDict()
         self.nodes = DynamicVector[Node]()
-        self.output = Symbol(ID(), dtype, TensorShape(-1), False)
+        self.outputs = DynamicVector[Symbol]()
+        self.loss_out = None
 
     fn input(inout self, shape: TensorShape) -> Symbol:
         var inp = Symbol(self.uuid.next(), dtype, shape, False)
@@ -60,8 +62,11 @@ struct Graph:
         return constant_id
 
     fn out(inout self, symbol: Symbol):
-        self.output = symbol
+        self.outputs.push_back(symbol)
 
+    fn loss(inout self, symbol: Symbol):
+        self.loss_out = symbol
+    
     fn op(inout self, op: OP,
         operand_1: Symbol,
         operand_2: Optional[Symbol] = None,
@@ -153,7 +158,13 @@ struct Graph:
             if i < len(self.inputs) - 1:
                 result += ", "
         result += '], "outputs": ['
-        result += self.output.json()
+        for i in range(len(self.outputs)):
+            result += self.outputs[i].json()
+            if i < len(self.outputs) - 1:
+                result += ", "
+        if self.loss_out:
+            result += '], "loss": ['
+            result += self.loss_out.value().json()
         result += '], "params": ['
         for i in range(len(self.params)):
             result += self.params.symbols[i].json()
