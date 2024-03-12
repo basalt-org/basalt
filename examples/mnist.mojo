@@ -44,8 +44,8 @@ fn create_CNN(batch_size: Int) -> Graph:
     g.out(out)
 
     var y_true = g.input(TensorShape(batch_size, 10))
-    var loss = nn.MSELoss(g, y_true, out)
-    # TODO:    var loss = nn.CrossEntropyLoss( ... )
+    var loss = nn.CrossEntropyLoss(g, y_true, out)
+    # var loss = nn.MSELoss(g, y_true, out)
     g.loss(loss)
 
     return g^
@@ -59,7 +59,7 @@ fn main():
     
     var train_data: MNIST
     try:
-        train_data = MNIST(file_path='./examples/data/mnist_test_small.csv')
+        train_data = MNIST(file_path='./examples/data/mnist_train_small.csv')
         _ = plot_image(train_data.data, 1)
     except:
         print("Could not load data")
@@ -72,39 +72,44 @@ fn main():
 
     alias graph = create_CNN(batch_size)
     
-    # BUG: Something going wrong when compiling the graph
-    # loss can't be found
+    # try:
+    #     graph.render("node")
+    # except:
+    #     print("Could not render graph")
 
     var model = nn.Model[graph]()
     var optim = nn.optim.Adam[graph](lr=learning_rate)
     optim.allocate_rms_and_momentum(model.parameters)
 
-    # print("Training started")
-    # var start = now()
+    print("Training started")
+    var start = now()
 
-    # for epoch in range(num_epochs):
-    #     var num_batches: Int = 0
-    #     var epoch_loss: Float32 = 0.0
-    #     for batch in training_loader:
+    for epoch in range(num_epochs):
+        var num_batches: Int = 0
+        var epoch_loss: Float32 = 0.0
+        var epoch_start = now()
+        for batch in training_loader:
 
-    #         # [ONE HOT ENCODING!]
-    #         var labels_one_hot = Tensor[DType.float32](batch.labels.dim(0), 10)
-    #         for bb in range(batch.labels.dim(0)):
-    #             labels_one_hot[Index(bb, batch.labels[bb])] = 1.0
+            # [ONE HOT ENCODING!]
+            var labels_one_hot = Tensor[DType.float32](batch.labels.dim(0), 10)
+            for bb in range(batch.labels.dim(0)):
+                labels_one_hot[Index(bb, batch.labels[bb])] = 1.0
 
-    #         # Forward pass
-    #         var loss = model.forward(batch.data, labels_one_hot)
-    #         print(loss)
-    #         # pass
+            # Forward pass
+            var loss = model.forward(batch.data, labels_one_hot)
+            # print(loss)
+            # pass
 
-    #         # Backward pass
-    #         optim.zero_grad(model.parameters)
-    #         model.backward()
-    #         optim.step(model.parameters)
+            # Backward pass
+            optim.zero_grad(model.parameters)
+            model.backward()
+            optim.step(model.parameters)
 
-    #         epoch_loss += loss[0]
-    #         num_batches += 1
+            epoch_loss += loss[0]
+            num_batches += 1
         
-    #     print("Epoch: [", epoch+1, "/", num_epochs, "] \t Avg loss per epoch:", epoch_loss / num_batches)
+            print("Epoch [", epoch + 1, "/", num_epochs, "],\t Step [", num_batches, "/", train_data.data.dim(0) // batch_size, "],\t Loss:", epoch_loss / num_batches)
     
-    # print("Training finished: ", (now() - start)/1e9, "seconds")
+        print("Epoch time: ", (now() - epoch_start)/1e9, "seconds")
+
+    print("Training finished: ", (now() - start)/1e9, "seconds")

@@ -60,15 +60,40 @@ struct CONV2D:
             bias.shape       [out_channels].
             output.shape     [batch, out_channels, oX, oY].
         """
+        # NOTE: Parsing the static list at compile time (alias) makes the operations slower (another bug it seems)
         alias padding = attributes["padding"].value().to_static[2]()
         alias stride = attributes["stride"].value().to_static[2]()
         alias dilation = attributes["dilation"].value().to_static[2]()
-        
-        # NOTE: Doing this at compile time (alias) makes the operations slower (another bug it seems) (It seems accessing a list that was created a compile time can be a lot slower than just creating it at runtime and using it)
-        var inputs_strides = calculate_strides(input_shape)
-        var kernel_strides = calculate_strides(kernel_shape)
-        var output_shape = Self.result_shape(input_shape, kernel_shape, bias_shape, attributes)
-        var outputs_strides = calculate_strides(output_shape)
+        alias padding_0 = padding[0]
+        alias padding_1 = padding[1]
+        alias stride_0 = stride[0]
+        alias stride_1 = stride[1]
+        alias dilation_0 = dilation[0]
+        alias dilation_1 = dilation[1]
+
+        alias inputs_strides = calculate_strides(input_shape)
+        alias kernel_strides = calculate_strides(kernel_shape)
+        alias output_shape = Self.result_shape(input_shape, kernel_shape, bias_shape, attributes)
+        alias outputs_strides = calculate_strides(output_shape)
+        alias inputs_strides_0 = inputs_strides[0]
+        alias inputs_strides_1 = inputs_strides[1]
+        alias inputs_strides_2 = inputs_strides[2]
+        alias kernel_strides_0 = kernel_strides[0]
+        alias kernel_strides_1 = kernel_strides[1]
+        alias kernel_strides_2 = kernel_strides[2]
+        alias outputs_strides_0 = outputs_strides[0]
+        alias outputs_strides_1 = outputs_strides[1]
+        alias outputs_strides_2 = outputs_strides[2]
+
+        alias input_shape_0 = input_shape[0]
+        alias input_shape_1 = input_shape[1]
+        alias input_shape_2 = input_shape[2]
+        alias input_shape_3 = input_shape[3]
+        alias output_shape_1 = output_shape[1]
+        alias output_shape_2 = output_shape[2]
+        alias output_shape_3 = output_shape[3]
+        alias kernel_shape_2 = kernel_shape[2]
+        alias kernel_shape_3 = kernel_shape[3]
 
         @parameter
         fn kernel_iteration[
@@ -76,35 +101,35 @@ struct CONV2D:
         ](batch: Int, out_ch: Int, x: Int, y: Int):
             var result: SIMD[dtype, 1] = 0
 
-            var ix_base = x * stride[0] - padding[0]
-            var iy_base = y * stride[1] - padding[1]
-            for in_ch in range(input_shape[1]):
-                for kx in range(kernel_shape[2]):
-                    for ky in range(kernel_shape[3]):
-                        var ix = ix_base + kx * dilation[0]
-                        var iy = iy_base + ky * dilation[1]
+            var ix_base = x * stride_0 - padding_0
+            var iy_base = y * stride_1 - padding_1
+            for in_ch in range(input_shape_1):
+                for kx in range(kernel_shape_2):
+                    for ky in range(kernel_shape_3):
+                        var ix = ix_base + kx * dilation_0
+                        var iy = iy_base + ky * dilation_1
 
                         @parameter
                         if all_checks:
                             if (
                                 ix < 0
                                 or iy < 0
-                                or ix >= input_shape[2]
-                                or iy >= input_shape[3]
+                                or ix >= input_shape_2
+                                or iy >= input_shape_3
                             ):
                                 continue
 
                         var kernel_index = (
-                            out_ch * kernel_strides[0]
-                            + in_ch * kernel_strides[1]
-                            + kx * kernel_strides[2]
+                            out_ch * kernel_strides_0
+                            + in_ch * kernel_strides_1
+                            + kx * kernel_strides_2
                             + ky
                         )
 
                         var input_index = (
-                            batch * inputs_strides[0]
-                            + in_ch * inputs_strides[1]
-                            + ix * inputs_strides[2]
+                            batch * inputs_strides_0
+                            + in_ch * inputs_strides_1
+                            + ix * inputs_strides_2
                             + iy
                         )
 
@@ -113,36 +138,35 @@ struct CONV2D:
                         )
 
             var output_index = (
-                batch * outputs_strides[0]
-                + out_ch * outputs_strides[1]
-                + x * outputs_strides[2]
+                batch * outputs_strides_0
+                + out_ch * outputs_strides_1
+                + x * outputs_strides_2
                 + y
             )
 
             outputs[output_index] = result + bias[out_ch]
 
-        var oH_border_0 = 0
-        var oH_border_1 = (padding[0] + stride[0] + 1) // stride[0]
-        var oH_border_2 = (
-            input_shape[2] + padding[0] - kernel_shape[2] * dilation[0]
-        ) // stride[0]
-        var oH_border_3 = output_shape[2]
+        alias oH_border_0 = 0
+        alias oH_border_1 = (padding_0 + stride_0 + 1) // stride_0
+        alias oH_border_2 = (
+            input_shape_2 + padding_0 - kernel_shape_2 * dilation_0
+        ) // stride_0
+        alias oH_border_3 = output_shape_2
 
-        var oW_border_0 = 0
-        var oW_border_1 = (padding[1] + stride[0] + 1) // stride[1]
-        var oW_border_2 = (
-            input_shape[3] + padding[1] - kernel_shape[3] * dilation[1]
-        ) // stride[1]
-        var oW_border_3 = output_shape[3]
+        alias oW_border_0 = 0
+        alias oW_border_1 = (padding_1 + stride_0 + 1) // stride_1
+        alias oW_border_2 = (
+            input_shape_3 + padding_1 - kernel_shape_3 * dilation_1
+        ) // stride_1
+        alias oW_border_3 = output_shape_3
 
-
-        for batch in range(input_shape[0]):
-            for out_ch in range(output_shape[1]):
-                var batch_o_idx = batch * outputs_strides[0]
-                var out_ch_o_idx = out_ch * outputs_strides[1]
+        for batch in range(input_shape_0):
+            for out_ch in range(output_shape_1):
+                var batch_o_idx = batch * outputs_strides_0
+                var out_ch_o_idx = out_ch * outputs_strides_1
                 # Case 1: oh might put us out of bounds
                 for x in range(oH_border_0, oH_border_1):
-                    for y in range(output_shape[3]):
+                    for y in range(output_shape_3):
                         kernel_iteration(batch, out_ch, x, y)
                 # Case 2: oh in bounds
                 for x in range(oH_border_1, oH_border_2):
@@ -157,7 +181,7 @@ struct CONV2D:
                         kernel_iteration(batch, out_ch, x, y)
                 # Case 3: oh might put us out of bounds
                 for x in range(oH_border_2, oH_border_3):
-                    for y in range(output_shape[3]):
+                    for y in range(output_shape_3):
                         kernel_iteration(batch, out_ch, x, y)
 
     @staticmethod
@@ -177,10 +201,36 @@ struct CONV2D:
         alias padding = attributes["padding"].value().to_static[2]()
         alias stride = attributes["stride"].value().to_static[2]()
         alias dilation = attributes["dilation"].value().to_static[2]()
+        alias padding_0 = padding[0]
+        alias padding_1 = padding[1]
+        alias stride_0 = stride[0]
+        alias stride_1 = stride[1]
+        alias dilation_0 = dilation[0]
+        alias dilation_1 = dilation[1]
 
-        var inputs_strides = calculate_strides(input_shape)
-        var kernel_strides = calculate_strides(kernel_shape)
-        var ug_strides = calculate_strides(ug_shape)
+        alias inputs_strides = calculate_strides(input_shape)
+        alias kernel_strides = calculate_strides(kernel_shape)
+        alias ug_strides = calculate_strides(ug_shape)
+        alias inputs_strides_0 = inputs_strides[0]
+        alias inputs_strides_1 = inputs_strides[1]
+        alias inputs_strides_2 = inputs_strides[2]
+        alias kernel_strides_0 = kernel_strides[0]
+        alias kernel_strides_1 = kernel_strides[1]
+        alias kernel_strides_2 = kernel_strides[2]
+        alias ug_strides_0 = ug_strides[0]
+        alias ug_strides_1 = ug_strides[1]
+        alias ug_strides_2 = ug_strides[2]
+        
+        alias input_shape_0 = input_shape[0]
+        alias input_shape_1 = input_shape[1]
+        alias input_shape_2 = input_shape[2]
+        alias input_shape_3 = input_shape[3]
+        alias kernel_shape_2 = kernel_shape[2]
+        alias kernel_shape_3 = kernel_shape[3]
+        alias ug_shape_0 = ug_shape[0]
+        alias ug_shape_1 = ug_shape[1]
+        alias ug_shape_2 = ug_shape[2]
+        alias ug_shape_3 = ug_shape[3]
 
         var res: Tensor[dtype]
 
@@ -189,44 +239,44 @@ struct CONV2D:
             # Inputs
             res = Tensor[dtype](input_shape)
 
-            for batch in range(input_shape[0]):
-                for out_ch in range(ug_shape[1]):
-                    for ux in range(ug_shape[2]):
-                        for uy in range(ug_shape[3]):
-                            var ix_base = ux * stride[0] - padding[0]
-                            var iy_base = uy * stride[1] - padding[1]
-                            for in_ch in range(input_shape[1]):
-                                for kx in range(kernel_shape[2]):
-                                    for ky in range(kernel_shape[3]):
-                                        var ix = ix_base + kx * dilation[0]
-                                        var iy = iy_base + ky * dilation[1]
+            for batch in range(input_shape_0):
+                for out_ch in range(ug_shape_1):
+                    for ux in range(ug_shape_2):
+                        for uy in range(ug_shape_3):
+                            var ix_base = ux * stride_0 - padding_0
+                            var iy_base = uy * stride_1 - padding_1
+                            for in_ch in range(input_shape_1):
+                                for kx in range(kernel_shape_2):
+                                    for ky in range(kernel_shape_3):
+                                        var ix = ix_base + kx * dilation_0
+                                        var iy = iy_base + ky * dilation_1
 
                                         if (
                                             ix < 0
                                             or iy < 0
-                                            or ix >= input_shape[2]
-                                            or iy >= input_shape[3]
+                                            or ix >= input_shape_2
+                                            or iy >= input_shape_3
                                         ):
                                             continue
 
                                         var kernel_index = (
-                                            out_ch * kernel_strides[0]
-                                            + in_ch * kernel_strides[1]
-                                            + kx * kernel_strides[2]
+                                            out_ch * kernel_strides_0
+                                            + in_ch * kernel_strides_1
+                                            + kx * kernel_strides_2
                                             + ky
                                         )
 
                                         var ug_index = (
-                                            batch * ug_strides[0]
-                                            + out_ch * ug_strides[1]
-                                            + ux * ug_strides[2]
+                                            batch * ug_strides_0
+                                            + out_ch * ug_strides_1
+                                            + ux * ug_strides_2
                                             + uy
                                         )
 
                                         var input_index = (
-                                            batch * inputs_strides[0]
-                                            + in_ch * inputs_strides[1]
-                                            + ix * inputs_strides[2]
+                                            batch * inputs_strides_0
+                                            + in_ch * inputs_strides_1
+                                            + ix * inputs_strides_2
                                             + iy
                                         )
                                         res[input_index] += (
@@ -237,45 +287,45 @@ struct CONV2D:
             # Kernel
             res = Tensor[dtype](kernel_shape)
 
-            for in_ch in range(input_shape[1]):
-                for out_ch in range(ug_shape[1]):
-                    for kx in range(kernel_shape[2]):
-                        for ky in range(kernel_shape[3]):
+            for in_ch in range(input_shape_1):
+                for out_ch in range(ug_shape_1):
+                    for kx in range(kernel_shape_2):
+                        for ky in range(kernel_shape_3):
                             var result: SIMD[dtype, 1] = 0
-                            for batch in range(input_shape[0]):
-                                for ux in range(ug_shape[2]):
-                                    for uy in range(ug_shape[3]):
-                                        var ix = ux * stride[0] - padding[0] + kx * dilation[0]
-                                        var iy = uy * stride[1] - padding[1] + ky * dilation[1]
+                            for batch in range(input_shape_0):
+                                for ux in range(ug_shape_2):
+                                    for uy in range(ug_shape_3):
+                                        var ix = ux * stride_0 - padding_0 + kx * dilation_0
+                                        var iy = uy * stride_1 - padding_1 + ky * dilation_1
 
                                         if (
                                             ix < 0
                                             or iy < 0
-                                            or ix >= input_shape[2]
-                                            or iy >= input_shape[3]
+                                            or ix >= input_shape_2
+                                            or iy >= input_shape_3
                                         ):
                                             continue
 
                                         var input_index = (
-                                            batch * inputs_strides[0]
-                                            + in_ch * inputs_strides[1]
-                                            + ix * inputs_strides[2]
+                                            batch * inputs_strides_0
+                                            + in_ch * inputs_strides_1
+                                            + ix * inputs_strides_2
                                             + iy
                                         )
 
                                         var ug_index = (
-                                            batch * ug_strides[0]
-                                            + out_ch * ug_strides[1]
-                                            + ux * ug_strides[2]
+                                            batch * ug_strides_0
+                                            + out_ch * ug_strides_1
+                                            + ux * ug_strides_2
                                             + uy
                                         )
 
                                         result += inputs[input_index] * ug[ug_index]
 
                             var kernel_index = (
-                                out_ch * kernel_strides[0]
-                                + in_ch * kernel_strides[1]
-                                + kx * kernel_strides[2]
+                                out_ch * kernel_strides_0
+                                + in_ch * kernel_strides_1
+                                + kx * kernel_strides_2
                                 + ky
                             )
                             res[kernel_index] = result
@@ -286,15 +336,15 @@ struct CONV2D:
             # out_channels == ug_shape[1] == bias_shape[0]
             res = Tensor[dtype](bias_shape)
 
-            for out_ch in range(ug_shape[1]):
+            for out_ch in range(ug_shape_1):
                 var sum: SIMD[dtype, 1] = 0
-                for batch in range(ug_shape[0]):
-                    for ux in range(ug_shape[2]):
-                        for uy in range(ug_shape[3]):
+                for batch in range(ug_shape_0):
+                    for ux in range(ug_shape_2):
+                        for uy in range(ug_shape_3):
                             var ug_index = (
-                                batch * ug_strides[0]
-                                + out_ch * ug_strides[1]
-                                + ux * ug_strides[2]
+                                batch * ug_strides_0
+                                + out_ch * ug_strides_1
+                                + ux * ug_strides_2
                                 + uy
                             )
                             sum += ug[ug_index]

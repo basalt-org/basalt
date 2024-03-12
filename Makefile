@@ -37,10 +37,10 @@ test:
 	mojo run -I . test/test_ops.mojo
 # 	mojo run -I . test/test_layers.mojo
 	mojo run -I . test/test_backward.mojo
-# 	mojo run -I . test/test_loss.mojo
+	mojo run -I . test/test_loss.mojo
 # 	mojo run -I . test/test_regression.mojo
 # 	mojo run -I . test/test_traits.mojo
-# 	mojo run -I . test/test_activations.mojo
+	mojo run -I . test/test_activations.mojo
 # 	mojo run -I . test/test_broadcasting.mojo
 	mojo run -I . test/test_mlops.mojo
 	. .venv/bin/activate && mojo run -I . test/test_conv.mojo
