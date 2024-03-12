@@ -41,6 +41,8 @@ struct Node(CollectionElement, Stringable):
         s += self.input_1.json()
         if self.input_2:
             s += ", " + self.input_2.value().json()
+        if self.input_3:
+            s += ", " + self.input_3.value().json()
         s += '], "outputs": ['
         s += self.output.json() + "]}"
         return s
