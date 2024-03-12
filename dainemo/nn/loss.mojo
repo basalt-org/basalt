@@ -1,4 +1,5 @@
 from dainemo import Graph, Symbol, OP
+from dainemo.nn.activations import LogSoftmax
 
 
 # <------------MSE------------>
@@ -16,27 +17,19 @@ fn MSELoss(inout g: Graph,
     return mean_loss ^
 
 
-# # <------------CROSSENTROPY------------>
-# struct CrossEntropyLoss:
-#     fn __init__(inout self):
-#         pass
+# <------------CROSSENTROPY------------>
+fn CrossEntropyLoss(inout g: Graph,
+    y_true: Symbol,
+    y_pred: Symbol
+) -> Symbol:
 
-#     fn forward(inout self, inout outputs: Node[dtype], targets: Tensor[dtype]) -> Node[dtype]:
-#         """
-#         Forward pass of CrossEntropy.
-#         Epsilons is a small value for numerical stability to prevent log(0).
-#         """
-#         # -1/N * sum( targets * log_softmax(outputs) )
-        
-#         # LogSoftmax
-#         var act = nn.activations.LogSoftmax[axis=1]()
-#         var log_softmax = act(outputs)
-        
-#         # CrossEntropy (reduction Mean)
-#         var targets_log_softmax = MUL.forward(Node[dtype](targets), log_softmax)
-#         var ret = SUM.forward(targets_log_softmax)
-#         var negDivN: SIMD[dtype, 1] = (-1/outputs.tensor.dim(0)).cast[dtype]()
-#         return MUL.forward(ret, negDivN)
+    # -1/N * sum( targets * log_softmax(outputs) )
 
-#     fn __call__(inout self, inout outputs: Node[dtype], targets: Tensor[dtype]) -> Node[dtype]:
-#         return self.forward(outputs, targets)
+    var log_softmax = LogSoftmax(g, y_pred, 1)
+
+    # CrossEntropy (reduction Mean)
+    var targets_log_softmax = g.op(OP.MUL, y_true, log_softmax)
+    var ret = g.op(OP.SUM, targets_log_softmax)
+    var negDivN = g.op(OP.MUL, ret, -1.0 / y_pred.shape()[0])
+
+    return negDivN ^
