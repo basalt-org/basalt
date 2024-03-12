@@ -71,7 +71,7 @@ struct Model[
         self.allocate_grad_memory()
         
         # NOTE: inference_only only used for surpressing the warning.
-        if not inference_only & not g.loss_out:
+        if not inference_only and not g.loss_out:
             print("\n\n[WARNING]: No loss defined, model.forward() unavailable!\n\n")
         if not n_inference_nodes:
             print("\n\n[WARNING]: No graph out defined, model.inference() unavailable!\n\n")
