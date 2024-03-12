@@ -2,6 +2,7 @@ from tensor import TensorShape
 
 from dainemo.utils.tensorutils import calculate_strides
 from dainemo.autograd.attributes import AttributeVector
+from time import now
 
 
 # <------------GENERAL CONV METHODS------------>
@@ -63,10 +64,11 @@ struct CONV2D:
         alias stride = attributes["stride"].value().to_static[2]()
         alias dilation = attributes["dilation"].value().to_static[2]()
         
-        alias inputs_strides = calculate_strides(input_shape)
-        alias kernel_strides = calculate_strides(kernel_shape)
-        alias output_shape = Self.result_shape(input_shape, kernel_shape, bias_shape, attributes)
-        alias outputs_strides = calculate_strides(output_shape)
+        # NOTE: Doing this at compile time (alias) makes the operations slower (another bug it seems) (It seems accessing a list that was created a compile time can be a lot slower than just creating it at runtime and using it)
+        var inputs_strides = calculate_strides(input_shape)
+        var kernel_strides = calculate_strides(kernel_shape)
+        var output_shape = Self.result_shape(input_shape, kernel_shape, bias_shape, attributes)
+        var outputs_strides = calculate_strides(output_shape)
 
         @parameter
         fn kernel_iteration[
@@ -119,19 +121,20 @@ struct CONV2D:
 
             outputs[output_index] = result + bias[out_ch]
 
-        alias oH_border_0 = 0
-        alias oH_border_1 = (padding[0] + stride[0] + 1) // stride[0]
-        alias oH_border_2 = (
+        var oH_border_0 = 0
+        var oH_border_1 = (padding[0] + stride[0] + 1) // stride[0]
+        var oH_border_2 = (
             input_shape[2] + padding[0] - kernel_shape[2] * dilation[0]
         ) // stride[0]
-        alias oH_border_3 = output_shape[2]
+        var oH_border_3 = output_shape[2]
 
-        alias oW_border_0 = 0
-        alias oW_border_1 = (padding[1] + stride[0] + 1) // stride[1]
-        alias oW_border_2 = (
+        var oW_border_0 = 0
+        var oW_border_1 = (padding[1] + stride[0] + 1) // stride[1]
+        var oW_border_2 = (
             input_shape[3] + padding[1] - kernel_shape[3] * dilation[1]
         ) // stride[1]
-        alias oW_border_3 = output_shape[3]
+        var oW_border_3 = output_shape[3]
+
 
         for batch in range(input_shape[0]):
             for out_ch in range(output_shape[1]):
@@ -175,9 +178,9 @@ struct CONV2D:
         alias stride = attributes["stride"].value().to_static[2]()
         alias dilation = attributes["dilation"].value().to_static[2]()
 
-        alias inputs_strides = calculate_strides(input_shape)
-        alias kernel_strides = calculate_strides(kernel_shape)
-        alias ug_strides = calculate_strides(ug_shape)
+        var inputs_strides = calculate_strides(input_shape)
+        var kernel_strides = calculate_strides(kernel_shape)
+        var ug_strides = calculate_strides(ug_shape)
 
         var res: Tensor[dtype]
 
