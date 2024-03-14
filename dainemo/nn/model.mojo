@@ -7,6 +7,7 @@ from dainemo.utils.collection import Collection
 from dainemo.utils.tensorutils import fill
 from dainemo.utils.rand_utils import rand_uniform
 from dainemo.utils.string_dict import StringDict
+from dainemo.autograd.params import ParamDict
 from .initializers import initialize_tensor
 
 
@@ -49,12 +50,20 @@ struct Parameters():
     var params_map: StringDict[Int]
     var grads_map: StringDict[Int]
 
-    fn __init__(inout self, N: Int):
+    var updatable_parameters: DynamicVector[String] # IDs of the parameters that are updatable (weights, biases, etc.)
+
+    fn __init__(inout self, N: Int, updatable_parameters: ParamDict):
         self.params = Collection(N)
         self.grads = Collection(N)
         self.params_map = StringDict[Int]()
         self.grads_map = StringDict[Int]()
 
+        self.updatable_parameters = DynamicVector[String]()
+
+        for i in range(len(updatable_parameters)):
+            if updatable_parameters.symbols[i].trainable:
+                self.updatable_parameters.push_back(str(updatable_parameters.symbols[i].name))
+            
 
 struct Model[
     g: Graph,
@@ -65,7 +74,7 @@ struct Model[
     var parameters: Parameters
 
     fn __init__(inout self, inference_only: Bool = False):
-        self.parameters = Parameters(N)
+        self.parameters = Parameters(N, g.params)
 
         self.allocate_tensor_memory()
         self.allocate_grad_memory()

@@ -56,13 +56,13 @@ struct Adam[g: Graph, N: Int = calc_n_tensors(g)]:
         """Update model parameters."""
         self.iter += 1
 
-        # Loop over all tensor that require_grad = True (i.e. keys in grad_map)
+        # Loop over all updatable parameters that require_grad = True (i.e. keys in grad_map)
         @parameter
         fn p_step(i: Int):
             var param_tensor_id = parameters.params_map.get(
-                parameters.grads_map.keys[i], -1
+                parameters.updatable_parameters[i], -1
             )
-            var tensor_id = parameters.grads_map.get(parameters.grads_map.keys[i], -1)
+            var tensor_id = parameters.grads_map.get(parameters.updatable_parameters[i], -1)
 
             # TODO
             # Investigate most efficient implementation of the Adam optimizer
@@ -84,10 +84,8 @@ struct Adam[g: Graph, N: Int = calc_n_tensors(g)]:
                 parameters.grads.offset(tensor_id).address
             ).shape()
 
-            var momentum_grads_address = self.momentum_grads.offset(
-                tensor_id
-            ).address
-            var rms_grads_address = self.rms_grads.offset(tensor_id).address
+            var momentum_grads_address = self.momentum_grads.offset(i).address
+            var rms_grads_address = self.rms_grads.offset(i).address
             var grads_address = parameters.grads.offset(tensor_id).address
             var params_address = parameters.params.offset(param_tensor_id).address
 
@@ -125,19 +123,21 @@ struct Adam[g: Graph, N: Int = calc_n_tensors(g)]:
 
             vectorize[v_step, nelts](grads_shape.num_elements())
         
-        parallelize[p_step](len(parameters.grads_map.keys), len(parameters.grads_map.keys))
+        parallelize[p_step](len(parameters.updatable_parameters), len(parameters.updatable_parameters))
 
     fn allocate_rms_and_momentum(inout self, inout parameters: Parameters):
         # They are initialized to zero
-        # Loop over all tensor that require_grad = True (i.e. inside model.parameters.grads)
-        for i in range(parameters.grads.size):
+        # Loop over all updatable parameters that require_grad = True (i.e. inside model.parameters.updatable_parameters)
+        for i in range(len(parameters.updatable_parameters)):   
+            var tensor_id = parameters.grads_map.get(parameters.updatable_parameters[i], -1)
+
             self.rms_grads.append(
                 Tensor[dtype](
-                    __get_address_as_lvalue(parameters.grads.offset(i).address).shape()
+                    __get_address_as_lvalue(parameters.grads.offset(tensor_id).address).shape()
                 )
             )
             self.momentum_grads.append(
                 Tensor[dtype](
-                    __get_address_as_lvalue(parameters.grads.offset(i).address).shape()
+                    __get_address_as_lvalue(parameters.grads.offset(tensor_id).address).shape()
                 )
             )
