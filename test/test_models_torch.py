@@ -20,7 +20,7 @@ class MSELoss(nn.Module):
         super(MSELoss, self).__init__()
 
     def forward(self, output, target):
-        loss = torch.sum((output - target) ** 2) / output.size(0)
+        loss = F.mse_loss(output, target)
         return loss
 
 

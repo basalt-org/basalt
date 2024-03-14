@@ -17,6 +17,7 @@ alias dtype = DType.float32
 
 fn create_linear_regression(
     batch_size: Int,
+    n_outputs: Int,
     linear1_weights: DynamicVector[SIMD[dtype, 1]],
     linear1_bias: DynamicVector[SIMD[dtype, 1]],
 ) -> Graph:
@@ -26,15 +27,14 @@ fn create_linear_regression(
     
     # linear1
     # var out = nn.Linear(g, x, n_outputs=1)
-    var l1_w = g.param(TensorShape(13, 1), init=linear1_weights)
-    var l1_b = g.param(TensorShape(1), init=linear1_bias)
+    var l1_w = g.param(TensorShape(13, n_outputs), init=linear1_weights)
+    var l1_b = g.param(TensorShape(n_outputs), init=linear1_bias)
     var res = g.op(OP.DOT, x, l1_w)
     var out = g.op(OP.ADD, res, l1_b)
     g.out(out)
 
-    var y_true = g.input(TensorShape(batch_size, 1))
+    var y_true = g.input(TensorShape(batch_size, n_outputs))
     var loss = nn.MSELoss(g, out, y_true)
-    # var loss = nn.CrossEntropyLoss(g, out, y_true)
     g.loss(loss)
 
     return g^
@@ -42,6 +42,7 @@ fn create_linear_regression(
 
 fn run_mojo[
     batch_size: Int,
+    n_outputs: Int,
     linear1_weights: DynamicVector[SIMD[dtype, 1]],
     linear1_bias: DynamicVector[SIMD[dtype, 1]],
 ](
@@ -53,6 +54,7 @@ fn run_mojo[
 
     alias graph = create_linear_regression(
         batch_size,
+        n_outputs,
         linear1_weights,
         linear1_bias,
     )
@@ -150,20 +152,23 @@ fn dv_to_tensor(dv: DynamicVector[SIMD[dtype, 1]], shape: TensorShape) -> Tensor
 fn main():
     alias learning_rate = 1e-2
     alias epochs = 100
-    alias batch_size = 4
+    alias batch_size = 32
+    alias n_outputs = 2
 
     var inputs = rand[dtype](batch_size, 13)
-    var labels = Tensor[dtype](batch_size, 1)
-    for i in range(4):
-        labels[i] = i
+    var labels = Tensor[dtype](batch_size, n_outputs)
+    for i in range(batch_size):
+        for j in range(n_outputs):
+            labels[i*n_outputs + j] = 1
 
-    alias l1_w_shape = TensorShape(13, 1)
+    alias l1_w_shape = TensorShape(13, n_outputs)
     alias linear1_weights = create_weights(l1_w_shape.num_elements(), zero=False)
-    alias l1_b_shape = TensorShape(1)
-    alias linear1_bias = create_weights(1, zero=True)
+    alias l1_b_shape = TensorShape(n_outputs)
+    alias linear1_bias = create_weights(l1_b_shape.num_elements(), zero=True)
     
     var losses_mojo = run_mojo[
         batch_size,
+        n_outputs,
         linear1_weights,
         linear1_bias,
     ](
@@ -186,7 +191,7 @@ fn main():
     for i in range(epochs):
         var loss_mojo = losses_mojo[i]
         var loss_torch = losses_torch[i]
-        # print("loss_mojo: ", loss_mojo, " loss_torch: ", loss_torch)
+        print("loss_mojo: ", loss_mojo, " loss_torch: ", loss_torch)
         try:
             assert_almost_equal(loss_mojo, loss_torch, rtol=1e-4)
         except e:
