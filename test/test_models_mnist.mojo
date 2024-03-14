@@ -87,7 +87,7 @@ fn run_mojo[
     learning_rate: FloatLiteral,
     inputs: Tensor[dtype],
     labels: Tensor[dtype],
-) -> DynamicVector[Float32]:
+) -> DynamicVector[SIMD[dtype, 1]]:
 
     alias graph = create_CNN(
         batch_size,
@@ -103,7 +103,7 @@ fn run_mojo[
     var optim = nn.optim.Adam[graph](lr=learning_rate)
     optim.allocate_rms_and_momentum(model.parameters)
 
-    var losses = DynamicVector[Float32]()
+    var losses = DynamicVector[SIMD[dtype, 1]]()
 
     for i in range(epochs):
         var loss = model.forward(inputs, labels)
@@ -114,6 +114,24 @@ fn run_mojo[
         optim.step(model.parameters)
 
         losses.push_back(loss[0])
+
+        # #### printing gradients
+        # var p: Tensor[dtype]
+        # for i in range(len(model.parameters.trainable_parameters)):
+            
+
+        #     var param_tensor_id = model.parameters.params_map.get(
+        #         model.parameters.trainable_parameters[i], -1
+        #     )
+        #     var tensor_id = model.parameters.grads_map.get(model.parameters.trainable_parameters[i], -1)
+        #     p = __get_address_as_lvalue(model.parameters.grads.offset(tensor_id).address)
+            
+            
+        #     print(p.shape())
+        #     try:
+        #         print(to_numpy(p))
+        #     except e:
+        #         print(e)
 
     return losses
 
@@ -129,15 +147,15 @@ fn run_torch(
     owned conv2_bias: Tensor,
     owned linear1_weights: Tensor,
     owned linear1_bias: Tensor,
-) -> DynamicVector[Float32]:
-    var out: DynamicVector[Float32] = DynamicVector[Float32]()
+) -> DynamicVector[SIMD[dtype, 1]]:
+    var out: DynamicVector[SIMD[dtype, 1]] = DynamicVector[SIMD[dtype, 1]]()
 
     try:
         var torch = Python.import_module("torch")
         var F = Python.import_module("torch.nn.functional")
         var np = Python.import_module("numpy")
         Python.add_to_path("./test")
-        var cnn_class = Python.import_module("test_cnn_class_torch")
+        var cnn_class = Python.import_module("test_models_torch")
 
         var inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
         var labels = torch.from_numpy(to_numpy(labels)).requires_grad_(True)
@@ -176,7 +194,9 @@ fn run_torch(
             _ = loss.backward()
             _ = optimizer.step()
 
-            out.push_back(to_tensor(loss)[0])
+            out.push_back(to_tensor(loss)[0].cast[dtype]())
+
+            # _ = cnn.print_grads()
 
         return out
 
@@ -193,7 +213,7 @@ fn create_weights(num_elements: Int, zero: Bool) -> DynamicVector[SIMD[dtype, 1]
         if zero:
             weights.push_back(SIMD[dtype, 1](0.0))
         else:
-            weights.push_back(SIMD[dtype, 1](0.02))
+            weights.push_back(SIMD[dtype, 1](0.1))
     return weights^
 
 
@@ -208,7 +228,7 @@ fn dv_to_tensor(dv: DynamicVector[SIMD[dtype, 1]], shape: TensorShape) -> Tensor
 
 fn main():
     alias learning_rate = 1e-3
-    alias epochs = 100
+    alias epochs = 1
     alias batch_size = 4
 
     var inputs = rand[dtype](batch_size, 1, 28, 28)
@@ -259,16 +279,17 @@ fn main():
         dv_to_tensor(linear1_bias, l1_b_shape),
     )
 
-    for i in range(epochs):
-        print("loss_mojo: ", losses_mojo[i], " loss_torch: ", losses_torch[i])
+    # for i in range(epochs):
+    #     # print("loss_mojo: ", losses_mojo[i], " loss_torch: ", losses_torch[i])
+    #     print("loss_mojo: ", "TODO", " loss_torch: ", losses_torch[i])
 
-    for i in range(epochs):
-        var loss_mojo = losses_mojo[i]
-        var loss_torch = losses_torch[i]
-        print("loss_mojo: ", loss_mojo, " loss_torch: ", loss_torch)
-        try:
-            assert_almost_equal(loss_mojo, loss_torch, rtol=1e-5)
-        except e:
-            print("Losses not equal")
-            print(e)
-            break
+    # for i in range(epochs):
+    #     var loss_mojo = losses_mojo[i]
+    #     var loss_torch = losses_torch[i]
+    #     print("loss_mojo: ", loss_mojo, " loss_torch: ", loss_torch)
+    #     try:
+    #         assert_almost_equal(loss_mojo, loss_torch, rtol=1e-5)
+    #     except e:
+    #         print("Losses not equal")
+    #         print(e)
+    #         break

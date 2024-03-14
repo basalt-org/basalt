@@ -3,6 +3,27 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 
+class LinearRegression(nn.Module):
+    def __init__(self, linear1_weights, linear1_bias):
+        super(LinearRegression, self).__init__()
+        
+        self.linear1_weights = nn.Parameter(linear1_weights)
+        self.linear1_bias = nn.Parameter(linear1_bias)
+        
+    def forward(self, x):
+        output = F.linear(x, self.linear1_weights.T, self.linear1_bias)
+        return output
+
+
+class MSELoss(nn.Module):
+    def __init__(self):
+        super(MSELoss, self).__init__()
+
+    def forward(self, output, target):
+        loss = torch.sum((output - target) ** 2) / output.size(0)
+        return loss
+
+
 class CrossEntropyLoss(nn.Module):
     def __init__(self):
         super(CrossEntropyLoss, self).__init__()
@@ -20,9 +41,7 @@ class CrossEntropyLoss2(nn.Module):
 
     def forward(self, output, target):
         loss = -torch.sum(target * F.log_softmax(output, dim=-1)) / output.size(0)
-        return loss
-
-    
+        return loss  
 
 
 class CNN(nn.Module):
@@ -48,3 +67,22 @@ class CNN(nn.Module):
         x = x.view(x.size(0), -1)
         output = F.linear(x, self.linear1_weights.T, self.linear1_bias)
         return output
+
+    def print_grads(self):
+        print("\nCONV1 WEIGHTS", self.conv1_weights.grad.shape)
+        print(self.conv1_weights.grad)
+
+        print("\nCONV1 BIAS", self.conv1_bias.grad.shape)
+        print(self.conv1_bias.grad)
+
+        print("\nCONV2 WEIGHTS", self.conv2_weights.grad.shape)
+        print(self.conv2_weights.grad)
+
+        print("\nCONV2 BIAS", self.conv2_bias.grad.shape)
+        print(self.conv2_bias.grad)
+
+        print("\nLINEAR1 WEIGHTS", self.linear1_weights.grad.shape)
+        print(self.linear1_weights.grad)
+
+        print("\nLINEAR1 BIAS", self.linear1_bias.grad.shape)
+        print(self.linear1_bias.grad)

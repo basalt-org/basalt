@@ -3,7 +3,7 @@ from tensor import TensorShape
 from time.time import now
 
 import dainemo.nn as nn
-from dainemo import Graph, Symbol, OP
+from dainemo import Graph, Symbol, OP, dtype
 from dainemo.utils.datasets import MNIST
 from dainemo.utils.dataloader import DataLoader
 from dainemo.autograd.attributes import AttributeVector, Attribute
@@ -31,10 +31,10 @@ fn create_CNN(batch_size: Int) -> Graph:
     var x = g.input(TensorShape(batch_size, 1, 28, 28))
     
     var x1 = nn.Conv2d(g, x, out_channels=16, kernel_size=5, padding=2)
-    var x2 = g.op(OP.RELU, x1)
+    var x2 = nn.ReLU(g, x1)
     var x3 = nn.MaxPool2d(g, x2, kernel_size=2)
     var x4 = nn.Conv2d(g, x3, out_channels=32, kernel_size=5, padding=2)
-    var x5 = g.op(OP.RELU, x4)
+    var x5 = nn.ReLU(g, x4)
     var x6 = nn.MaxPool2d(g, x5, kernel_size=2)
     var x6_shape = x6.shape()
     var x7 = g.op(OP.RESHAPE, x6, attributes=AttributeVector(Attribute("shape", 
@@ -44,8 +44,8 @@ fn create_CNN(batch_size: Int) -> Graph:
     g.out(out)
 
     var y_true = g.input(TensorShape(batch_size, 10))
-    var loss = nn.CrossEntropyLoss(g, y_true, out)
-    # var loss = nn.MSELoss(g, y_true, out)
+    var loss = nn.CrossEntropyLoss(g, out, y_true)
+    # var loss = nn.MSELoss(g, out, y_true)
     g.loss(loss)
 
     return g^
@@ -73,7 +73,7 @@ fn main():
     alias graph = create_CNN(batch_size)
     
     # try:
-    #     graph.render("node")
+    #     graph.render("operator")
     # except:
     #     print("Could not render graph")
 
@@ -91,7 +91,7 @@ fn main():
         for batch in training_loader:
 
             # [ONE HOT ENCODING!]
-            var labels_one_hot = Tensor[DType.float32](batch.labels.dim(0), 10)
+            var labels_one_hot = Tensor[dtype](batch.labels.dim(0), 10)
             for bb in range(batch.labels.dim(0)):
                 labels_one_hot[Index(bb, batch.labels[bb])] = 1.0
 

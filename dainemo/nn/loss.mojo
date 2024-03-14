@@ -4,8 +4,8 @@ from dainemo.nn.activations import LogSoftmax
 
 # <------------MSE------------>
 fn MSELoss(inout g: Graph,
+    y_pred: Symbol,
     y_true: Symbol,
-    y_pred: Symbol
 ) -> Symbol:
 
     # 1/N * sum( (outputs - targets)^2 )
@@ -19,8 +19,8 @@ fn MSELoss(inout g: Graph,
 
 # <------------CROSSENTROPY------------>
 fn CrossEntropyLoss(inout g: Graph,
+    y_pred: Symbol,
     y_true: Symbol,
-    y_pred: Symbol
 ) -> Symbol:
 
     # -1/N * sum( targets * log_softmax(outputs) )

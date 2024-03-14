@@ -94,7 +94,7 @@ fn test_CrossEntropy_perfect() raises:
         var y_pred = g.input(y_pred_shape)
         var y_true = g.input(y_true_shape)
 
-        var loss = nn.CrossEntropyLoss(g, y_true, y_pred)
+        var loss = nn.CrossEntropyLoss(g, y_pred, y_true)
 
         g.out(loss)
 
@@ -138,7 +138,7 @@ fn test_CrossEntropy_imperfect() raises:
         var y_pred = g.input(y_pred_shape)
         var y_true = g.input(y_true_shape)
 
-        var loss = nn.CrossEntropyLoss(g, y_true, y_pred)
+        var loss = nn.CrossEntropyLoss(g, y_pred, y_true)
 
         g.out(loss)
 
