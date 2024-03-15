@@ -25,33 +25,34 @@ fn linear_regression(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
 
 
 fn main():
+    # Train Parameters
+    alias batch_size = 32
+    alias num_epochs = 200
+    alias learning_rate = 0.02
+
+    alias graph = linear_regression(batch_size, 13, 1)
+    
+    var model = nn.Model[graph]()
+    var optim = nn.optim.Adam[graph](lr=learning_rate)
+    optim.allocate_rms_and_momentum(model.parameters)
+
+
+    # Batchwise data loader
+    print("Loading data...")
     var train_data: BostonHousing
     try:
         train_data = BostonHousing(file_path='./examples/data/housing.csv')
     except:
         print("Could not load data")
     
-    # Train Parameters
-    alias batch_size = 32
-    alias num_epochs = 200
-    alias learning_rate = 0.02
-
-    # Batchwise data loader
     var training_loader = DataLoader(
                             data=train_data.data,
                             labels=train_data.labels,
                             batch_size=batch_size
                         )
-    
-    alias graph = linear_regression(batch_size, train_data.n_inputs, 1)
-    
-    var model = nn.Model[graph]()
-    var optim = nn.optim.Adam[graph](lr=learning_rate)
-    optim.allocate_rms_and_momentum(model.parameters)
 
-    print("Training started")
+    print("Training started.")
     var start = now()
-
     for epoch in range(num_epochs):
         var num_batches: Int = 0
         var epoch_loss: Float32 = 0.0

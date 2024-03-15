@@ -39,11 +39,6 @@ struct Graph:
         self.params.put(param_id, init)
         return param_id
 
-    fn param(inout self, shape: TensorShape, init: String, trainable: Bool = True) -> Symbol:
-        var param_id = Symbol(self.uuid.next(), dtype, shape, trainable)
-        self.params.put(param_id, Param(init))
-        return param_id
-
     fn param(inout self, shape: TensorShape, trainable: Bool = True) -> Symbol:
         var param_id = Symbol(self.uuid.next(), dtype, shape, trainable)
         self.params.put(param_id)

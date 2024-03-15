@@ -25,9 +25,17 @@ struct Param(CollectionElement, Stringable):
         self.data = data
         self.initializer = None
 
-    fn __init__(inout self, initializer: String):
-        self.data = None
+    fn __init__(inout self, initializer: String, *args: SIMD[dtype, 1]):
+        # Supported initializers:
+        #   "random_uniform", lower_bound, upper_bound 
+        #   "random_normal", mean, std
+        #   #TODO: "kaiming_uniform", mode, nonlinearity
+        #   #TODO: "kaiming_normal", mode, nonlinearity
         self.initializer = Attribute("initializer", initializer)
+        var data = DynamicVector[SIMD[dtype, 1]]()
+        for arg in args:
+            data.push_back(arg)
+        self.data = data
 
     fn __getitem__(self, i: Int) -> Optional[SIMD[dtype, 1]]:
         if self.data:

@@ -327,18 +327,20 @@ struct Model[
             self.parameters.params_map.put(str(g.params.symbols[i].name), self.parameters.params.size)
             
             var par: Tensor[dtype]
-            if g.params.values[i].data:
-                # Parameter initialized with data
-                par = g.params.get_tensor(i)
-            elif g.params.values[i].initializer:
-                # Parameter initialization with attributes
+            if g.params.values[i].initializer:
+                # Specific parameter initialization defined
                 var initializer_attr = g.params.values[i].initializer.value()
                 par = initialize_tensor(
                     shape=g.params.symbols[i].shape(),
-                    type=initializer_attr.value.to_string()
+                    type=initializer_attr.value.to_string(),
+                    data=g.params.values[i].data.value()
                 )
+            elif g.params.values[i].data:
+                # Parameter initialized with data only
+                # Data is assumed to contain the tensor
+                par = g.params.get_tensor(i)
             else:
-                # Default parameter initialization
+                # Default parameter initialization to zero
                 par = Tensor[dtype](g.params.symbols[i].shape())
             
             self.parameters.params.append(par)

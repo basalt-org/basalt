@@ -1,7 +1,24 @@
+# from math import sqrt
 from tensor import TensorShape
 
 from dainemo import Graph, Symbol, OP
+from dainemo.autograd.params import Param
 from dainemo.autograd.attributes import AttributeVector, Attribute
+
+
+# BUG: Mojo 24.1.0 does not support the comp time `sqrt` function
+@always_inline
+fn sqrt[type: DType](value: SIMD[type, 1]) -> SIMD[type, 1]:
+    """Returns the square root of the input simd vector."""
+    if value == 0: return 0
+    elif value < 0: return nan[type]()
+    var start = value if value > 1 else 1/value
+    var a: SIMD[type,1] = start
+    var b: SIMD[type,1] = (a + 1) / 2
+    while b < a:
+        a = b
+        b = (a + start/a) / 2
+    return a if value > 1 else 1/a
 
 
 fn Conv2d( inout g: Graph,
@@ -23,8 +40,17 @@ fn Conv2d( inout g: Graph,
     """
 
     var in_channels: Int = inputs.static_shape[1]
-    var weights = g.param(TensorShape(out_channels, in_channels, kernel_size[0], kernel_size[1]), init="kaiming_normal")
-    var bias = g.param(TensorShape(out_channels))
+    var fan_in: SIMD[dtype, 1] = in_channels * kernel_size[0] * kernel_size[1]
+    var bound = 1/sqrt(fan_in)
+    var weights = g.param(
+        TensorShape(out_channels, in_channels, kernel_size[0], kernel_size[1]),
+        init=Param("random_uniform", -bound, bound)
+        # init=Param("kaiming_uniform", 0)
+    )
+    var bias = g.param(
+        TensorShape(out_channels),
+        init=Param("random_uniform", -bound, bound)
+    )
 
     return g.op(OP.CONV2D, inputs, weights, bias, attributes=AttributeVector(
         Attribute("padding", padding),

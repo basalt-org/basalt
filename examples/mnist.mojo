@@ -57,19 +57,6 @@ fn main():
     alias batch_size = 4
     alias learning_rate = 1e-3
     
-    var train_data: MNIST
-    try:
-        train_data = MNIST(file_path='./examples/data/mnist_train_small.csv')
-        _ = plot_image(train_data.data, 1)
-    except:
-        print("Could not load data")
-
-    var training_loader = DataLoader(
-                            data=train_data.data,
-                            labels=train_data.labels,
-                            batch_size=batch_size
-                        )
-
     alias graph = create_CNN(batch_size)
     
     # try:
@@ -81,7 +68,23 @@ fn main():
     var optim = nn.optim.Adam[graph](lr=learning_rate)
     optim.allocate_rms_and_momentum(model.parameters)
 
-    print("Training started")
+
+    print("Loading data ...")
+    var train_data: MNIST
+    try:
+        train_data = MNIST(file_path='./examples/data/mnist_train_small.csv')
+        # _ = plot_image(train_data.data, 1)
+    except:
+        print("Could not load data")
+
+    var training_loader = DataLoader(
+                            data=train_data.data,
+                            labels=train_data.labels,
+                            batch_size=batch_size
+                        )
+
+
+    print("Training started/")
     var start = now()
 
     for epoch in range(num_epochs):
