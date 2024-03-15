@@ -31,10 +31,8 @@ stat:
 
 test:
 	mojo run -I . test/test_uuid.mojo
-# 	mojo run -I . test/test_node.mojo
 	mojo run -I . test/test_tensorutils.mojo
 	mojo run -I . test/test_ops.mojo
-# 	mojo run -I . test/test_layers.mojo
 	mojo run -I . test/test_backward.mojo
 	mojo run -I . test/test_loss.mojo
 	mojo run -I . test/test_activations.mojo
