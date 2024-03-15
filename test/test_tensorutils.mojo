@@ -11,6 +11,7 @@ from dainemo.utils.tensorutils import (
     broadcast_shapes,
     broadcast_elwise_op,
     get_reduce_shape,
+    unbroadcast_add,
 )
 from dainemo.utils.tensorutils import tsum, tmean, tstd, tmax, transpose #, transpose_2D, transpose, pad_zeros
 
@@ -409,6 +410,34 @@ fn test_transpose() raises:
     assert_tensors_equal(transposed, data.expected)
 
 
+fn test_unbroadcast_add() raises:
+    alias A_shape = TensorShape(2, 3, 4)
+    alias B_shape = TensorShape(2, 1, 1)
+
+    var A = Tensor[dtype](A_shape)
+    var B = Tensor[dtype](B_shape)
+
+    fill[dtype, nelts](A, 3.0)
+
+    unbroadcast_add[B_shape, A_shape](B, A)
+
+    var expected = Tensor[dtype](2, 1, 1)
+
+    fill[dtype, nelts](expected, 36)
+
+    assert_tensors_equal(B, expected)
+
+    alias B_shape_2 = TensorShape(2, 1, 4)
+
+    B = Tensor[dtype](B_shape_2)
+
+    unbroadcast_add[B_shape_2, A_shape](B, A)
+
+    expected = Tensor[dtype](2, 3, 4)
+
+    fill[dtype, nelts](expected, 9.0)
+
+
 # # <-------------PADDING------------->
 # from test_tensorutils_data import PaddingData
 
@@ -459,6 +488,8 @@ fn main():
         test_sum_mean_std_n()
         test_max()
         test_transpose()
+        test_unbroadcast_add()
         # test_padding()
-    except:
+    except e:
         print("[ERROR] Error in tensorutils.py")
+        print(e)

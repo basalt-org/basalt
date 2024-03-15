@@ -307,6 +307,7 @@ fn broadcast_elwise_op[
             ),
         )
 
+    # TODO: Check how to vectorize this
     vectorize[vec_op, 1](res.num_elements())
 
 
@@ -329,7 +330,8 @@ fn unbroadcast_add[
             var index = get_real_index[original_shape](i, strides_unbroadcast_res)
             unbroadcast_res[index] += original.simd_load[nelts](i).reduce_add()
 
-        vectorize[vec_op, nelts](original.num_elements())
+        # TODO: Check how to vectorize this
+        vectorize[vec_op, 1](original.num_elements())
 
 
 # ---- Transform functions -----
