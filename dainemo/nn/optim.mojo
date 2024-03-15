@@ -60,26 +60,9 @@ struct Adam[g: Graph, N: Int = calc_n_tensors(g)]:
         @parameter
         fn p_step(i: Int):
             var param_tensor_id = parameters.params_map.get(
-                parameters.updatable_parameters[i], -1
+                parameters.trainable_parameters[i], -1
             )
-            var tensor_id = parameters.grads_map.get(parameters.updatable_parameters[i], -1)
-
-            # TODO
-            # Investigate most efficient implementation of the Adam optimizer
-            # Inplace updates, state values optim_momentum_grad/optim_rms_grad required?
-
-            # 1. Compute adam grads
-
-            # NOTE: Might require the Adam struct to include two more collections
-            #   - optim_momentum_grad for each parameter
-            #   - optim_rms_grad for each parameter
-
-            # 2. Compute bias-corrected adam grads
-
-            # 3. Update model parameters
-
-            # We should be able to do this operations in a more clean way in the future I think. Like maybe all this operations could be a graph?
-
+            var tensor_id = parameters.grads_map.get(parameters.trainable_parameters[i], -1)
             var grads_shape = __get_address_as_lvalue(
                 parameters.grads.offset(tensor_id).address
             ).shape()
@@ -121,15 +104,15 @@ struct Adam[g: Graph, N: Int = calc_n_tensors(g)]:
 
                 __get_address_as_lvalue(params_address).simd_store[nelts](j, params)
 
-            vectorize[v_step, nelts](grads_shape.num_elements())
+            vectorize[v_step, 1](grads_shape.num_elements())
         
-        parallelize[p_step](len(parameters.updatable_parameters), len(parameters.updatable_parameters))
+        parallelize[p_step](len(parameters.trainable_parameters), len(parameters.trainable_parameters))
 
     fn allocate_rms_and_momentum(inout self, inout parameters: Parameters):
         # They are initialized to zero
-        # Loop over all updatable parameters that require_grad = True (i.e. inside model.parameters.updatable_parameters)
-        for i in range(len(parameters.updatable_parameters)):   
-            var tensor_id = parameters.grads_map.get(parameters.updatable_parameters[i], -1)
+        # Loop over all updatable parameters that require_grad = True (i.e. inside model.parameters.trainable_parameters)
+        for i in range(len(parameters.trainable_parameters)):   
+            var tensor_id = parameters.grads_map.get(parameters.trainable_parameters[i], -1)
 
             self.rms_grads.append(
                 Tensor[dtype](
