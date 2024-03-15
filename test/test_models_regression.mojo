@@ -5,13 +5,10 @@ from testing import assert_almost_equal
 from test_tensorutils import assert_tensors_equal
 
 import dainemo.nn as nn
-from dainemo import Graph, Symbol, OP
+from dainemo import Graph, Symbol, OP, dtype
 from dainemo.nn.initializers import kaiming_normal, kaiming_uniform
 from dainemo.autograd.attributes import AttributeVector, Attribute
 from test_conv import to_numpy, to_tensor
-
-
-alias dtype = DType.float32
 
 
 
@@ -150,10 +147,10 @@ fn dv_to_tensor(dv: DynamicVector[SIMD[dtype, 1]], shape: TensorShape) -> Tensor
 
 
 fn main():
-    alias learning_rate = 1e-2
+    alias learning_rate = 1e-3
     alias epochs = 100
-    alias batch_size = 32
-    alias n_outputs = 2
+    alias batch_size = 64
+    alias n_outputs = 10
 
     var inputs = rand[dtype](batch_size, 13)
     var labels = Tensor[dtype](batch_size, n_outputs)

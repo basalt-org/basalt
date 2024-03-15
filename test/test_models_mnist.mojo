@@ -5,13 +5,10 @@ from testing import assert_almost_equal
 from test_tensorutils import assert_tensors_equal
 
 import dainemo.nn as nn
-from dainemo import Graph, Symbol, OP
+from dainemo import Graph, Symbol, OP, dtype
 from dainemo.nn.initializers import kaiming_normal, kaiming_uniform
 from dainemo.autograd.attributes import AttributeVector, Attribute
 from test_conv import to_numpy, to_tensor
-
-
-alias dtype = DType.float32
 
 
 
@@ -67,8 +64,8 @@ fn create_CNN(
     g.out(out)
 
     var y_true = g.input(TensorShape(batch_size, 10))
-    var loss = nn.CrossEntropyLoss(g, y_true, out)
-    # var loss = nn.MSELoss(g, y_true, out)
+    var loss = nn.CrossEntropyLoss(g, out, y_true)
+    # var loss = nn.MSELoss(g, out, y_true)
     g.loss(loss)
 
     return g^
@@ -115,24 +112,6 @@ fn run_mojo[
 
         losses.push_back(loss[0])
 
-        # #### printing gradients
-        # var p: Tensor[dtype]
-        # for i in range(len(model.parameters.trainable_parameters)):
-            
-
-        #     var param_tensor_id = model.parameters.params_map.get(
-        #         model.parameters.trainable_parameters[i], -1
-        #     )
-        #     var tensor_id = model.parameters.grads_map.get(model.parameters.trainable_parameters[i], -1)
-        #     p = __get_address_as_lvalue(model.parameters.grads.offset(tensor_id).address)
-            
-            
-        #     print(p.shape())
-        #     try:
-        #         print(to_numpy(p))
-        #     except e:
-        #         print(e)
-
     return losses
 
 
@@ -155,7 +134,7 @@ fn run_torch(
         var F = Python.import_module("torch.nn.functional")
         var np = Python.import_module("numpy")
         Python.add_to_path("./test")
-        var cnn_class = Python.import_module("test_models_torch")
+        var torch_models = Python.import_module("test_models_torch")
 
         var inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
         var labels = torch.from_numpy(to_numpy(labels)).requires_grad_(True)
@@ -173,7 +152,7 @@ fn run_torch(
         ).requires_grad_(True)
         var linear1_bias = torch.from_numpy(to_numpy(linear1_bias)).requires_grad_(True)
 
-        var cnn = cnn_class.CNN(
+        var cnn = torch_models.CNN(
             conv1_weights,
             conv1_bias,
             conv2_weights,
@@ -182,7 +161,7 @@ fn run_torch(
             linear1_bias,
         )
 
-        var loss_func = cnn_class.CrossEntropyLoss2()
+        var loss_func = torch_models.CrossEntropyLoss2()
         # var loss_func = torch.nn.CrossEntropyLoss()
         var optimizer = torch.optim.Adam(cnn.parameters(), learning_rate)
 
@@ -194,9 +173,7 @@ fn run_torch(
             _ = loss.backward()
             _ = optimizer.step()
 
-            out.push_back(to_tensor(loss)[0].cast[dtype]())
-
-            # _ = cnn.print_grads()
+            out.push_back(to_tensor(loss)[0])
 
         return out
 
@@ -213,7 +190,7 @@ fn create_weights(num_elements: Int, zero: Bool) -> DynamicVector[SIMD[dtype, 1]
         if zero:
             weights.push_back(SIMD[dtype, 1](0.0))
         else:
-            weights.push_back(SIMD[dtype, 1](0.1))
+            weights.push_back(SIMD[dtype, 1](0.02))
     return weights^
 
 
@@ -228,7 +205,7 @@ fn dv_to_tensor(dv: DynamicVector[SIMD[dtype, 1]], shape: TensorShape) -> Tensor
 
 fn main():
     alias learning_rate = 1e-3
-    alias epochs = 1
+    alias epochs = 100
     alias batch_size = 4
 
     var inputs = rand[dtype](batch_size, 1, 28, 28)
@@ -279,17 +256,16 @@ fn main():
         dv_to_tensor(linear1_bias, l1_b_shape),
     )
 
-    # for i in range(epochs):
-    #     # print("loss_mojo: ", losses_mojo[i], " loss_torch: ", losses_torch[i])
-    #     print("loss_mojo: ", "TODO", " loss_torch: ", losses_torch[i])
+    for i in range(epochs):
+        print("loss_mojo: ", losses_mojo[i], " loss_torch: ", losses_torch[i])
 
-    # for i in range(epochs):
-    #     var loss_mojo = losses_mojo[i]
-    #     var loss_torch = losses_torch[i]
-    #     print("loss_mojo: ", loss_mojo, " loss_torch: ", loss_torch)
-    #     try:
-    #         assert_almost_equal(loss_mojo, loss_torch, rtol=1e-5)
-    #     except e:
-    #         print("Losses not equal")
-    #         print(e)
-    #         break
+    for i in range(epochs):
+        var loss_mojo = losses_mojo[i]
+        var loss_torch = losses_torch[i]
+        print("loss_mojo: ", loss_mojo, " loss_torch: ", loss_torch)
+        try:
+            assert_almost_equal(loss_mojo, loss_torch, rtol=1e-5)
+        except e:
+            print("Losses not equal")
+            print(e)
+            break
