@@ -311,27 +311,34 @@ fn broadcast_elwise_op[
     vectorize[vec_op, 1](res.num_elements())
 
 
-fn unbroadcast_add[
-    unbroadcast_res_shape: TensorShape, original_shape: TensorShape
-](inout unbroadcast_res: Tensor[dtype], original: Tensor[dtype]):
-    # original_shape is broadcast shape
+@always_inline
+fn accumulate_grad[
+    grad_shape: TensorShape,
+    res_grad_shape: TensorShape
+](inout grad: Tensor[dtype], res_grad: Tensor[dtype]):
+
     @parameter
-    if original_shape == unbroadcast_res_shape:
-        elwise_op[add](unbroadcast_res, unbroadcast_res, original)
-    elif original_shape == TensorShape(1):
-        elwise_op[add](unbroadcast_res, unbroadcast_res, original[0])
-    else:
-        alias strides_unbroadcast_res = broadcast_calculate_strides(
-            unbroadcast_res_shape, original_shape
+    if grad_shape == res_grad_shape:
+        elwise_op[add](grad, grad, res_grad)
+    elif res_grad_shape == TensorShape(1):
+        elwise_op[add](grad, grad, res_grad[0])
+    elif grad_shape != res_grad_shape:
+        
+        # Backward resulting gradient (res_grad) was formed from an operation that required broadcasting.
+        # In order to accumulate res_grad to the gradient, the res_grad tensor needs to be unbroadcasted.
+        # The following is equivalent to: Summing along the axes that were expanded during the broadcasting process.
+
+        alias strides_grad = broadcast_calculate_strides(
+            grad_shape, res_grad_shape
         )
 
         @parameter
         fn vec_op[nelts: Int](i: Int):
-            var index = get_real_index[original_shape](i, strides_unbroadcast_res)
-            unbroadcast_res[index] += original.simd_load[nelts](i).reduce_add()
+            var index = get_real_index[res_grad_shape](i, strides_grad)
+            grad[index] += res_grad.simd_load[nelts](i).reduce_add()
 
         # TODO: Check how to vectorize this
-        vectorize[vec_op, 1](original.num_elements())
+        vectorize[vec_op, 1](res_grad.num_elements())
 
 
 # ---- Transform functions -----

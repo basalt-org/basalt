@@ -188,7 +188,7 @@ fn main():
     for i in range(epochs):
         var loss_mojo = losses_mojo[i]
         var loss_torch = losses_torch[i]
-        print("loss_mojo: ", loss_mojo, " loss_torch: ", loss_torch)
+        # print("loss_mojo: ", loss_mojo, " loss_torch: ", loss_torch)
         try:
             assert_almost_equal(loss_mojo, loss_torch, rtol=1e-4)
         except e:

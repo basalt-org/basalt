@@ -6,7 +6,7 @@ from .mlops import SIGMOID, RELU, TANH
 from .conv import CONV2D
 from .pool import MAXPOOL2D
 from dainemo.utils.uuid import bytes
-from dainemo.utils.tensorutils import unbroadcast_add, broadcast_shapes, elwise_op
+from dainemo.utils.tensorutils import broadcast_shapes, accumulate_grad
 from ..attributes import AttributeVector
 
 
@@ -251,9 +251,12 @@ fn backward_op[
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1)
 
-    # ug_shape != res_grad.shape(), ug_shape is equal to the result of the forward function not the backward function
-    # This will just call elwise_op[add] always
-    unbroadcast_add[t1_shape, t1_shape](grad, res_grad)
+    alias res_grad_shape = t1_shape
+    # grad_shape = t1_shape
+    # NOTE: Assumption res_grad.shape() == res_grad_shape
+    # if res_grad.shape() != res_grad_shape:
+    #     print("[ERROR] tensor_id: 0, Assumption not holding. res_grad_shape != res_grad.shape(), for unary operator.")
+    accumulate_grad[t1_shape, res_grad_shape](grad, res_grad)
 
 
 fn backward_op[
@@ -288,36 +291,20 @@ fn backward_op[
 
     @parameter
     if tensor_id == 0:
-
-        @parameter
-        fn get_res_shape() -> TensorShape:
-            # We should have special broadcast shapes function for matmul and dot operations or maybe the ops class could have a function to return the shape of the backward result for id 0 and 1
-            @parameter
-            if op == OP.DOT:
-                return t1_shape
-            else:
-                return broadcast_shapes(t1_shape, t2_shape)
-
-        alias res_grad_shape = get_res_shape()
-
+        alias res_grad_shape = t1_shape if op == OP.DOT else broadcast_shapes(t1_shape, t2_shape)
         # grad_shape = t1_shape
-        unbroadcast_add[t1_shape, res_grad_shape](grad, res_grad)
+        # NOTE: Assumption res_grad.shape() == res_grad_shape
+        # if res_grad.shape() != res_grad_shape:
+        #     print("[ERROR] tensor_id: 0, Assumption not holding. res_grad_shape != res_grad.shape(), for binary operator.")
+        accumulate_grad[t1_shape, res_grad_shape](grad, res_grad)
+
     elif tensor_id == 1:
-
-        @parameter
-        fn get_res_shape_2() -> TensorShape:
-            # We should have special broadcast shapes function for matmul and dot operations
-            @parameter
-            if op == OP.DOT:
-                return t2_shape
-            else:
-                return broadcast_shapes(t1_shape, t2_shape)
-
-        alias res_grad_shape = get_res_shape_2()
-
+        alias res_grad_shape = t2_shape if op == OP.DOT else broadcast_shapes(t1_shape, t2_shape)
         # grad_shape = t2_shape
-        # ug_shape != res_grad.shape(), ug_shape is equal to the result of the forward function not the backward function
-        unbroadcast_add[t2_shape, res_grad_shape](grad, res_grad)
+        # NOTE: Assumption res_grad.shape() == res_grad_shape
+        # if res_grad.shape() != res_grad_shape:
+        #     print("[ERROR] tensor_id: 1, Assumption not holding. res_grad_shape != res_grad.shape(), for binary operator.")
+        accumulate_grad[t2_shape, res_grad_shape](grad, res_grad)
 
 
 fn backward_op[
@@ -341,5 +328,22 @@ fn backward_op[
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)
 
-    # Conv backward: for each tesnor_id, grad and res_grad have the same shape
-    elwise_op[add](grad, grad, res_grad)
+    @parameter
+    if tensor_id == 0:
+        alias res_grad_shape = t1_shape
+        # NOTE: Assumption res_grad.shape() == res_grad_shape
+        # if res_grad.shape() != res_grad_shape:
+        #     print("[ERROR] tensor_id: 0, Assumption not holding. res_grad_shape != res_grad.shape(), for ternary operator.")
+        accumulate_grad[t1_shape, res_grad_shape](grad, res_grad)
+    elif tensor_id == 1:
+        alias res_grad_shape = t2_shape
+        # NOTE: Assumption res_grad.shape() == res_grad_shape
+        # if res_grad.shape() != res_grad_shape:
+        #     print("[ERROR] tensor_id: 0, Assumption not holding. res_grad_shape != res_grad.shape(), for ternary operator.")
+        accumulate_grad[t2_shape, res_grad_shape](grad, res_grad)
+    elif tensor_id == 2:
+        alias res_grad_shape = t3_shape
+        # NOTE: Assumption res_grad.shape() == res_grad_shape
+        # if res_grad.shape() != res_grad_shape:
+        #     print("[ERROR] tensor_id: 0, Assumption not holding. res_grad_shape != res_grad.shape(), for ternary operator.")
+        accumulate_grad[t3_shape, res_grad_shape](grad, res_grad)
