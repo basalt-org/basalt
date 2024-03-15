@@ -1,10 +1,13 @@
 from python.python import Python
-from tensor import Tensor, TensorShape
+from tensor import TensorShape
 from testing import assert_equal
 from random import rand
 
-from dainemo import GRAPH
+import dainemo.nn as nn
+from dainemo import Graph, Symbol, OP
+from dainemo.autograd.ops.conv import get_result_shape
 from dainemo.autograd.ops.pool import MAXPOOL2D
+from dainemo.autograd.attributes import Attribute, AttributeVector
 from test_conv import to_numpy, to_tensor
 from test_tensorutils import assert_tensors_equal, fill
 
@@ -61,6 +64,48 @@ fn torch_maxpool2d(
         return out
 
 
+fn test_pool_forward[
+    input_shape: TensorShape,
+    kernel_size: StaticIntTuple[2],
+    padding: StaticIntTuple[2],
+    stride: StaticIntTuple[2],
+    dilation: StaticIntTuple[2]
+](
+    inputs: Tensor[dtype]
+) raises:
+
+    fn create_graph() -> Graph:
+        var g = Graph()
+        var inp = g.input(input_shape)
+
+        var res = g.op(OP.MAXPOOL2D, inp, attributes=AttributeVector(
+            Attribute("kernel_size", kernel_size),
+            Attribute("padding", padding),
+            Attribute("stride", stride),
+            Attribute("dilation", dilation)
+        ))
+        g.out(res)
+
+        return g ^
+
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+
+    var model = nn.Model[graph](inference_only=True)
+    var res = model.inference(inputs)[0]
+
+    var torch_out = torch_maxpool2d(
+        inputs,
+        kernel_size=kernel_size,
+        padding=padding,
+        stride=stride,
+        dilation=dilation,
+        upper_grad=Tensor[dtype](res.shape())
+    )
+
+    assert_tensors_equal(res, torch_out.expected)
+
+
 fn test_forward_1() raises:
     # padding=2, stride=1, dilation=1
     # input shape: (4, 1, 28, 28)  kernel size: (5, 5)
@@ -68,19 +113,10 @@ fn test_forward_1() raises:
     alias padding = 2
     alias stride = 1
     alias dilation = 1
-    var inputs = rand[dtype](4, 1, 28, 28)
+    alias input_shape = TensorShape(4, 1, 28, 28)
+    var inputs = rand[dtype](input_shape)
 
-    var res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
-    var torch_out = torch_maxpool2d(
-        inputs,
-        kernel_size,
-        padding=padding,
-        stride=stride,
-        dilation=dilation,
-        upper_grad=res.grad
-    )
-    assert_tensors_equal(res.tensor, torch_out.expected)
-    GRAPH.reset_all()
+    test_pool_forward[input_shape, kernel_size, padding, stride, dilation](inputs)
 
 
 fn test_forward_2() raises:
@@ -90,20 +126,10 @@ fn test_forward_2() raises:
     alias padding = 0
     alias stride = 1
     alias dilation = 1
-    var inputs = rand[dtype](4, 1, 32, 17)
+    alias input_shape = TensorShape(4, 1, 32, 17)
+    var inputs = rand[dtype](input_shape)
     
-    var res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
-    var torch_out = torch_maxpool2d(
-        inputs,
-        kernel_size,
-        padding=padding,
-        stride=stride,
-        dilation=dilation,
-        upper_grad=res.grad
-    )
-    assert_tensors_equal(res.tensor, torch_out.expected)
-    GRAPH.reset_all()
-
+    test_pool_forward[input_shape, kernel_size, padding, stride, dilation](inputs)
 
 
 fn test_forward_3() raises:
@@ -113,20 +139,43 @@ fn test_forward_3() raises:
     alias padding = StaticIntTuple[2](3, 1)
     alias stride = StaticIntTuple[2](2, 3)
     alias dilation = StaticIntTuple[2](2, 3)
-    var inputs = Tensor[dtype](4, 3, 32, 17)
-    fill[dtype, nelts](inputs, 1.0)
+    alias input_shape = TensorShape(4, 3, 32, 17)
+    var inputs = rand[dtype](input_shape)
 
-    var res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
+    test_pool_forward[input_shape, kernel_size, padding, stride, dilation](inputs)
+
+
+
+fn test_pool_backward[
+    ug_shape: TensorShape,
+    input_shape: TensorShape,
+    kernel_size: StaticIntTuple[2],
+    padding: StaticIntTuple[2],
+    stride: StaticIntTuple[2],
+    dilation: StaticIntTuple[2]
+](
+    ug: Tensor[dtype], inputs: Tensor[dtype]
+) raises:
+
+    alias attributes = AttributeVector(
+        Attribute("kernel_size", kernel_size),
+        Attribute("padding", padding),
+        Attribute("stride", stride),
+        Attribute("dilation", dilation)
+    )
+    
+    var grad = MAXPOOL2D.backward[ug_shape, input_shape, attributes](ug, inputs)
+
     var torch_out = torch_maxpool2d(
         inputs,
-        kernel_size,
+        kernel_size=kernel_size,
         padding=padding,
         stride=stride,
         dilation=dilation,
-        upper_grad=res.grad
+        upper_grad=ug
     )
-    assert_tensors_equal(res.tensor, torch_out.expected)
-    GRAPH.reset_all()
+
+    assert_tensors_equal(grad, torch_out.expected_grad, "almost")
 
 
 fn test_backward_1() raises:
@@ -136,26 +185,16 @@ fn test_backward_1() raises:
     alias padding = 2
     alias stride = 1
     alias dilation = 1
-    var inputs = rand[dtype](4, 1, 28, 28)
-    
-    var res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
-    
-    var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-    assert_equal(gn.parents.size, 1)
-    var upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
-    
-    var ug1 = gn.backward_fn(upper_grad, gn.parents, 0) # inputs.grad
-    var torch_out = torch_maxpool2d(
-        inputs,
-        kernel_size,
-        padding=padding,
-        stride=stride,
-        dilation=dilation,
-        upper_grad=upper_grad
-    )
-    assert_tensors_equal(res.tensor, torch_out.expected)
-    assert_tensors_equal(ug1, torch_out.expected_grad, "almost")
-    GRAPH.reset_all()
+    alias input_shape = TensorShape(4, 1, 28, 28)
+    var inputs = rand[dtype](input_shape)
+
+    # uppergrad
+    alias kernel_size_static: StaticIntTuple[2] = kernel_size
+    alias res = get_result_shape(input_shape, TensorShape(kernel_size_static), padding, stride, dilation)
+    alias ug_shape = TensorShape(input_shape[0], input_shape[1], res[0], res[1])
+    var ug = rand[dtype](ug_shape)
+
+    test_pool_backward[ug_shape, input_shape, kernel_size, padding, stride, dilation](ug, inputs)
 
 
 fn test_backward_2() raises:
@@ -165,26 +204,16 @@ fn test_backward_2() raises:
     alias padding = 0
     alias stride = 1
     alias dilation = 1
-    var inputs = rand[dtype](4, 1, 32, 17)
+    alias input_shape = TensorShape(4, 1, 32, 17)
+    var inputs = rand[dtype](input_shape)
 
-    var res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
-    
-    var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-    assert_equal(gn.parents.size, 1)
-    var upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
+    # uppergrad
+    alias kernel_size_static: StaticIntTuple[2] = kernel_size
+    alias res = get_result_shape(input_shape, TensorShape(kernel_size_static), padding, stride, dilation)
+    alias ug_shape = TensorShape(input_shape[0], input_shape[1], res[0], res[1])
+    var ug = rand[dtype](ug_shape)
 
-    var ug1 = gn.backward_fn(upper_grad, gn.parents, 0) # inputs.grad
-    var torch_out = torch_maxpool2d(
-        inputs,
-        kernel_size,
-        padding=padding,
-        stride=stride,
-        dilation=dilation,
-        upper_grad=upper_grad
-    )
-    assert_tensors_equal(res.tensor, torch_out.expected)
-    assert_tensors_equal(ug1, torch_out.expected_grad, "almost")
-    GRAPH.reset_all()
+    test_pool_backward[ug_shape, input_shape, kernel_size, padding, stride, dilation](ug, inputs)
 
 
 fn test_backward_3() raises:
@@ -194,27 +223,16 @@ fn test_backward_3() raises:
     alias padding = StaticIntTuple[2](3, 1)
     alias stride = StaticIntTuple[2](2, 3)
     alias dilation = StaticIntTuple[2](2, 3)
-    var inputs = Tensor[dtype](4, 3, 32, 17)
-    fill[dtype, nelts](inputs, 1.0)
+    alias input_shape = TensorShape(4, 3, 32, 17)
+    var inputs = rand[dtype](input_shape)
 
-    var res = MAXPOOL2D.forward[kernel_size, stride, padding, dilation](inputs)
-    
-    var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-    assert_equal(gn.parents.size, 1)
-    var upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
+    # uppergrad
+    alias kernel_size_static: StaticIntTuple[2] = kernel_size
+    alias res = get_result_shape(input_shape, TensorShape(kernel_size_static), padding, stride, dilation)
+    alias ug_shape = TensorShape(input_shape[0], input_shape[1], res[0], res[1])
+    var ug = rand[dtype](ug_shape)
 
-    var ug1 = gn.backward_fn(upper_grad, gn.parents, 0) # inputs.grad
-    var torch_out = torch_maxpool2d(
-        inputs,
-        kernel_size,
-        padding=padding,
-        stride=stride,
-        dilation=dilation,
-        upper_grad=upper_grad
-    )
-    assert_tensors_equal(res.tensor, torch_out.expected)
-    assert_tensors_equal(ug1, torch_out.expected_grad, "almost")
-    GRAPH.reset_all()
+    test_pool_backward[ug_shape, input_shape, kernel_size, padding, stride, dilation](ug, inputs)
 
 
 fn main():

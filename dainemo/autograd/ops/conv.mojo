@@ -1,16 +1,19 @@
-from tensor import Tensor, TensorShape
-from math import floor, max
+from tensor import TensorShape
 
-from dainemo import GRAPH
-from dainemo.autograd.node import Node
 from dainemo.utils.tensorutils import calculate_strides
+from dainemo.autograd.attributes import AttributeVector
+from time import now
 
 
 # <------------GENERAL CONV METHODS------------>
 @always_inline
-fn get_result_shape[
-    padding: StaticIntTuple[2], stride: StaticIntTuple[2], dilation: StaticIntTuple[2]
-](input_shape: TensorShape, kernel_shape: TensorShape) -> StaticIntTuple[2]:
+fn get_result_shape(
+        input_shape: TensorShape,
+        kernel_shape: TensorShape,
+        padding: StaticIntTuple[2],
+        stride: StaticIntTuple[2],
+        dilation: StaticIntTuple[2]
+    ) -> StaticIntTuple[2]:
     """
     Calculates the X and Y dimensions of the resulting convolution.
     Dimensions X, Y are on the end of the shape (..., X, Y)
@@ -33,11 +36,23 @@ fn get_result_shape[
 # <------------CONV2D------------>
 struct CONV2D:
     @staticmethod
+    fn result_shape(input_shape: TensorShape, kernel_shape: TensorShape, bias_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        # Output shape = [batch, out_channels, oX, oY]
+        
+        var padding = attributes["padding"].value().to_static[2]()
+        var stride = attributes["stride"].value().to_static[2]()
+        var dilation = attributes["dilation"].value().to_static[2]()
+        var res = get_result_shape(input_shape, kernel_shape, padding, stride, dilation)
+
+        return TensorShape(input_shape[0], kernel_shape[0], res[0], res[1])
+
+    @staticmethod
     fn forward[
-        padding: StaticIntTuple[2] = 0,
-        stride: StaticIntTuple[2] = 1,
-        dilation: StaticIntTuple[2] = 1,
-    ](inputs: Node[dtype], kernel: Node[dtype], bias: Node[dtype]) -> Node[dtype]:
+        input_shape: TensorShape,
+        kernel_shape: TensorShape,
+        bias_shape: TensorShape,
+        attributes: AttributeVector
+    ](inout outputs: Tensor[dtype], inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]):
         """
         Performs a 2D convolution on the input tensor using the kernel and bias.
             inputs.shape     [batch, in_channels, iX, iY]
@@ -45,15 +60,40 @@ struct CONV2D:
             bias.shape       [out_channels].
             output.shape     [batch, out_channels, oX, oY].
         """
+        # NOTE: Parsing the static list at compile time (alias) makes the operations slower (another bug it seems)
+        alias padding = attributes["padding"].value().to_static[2]()
+        alias stride = attributes["stride"].value().to_static[2]()
+        alias dilation = attributes["dilation"].value().to_static[2]()
+        alias padding_0 = padding[0]
+        alias padding_1 = padding[1]
+        alias stride_0 = stride[0]
+        alias stride_1 = stride[1]
+        alias dilation_0 = dilation[0]
+        alias dilation_1 = dilation[1]
 
-        var result_shape = get_result_shape[padding, stride, dilation](
-            inputs.tensor.shape(), kernel.tensor.shape()
-        )
+        alias inputs_strides = calculate_strides(input_shape)
+        alias kernel_strides = calculate_strides(kernel_shape)
+        alias output_shape = Self.result_shape(input_shape, kernel_shape, bias_shape, attributes)
+        alias outputs_strides = calculate_strides(output_shape)
+        alias inputs_strides_0 = inputs_strides[0]
+        alias inputs_strides_1 = inputs_strides[1]
+        alias inputs_strides_2 = inputs_strides[2]
+        alias kernel_strides_0 = kernel_strides[0]
+        alias kernel_strides_1 = kernel_strides[1]
+        alias kernel_strides_2 = kernel_strides[2]
+        alias outputs_strides_0 = outputs_strides[0]
+        alias outputs_strides_1 = outputs_strides[1]
+        alias outputs_strides_2 = outputs_strides[2]
 
-        var outputs = Tensor[dtype](
-            inputs.tensor.dim(0), kernel.tensor.dim(0), result_shape[0], result_shape[1]
-        )
-        var outputs_strides = calculate_strides(outputs.shape())
+        alias input_shape_0 = input_shape[0]
+        alias input_shape_1 = input_shape[1]
+        alias input_shape_2 = input_shape[2]
+        alias input_shape_3 = input_shape[3]
+        alias output_shape_1 = output_shape[1]
+        alias output_shape_2 = output_shape[2]
+        alias output_shape_3 = output_shape[3]
+        alias kernel_shape_2 = kernel_shape[2]
+        alias kernel_shape_3 = kernel_shape[3]
 
         @parameter
         fn kernel_iteration[
@@ -61,72 +101,72 @@ struct CONV2D:
         ](batch: Int, out_ch: Int, x: Int, y: Int):
             var result: SIMD[dtype, 1] = 0
 
-            var ix_base = x * stride[0] - padding[0]
-            var iy_base = y * stride[1] - padding[1]
-            for in_ch in range(inputs.tensor.dim(1)):
-                for kx in range(kernel.tensor.dim(2)):
-                    for ky in range(kernel.tensor.dim(3)):
-                        var ix = ix_base + kx * dilation[0]
-                        var iy = iy_base + ky * dilation[1]
+            var ix_base = x * stride_0 - padding_0
+            var iy_base = y * stride_1 - padding_1
+            for in_ch in range(input_shape_1):
+                for kx in range(kernel_shape_2):
+                    for ky in range(kernel_shape_3):
+                        var ix = ix_base + kx * dilation_0
+                        var iy = iy_base + ky * dilation_1
 
                         @parameter
                         if all_checks:
                             if (
                                 ix < 0
                                 or iy < 0
-                                or ix >= inputs.tensor.dim(2)
-                                or iy >= inputs.tensor.dim(3)
+                                or ix >= input_shape_2
+                                or iy >= input_shape_3
                             ):
                                 continue
 
                         var kernel_index = (
-                            out_ch * kernel.strides[0]
-                            + in_ch * kernel.strides[1]
-                            + kx * kernel.strides[2]
+                            out_ch * kernel_strides_0
+                            + in_ch * kernel_strides_1
+                            + kx * kernel_strides_2
                             + ky
                         )
 
                         var input_index = (
-                            batch * inputs.strides[0]
-                            + in_ch * inputs.strides[1]
-                            + ix * inputs.strides[2]
+                            batch * inputs_strides_0
+                            + in_ch * inputs_strides_1
+                            + ix * inputs_strides_2
                             + iy
                         )
 
                         result += (
-                            inputs.tensor[input_index] * kernel.tensor[kernel_index]
+                            inputs[input_index] * kernel[kernel_index]
                         )
 
             var output_index = (
-                batch * outputs_strides[0]
-                + out_ch * outputs_strides[1]
-                + x * outputs_strides[2]
+                batch * outputs_strides_0
+                + out_ch * outputs_strides_1
+                + x * outputs_strides_2
                 + y
             )
 
-            outputs[output_index] = result + bias.tensor[out_ch]
+            outputs[output_index] = result + bias[out_ch]
 
-        var oH_border_0 = 0
-        var oH_border_1 = (padding[0] + stride[0] + 1) // stride[0]
-        var oH_border_2 = (
-            inputs.tensor.dim(2) + padding[0] - kernel.tensor.dim(2) * dilation[0]
-        ) // stride[0]
-        var oH_border_3 = outputs.dim(2)
+        alias oH_border_0 = 0
+        alias oH_border_1 = (padding_0 + stride_0 + 1) // stride_0
+        alias oH_border_2 = (
+            input_shape_2 + padding_0 - kernel_shape_2 * dilation_0
+        ) // stride_0
+        alias oH_border_3 = output_shape_2
 
-        var oW_border_0 = 0
-        var oW_border_1 = (padding[1] + stride[0] + 1) // stride[1]
-        var oW_border_2 = (
-            inputs.tensor.dim(3) + padding[1] - kernel.tensor.dim(3) * dilation[1]
-        ) // stride[1]
-        var oW_border_3 = outputs.dim(3)
+        alias oW_border_0 = 0
+        alias oW_border_1 = (padding_1 + stride_0 + 1) // stride_1
+        alias oW_border_2 = (
+            input_shape_3 + padding_1 - kernel_shape_3 * dilation_1
+        ) // stride_1
+        alias oW_border_3 = output_shape_3
 
-        for batch in range(inputs.tensor.dim(0)):
-            for out_ch in range(outputs.dim(1)):
-                var batch_o_idx = batch * outputs_strides[0]
-                var out_ch_o_idx = out_ch * outputs_strides[1]
+        for batch in range(input_shape_0):
+            for out_ch in range(output_shape_1):
+                var batch_o_idx = batch * outputs_strides_0
+                var out_ch_o_idx = out_ch * outputs_strides_1
                 # Case 1: oh might put us out of bounds
                 for x in range(oH_border_0, oH_border_1):
-                    for y in range(outputs.dim(3)):
+                    for y in range(output_shape_3):
                         kernel_iteration(batch, out_ch, x, y)
                 # Case 2: oh in bounds
                 for x in range(oH_border_1, oH_border_2):
@@ -141,162 +181,178 @@ struct CONV2D:
                         kernel_iteration(batch, out_ch, x, y)
                 # Case 3: oh might put us out of bounds
                 for x in range(oH_border_2, oH_border_3):
-                    for y in range(outputs.dim(3)):
+                    for y in range(output_shape_3):
                         kernel_iteration(batch, out_ch, x, y)
-
-        return GRAPH.create_graph_node[Self.backward[padding, stride, dilation]](
-            outputs, inputs, kernel, bias
-        )
 
     @staticmethod
     fn backward[
-        padding: StaticIntTuple[2],
-        stride: StaticIntTuple[2],
-        dilation: StaticIntTuple[2],
-    ](ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int) -> Tensor[
-        dtype
-    ]:
+        tensor_id: Int,
+        ug_shape: TensorShape,
+        input_shape: TensorShape,
+        kernel_shape: TensorShape,
+        bias_shape: TensorShape,
+        attributes: AttributeVector
+    ](ug: Tensor[dtype], inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]) -> Tensor[dtype]:
         """
         Backward operation of 2D convolution.
 
         Upper gradient of shape: [batch, out_channels, uX, uY].
         """
+        alias padding = attributes["padding"].value().to_static[2]()
+        alias stride = attributes["stride"].value().to_static[2]()
+        alias dilation = attributes["dilation"].value().to_static[2]()
+        alias padding_0 = padding[0]
+        alias padding_1 = padding[1]
+        alias stride_0 = stride[0]
+        alias stride_1 = stride[1]
+        alias dilation_0 = dilation[0]
+        alias dilation_1 = dilation[1]
 
-        var inputs = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].tensor
-        var inputs_strides = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[0])].strides
-        var kernel = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])].tensor
-        var kernel_strides = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[1])].strides
-        var bias = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[2])].tensor
-        var bias_strides = GRAPH.graph[GRAPH.get_node_idx(tensor_vec[2])].strides
+        alias inputs_strides = calculate_strides(input_shape)
+        alias kernel_strides = calculate_strides(kernel_shape)
+        alias ug_strides = calculate_strides(ug_shape)
+        alias inputs_strides_0 = inputs_strides[0]
+        alias inputs_strides_1 = inputs_strides[1]
+        alias inputs_strides_2 = inputs_strides[2]
+        alias kernel_strides_0 = kernel_strides[0]
+        alias kernel_strides_1 = kernel_strides[1]
+        alias kernel_strides_2 = kernel_strides[2]
+        alias ug_strides_0 = ug_strides[0]
+        alias ug_strides_1 = ug_strides[1]
+        alias ug_strides_2 = ug_strides[2]
+        
+        alias input_shape_0 = input_shape[0]
+        alias input_shape_1 = input_shape[1]
+        alias input_shape_2 = input_shape[2]
+        alias input_shape_3 = input_shape[3]
+        alias kernel_shape_2 = kernel_shape[2]
+        alias kernel_shape_3 = kernel_shape[3]
+        alias ug_shape_0 = ug_shape[0]
+        alias ug_shape_1 = ug_shape[1]
+        alias ug_shape_2 = ug_shape[2]
+        alias ug_shape_3 = ug_shape[3]
 
-        var ug_strides = calculate_strides(ug.shape())
+        var res: Tensor[dtype]
 
+        @parameter
         if tensor_id == 0:
             # Inputs
-            var res = Tensor[dtype](inputs.shape())
+            res = Tensor[dtype](input_shape)
 
-            for batch in range(inputs.dim(0)):
-                for out_ch in range(ug.dim(1)):
-                    for ux in range(ug.dim(2)):
-                        for uy in range(ug.dim(3)):
-                            var ix_base = ux * stride[0] - padding[0]
-                            var iy_base = uy * stride[1] - padding[1]
-                            for in_ch in range(inputs.dim(1)):
-                                for kx in range(kernel.dim(2)):
-                                    for ky in range(kernel.dim(3)):
-                                        var ix = ix_base + kx * dilation[0]
-                                        var iy = iy_base + ky * dilation[1]
+            for batch in range(input_shape_0):
+                for out_ch in range(ug_shape_1):
+                    for ux in range(ug_shape_2):
+                        for uy in range(ug_shape_3):
+                            var ix_base = ux * stride_0 - padding_0
+                            var iy_base = uy * stride_1 - padding_1
+                            for in_ch in range(input_shape_1):
+                                for kx in range(kernel_shape_2):
+                                    for ky in range(kernel_shape_3):
+                                        var ix = ix_base + kx * dilation_0
+                                        var iy = iy_base + ky * dilation_1
 
                                         if (
                                             ix < 0
                                             or iy < 0
-                                            or ix >= inputs.dim(2)
-                                            or iy >= inputs.dim(3)
+                                            or ix >= input_shape_2
+                                            or iy >= input_shape_3
                                         ):
                                             continue
 
                                         var kernel_index = (
-                                            out_ch * kernel_strides[0]
-                                            + in_ch * kernel_strides[1]
-                                            + kx * kernel_strides[2]
+                                            out_ch * kernel_strides_0
+                                            + in_ch * kernel_strides_1
+                                            + kx * kernel_strides_2
                                             + ky
                                         )
 
                                         var ug_index = (
-                                            batch * ug_strides[0]
-                                            + out_ch * ug_strides[1]
-                                            + ux * ug_strides[2]
+                                            batch * ug_strides_0
+                                            + out_ch * ug_strides_1
+                                            + ux * ug_strides_2
                                             + uy
                                         )
 
                                         var input_index = (
-                                            batch * inputs_strides[0]
-                                            + in_ch * inputs_strides[1]
-                                            + ix * inputs_strides[2]
+                                            batch * inputs_strides_0
+                                            + in_ch * inputs_strides_1
+                                            + ix * inputs_strides_2
                                             + iy
                                         )
                                         res[input_index] += (
                                             kernel[kernel_index] * ug[ug_index]
                                         )
 
-            return res
-
         elif tensor_id == 1:
             # Kernel
-            var res = Tensor[dtype](kernel.shape())
+            res = Tensor[dtype](kernel_shape)
 
-            for in_ch in range(inputs.dim(1)):
-                for out_ch in range(ug.dim(1)):
-                    for kx in range(kernel.dim(2)):
-                        for ky in range(kernel.dim(3)):
+            for in_ch in range(input_shape_1):
+                for out_ch in range(ug_shape_1):
+                    for kx in range(kernel_shape_2):
+                        for ky in range(kernel_shape_3):
                             var result: SIMD[dtype, 1] = 0
-                            for batch in range(inputs.dim(0)):
-                                for ux in range(ug.dim(2)):
-                                    for uy in range(ug.dim(3)):
-                                        var ix = ux * stride[0] - padding[
-                                            0
-                                        ] + kx * dilation[0]
-                                        var iy = uy * stride[1] - padding[
-                                            1
-                                        ] + ky * dilation[1]
+                            for batch in range(input_shape_0):
+                                for ux in range(ug_shape_2):
+                                    for uy in range(ug_shape_3):
+                                        var ix = ux * stride_0 - padding_0 + kx * dilation_0
+                                        var iy = uy * stride_1 - padding_1 + ky * dilation_1
 
                                         if (
                                             ix < 0
                                             or iy < 0
-                                            or ix >= inputs.dim(2)
-                                            or iy >= inputs.dim(3)
+                                            or ix >= input_shape_2
+                                            or iy >= input_shape_3
                                         ):
                                             continue
 
                                         var input_index = (
-                                            batch * inputs_strides[0]
-                                            + in_ch * inputs_strides[1]
-                                            + ix * inputs_strides[2]
+                                            batch * inputs_strides_0
+                                            + in_ch * inputs_strides_1
+                                            + ix * inputs_strides_2
                                             + iy
                                         )
 
                                         var ug_index = (
-                                            batch * ug_strides[0]
-                                            + out_ch * ug_strides[1]
-                                            + ux * ug_strides[2]
+                                            batch * ug_strides_0
+                                            + out_ch * ug_strides_1
+                                            + ux * ug_strides_2
                                             + uy
                                         )
 
                                         result += inputs[input_index] * ug[ug_index]
 
                             var kernel_index = (
-                                out_ch * kernel_strides[0]
-                                + in_ch * kernel_strides[1]
-                                + kx * kernel_strides[2]
+                                out_ch * kernel_strides_0
+                                + in_ch * kernel_strides_1
+                                + kx * kernel_strides_2
                                 + ky
                             )
                             res[kernel_index] = result
 
-            return res
-
         else:
             # Bias
             # Sum of upper gradient over batch and X, Y dimensions
-            # out_channels == ug.dim(1) == bias.dim(0)
-            var res = Tensor[dtype](bias.shape())
+            # out_channels == ug_shape[1] == bias_shape[0]
+            res = Tensor[dtype](bias_shape)
 
-            for out_ch in range(ug.dim(1)):
+            for out_ch in range(ug_shape_1):
                 var sum: SIMD[dtype, 1] = 0
-                for batch in range(ug.dim(0)):
-                    for ux in range(ug.dim(2)):
-                        for uy in range(ug.dim(3)):
+                for batch in range(ug_shape_0):
+                    for ux in range(ug_shape_2):
+                        for uy in range(ug_shape_3):
                             var ug_index = (
-                                batch * ug_strides[0]
-                                + out_ch * ug_strides[1]
-                                + ux * ug_strides[2]
+                                batch * ug_strides_0
+                                + out_ch * ug_strides_1
+                                + ux * ug_strides_2
                                 + uy
                             )
                             sum += ug[ug_index]
 
                 res[out_ch] = sum
 
-            return res
+        return res
 
 
-# <------------CONV3D------------>
-# TODO
+# # <------------CONV3D------------>
+# # TODO

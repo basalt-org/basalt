@@ -1,12 +1,12 @@
 from python.python import Python
-from tensor import Tensor, TensorShape
+from tensor import TensorShape
 from testing import assert_equal
-from utils.index import Index
 from random import rand
 
-from dainemo import GRAPH
-from dainemo.autograd.ops.conv import CONV2D
-from dainemo.autograd.ops.conv import get_result_shape
+import dainemo.nn as nn
+from dainemo import Graph, Symbol, OP
+from dainemo.autograd.ops.conv import get_result_shape, CONV2D
+from dainemo.autograd.attributes import Attribute, AttributeVector
 from dainemo.utils.tensorutils import fill
 from test_tensorutils import assert_tensors_equal
 
@@ -22,7 +22,7 @@ fn test_get_result_shape() raises:
     var inputs = Tensor[dtype](4, 28, 28)
     var kernel = Tensor[dtype](1, 16)
 
-    var res = get_result_shape[2, 1, 1](inputs.shape(), kernel.shape())
+    var res = get_result_shape(inputs.shape(), kernel.shape(), 2, 1, 1)
     assert_equal(res[0], 32)
     assert_equal(res[1], 17)
 
@@ -32,7 +32,7 @@ fn test_get_result_shape() raises:
     inputs = Tensor[dtype](4, 32, 17)
     kernel = Tensor[dtype](2, 2)
 
-    res = get_result_shape[0, 1, 1](inputs.shape(), kernel.shape())
+    res = get_result_shape(inputs.shape(), kernel.shape(), 0, 1, 1)
     assert_equal(res[0], 31)
     assert_equal(res[1], 16)
 
@@ -42,8 +42,8 @@ fn test_get_result_shape() raises:
     inputs = Tensor[dtype](4, 32, 17)
     kernel = Tensor[dtype](2, 2)
 
-    res = get_result_shape[StaticIntTuple[2](3, 1), 1, 2](
-        inputs.shape(), kernel.shape()
+    res = get_result_shape(
+        inputs.shape(), kernel.shape(), StaticIntTuple[2](3, 1), 1, 2
     )
     assert_equal(res[0], 36)
     assert_equal(res[1], 17)
@@ -54,9 +54,9 @@ fn test_get_result_shape() raises:
     inputs = Tensor[dtype](4, 32, 17)
     kernel = Tensor[dtype](3, 2)
 
-    res = get_result_shape[
-        StaticIntTuple[2](3, 2), StaticIntTuple[2](2, 1), StaticIntTuple[2](2, 3)
-    ](inputs.shape(), kernel.shape())
+    res = get_result_shape(
+        inputs.shape(), kernel.shape(), StaticIntTuple[2](3, 2), StaticIntTuple[2](2, 1), StaticIntTuple[2](2, 3)
+    )
     assert_equal(res[0], 17)
     assert_equal(res[1], 18)
 
@@ -154,20 +154,38 @@ fn torch_conv2d(
         return out
 
 
-fn test_forward_1() raises:
-    # padding=2, stride=1, dilation=1
-    # input shape: (4, 1, 28, 28)  kernel shape: (1, 1, 1, 16)
-    # result_shape:  (4, 1, 32, 17)
-    alias padding = 2
-    alias stride = 1
-    alias dilation = 1
-    var inputs = Tensor[dtype](4, 1, 28, 28)
-    var kernel = Tensor[dtype](1, 1, 1, 16)
-    fill[dtype, nelts](inputs, 1.0)
-    fill[dtype, nelts](kernel, 1.0)
-    var bias = Tensor[dtype](1)
+fn test_conv_forward[
+    input_shape: TensorShape,
+    kernel_shape: TensorShape,
+    padding: StaticIntTuple[2],
+    stride: StaticIntTuple[2],
+    dilation: StaticIntTuple[2]
+](
+    inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]
+) raises:
 
-    var res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
+    fn create_graph() -> Graph:
+        var g = Graph()
+        var inp = g.input(input_shape)
+        
+        var weights = g.input(kernel_shape)  # as input
+        var bias = g.input(kernel_shape[0])  # as input
+
+        var res = g.op(OP.CONV2D, inp, weights, bias, attributes=AttributeVector(
+            Attribute("padding", padding),
+            Attribute("stride", stride),
+            Attribute("dilation", dilation)
+        ))
+        g.out(res)
+
+        return g ^
+
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+
+    var model = nn.Model[graph](inference_only=True)
+    var res = model.inference(inputs, kernel, bias)[0]
+
     var torch_out = torch_conv2d(
         inputs,
         kernel,
@@ -175,10 +193,29 @@ fn test_forward_1() raises:
         padding=padding,
         stride=stride,
         dilation=dilation,
-        upper_grad=res.grad,
+        upper_grad=Tensor[dtype](res.shape()),
     )
-    assert_tensors_equal(res.tensor, torch_out.expected)
-    GRAPH.reset_all()
+
+    assert_tensors_equal(res, torch_out.expected)
+
+
+fn test_forward_1() raises:
+    # padding=2, stride=1, dilation=1
+    # input shape: (4, 1, 28, 28)  kernel shape: (1, 1, 1, 16)
+    # result_shape:  (4, 1, 32, 17)
+    alias padding = 2
+    alias stride = 1
+    alias dilation = 1
+    alias input_shape = TensorShape(4, 1, 28, 28)
+    alias kernel_shape = TensorShape(1, 1, 1, 16)
+    
+    var inputs = Tensor[dtype](input_shape)
+    var kernel = Tensor[dtype](kernel_shape)
+    var bias = Tensor[dtype](kernel_shape[0])
+    fill[dtype, nelts](inputs, 1.0)
+    fill[dtype, nelts](kernel, 1.0)
+    
+    test_conv_forward[input_shape, kernel_shape, padding, stride, dilation](inputs, kernel, bias)
 
 
 fn test_forward_2() raises:
@@ -188,25 +225,17 @@ fn test_forward_2() raises:
     alias padding = 0
     alias stride = 1
     alias dilation = 1
-    var inputs = Tensor[dtype](4, 1, 32, 17)
-    var kernel = Tensor[dtype](1, 1, 2, 2)
+    alias input_shape = TensorShape(4, 1, 32, 17)
+    alias kernel_shape = TensorShape(1, 1, 2, 2)
+
+    var inputs = Tensor[dtype](input_shape)
+    var kernel = Tensor[dtype](kernel_shape)
     fill[dtype, nelts](inputs, 1.0)
     fill[dtype, nelts](kernel, 1.0)
-    var bias = Tensor[dtype](1)
+    var bias = Tensor[dtype](kernel_shape[0])
     fill[dtype, nelts](bias, 66.99)
 
-    var res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
-    var torch_out = torch_conv2d(
-        inputs,
-        kernel,
-        bias=bias,
-        padding=padding,
-        stride=stride,
-        dilation=dilation,
-        upper_grad=res.grad,
-    )
-    assert_tensors_equal(res.tensor, torch_out.expected)
-    GRAPH.reset_all()
+    test_conv_forward[input_shape, kernel_shape, padding, stride, dilation](inputs, kernel, bias)
 
 
 fn test_forward_3() raises:
@@ -216,14 +245,41 @@ fn test_forward_3() raises:
     alias padding = StaticIntTuple[2](3, 1)
     alias stride = StaticIntTuple[2](2, 3)
     alias dilation = StaticIntTuple[2](2, 3)
-    var inputs = Tensor[dtype](4, 3, 32, 17)
-    var kernel = Tensor[dtype](2, 3, 2, 2)
+    alias input_shape = TensorShape(4, 3, 32, 17)
+    alias kernel_shape = TensorShape(2, 3, 2, 2)
+
+    var inputs = Tensor[dtype](input_shape)
+    var kernel = Tensor[dtype](kernel_shape)
     fill[dtype, nelts](inputs, 3.0)
     fill[dtype, nelts](kernel, 2.0)
-    var bias = Tensor[dtype](2)
+    var bias = Tensor[dtype](kernel_shape[0])
     fill[dtype, nelts](bias, 3)
 
-    var res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
+    test_conv_forward[input_shape, kernel_shape, padding, stride, dilation](inputs, kernel, bias)
+
+
+fn test_conv_backward[
+    ug_shape: TensorShape,
+    input_shape: TensorShape,
+    kernel_shape: TensorShape,
+    padding: StaticIntTuple[2],
+    stride: StaticIntTuple[2],
+    dilation: StaticIntTuple[2]
+](
+    ug: Tensor[dtype], inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]
+) raises:
+
+    alias bias_shape = TensorShape(kernel_shape[0])
+    alias attributes = AttributeVector(
+        Attribute("padding", padding),
+        Attribute("stride", stride),
+        Attribute("dilation", dilation)
+    )
+    
+    var grad1 = CONV2D.backward[0, ug_shape, input_shape, kernel_shape, bias_shape, attributes](ug, inputs, kernel, bias)
+    var grad2 = CONV2D.backward[1, ug_shape, input_shape, kernel_shape, bias_shape, attributes](ug, inputs, kernel, bias)
+    var grad3 = CONV2D.backward[2, ug_shape, input_shape, kernel_shape, bias_shape, attributes](ug, inputs, kernel, bias)
+    
     var torch_out = torch_conv2d(
         inputs,
         kernel,
@@ -231,10 +287,13 @@ fn test_forward_3() raises:
         padding=padding,
         stride=stride,
         dilation=dilation,
-        upper_grad=res.grad,
+        upper_grad=ug,
     )
-    assert_tensors_equal(res.tensor, torch_out.expected)
-    GRAPH.reset_all()
+
+    assert_tensors_equal(grad1, torch_out.expected_inputs_grad, "almost")
+    assert_tensors_equal(grad2, torch_out.expected_kernel_grad, "almost")
+    assert_tensors_equal(grad3, torch_out.expected_bias_grad, "almost")
+
 
 
 fn test_backward_1() raises:
@@ -242,39 +301,21 @@ fn test_backward_1() raises:
     alias padding = 2
     alias stride = 1
     alias dilation = 1
-    alias batch = 4
-    alias in_channels = 2
-    alias out_channels = 3
-    var inputs = Tensor[dtype](batch, in_channels, 28, 28)
-    var kernel = Tensor[dtype](out_channels, in_channels, 1, 16)
+    alias input_shape = TensorShape(4, 2, 28, 28)
+    alias kernel_shape = TensorShape(3, 2, 1, 16)
+
+    var inputs = Tensor[dtype](input_shape)
+    var kernel = Tensor[dtype](kernel_shape)
     fill[dtype, nelts](inputs, 1.0)
     fill[dtype, nelts](kernel, 1.0)
-    var bias: Tensor[dtype] = rand[dtype](out_channels)
+    var bias: Tensor[dtype] = rand[dtype](kernel_shape[0])
 
-    var res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
+    # uppergrad
+    alias res = get_result_shape(input_shape, kernel_shape, padding, stride, dilation)
+    alias ug_shape = TensorShape(input_shape[0], kernel_shape[0], res[0], res[1])
+    var ug = Tensor[dtype](ug_shape)
 
-    var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-    assert_equal(gn.parents.size, 3)
-    var upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
-
-    var ug1 = gn.backward_fn(upper_grad, gn.parents, 0)  # inputs.grad
-    var ug2 = gn.backward_fn(upper_grad, gn.parents, 1)  # kernel.grad
-    var ug3 = gn.backward_fn(upper_grad, gn.parents, 2)  # bias.grad
-
-    var torch_out = torch_conv2d(
-        inputs,
-        kernel,
-        bias=bias,
-        padding=padding,
-        stride=stride,
-        dilation=dilation,
-        upper_grad=upper_grad,
-    )
-    assert_tensors_equal(res.tensor, torch_out.expected)
-    assert_tensors_equal(ug1, torch_out.expected_inputs_grad, "almost")
-    assert_tensors_equal(ug2, torch_out.expected_kernel_grad, "almost")
-    assert_tensors_equal(ug3, torch_out.expected_bias_grad, "almost")
-    GRAPH.reset_all()
+    test_conv_backward[ug_shape, input_shape, kernel_shape, padding, stride, dilation](ug, inputs, kernel, bias)
 
 
 fn test_backward_2() raises:
@@ -282,39 +323,21 @@ fn test_backward_2() raises:
     alias padding = StaticIntTuple[2](2, 4)
     alias stride = StaticIntTuple[2](3, 1)
     alias dilation = 2
-    alias batch = 4
-    alias in_channels = 2
-    alias out_channels = 3
-    var inputs = Tensor[dtype](batch, in_channels, 28, 28)
-    var kernel = Tensor[dtype](out_channels, in_channels, 4, 8)
+    alias input_shape = TensorShape(4, 2, 28, 28)
+    alias kernel_shape = TensorShape(3, 2, 4, 8)
+
+    var inputs = Tensor[dtype](input_shape)
+    var kernel = Tensor[dtype](kernel_shape)
     fill[dtype, nelts](inputs, 3.0)
     fill[dtype, nelts](kernel, 1.0)
-    var bias: Tensor[dtype] = rand[dtype](out_channels)
+    var bias: Tensor[dtype] = rand[dtype](kernel_shape[0])
 
-    var res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
+    # uppergrad
+    alias res = get_result_shape(input_shape, kernel_shape, padding, stride, dilation)
+    alias ug_shape = TensorShape(input_shape[0], kernel_shape[0], res[0], res[1])
+    var ug: Tensor[dtype] = rand[dtype](ug_shape)
 
-    var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-    assert_equal(gn.parents.size, 3)
-    var upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
-
-    var ug1 = gn.backward_fn(upper_grad, gn.parents, 0)  # inputs.grad
-    var ug2 = gn.backward_fn(upper_grad, gn.parents, 1)  # kernel.grad
-    var ug3 = gn.backward_fn(upper_grad, gn.parents, 2)  # bias.grad
-
-    var torch_out = torch_conv2d(
-        inputs,
-        kernel,
-        bias=bias,
-        padding=padding,
-        stride=stride,
-        dilation=dilation,
-        upper_grad=upper_grad,
-    )
-    assert_tensors_equal(res.tensor, torch_out.expected)
-    assert_tensors_equal(ug1, torch_out.expected_inputs_grad, "almost")
-    assert_tensors_equal(ug2, torch_out.expected_kernel_grad, "almost")
-    assert_tensors_equal(ug3, torch_out.expected_bias_grad, "almost")
-    GRAPH.reset_all()
+    test_conv_backward[ug_shape, input_shape, kernel_shape, padding, stride, dilation](ug, inputs, kernel, bias)
 
 
 fn test_backward_3() raises:
@@ -322,39 +345,21 @@ fn test_backward_3() raises:
     alias padding = StaticIntTuple[2](3, 2)
     alias stride = 2
     alias dilation = StaticIntTuple[2](3, 2)
-    alias batch = 4
-    alias in_channels = 2
-    alias out_channels = 3
-    var inputs = Tensor[dtype](batch, in_channels, 28, 28)
-    var kernel = Tensor[dtype](out_channels, in_channels, 5, 6)
+    alias input_shape = TensorShape(4, 2, 28, 28)
+    alias kernel_shape = TensorShape(3, 2, 5, 6)
+    
+    var inputs = Tensor[dtype](input_shape)
+    var kernel = Tensor[dtype](kernel_shape)
     fill[dtype, nelts](inputs, 3.0)
     fill[dtype, nelts](kernel, 4.0)
-    var bias: Tensor[dtype] = rand[dtype](out_channels)
+    var bias: Tensor[dtype] = rand[dtype](kernel_shape[0])
 
-    var res = CONV2D.forward[padding, stride, dilation](inputs, kernel, bias)
+    # uppergrad
+    alias res = get_result_shape(input_shape, kernel_shape, padding, stride, dilation)
+    alias ug_shape = TensorShape(input_shape[0], kernel_shape[0], res[0], res[1])
+    var ug: Tensor[dtype] = rand[dtype](ug_shape)
 
-    var gn = GRAPH.graph[GRAPH.get_node_idx(res.uuid)]
-    assert_equal(gn.parents.size, 3)
-    var upper_grad: Tensor[dtype] = rand[dtype](res.tensor.shape())
-
-    var ug1 = gn.backward_fn(upper_grad, gn.parents, 0)  # inputs.grad
-    var ug2 = gn.backward_fn(upper_grad, gn.parents, 1)  # kernel.grad
-    var ug3 = gn.backward_fn(upper_grad, gn.parents, 2)  # bias.grad
-
-    var torch_out = torch_conv2d(
-        inputs,
-        kernel,
-        bias=bias,
-        padding=padding,
-        stride=stride,
-        dilation=dilation,
-        upper_grad=upper_grad,
-    )
-    assert_tensors_equal(res.tensor, torch_out.expected)
-    assert_tensors_equal(ug1, torch_out.expected_inputs_grad, "almost")
-    assert_tensors_equal(ug2, torch_out.expected_kernel_grad, "almost")
-    assert_tensors_equal(ug3, torch_out.expected_bias_grad, "almost")
-    GRAPH.reset_all()
+    test_conv_backward[ug_shape, input_shape, kernel_shape, padding, stride, dilation](ug, inputs, kernel, bias)
 
 
 fn main():

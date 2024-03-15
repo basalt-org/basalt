@@ -1,91 +1,53 @@
-from tensor import Tensor
+# from tensor import Tensor
 
-from dainemo.autograd.node import Node
-from dainemo.autograd.ops.basics import SUM, SUB, DIV, EXP, MAX, LOG
-import dainemo.autograd.ops.mlops
+# from dainemo.autograd.node import Node
+# from dainemo.autograd.ops.basics import SUM, SUB, DIV, EXP, MAX, LOG
+# import dainemo.autograd.ops.mlops
+from dainemo import Graph, Symbol, OP
+from dainemo.autograd.attributes import Attribute, AttributeVector
 
-'''Activation functions.'''
+# '''Activation functions.'''
 
 # <------------RELU------------>
-struct ReLU:
-    fn __init__(inout self):
-        pass
-    
-    @staticmethod
-    fn forward(input: Node[dtype]) -> Node[dtype]:
-        return mlops.RELU.forward(input)
-
-    fn __call__(self, input: Node[dtype]) -> Node[dtype]:
-        return self.forward(input)
+fn ReLU(inout g: Graph, input: Symbol) -> Symbol:
+    return g.op(OP.RELU, input)
 
 
 # <------------SIGMOID------------>
-struct Sigmoid:
-    fn __init__(inout self):
-        pass
-
-    @staticmethod
-    fn forward(input: Node[dtype]) -> Node[dtype]:
-        return mlops.SIGMOID.forward(input)
-
-    fn __call__(self, input: Node[dtype]) -> Node[dtype]:
-        return self.forward(input)
+fn Sigmoid(inout g: Graph, input: Symbol) -> Symbol:
+    return g.op(OP.SIGMOID, input)
 
 
 # <------------TANH------------>
-struct Tanh:
-    fn __init__(inout self):
-        pass
-
-    @staticmethod
-    fn forward(input: Node[dtype]) -> Node[dtype]:
-        return mlops.TANH.forward(input)
-
-    fn __call__(self, input: Node[dtype]) -> Node[dtype]:
-        return self.forward(input)
+fn Tanh(inout g: Graph, input: Symbol) -> Symbol:
+    return g.op(OP.TANH, input)
 
 
 # <------------SOFTMAX------------>
-struct Softmax[axis: Int]:
-    fn __init__(inout self):
-        pass
+fn Softmax(inout g: Graph, input: Symbol, axis: Int) -> Symbol:
+    # softmax: exp(x_i) / sum(exp(x_j))
+    # stable softmax: exp(x_i - max(x_j)) / sum(exp(x_j - max(x_j)))
 
-    @staticmethod
-    fn forward(input: Node[dtype]) -> Node[dtype]:
-        # softmax: exp(x_i) / sum(exp(x_j))
-        # stable softmax: exp(x_i - max(x_j)) / sum(exp(x_j - max(x_j)))
+    var max_values = g.op(OP.MAX, input, attributes=AttributeVector(Attribute("axis", axis)))
+    var input_minus_max = g.op(OP.SUB, input, max_values)
+    var exp_values = g.op(OP.EXP, input_minus_max)
+    var sum_values = g.op(OP.SUM, exp_values, attributes=AttributeVector(Attribute("axis", axis)))
 
-        var max_values = MAX.forward[axis](input)
-        var input_minus_max = SUB.forward(input, max_values)
-        var exp_values = EXP.forward(input_minus_max)
-        var sum_values = SUM.forward[axis](exp_values)
-
-        return DIV.forward(exp_values, sum_values)
-
-    fn __call__(self, input: Node[dtype]) -> Node[dtype]:
-        return self.forward(input)
+    return g.op(OP.DIV, exp_values, sum_values)
 
 
 # <------------LOGSOFTMAX------------>
-struct LogSoftmax[axis: Int]:
-    fn __init__(inout self):
-        pass
+fn LogSoftmax(inout g: Graph, input: Symbol, axis: Int) -> Symbol:
+    # stable logsoftmax: log(exp(x_i - max(x_j)) / sum(exp(x_j - max(x_j))))
+    # stable logsoftmax: x_i - max(x_j) - log(sum(exp(x_j - max(x_j))))
 
-    @staticmethod
-    fn forward(input: Node[dtype]) -> Node[dtype]:
-        # stable logsoftmax: log(exp(x_i - max(x_j)) / sum(exp(x_j - max(x_j))))
-        # stable logsoftmax: x_i - max(x_j) - log(sum(exp(x_j - max(x_j))))
+    var max_values = g.op(OP.MAX, input, attributes=AttributeVector(Attribute("axis", axis)))
+    var input_minus_max = g.op(OP.SUB, input, max_values)
+    var exp_values = g.op(OP.EXP, input_minus_max)
+    var sum_values = g.op(OP.SUM, exp_values, attributes=AttributeVector(Attribute("axis", axis)))
+    var log_values = g.op(OP.LOG, sum_values)
 
-        var max_values = MAX.forward[axis](input)
-        var input_minus_max = SUB.forward(input, max_values)
-        var exp_values = EXP.forward(input_minus_max)
-        var sum_values = SUM.forward[axis](exp_values)
-        var log_values = LOG.forward(sum_values)
-
-        return SUB.forward(input_minus_max, log_values)
-
-    fn __call__(self, input: Node[dtype]) -> Node[dtype]:
-        return self.forward(input)
+    return g.op(OP.SUB, input_minus_max, log_values)
 
 
-# <------------LEAKYRELU------------>
+# # <------------LEAKYRELU------------>

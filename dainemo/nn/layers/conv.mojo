@@ -1,72 +1,63 @@
-from tensor import Tensor
-from random import rand
-from math import sqrt
+# from math import sqrt
+from tensor import TensorShape
 
-from dainemo import GRAPH
-from dainemo.nn.layers import Layer
-from dainemo.autograd.node import Node
-from dainemo.autograd.ops.conv import CONV2D
-from dainemo.utils.tensorutils import rand_uniform
+from dainemo import Graph, Symbol, OP
+from dainemo.autograd.params import Param
+from dainemo.autograd.attributes import AttributeVector, Attribute
 
 
-# <------------CONV2D------------>
-struct Conv2d[
+# BUG: Mojo 24.1.0 does not support the comp time `sqrt` function
+@always_inline
+fn sqrt[type: DType](value: SIMD[type, 1]) -> SIMD[type, 1]:
+    """Returns the square root of the input simd vector."""
+    if value == 0: return 0
+    elif value < 0: return nan[type]()
+    var start = value if value > 1 else 1/value
+    var a: SIMD[type,1] = start
+    var b: SIMD[type,1] = (a + 1) / 2
+    while b < a:
+        a = b
+        b = (a + start/a) / 2
+    return a if value > 1 else 1/a
+
+
+fn Conv2d( inout g: Graph,
+    inputs: Symbol,
+    out_channels: Int,
+    kernel_size: StaticIntTuple[2],
     padding: StaticIntTuple[2] = 0,
     stride: StaticIntTuple[2] = 1,
     dilation: StaticIntTuple[2] = 1,
-](Layer):
+) -> Symbol:
     """
     A 2D Convolution Layer.
 
     Parameters
-        inputs.shape     [batch, in_channels, X, Y]
-        kernel.shape     [out_channels, in_channels, X, Y] (or weights)
+        inputs.shape     [batch, in_channels, iX, iY]
+        kernel.shape     [out_channels, in_channels, kX, kY] (or weights)
         bias.shape       [out_channels].
-        output.shape     [batch, out_channels, X, Y].
+        output.shape     [batch, out_channels, oX, oY].
     """
 
-    var weights: Node[dtype]
-    var bias: Node[dtype]
+    var in_channels: Int = inputs.static_shape[1]
+    var fan_in: SIMD[dtype, 1] = in_channels * kernel_size[0] * kernel_size[1]
+    var bound = 1/sqrt(fan_in)
+    var weights = g.param(
+        TensorShape(out_channels, in_channels, kernel_size[0], kernel_size[1]),
+        init=Param("random_uniform", -bound, bound)
+        # init=Param("kaiming_uniform", 0)
+    )
+    var bias = g.param(
+        TensorShape(out_channels),
+        init=Param("random_uniform", -bound, bound)
+    )
 
-    fn __init__(inout self, in_channels: Int, out_channels: Int, kernel_size: Int):
-        self.__init__(in_channels, out_channels, (kernel_size, kernel_size))
-
-    fn __init__(
-        inout self, in_channels: Int, out_channels: Int, kernel_size: Tuple[Int, Int]
-    ):
-        var k: SIMD[dtype, 1] = in_channels * kernel_size.get[0, Int]() * kernel_size.get[1, Int]()
-        self.weights = Node[dtype](
-            rand_uniform[dtype, nelts](
-                TensorShape(out_channels, in_channels, kernel_size.get[0, Int](), kernel_size.get[1, Int]()),
-                -1/sqrt(k), 1/sqrt(k)
-            ),
-            requires_grad=True,
-            param=True,
-        )
-        self.bias = Node[dtype](
-            rand_uniform[dtype, nelts](TensorShape(out_channels), -1/sqrt(k), 1/sqrt(k)),
-            requires_grad=True, 
-            param=True
-        )
-        GRAPH.add_node(self.weights)
-        GRAPH.add_node(self.bias)
-
-    fn forward(self, inputs: Node[dtype]) -> Node[dtype]:
-        """
-        Forward pass of the convolution layer.
-        """
-
-        # COPY self.weight & self.bias directly from GRAPH
-        # Workaround because model parameters are created and change in copies.
-        # TODO: Redo when lifetimes are there. [INVESTIGATE HOW TO AVOID THIS]
-        var weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
-        var bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
-
-        return CONV2D.forward[padding, stride, dilation](inputs, weights, bias)
-
-    fn __call__(self, inputs: Node[dtype]) -> Node[dtype]:
-        return self.forward(inputs)
+    return g.op(OP.CONV2D, inputs, weights, bias, attributes=AttributeVector(
+        Attribute("padding", padding),
+        Attribute("stride", stride),
+        Attribute("dilation", dilation)
+    ))
 
 
-# <------------CONV3D------------>
-# TODO
+# # <------------CONV3D------------>
+# # TODO

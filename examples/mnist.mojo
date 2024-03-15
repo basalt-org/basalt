@@ -1,17 +1,16 @@
 from utils.index import Index
-from tensor import Tensor, TensorShape
+from tensor import TensorShape
+from time.time import now
 
 import dainemo.nn as nn
-from dainemo.autograd.node import Node
+from dainemo import Graph, Symbol, OP, dtype
 from dainemo.utils.datasets import MNIST
 from dainemo.utils.dataloader import DataLoader
-from dainemo.autograd.ops.basics import RESHAPE
-
-alias dtype = DType.float32
+from dainemo.autograd.attributes import AttributeVector, Attribute
 
 
 
-def plot_image[dtype: DType](borrowed data: Tensor[dtype], num: Int):
+def plot_image(data: Tensor, num: Int):
     from python.python import Python, PythonObject
     
     np = Python.import_module("numpy")
@@ -27,42 +26,30 @@ def plot_image[dtype: DType](borrowed data: Tensor[dtype], num: Int):
 
 
 
-struct CNN:
-    var l1: nn.Conv2d[2, 1]
-    var l2: nn.ReLU
-    var l3: nn.MaxPool2d[2]
-    var l4: nn.Conv2d[2, 1]
-    var l5: nn.ReLU
-    var l6: nn.MaxPool2d[2]
-    var l7: nn.Linear
+fn create_CNN(batch_size: Int) -> Graph:
+    var g = Graph()
+    var x = g.input(TensorShape(batch_size, 1, 28, 28))
+    
+    var x1 = nn.Conv2d(g, x, out_channels=16, kernel_size=5, padding=2)
+    var x2 = nn.ReLU(g, x1)
+    var x3 = nn.MaxPool2d(g, x2, kernel_size=2)
+    var x4 = nn.Conv2d(g, x3, out_channels=32, kernel_size=5, padding=2)
+    var x5 = nn.ReLU(g, x4)
+    var x6 = nn.MaxPool2d(g, x5, kernel_size=2)
+    var x6_shape = x6.shape()
+    var x7 = g.op(OP.RESHAPE, x6, attributes=AttributeVector(Attribute("shape", 
+        TensorShape(x6_shape[0], x6_shape[1]*x6_shape[2]*x6_shape[3])
+    )))
+    var out = nn.Linear(g, x7, n_outputs=10)
+    g.out(out)
 
-    fn __init__(inout self):
-        self.l1 = nn.Conv2d[2, 1](
-            in_channels=1,
-            out_channels=16,
-            kernel_size=5
-        )
-        self.l2 = nn.ReLU()
-        self.l3 = nn.MaxPool2d[kernel_size=2]()
-        self.l4 = nn.Conv2d[2, 1](
-            in_channels=16, 
-            out_channels=32,
-            kernel_size=5
-        )
-        self.l5 = nn.ReLU()
-        self.l6 = nn.MaxPool2d[kernel_size=2]()
-        self.l7 = nn.Linear(n_input = 32*7*7, n_output=10)
-        
-    fn forward(inout self, x: Tensor[dtype]) -> Node[dtype]:
-        var output = self.l1(Node[dtype](x))
-        output = self.l2(output)
-        output = self.l3(output)
-        output = self.l4(output)
-        output = self.l5(output)
-        output = self.l6(output)
-        output = RESHAPE.forward(output, TensorShape(output.tensor.dim(0), 32*7*7))
-        output = self.l7(output)
-        return output
+    var y_true = g.input(TensorShape(batch_size, 10))
+    var loss = nn.CrossEntropyLoss(g, out, y_true)
+    # var loss = nn.MSELoss(g, out, y_true)
+    g.loss(loss)
+
+    return g^
+
 
 
 fn main():    
@@ -70,53 +57,62 @@ fn main():
     alias batch_size = 4
     alias learning_rate = 1e-3
     
+    alias graph = create_CNN(batch_size)
     
-    var train_data: MNIST[dtype]
+    # try:
+    #     graph.render("operator")
+    # except:
+    #     print("Could not render graph")
+
+    var model = nn.Model[graph]()
+    var optim = nn.optim.Adam[graph](lr=learning_rate)
+    optim.allocate_rms_and_momentum(model.parameters)
+
+
+    print("Loading data ...")
+    var train_data: MNIST
     try:
-        train_data = MNIST[dtype](file_path='./examples/data/mnist_test_small.csv')
-        # _ = plot_image[dtype](train_data.data, 1)
+        train_data = MNIST(file_path='./examples/data/mnist_train_small.csv')
+        # _ = plot_image(train_data.data, 1)
     except:
         print("Could not load data")
 
-    var training_loader = DataLoader[dtype](
+    var training_loader = DataLoader(
                             data=train_data.data,
                             labels=train_data.labels,
                             batch_size=batch_size
                         )
 
 
-    var model = CNN()
-    var loss_func = nn.CrossEntropyLoss()
-    var optim = nn.optim.Adam(lr=learning_rate)
+    print("Training started/")
+    var start = now()
 
-    var batch_data: Tensor[dtype]
-    var batch_labels: Tensor[dtype]
     for epoch in range(num_epochs):
         var num_batches: Int = 0
         var epoch_loss: Float32 = 0.0
+        var epoch_start = now()
         for batch in training_loader:
-                        
-            # try:
-            #     _ = plot_image[dtype](batch.data, 0)
-            # except: 
-            #     print("Could not plot image")
 
-            # Forward pass
-            var output = model.forward(batch.data)
-            
             # [ONE HOT ENCODING!]
             var labels_one_hot = Tensor[dtype](batch.labels.dim(0), 10)
             for bb in range(batch.labels.dim(0)):
                 labels_one_hot[Index(bb, batch.labels[bb])] = 1.0
-            
-            var loss = loss_func(output, labels_one_hot)
+
+            # Forward pass
+            var loss = model.forward(batch.data, labels_one_hot)
+            # print(loss)
+            # pass
 
             # Backward pass
-            optim.zero_grad()
-            loss.backward()
-            optim.step()
+            optim.zero_grad(model.parameters)
+            model.backward()
+            optim.step(model.parameters)
 
-            epoch_loss += loss.tensor[0]
+            epoch_loss += loss[0]
             num_batches += 1
+        
+            print("Epoch [", epoch + 1, "/", num_epochs, "],\t Step [", num_batches, "/", train_data.data.dim(0) // batch_size, "],\t Loss:", epoch_loss / num_batches)
+    
+        print("Epoch time: ", (now() - epoch_start)/1e9, "seconds")
 
-            print("Epoch [", epoch + 1, "/", num_epochs, "] \t Step [", num_batches, "/", training_loader._num_batches, "] \t Loss: ", epoch_loss / num_batches)
+    print("Training finished: ", (now() - start)/1e9, "seconds")

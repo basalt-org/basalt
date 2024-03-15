@@ -1,5 +1,5 @@
 from math import add
-from tensor import Tensor, TensorShape
+from tensor import TensorShape
 from dainemo.utils.tensorutils import fill, elwise_op
 
 alias dtype = DType.float32
@@ -36,7 +36,7 @@ struct TransposeData:
     fn generate_1_2dim_test_case() -> TransposeData:
         var A = generate_tensor(2, 3)
         var expected = StaticIntTuple[6](1, 4, 2, 5, 3, 6)
-        var tranpose_dims = VariadicList[Int](0, 1)
+        var tranpose_dims = VariadicList[Int](1, 0)
         var B = generate_expected_tensor(expected, 3, 2)
 
         return TransposeData(A, B, tranpose_dims)
@@ -45,7 +45,7 @@ struct TransposeData:
     fn generate_2_2dim_test_case() -> TransposeData:
         var A = generate_tensor(2, 3, 2)
         var expected = StaticIntTuple[12](1, 7, 3, 9, 5, 11, 2, 8, 4, 10, 6, 12)
-        var tranpose_dims = VariadicList[Int](0, 2)
+        var tranpose_dims = VariadicList[Int](2, 1, 0)
         var B = generate_expected_tensor(expected, 2, 3, 2)
 
         return TransposeData(A, B, tranpose_dims)
@@ -56,7 +56,7 @@ struct TransposeData:
         var expected = StaticIntTuple[36](1, 2, 3, 7, 8, 9, 13, 14, 15, 4, 5, 6, 
         10, 11, 12, 16, 17, 18, 19, 20, 21, 25, 26, 27, 31, 32, 33, 22, 23, 24, 
         28, 29, 30, 34, 35, 36)
-        var tranpose_dims = VariadicList[Int](1, 2)
+        var tranpose_dims = VariadicList[Int](0, 2, 1, 3)
         var B = generate_expected_tensor(expected, 2, 2, 3, 3)
 
         return TransposeData(A, B, tranpose_dims)
@@ -72,7 +72,7 @@ struct TransposeData:
         98, 99, 85, 86, 87, 103, 104, 105, 76, 77, 78, 94, 95, 96, 82, 83, 84, 
         100, 101, 102, 88, 89, 90, 106, 107, 108
         )
-        var tranpose_dims = VariadicList[Int](1, 3)
+        var tranpose_dims = VariadicList[Int](0, 3, 2, 1, 4)
         var B = generate_expected_tensor(expected, 3, 2, 3, 2, 3)
 
         return TransposeData(A, B, tranpose_dims)
@@ -84,6 +84,16 @@ struct TransposeData:
         11,9,12,25,28,26,29,27,30,13,16,14,17,15,18,31,34,32,35,33,36)
         var tranpose_dims = VariadicList[Int](1, 0, 3, 2)
         var B = generate_expected_tensor(expected, 3, 2, 3, 2)
+
+        return TransposeData(A, B, tranpose_dims)
+
+    @staticmethod
+    fn generate_2_alldim_test_case() -> TransposeData:
+        var A = generate_tensor(2, 3, 4)
+        var expected = StaticIntTuple[24](1, 13, 2, 14, 3, 15, 4, 16, 5, 17, 6, 18, 7, 19, 8, 20, 9, 21, 10, 22, 11, 23, 12, 24)
+
+        var tranpose_dims = VariadicList[Int](1, 2, 0)
+        var B = generate_expected_tensor(expected, 3, 4, 2)
 
         return TransposeData(A, B, tranpose_dims)
 
@@ -299,7 +309,7 @@ struct SumMeanStdData:
 
         var B = generate_expected_tensor[15](expected_sum, 3, 1, 5)
         var C = generate_expected_tensor[15](expected_mean, 3, 1, 5)
-        C = elwise_op[dtype, nelts, add](C, 0.5)
+        elwise_op[add](C, C, 0.5)
 
         return SumMeanStdData(A, axis, B, C, expected_std)
 

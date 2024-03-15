@@ -4,6 +4,7 @@ import torch
 import torch.nn as nn
 from torch import optim
 from torch.utils.data import Dataset, DataLoader, TensorDataset
+import time
 
 
 
@@ -50,39 +51,44 @@ if __name__ == "__main__":
     test_data = BostonHousing(test_df)
 
     # Train Parameters
-    batch_size = 64
+    batch_size = 32
     num_epochs = 200
-    learning_rate = 0.05
+    learning_rate = 0.02
 
     # Batchwise data loader
     loaders = {
         'train' : DataLoader(
                         train_data, 
                         batch_size=batch_size, 
-                        shuffle=True, 
+                        shuffle=False, 
                         num_workers=1
                     ), 
         'test'  : DataLoader(
                         test_data, 
                         batch_size=batch_size, 
-                        shuffle=True, 
+                        shuffle=False, 
                         num_workers=1
                     ),
     }
 
 
     device = torch.device('cpu')
+    # model = torch.compile(LinearRegression(train_data.data.shape[1]), fullgraph=True, options={"epilogue_fusion": True, "max_autotune": True})
     model = LinearRegression(train_data.data.shape[1])
     loss_func = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
     # optimizer = optim.SGD(model.parameters(), lr=learning_rate)
     
 
+    # it seems the python for loop is what is making the program slow (so pytorch has a disadvantage thanks to python)
     model.train()
+
+    start = time.time()
     for epoch in range(num_epochs):
         epoch_loss = 0
         num_batches = 0
         for (batch_data, batch_labels) in loaders['train']:    
+            start_batch = time.time()
             
             # Forward pass
             outputs = model(batch_data)
@@ -96,7 +102,12 @@ if __name__ == "__main__":
             epoch_loss += loss.item()
             num_batches += 1
 
+            # print time in ms
+            # print(f'Batch time: {1000 * (time.time() - start_batch):.2f} ms') # The speed of a batch in dainemo and pytorch are similar or pytorch can be faster
+            
         print (f'Epoch [{epoch + 1}/{num_epochs}],\t Avg loss per epoch: {epoch_loss / num_batches}')
+
+    print(f"Training time: {time.time() - start:.2f} seconds")
 
 
     # Evaluate the model

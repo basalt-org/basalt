@@ -1,50 +1,44 @@
-from tensor import Tensor
-from random import rand
-from math import sqrt
+# from math import sqrt
+from tensor import TensorShape
 
-from dainemo import GRAPH
-from dainemo.nn.layers import Layer
-from dainemo.autograd.node import Node
-from dainemo.autograd.ops.basics import DOT, ADD
-from dainemo.utils.tensorutils import rand_uniform
+from dainemo import Graph, Symbol, OP
+from dainemo.autograd.params import Param
 
 
+# BUG: Mojo 24.1.0 does not support the comp time `sqrt` function
+@always_inline
+fn sqrt[type: DType](value: SIMD[type, 1]) -> SIMD[type, 1]:
+    """Returns the square root of the input simd vector."""
+    if value == 0: return 0
+    elif value < 0: return nan[type]()
+    var start = value if value > 1 else 1/value
+    var a: SIMD[type,1] = start
+    var b: SIMD[type,1] = (a + 1) / 2
+    while b < a:
+        a = b
+        b = (a + start/a) / 2
+    return a if value > 1 else 1/a
 
-struct Linear(Layer):
+
+fn Linear(inout g: Graph,
+    inputs: Symbol,
+    n_outputs: Int,
+) -> Symbol:
     """
     A fully connected layer.
     """
 
-    var weights: Node[dtype]
-    var bias: Node[dtype]
+    var fan_in: SIMD[dtype, 1] = inputs.static_shape[1]
+    var bound = 1/sqrt(fan_in)
+    var weights = g.param(
+        TensorShape(inputs.static_shape[1], n_outputs),
+        init=Param("random_uniform", -bound, bound)
+        # init=Param("random_uniform", 1) # NOTE: mode: fan_out required as weight are defined transposed
+    )
+    var b = g.param(
+        TensorShape(n_outputs),
+        init=Param("random_uniform", -bound, bound)
+    )
 
-    fn __init__(inout self, n_input: Int, n_output: Int):
-        var k: SIMD[dtype, 1] =  1.0 / n_input
-        self.weights = Node[dtype](
-            rand_uniform[dtype, nelts](TensorShape(n_input, n_output), -sqrt(k), sqrt(k)),
-            requires_grad=True,
-            param=True
-        )
-        self.bias = Node[dtype](
-            rand_uniform[dtype, nelts](TensorShape(n_output), -sqrt(k), sqrt(k)),
-            requires_grad=True,
-            param=True
-        )
-        GRAPH.add_node(self.weights)
-        GRAPH.add_node(self.bias)
-
-    fn forward(self, inputs: Node[dtype]) -> Node[dtype]:
-        """
-        Forward pass of the linear layer.
-        """
-        # COPY self.weight & self.bias directly from GRAPH
-        # Workaround because model parameters are created and change in copies. 
-        # TODO: Redo when lifetimes are there. [INVESTIGATE HOW TO AVOID THIS]
-        var weights = GRAPH.graph[GRAPH.get_node_idx(self.weights.uuid)]
-        var bias = GRAPH.graph[GRAPH.get_node_idx(self.bias.uuid)]
-
-        var res = DOT.forward(inputs, weights)
-        return ADD.forward(res, bias)
-
-    fn __call__(self, inputs: Node[dtype]) -> Node[dtype]:
-        return self.forward(inputs)
+    var res = g.op(OP.DOT, inputs, weights)
+    return g.op(OP.ADD, res, b)
