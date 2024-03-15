@@ -18,8 +18,9 @@
 
 
 <sub>Regression example:</sub>
-
-[![Dainemo]()](dainemo.mp4)
+<p>
+  <img src="./dainemo.gif" alt="Dainemo Logo" width="400"/>
+</p>
 
 
 # Getting started
