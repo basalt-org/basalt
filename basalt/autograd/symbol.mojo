@@ -1,7 +1,7 @@
 from tensor import TensorShape
 
-from dainemo import max_rank
-from dainemo.utils.uuid import ID
+from basalt import max_rank
+from basalt.utils.uuid import ID
 
 
 @value

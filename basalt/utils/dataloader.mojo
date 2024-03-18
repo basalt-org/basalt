@@ -4,7 +4,7 @@ from algorithm import parallelize, vectorize
 from utils.index import Index
 from math import min
 
-from dainemo import dtype
+from basalt import dtype
 
 
 @value

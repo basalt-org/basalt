@@ -1,9 +1,9 @@
 # from math import sqrt
 from tensor import TensorShape
 
-from dainemo import Graph, Symbol, OP
-from dainemo.autograd.params import Param
-from dainemo.autograd.attributes import AttributeVector, Attribute
+from basalt import Graph, Symbol, OP
+from basalt.autograd.params import Param
+from basalt.autograd.attributes import AttributeVector, Attribute
 
 
 # BUG: Mojo 24.1.0 does not support the comp time `sqrt` function
@@ -58,6 +58,3 @@ fn Conv2d( inout g: Graph,
         Attribute("dilation", dilation)
     ))
 
-
-# # <------------CONV3D------------>
-# # TODO

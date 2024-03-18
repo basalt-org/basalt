@@ -3,8 +3,8 @@ from utils.index import Index
 from algorithm import vectorize
 from math import div
 
-from dainemo import dtype
-from dainemo.utils.tensorutils import elwise_op, tmean, tstd
+from basalt import dtype
+from basalt.utils.tensorutils import elwise_op, tmean, tstd
 
 
 struct BostonHousing:

@@ -3,15 +3,13 @@ from math import add, sub, mul, div, log, exp
 from algorithm import vectorize
 from memory import memcpy
 
-from dainemo.utils.tensorutils import *
-from dainemo.autograd.attributes import Attribute, AttributeVector
+from basalt.utils.tensorutils import *
+from basalt.autograd.attributes import Attribute, AttributeVector
 
 """
 Implement forward and backward operations for basic tensor manipulations.
 """
 
-# ----- Binary operators -----
-# <------------ADD------------>
 @value
 struct ADD:
     @staticmethod
@@ -40,7 +38,6 @@ struct ADD:
         return ug
 
 
-# <------------SUB------------>
 @value
 struct SUB:
     @staticmethod
@@ -76,7 +73,6 @@ struct SUB:
             return res_grad ^
 
 
-# <------------MUL------------>
 @value
 struct MUL:
     @staticmethod
@@ -114,7 +110,6 @@ struct MUL:
             return res_grad ^
 
 
-# <------------DIV------------>
 @value
 struct DIV:
     @staticmethod
@@ -185,7 +180,6 @@ struct DIV:
             return res_grad ^
 
 
-# <------------DOT------------>
 @value
 struct DOT:
     @staticmethod
@@ -224,8 +218,6 @@ struct DOT:
             return res_grad ^
 
 
-# ----- Unary operators -----
-# <------------EXP------------>
 @value
 struct EXP:
     @staticmethod
@@ -257,7 +249,6 @@ struct EXP:
         return res_grad ^
 
 
-# <------------LOG------------>
 @value
 struct LOG:
     @staticmethod
@@ -283,7 +274,6 @@ struct LOG:
         return res_grad ^
 
 
-# <------------POW------------>
 struct POW:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
@@ -336,8 +326,6 @@ struct POW:
         return res_grad ^
 
 
-# ----- Reduce operators -----
-# <------------SUM------------>
 struct SUM:
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
@@ -380,8 +368,6 @@ struct SUM:
         return res_grad ^
 
 
-# <------------MEAN------------>
-# TODO: include the axis capabilities
 @value
 struct MEAN:
     @staticmethod
@@ -458,7 +444,6 @@ struct MEAN:
         return res_grad ^
 
 
-# <------------MAX------------>
 struct MAX:    
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
@@ -556,8 +541,6 @@ struct MAX:
         return res_grad ^
 
 
-# ----- Transform operators -----
-# <---------TRANSPOSE--------->
 struct TRANSPOSE:
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
@@ -639,7 +622,6 @@ struct TRANSPOSE:
         return res_grad ^
 
 
-# <----------FLATTEN---------->
 struct FLATTEN:
     @staticmethod
     fn result_shape(t_shape: TensorShape) -> TensorShape:
@@ -663,7 +645,6 @@ struct FLATTEN:
         return res_grad ^
 
 
-# <----------RESHAPE---------->
 struct RESHAPE:
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:

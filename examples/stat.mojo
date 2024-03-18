@@ -2,10 +2,10 @@ from random import rand
 from time.time import now
 from tensor import TensorShape
 
-import dainemo.nn as nn
-from dainemo import dtype
-from dainemo import Graph, Symbol, OP
-from dainemo.utils.tensorutils import fill
+import basalt.nn as nn
+from basalt import dtype
+from basalt import Graph, Symbol, OP
+from basalt.utils.tensorutils import fill
 
 
 fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:

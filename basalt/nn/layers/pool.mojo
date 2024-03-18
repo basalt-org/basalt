@@ -1,11 +1,10 @@
 from tensor import TensorShape
 from collections.optional import Optional
 
-from dainemo import Graph, Symbol, OP
-from dainemo.autograd.attributes import AttributeVector, Attribute
+from basalt import Graph, Symbol, OP
+from basalt.autograd.attributes import AttributeVector, Attribute
 
 
-# <------------MAXPOOL2D------------>
 fn set_static_stride(kernel_size: StaticIntTuple[2], stride: Optional[Int] = None) -> StaticIntTuple[2]:
     if stride:
         return StaticIntTuple[2](stride.value(), stride.value())
@@ -57,5 +56,4 @@ fn MaxPool2d(inout g: Graph,
     ))
 
 
-# # <------------MAXPOOL3D------------>
 # # TODO

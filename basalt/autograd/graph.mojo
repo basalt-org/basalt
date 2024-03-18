@@ -8,8 +8,8 @@ from .symbol import Symbol
 from .ops import OP, static_result_shape
 from .params import ParamDict, Param
 
-from dainemo import seed, dtype
-from dainemo.utils.uuid import UUID, ID
+from basalt import seed, dtype
+from basalt.utils.uuid import UUID, ID
 
 
 @value
@@ -142,7 +142,7 @@ struct Graph:
         return operand_1.trainable or operand_2.trainable or operand_3.trainable
 
     fn json(self) -> String:
-        var result: String = '{"graph_name": "Dainemo", "nodes": ['
+        var result: String = '{"graph_name": "basalt", "nodes": ['
         for i in range(len(self.nodes)):
             result += self.nodes[i].json()
             if i < len(self.nodes) - 1:
@@ -169,7 +169,7 @@ struct Graph:
         return result
 
     fn render(self, render_type: String = "node") raises:
-        Python.add_to_path("./dainemo/utils")
+        Python.add_to_path("./basalt/utils")
         var renderer = Python.import_module("graph_render")
         var json = Python.import_module("json")
         _ = renderer.netron_render(json.loads(self.json()), render_type)

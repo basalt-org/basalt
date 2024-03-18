@@ -1,8 +1,7 @@
-from dainemo import Graph, Symbol, OP
-from dainemo.nn.activations import LogSoftmax
+from basalt import Graph, Symbol, OP
+from basalt.nn.activations import LogSoftmax
 
 
-# <------------MSE------------>
 fn MSELoss(inout g: Graph,
     y_pred: Symbol,
     y_true: Symbol,
@@ -17,7 +16,6 @@ fn MSELoss(inout g: Graph,
     return mean_loss ^
 
 
-# <------------CROSSENTROPY------------>
 fn CrossEntropyLoss(inout g: Graph,
     y_pred: Symbol,
     y_true: Symbol,

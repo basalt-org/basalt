@@ -2,11 +2,11 @@ from utils.index import Index
 from tensor import TensorShape
 from time.time import now
 
-import dainemo.nn as nn
-from dainemo import Graph, Symbol, OP, dtype
-from dainemo.utils.datasets import MNIST
-from dainemo.utils.dataloader import DataLoader
-from dainemo.autograd.attributes import AttributeVector, Attribute
+import basalt.nn as nn
+from basalt import Graph, Symbol, OP, dtype
+from basalt.utils.datasets import MNIST
+from basalt.utils.dataloader import DataLoader
+from basalt.autograd.attributes import AttributeVector, Attribute
 
 
 

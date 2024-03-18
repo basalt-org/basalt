@@ -1,8 +1,8 @@
 from math import sqrt
 from tensor import TensorShape
 
-from dainemo import dtype
-from dainemo.utils.rand_utils import rand_normal, rand_uniform
+from basalt import dtype
+from basalt.utils.rand_utils import rand_normal, rand_uniform
 
 
 fn initialize_tensor(shape: TensorShape, type: String, data: DynamicVector[SIMD[dtype, 1]]) -> Tensor[dtype]:

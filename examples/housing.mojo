@@ -1,10 +1,10 @@
 from tensor import TensorShape
 from time.time import now
 
-import dainemo.nn as nn
-from dainemo import Graph, Symbol, OP
-from dainemo.utils.datasets import BostonHousing
-from dainemo.utils.dataloader import DataLoader
+import basalt.nn as nn
+from basalt import Graph, Symbol, OP
+from basalt.utils.datasets import BostonHousing
+from basalt.utils.dataloader import DataLoader
 
 
 

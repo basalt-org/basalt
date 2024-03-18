@@ -84,7 +84,7 @@ def create_onnx_graph_from_json(graph, type='node'):
     # Create the graph
     graph_def = helper.make_graph(
         nodes,
-        graph.get('graph_name', 'Dainemo-ONNX'),
+        graph.get('graph_name', 'basalt-ONNX'),
         inputs,
         outputs,
         initializer=initializers,
@@ -92,7 +92,7 @@ def create_onnx_graph_from_json(graph, type='node'):
     )
 
     # Create the model
-    model_def = helper.make_model(graph_def, producer_name='Dainemo')
+    model_def = helper.make_model(graph_def, producer_name='basalt')
 
     # Save the model to a file
     onnx.save(model_def, "output_model.onnx")

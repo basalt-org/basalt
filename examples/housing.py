@@ -103,7 +103,7 @@ if __name__ == "__main__":
             num_batches += 1
 
             # print time in ms
-            # print(f'Batch time: {1000 * (time.time() - start_batch):.2f} ms') # The speed of a batch in dainemo and pytorch are similar or pytorch can be faster
+            # print(f'Batch time: {1000 * (time.time() - start_batch):.2f} ms') # The speed of a batch in basalt and pytorch are similar or pytorch can be faster
             
         print (f'Epoch [{epoch + 1}/{num_epochs}],\t Avg loss per epoch: {epoch_loss / num_batches}')
 

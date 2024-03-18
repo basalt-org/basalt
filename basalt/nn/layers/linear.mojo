@@ -1,8 +1,8 @@
 # from math import sqrt
 from tensor import TensorShape
 
-from dainemo import Graph, Symbol, OP
-from dainemo.autograd.params import Param
+from basalt import Graph, Symbol, OP
+from basalt.autograd.params import Param
 
 
 # BUG: Mojo 24.1.0 does not support the comp time `sqrt` function
