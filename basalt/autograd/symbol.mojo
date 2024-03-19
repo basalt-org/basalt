@@ -1,19 +1,19 @@
 from tensor import TensorShape
 
 from basalt import max_rank
-from basalt.utils.uuid import ID
+from basalt.utils.uuid import UUID
 
 
 @value
 @register_passable
 struct Symbol(CollectionElement, Stringable):
-    var name: ID
+    var name: UUID
     var rank: Int
     var dtype: DType
     var static_shape: StaticIntTuple[max_rank]
     var trainable: Bool
     
-    fn __init__(inout self, name: ID, dtype: DType, tensor_shape: TensorShape, trainable: Bool):
+    fn __init__(inout self, name: UUID, dtype: DType, tensor_shape: TensorShape, trainable: Bool):
         self.name = name
         self.rank = tensor_shape.rank()
         self.dtype = dtype

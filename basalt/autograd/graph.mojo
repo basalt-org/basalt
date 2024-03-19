@@ -9,12 +9,12 @@ from .ops import OP, static_result_shape
 from .params import ParamDict, Param
 
 from basalt import seed, dtype
-from basalt.utils.uuid import UUID, ID
+from basalt.utils.uuid import UUIDGenerator, UUID
 
 
 @value
 struct Graph:
-    var uuid: UUID
+    var uuid: UUIDGenerator
     var inputs: DynamicVector[Symbol]
     var params: ParamDict
     var nodes: DynamicVector[Node]
@@ -22,7 +22,7 @@ struct Graph:
     var loss_out: Optional[Symbol]
 
     fn __init__(inout self):
-        self.uuid = UUID(seed)
+        self.uuid = UUIDGenerator(seed)
         self.inputs = DynamicVector[Symbol]()
         self.params = ParamDict()
         self.nodes = DynamicVector[Node]()
