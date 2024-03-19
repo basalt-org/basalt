@@ -2,7 +2,7 @@ from collections.optional import Optional
 from math import min
 from tensor import TensorShape
 
-from basalt.utils.uuid import bytes
+from basalt.utils.bytes import bytes
 
 
 alias max_attrs = 10
