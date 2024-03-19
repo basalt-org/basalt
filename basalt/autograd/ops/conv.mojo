@@ -1,11 +1,10 @@
 from tensor import TensorShape
 
-from dainemo.utils.tensorutils import calculate_strides
-from dainemo.autograd.attributes import AttributeVector
+from basalt.utils.tensorutils import calculate_strides
+from basalt.autograd.attributes import AttributeVector
 from time import now
 
 
-# <------------GENERAL CONV METHODS------------>
 @always_inline
 fn get_result_shape(
         input_shape: TensorShape,
@@ -33,7 +32,6 @@ fn get_result_shape(
     return StaticIntTuple[2](result_x_dim, result_y_dim)
 
 
-# <------------CONV2D------------>
 struct CONV2D:
     @staticmethod
     fn result_shape(input_shape: TensorShape, kernel_shape: TensorShape, bias_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
@@ -352,7 +350,3 @@ struct CONV2D:
                 res[out_ch] = sum
 
         return res
-
-
-# # <------------CONV3D------------>
-# # TODO

@@ -1,13 +1,13 @@
 from math import sqrt
 from collections.optional import Optional
 
-from dainemo import Graph, Symbol
-from dainemo.autograd.ops import forward_op, backward_op, OP
-from dainemo.utils.collection import Collection
-from dainemo.utils.tensorutils import fill
-from dainemo.utils.rand_utils import rand_uniform
-from dainemo.utils.string_dict import StringDict
-from dainemo.autograd.params import ParamDict
+from basalt import Graph, Symbol
+from basalt.autograd.ops import forward_op, backward_op, OP
+from basalt.utils.collection import Collection
+from basalt.utils.tensorutils import fill
+from basalt.utils.rand_utils import rand_uniform
+from basalt.utils.string_dict import StringDict
+from basalt.autograd.params import ParamDict
 from .initializers import initialize_tensor
 
 

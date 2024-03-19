@@ -1,29 +1,25 @@
 # from tensor import Tensor
 
-# from dainemo.autograd.node import Node
-# from dainemo.autograd.ops.basics import SUM, SUB, DIV, EXP, MAX, LOG
-# import dainemo.autograd.ops.mlops
-from dainemo import Graph, Symbol, OP
-from dainemo.autograd.attributes import Attribute, AttributeVector
+# from basalt.autograd.node import Node
+# from basalt.autograd.ops.basics import SUM, SUB, DIV, EXP, MAX, LOG
+# import basalt.autograd.ops.mlops
+from basalt import Graph, Symbol, OP
+from basalt.autograd.attributes import Attribute, AttributeVector
 
 # '''Activation functions.'''
 
-# <------------RELU------------>
 fn ReLU(inout g: Graph, input: Symbol) -> Symbol:
     return g.op(OP.RELU, input)
 
 
-# <------------SIGMOID------------>
 fn Sigmoid(inout g: Graph, input: Symbol) -> Symbol:
     return g.op(OP.SIGMOID, input)
 
 
-# <------------TANH------------>
 fn Tanh(inout g: Graph, input: Symbol) -> Symbol:
     return g.op(OP.TANH, input)
 
 
-# <------------SOFTMAX------------>
 fn Softmax(inout g: Graph, input: Symbol, axis: Int) -> Symbol:
     # softmax: exp(x_i) / sum(exp(x_j))
     # stable softmax: exp(x_i - max(x_j)) / sum(exp(x_j - max(x_j)))
@@ -36,7 +32,6 @@ fn Softmax(inout g: Graph, input: Symbol, axis: Int) -> Symbol:
     return g.op(OP.DIV, exp_values, sum_values)
 
 
-# <------------LOGSOFTMAX------------>
 fn LogSoftmax(inout g: Graph, input: Symbol, axis: Int) -> Symbol:
     # stable logsoftmax: log(exp(x_i - max(x_j)) / sum(exp(x_j - max(x_j))))
     # stable logsoftmax: x_i - max(x_j) - log(sum(exp(x_j - max(x_j))))
@@ -48,6 +43,3 @@ fn LogSoftmax(inout g: Graph, input: Symbol, axis: Int) -> Symbol:
     var log_values = g.op(OP.LOG, sum_values)
 
     return g.op(OP.SUB, input_minus_max, log_values)
-
-
-# # <------------LEAKYRELU------------>

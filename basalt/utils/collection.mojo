@@ -1,4 +1,4 @@
-from dainemo import dtype
+from basalt import dtype
 
 
 struct Collection:

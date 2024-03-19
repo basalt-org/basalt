@@ -1,8 +1,8 @@
 from collections.optional import Optional
 from utils.variant import Variant
 
-from dainemo.autograd import Symbol
-from dainemo.autograd.ops import OP
+from basalt.autograd import Symbol
+from basalt.autograd.ops import OP
 
 from .attributes import AttributeVector
 

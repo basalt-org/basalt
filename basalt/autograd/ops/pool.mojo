@@ -1,13 +1,12 @@
 from tensor import TensorShape
 from math.limit import neginf
 
-from dainemo.autograd.attributes import AttributeVector
-from dainemo.autograd.ops.conv import get_result_shape
-from dainemo.utils.tensorutils import calculate_strides
+from basalt.autograd.attributes import AttributeVector
+from basalt.autograd.ops.conv import get_result_shape
+from basalt.utils.tensorutils import calculate_strides
 
 
 
-# <------------MAXPOOL2D------------>
 struct MAXPOOL2D:
     @staticmethod
     fn result_shape(input_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
@@ -145,7 +144,3 @@ struct MAXPOOL2D:
                         res[max_idx] += ug[ug_idx]
 
         return res
-
-
-# # <------------MAXPOOL3D------------>
-# # TODO

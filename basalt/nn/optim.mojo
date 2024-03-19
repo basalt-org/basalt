@@ -3,10 +3,10 @@ from algorithm import vectorize, parallelize
 
 from .model import Parameters, calc_n_tensors
 
-from dainemo import Graph
-from dainemo.utils.collection import Collection
-from dainemo.utils.string_dict import StringDict
-from dainemo.utils.tensorutils import elwise_op, elwise_pow, elwise_transform
+from basalt import Graph
+from basalt.utils.collection import Collection
+from basalt.utils.string_dict import StringDict
+from basalt.utils.tensorutils import elwise_op, elwise_pow, elwise_transform
 
 
 

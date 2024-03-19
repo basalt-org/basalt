@@ -5,8 +5,8 @@ from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, SUM, MEAN, MAX, FLAT
 from .mlops import SIGMOID, RELU, TANH
 from .conv import CONV2D
 from .pool import MAXPOOL2D
-from dainemo.utils.uuid import bytes
-from dainemo.utils.tensorutils import broadcast_shapes, accumulate_grad
+from basalt.utils.uuid import bytes
+from basalt.utils.tensorutils import broadcast_shapes, accumulate_grad
 from ..attributes import AttributeVector
 
 
@@ -51,7 +51,6 @@ struct OP:
         return self.id == other.id
 
 
-# <------------ RESULT SHAPE ------------>
 
 fn static_result_shape(
     op: OP, t1_shape: TensorShape, attributes: AttributeVector
@@ -133,7 +132,6 @@ fn static_result_shape(
         return TensorShape(-1, -1)
 
 
-# <------------ FORWARD ------------>
 
 fn forward_op[
     op: OP, t1_shape: TensorShape, attributes: AttributeVector
@@ -208,7 +206,6 @@ fn forward_op[
         print("[ERROR] Operator not found.")
 
 
-# <------------ BACKWARD ------------>
 
 fn backward_op[
     tensor_id: Int,

@@ -1,7 +1,7 @@
 from tensor import TensorShape
 from collections.optional import Optional
 
-from dainemo import max_rank, dtype
+from basalt import max_rank, dtype
 from .symbol import Symbol
 from .attributes import Attribute, AttributeVector
 

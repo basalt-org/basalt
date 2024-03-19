@@ -2,17 +2,12 @@ from algorithm import vectorize
 from tensor import TensorShape
 from math import exp, pow
 
-from dainemo.utils.tensorutils import (
-    elwise_transform,
-    # tsum,
-    # tmax,
+from basalt.utils.tensorutils import (
+    elwise_transform
 )
 
 
-# --------------UNARY OPERATORS----------------
 
-
-# <------------SIGMOID------------>
 @value
 struct SIGMOID:
     @staticmethod
@@ -60,7 +55,6 @@ struct SIGMOID:
         return res_grad ^
         
 
-# <------------RELU------------>
 struct RELU:
     @staticmethod
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
@@ -107,7 +101,6 @@ struct RELU:
         return res_grad ^
 
 
-# <------------TANH------------>
 struct TANH:
     @staticmethod
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
@@ -154,7 +147,6 @@ struct TANH:
         return res_grad ^
 
 
-# # <------------SOFTMAX------------>
 # struct SOFTMAX:
 #     @staticmethod
 #     fn softmax[axis: Int](n: Tensor[dtype]) -> Tensor[dtype]:
