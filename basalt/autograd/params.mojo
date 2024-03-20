@@ -1,9 +1,9 @@
-from tensor import TensorShape
 from collections.optional import Optional
 
-from basalt import max_rank, dtype
+from basalt import Tensor
+from basalt import dtype
 from .symbol import Symbol
-from .attributes import Attribute, AttributeVector
+from .attributes import Attribute
 
 
 @value
@@ -74,12 +74,13 @@ struct ParamDict(Sized):
             # Uninitialized parameter
             self.values.push_back(Param())
 
-    fn get_tensor(self, idx: Int) -> Tensor[dtype]:
+    fn get_data(self, idx: Int) -> DTypePointer[dtype]:
         # May only be called at runtime
-        var t = Tensor[dtype](self.symbols[idx].shape())
-        for i in range(t.num_elements()):
+        var num = self.symbols[idx].shape.num_elements()
+        var t = DTypePointer[dtype].alloc(num)
+        for i in range(num):
             t[i] = self.values[idx][i].value()
-        return t ^
+        return t
 
     fn __len__(self) -> Int:
         return len(self.symbols)

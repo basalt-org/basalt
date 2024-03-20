@@ -1,11 +1,12 @@
 from random import rand
 from time.time import now
-from tensor import TensorShape
 
 import basalt.nn as nn
 from basalt import dtype
-from basalt import Graph, Symbol, OP
+from basalt import Graph, Symbol, OP, TensorShape
 from basalt.utils.tensorutils import fill
+
+from basalt.autograd.attributes import Attribute, AttributeVector
 
 
 fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
@@ -14,7 +15,7 @@ fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
     var loss = g.op(OP.MUL, diff, diff)
     var mean_loss = g.op(OP.MEAN, loss, None)
 
-    return mean_loss ^
+    return mean_loss
 
 
 fn create_linear_graph(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
@@ -25,6 +26,7 @@ fn create_linear_graph(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
 
     var W = g.param(TensorShape(n_inputs, n_outputs))
     var b = g.param(TensorShape(n_outputs))
+
     var res = g.op(OP.DOT, x, W)
 
     var y_pred = g.op(OP.ADD, res, b)
@@ -52,25 +54,25 @@ fn main():
     #     print("Error rendering graph")
     #     print(e)
 
-    var model = nn.Model[graph]()
-    var optimizer = nn.optim.Adam[graph](lr=learning_rate)
-    optimizer.allocate_rms_and_momentum(model.parameters)
+    # var model = nn.Model[graph]()
+    # var optimizer = nn.optim.Adam[graph](lr=learning_rate)
+    # optimizer.allocate_rms_and_momentum(model.parameters)
 
-    # Dummy data
-    var x = rand[dtype](batch_size, n_inputs)
-    var y = rand[dtype](batch_size, n_outputs)
+    # # Dummy data
+    # var x = rand[dtype](batch_size, n_inputs)
+    # var y = rand[dtype](batch_size, n_outputs)
 
-    print("Training started")
-    var start = now()
+    # print("Training started")
+    # var start = now()
     
-    alias epochs = 1000
-    for i in range(epochs):
-        var out = model.forward(x, y)
-        print("[", i + 1, "/", epochs,"] \tLoss: ", out[0])
+    # alias epochs = 1000
+    # for i in range(epochs):
+    #     var out = model.forward(x, y)
+    #     print("[", i + 1, "/", epochs,"] \tLoss: ", out[0])
 
-        # Backward pass
-        optimizer.zero_grad(model.parameters)
-        model.backward()
-        optimizer.step(model.parameters)
+    #     # Backward pass
+    #     optimizer.zero_grad(model.parameters)
+    #     model.backward()
+    #     optimizer.step(model.parameters)
 
-    print("Training finished: ", (now() - start)/1e9, "seconds")
+    # print("Training finished: ", (now() - start)/1e9, "seconds")

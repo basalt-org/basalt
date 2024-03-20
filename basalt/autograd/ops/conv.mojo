@@ -1,5 +1,4 @@
-from tensor import TensorShape
-
+from basalt import TensorShape
 from basalt.utils.tensorutils import calculate_strides
 from basalt.autograd.attributes import AttributeVector
 from time import now

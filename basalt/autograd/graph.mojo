@@ -1,5 +1,4 @@
 from python.python import Python
-from tensor import TensorShape
 from collections.optional import Optional
 
 from .node import Node
@@ -9,6 +8,7 @@ from .ops import OP, static_result_shape
 from .params import ParamDict, Param
 
 from basalt import seed, dtype
+from basalt import TensorShape
 from basalt.utils.uuid import UUIDGenerator, UUID
 
 
@@ -74,26 +74,26 @@ struct Graph:
             res = Symbol(
                 self.uuid.next(),
                 dtype,
-                static_result_shape(op, operand_1.shape(), operand_2.value().shape(), operand_3.value().shape(), attributes),
+                static_result_shape(op, operand_1.shape, operand_2.value().shape, operand_3.value().shape, attributes),
                 self.result_trainable(operand_1, operand_2.value(), operand_3.value()),
             )
         elif operand_2:
             res = Symbol(
                 self.uuid.next(),
                 dtype,
-                static_result_shape(op, operand_1.shape(), operand_2.value().shape(), attributes),
+                static_result_shape(op, operand_1.shape, operand_2.value().shape, attributes),
                 self.result_trainable(operand_1, operand_2.value()),
             )
         else:
             res = Symbol(
                 self.uuid.next(),
                 dtype,
-                static_result_shape(op, operand_1.shape(), attributes),
+                static_result_shape(op, operand_1.shape, attributes),
                 self.result_trainable(operand_1),
             )
 
         self.nodes.push_back(Node(op, res, operand_1, operand_2.take(), operand_3.take(), attributes))
-        return res ^
+        return res
 
     fn op(inout self, op: OP,
         operand_1: Symbol,
@@ -105,12 +105,12 @@ struct Graph:
         var res = Symbol(
             self.uuid.next(),
             dtype,
-            static_result_shape(op, operand_1.shape(), operand_2_symbol.shape(), attributes),
+            static_result_shape(op, operand_1.shape, operand_2_symbol.shape, attributes),
             self.result_trainable(operand_1),
         )
 
         self.nodes.push_back(Node(op, res, operand_1, operand_2_symbol, attributes=attributes))
-        return res ^
+        return res
 
     fn op(inout self, op: OP,
         operand_1: FloatLiteral,
@@ -122,12 +122,12 @@ struct Graph:
         var res = Symbol(
             self.uuid.next(),
             dtype,
-            static_result_shape(op, operand_1_symbol.shape(), operand_2.shape(), attributes),
+            static_result_shape(op, operand_1_symbol.shape, operand_2.shape, attributes),
             self.result_trainable(operand_2),
         )
 
         self.nodes.push_back(Node(op, res, operand_1_symbol, operand_2, attributes=attributes))
-        return res ^
+        return res
 
     @staticmethod
     fn result_trainable(operand_1: Symbol) -> Bool:

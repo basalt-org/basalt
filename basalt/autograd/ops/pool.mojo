@@ -1,6 +1,6 @@
-from tensor import TensorShape
 from math.limit import neginf
 
+from basalt import TensorShape
 from basalt.autograd.attributes import AttributeVector
 from basalt.autograd.ops.conv import get_result_shape
 from basalt.utils.tensorutils import calculate_strides
@@ -16,7 +16,7 @@ struct MAXPOOL2D:
         var stride = attributes["stride"].value().to_static[2]()
         var dilation = attributes["dilation"].value().to_static[2]()
         
-        var res = get_result_shape(input_shape, TensorShape(kernel_size), padding, stride, dilation)
+        var res = get_result_shape(input_shape, TensorShape(kernel_size[0], kernel_size[1]), padding, stride, dilation)
 
         return TensorShape(input_shape[0], input_shape[1], res[0], res[1])
     

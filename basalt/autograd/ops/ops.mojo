@@ -1,10 +1,11 @@
-from tensor import TensorShape
 from math import add
 
 from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, SUM, MEAN, MAX, FLATTEN, RESHAPE, TRANSPOSE
 from .mlops import SIGMOID, RELU, TANH
 from .conv import CONV2D
 from .pool import MAXPOOL2D
+
+from basalt import TensorShape
 from basalt.utils.bytes import bytes
 from basalt.utils.tensorutils import broadcast_shapes, accumulate_grad
 from ..attributes import AttributeVector
@@ -12,7 +13,7 @@ from ..attributes import AttributeVector
 
 # Define operators as named parameter expression
 @value
-@register_passable
+@register_passable("trivial")
 struct OP:
     """
     Compile time Operators list.

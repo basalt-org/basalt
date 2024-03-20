@@ -1,8 +1,9 @@
 from algorithm import vectorize, parallelize
 from memory import memset_zero, memset
-from tensor import TensorShape
 from math import sqrt, pow, equal, max, min, abs, add, div
 from random import rand
+
+from basalt import TensorShape
 
 
 @always_inline

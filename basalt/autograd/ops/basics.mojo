@@ -1,8 +1,8 @@
-from tensor import TensorShape
 from math import add, sub, mul, div, log, exp
 from algorithm import vectorize
 from memory import memcpy
 
+from basalt import TensorShape
 from basalt.utils.tensorutils import *
 from basalt.autograd.attributes import Attribute, AttributeVector
 

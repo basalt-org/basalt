@@ -1,9 +1,10 @@
+from basalt import Tensor, TensorShape
 from random import rand, randn
 from algorithm import vectorize
 
 
 @always_inline
-fn rand_uniform(inout res: Tensor[dtype], low: SIMD[dtype, 1], high: SIMD[dtype, 1]):
+fn rand_uniform[dtype: DType, shape: TensorShape](inout res: Tensor[dtype, shape], low: SIMD[dtype, 1], high: SIMD[dtype, 1]):
     rand[dtype](res.data(), res.num_elements()) # Uniform initialize the tensor between 0 and 1
 
     @parameter
@@ -14,5 +15,5 @@ fn rand_uniform(inout res: Tensor[dtype], low: SIMD[dtype, 1], high: SIMD[dtype,
 
 
 @always_inline
-fn rand_normal(inout res: Tensor[dtype], mean: Float64, std: Float64):
+fn rand_normal[dtype: DType, shape: TensorShape](inout res: Tensor[dtype, shape], mean: Float64, std: Float64):
     randn[dtype](res.data(), res.num_elements(), mean, std**2) # Normal distribution tensor initialization

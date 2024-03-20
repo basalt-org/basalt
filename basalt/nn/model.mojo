@@ -1,7 +1,7 @@
 from math import sqrt
 from collections.optional import Optional
 
-from basalt import Graph, Symbol
+from basalt import Graph, Symbol, Tensor
 from basalt.autograd.ops import forward_op, backward_op, OP
 from basalt.utils.collection import Collection
 from basalt.utils.tensorutils import fill
@@ -162,7 +162,7 @@ struct Model[
                 in2_idx = self.parameters.params_map.get(str(g.nodes[i].input_2.value().name), -1)
                 in3_idx = self.parameters.params_map.get(str(g.nodes[i].input_3.value().name), -1)
 
-                forward_op[g.nodes[i].operator, g.nodes[i].input_1.shape(), g.nodes[i].input_2.value().shape(), g.nodes[i].input_3.value().shape(), g.nodes[i].attributes](
+                forward_op[g.nodes[i].operator, g.nodes[i].input_1.shape, g.nodes[i].input_2.value().shape, g.nodes[i].input_3.value().shape, g.nodes[i].attributes](
                     __get_address_as_lvalue(self.parameters.params.offset(res_idx).address),
                     __get_address_as_lvalue(self.parameters.params.offset(in1_idx).address),
                     __get_address_as_lvalue(self.parameters.params.offset(in2_idx).address),
@@ -207,8 +207,8 @@ struct Model[
                     backward_op[ 
                         0,
                         g.nodes[reverse_i].operator,
-                        g.nodes[reverse_i].output.shape(),              # uppergrad shape
-                        g.nodes[reverse_i].input_1.shape(),             # input_1 shape
+                        g.nodes[reverse_i].output.shape,              # uppergrad shape
+                        g.nodes[reverse_i].input_1.shape,             # input_1 shape
                         g.nodes[reverse_i].attributes,
                     ](
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_ug_idx).address),
@@ -225,9 +225,9 @@ struct Model[
                     backward_op[ 
                         0,
                         g.nodes[reverse_i].operator,
-                        g.nodes[reverse_i].output.shape(),              # uppergrad shape
-                        g.nodes[reverse_i].input_1.shape(),             # input_1 shape
-                        g.nodes[reverse_i].input_2.value().shape(),     # input_2 shape
+                        g.nodes[reverse_i].output.shape,              # uppergrad shape
+                        g.nodes[reverse_i].input_1.shape,             # input_1 shape
+                        g.nodes[reverse_i].input_2.value().shape,     # input_2 shape
                         g.nodes[reverse_i].attributes,
                     ](
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_ug_idx).address),
@@ -242,9 +242,9 @@ struct Model[
                     backward_op[ 
                         1,
                         g.nodes[reverse_i].operator,
-                        g.nodes[reverse_i].output.shape(),              # uppergrad shape
-                        g.nodes[reverse_i].input_1.shape(),             # input_1 shape
-                        g.nodes[reverse_i].input_2.value().shape(),     # input_2 shape
+                        g.nodes[reverse_i].output.shape,              # uppergrad shape
+                        g.nodes[reverse_i].input_1.shape,             # input_1 shape
+                        g.nodes[reverse_i].input_2.value().shape,     # input_2 shape
                         g.nodes[reverse_i].attributes,
                     ](
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_ug_idx).address),
@@ -264,10 +264,10 @@ struct Model[
                     backward_op[ 
                         0,
                         g.nodes[reverse_i].operator,
-                        g.nodes[reverse_i].output.shape(),              # uppergrad shape
-                        g.nodes[reverse_i].input_1.shape(),             # input_1 shape
-                        g.nodes[reverse_i].input_2.value().shape(),     # input_2 shape
-                        g.nodes[reverse_i].input_3.value().shape(),     # input_3 shape
+                        g.nodes[reverse_i].output.shape,              # uppergrad shape
+                        g.nodes[reverse_i].input_1.shape,             # input_1 shape
+                        g.nodes[reverse_i].input_2.value().shape,     # input_2 shape
+                        g.nodes[reverse_i].input_3.value().shape,     # input_3 shape
                         g.nodes[reverse_i].attributes,
                     ](
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_ug_idx).address),
@@ -283,10 +283,10 @@ struct Model[
                     backward_op[ 
                         1,
                         g.nodes[reverse_i].operator,
-                        g.nodes[reverse_i].output.shape(),              # uppergrad shape
-                        g.nodes[reverse_i].input_1.shape(),             # input_1 shape
-                        g.nodes[reverse_i].input_2.value().shape(),     # input_2 shape
-                        g.nodes[reverse_i].input_3.value().shape(),     # input_3 shape
+                        g.nodes[reverse_i].output.shape,              # uppergrad shape
+                        g.nodes[reverse_i].input_1.shape,             # input_1 shape
+                        g.nodes[reverse_i].input_2.value().shape,     # input_2 shape
+                        g.nodes[reverse_i].input_3.value().shape,     # input_3 shape
                         g.nodes[reverse_i].attributes,
                     ](
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_ug_idx).address),
@@ -302,10 +302,10 @@ struct Model[
                     backward_op[ 
                         2,
                         g.nodes[reverse_i].operator,
-                        g.nodes[reverse_i].output.shape(),              # uppergrad shape
-                        g.nodes[reverse_i].input_1.shape(),             # input_1 shape
-                        g.nodes[reverse_i].input_2.value().shape(),     # input_2 shape
-                        g.nodes[reverse_i].input_3.value().shape(),     # input_3 shape
+                        g.nodes[reverse_i].output.shape,              # uppergrad shape
+                        g.nodes[reverse_i].input_1.shape,             # input_1 shape
+                        g.nodes[reverse_i].input_2.value().shape,     # input_2 shape
+                        g.nodes[reverse_i].input_3.value().shape,     # input_3 shape
                         g.nodes[reverse_i].attributes,
                     ](
                         __get_address_as_lvalue(self.parameters.grads.offset(grad_ug_idx).address),
@@ -318,49 +318,67 @@ struct Model[
         unroll[bw_unroll, g.nodes.size]()
 
 
-    fn allocate_tensor_memory(inout self):
-        for i in range(len(g.inputs)):
-            self.parameters.params_map.put(str(g.inputs[i].name), self.parameters.params.size)
-            self.parameters.params.append(Tensor[dtype](g.inputs[i].shape()))
-
-        for i in range(len(g.params)):
-            self.parameters.params_map.put(str(g.params.symbols[i].name), self.parameters.params.size)
-            
-            var par: Tensor[dtype]
-            if g.params.values[i].initializer:
-                # Specific parameter initialization defined
-                var initializer_attr = g.params.values[i].initializer.value()
-                par = initialize_tensor(
-                    shape=g.params.symbols[i].shape(),
-                    type=initializer_attr.value.to_string(),
-                    data=g.params.values[i].data.value()
-                )
-            elif g.params.values[i].data:
-                # Parameter initialized with data only
-                # Data is assumed to contain the tensor
-                par = g.params.get_tensor(i)
-            else:
-                # Default parameter initialization to zero
-                par = Tensor[dtype](g.params.symbols[i].shape())
-            
-            self.parameters.params.append(par)
+    # fn allocate_tensor_memory(inout self):
         
-        for i in range(len(g.nodes)):
-            if not self.parameters.params_map.__contains__(str(g.nodes[i].output.name)):
-                self.parameters.params_map.put(str(g.nodes[i].output.name), self.parameters.params.size)
-                self.parameters.params.append(Tensor[dtype](g.nodes[i].output.shape()))
+    #     @parameter
+    #     fn inputs_unroll[i: Int]():
+    #         self.parameters.params_map.put(str(g.inputs[i].name), self.parameters.params.size)
+    #         self.parameters.params.append(Tensor[dtype, g.inputs[i].shape]())
+    #     unroll[inputs_unroll, len(g.inputs)]()
+
+    #     @parameter
+    #     fn params_unroll[i: Int]():
+    #         self.parameters.params_map.put(str(g.params.symbols[i].name), self.parameters.params.size)
+            
+    #         var par: Tensor[dtype, g.params.symbols[i].shape]
+    #         if g.params.values[i].initializer:
+    #             # Specific parameter initialization defined
+    #             var initializer_attr = g.params.values[i].initializer.value()
+    #             par = initialize_tensor[g.params.symbols[i].shape](
+    #                 type=initializer_attr.value.to_string(),
+    #                 data=g.params.values[i].data.value()
+    #             )
+    #         # TODO: GET THE PREDIFIEND DATA AS DTYPEPOINTER AND INITIALIZE THE TENSOR
+    #         # elif g.params.values[i].data:
+    #         #     # Parameter initialized with data only
+    #         #     # Data is assumed to contain the tensor
+    #         #     par = g.params.get_tensor(i)
+    #         else:
+    #             # Default parameter initialization to zero
+    #             par = Tensor[dtype, g.params.symbols[i].shape]()
+            
+    #         self.parameters.params.append(par)
+        
+    #     unroll[params_unroll, len(g.params)]()
+
+    #     @parameter
+    #     fn nodes_unroll[i: Int]():
+    #         if not self.parameters.params_map.__contains__(str(g.nodes[i].output.name)):
+    #             self.parameters.params_map.put(str(g.nodes[i].output.name), self.parameters.params.size)
+    #             self.parameters.params.append(Tensor[dtype, g.nodes[i].output.shape]())
+    #     unroll[nodes_unroll, len(g.nodes)]()
+
     
+    fn collect_gradients(inout self):
+        """
+        Collect all trainable parameters and nodes outputs that require gradients.
+        """
 
-    fn allocate_grad_memory(inout self):
-        # Inputs don't have gradients.
-        # Gradient have same shape as the tensor
-        for i in range(len(g.params)):
+        var gradients = DynamicVector[Symbol]()
+
+        @parameter
+        fn params_unroll[i: Int]():
             if g.params.symbols[i].trainable:
+                gradients.push_back(g.params.symbols[i])
                 self.parameters.grads_map.put(str(g.params.symbols[i].name), self.parameters.grads.size)
-                self.parameters.grads.append(Tensor[dtype](g.params.symbols[i].shape()))
-
-        for i in range(len(g.nodes)):
+                self.parameters.grads.append(Tensor[dtype, g.params.symbols[i].shape]())
+        unroll[params_unroll, len(g.params)]()
+        
+        
+        @parameter
+        fn nodes_unroll[i: Int]():
             if not self.parameters.grads_map.__contains__(str(g.nodes[i].output.name)):
                 if g.nodes[i].output.trainable:
                     self.parameters.grads_map.put(str(g.nodes[i].output.name), self.parameters.grads.size)
-                    self.parameters.grads.append(Tensor[dtype](g.nodes[i].output.shape()))
+                    self.parameters.grads.append(Tensor[dtype, g.nodes[i].output.shape]())
+        unroll[nodes_unroll, len(g.nodes)]()

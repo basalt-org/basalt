@@ -1,8 +1,9 @@
 from basalt import dtype
+from basalt import Tensor, TensorShape
 
 
 struct Collection:
-    var data: Pointer[Tensor[dtype]]
+    var data: Pointer[Tensor[dtype, shape]]
     var size: Int
     var capacity: Int
 
@@ -14,16 +15,16 @@ struct Collection:
     fn __del__(owned self):
         self.data.free()
 
-    fn replace(inout self, i: Int, owned value: Tensor[dtype]):
-        __get_address_as_lvalue(self.data.offset(i).address) = value^
+    fn update[dtype: DType, shape: TensorShape](inout self, i: Int, owned value: Tensor[dtype, shape]):
+        __get_address_as_lvalue(self.data.offset(i).address) = value
 
-    fn append(inout self, owned value: Tensor[dtype]):
+    fn append[dtype: DType, shape: TensorShape](inout self, owned value: Tensor[dtype, shape]):
         if self.size == self.capacity:    
             self.resize(self.capacity * 2) # Growth strategy: double the capacity
-        __get_address_as_uninit_lvalue(self.data.offset(self.size).address) = value^
+        __get_address_as_uninit_lvalue(self.data.offset(self.size).address) = value
         self.size += 1
 
-    fn offset(inout self, i: Int) -> Pointer[Tensor[dtype]]:
+    fn offset(inout self, i: Int) -> Pointer[Tensor[dtype, shape]]:
         return self.data.offset(i)
 
     fn resize(inout self, new_capacity: Int):
