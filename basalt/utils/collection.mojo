@@ -1,44 +1,89 @@
-from basalt import dtype
-from basalt import Tensor, TensorShape
+from memory.anypointer import AnyPointer
+
+from basalt import Tensor, Symbol
+from .string_dict import StringDict
 
 
-struct Collection:
-    var data: Pointer[Tensor[dtype, shape]]
+struct Collection(Sized):
+    var data: AnyPointer[Tensor[dtype]]
     var size: Int
     var capacity: Int
+    var symbol_map: StringDict[Int]
 
-    fn __init__(inout self, capacity: Int):
-        self.data = self.data.alloc(capacity)
-        self.size = 0
+    @always_inline
+    fn __init__(inout self, *, capacity: Int):
         self.capacity = capacity
+        self.data = AnyPointer[Tensor[dtype]].alloc(capacity)
+        self.size = 0
+        self.symbol_map = StringDict[Int]()
 
+    @always_inline
     fn __del__(owned self):
+        for i in range(self.size):
+            _ = (self.data + i).take_value()
         self.data.free()
 
-    fn update[dtype: DType, shape: TensorShape](inout self, i: Int, owned value: Tensor[dtype, shape]):
-        __get_address_as_lvalue(self.data.offset(i).address) = value
+    @always_inline
+    fn __moveinit__(inout self, owned other: Self):
+        self.capacity = other.capacity
+        self.size = other.size
+        self.data = other.data
+        self.symbol_map = other.symbol_map^
+        # other.data = AnyPointer[Tensor[dtype]]()
+        # other.size = 0
+        # other.capacity = 0
 
-    fn append[dtype: DType, shape: TensorShape](inout self, owned value: Tensor[dtype, shape]):
-        if self.size == self.capacity:    
-            self.resize(self.capacity * 2) # Growth strategy: double the capacity
-        __get_address_as_uninit_lvalue(self.data.offset(self.size).address) = value
+    fn append(inout self, owned value: Tensor[dtype], symbol: Symbol):
+        if self.size == self.capacity:
+            self.reserve(self.capacity * 2)
+        self.data[self.size] = value ^
+        self.symbol_map.put(str(symbol.name), self.size)
         self.size += 1
 
-    fn offset(inout self, i: Int) -> Pointer[Tensor[dtype, shape]]:
-        return self.data.offset(i)
+    # TODO: Check if this can be simplified after #1921 was fixed.
+    # Mojo #1921: https://github.com/modularml/mojo/issues/1921#event-12066222345
+    fn __refitem__[
+        mutability: __mlir_type.i1,
+        lifetime: AnyLifetime[mutability].type,
+    ](
+        self: Reference[Self, mutability, lifetime].mlir_ref_type,
+        symbol: Symbol,
+    ) -> Reference[Tensor[dtype], mutability, lifetime]:
+        
+        var index = Reference(self)[].symbol_map.get(str(symbol.name), -1)
+        
+        return Reference(
+            __mlir_op.`lit.ref.from_pointer`[
+                _type = Reference[Tensor[dtype], mutability, lifetime].mlir_ref_type
+            ]((Reference(self)[].data + index).value)
+        )
 
-    fn resize(inout self, new_capacity: Int):
-        print("[COLLECTION] Resize called")
-        if new_capacity >= self.size:
-            var new_data: Pointer[Tensor[dtype]]
-            new_data = new_data.alloc(new_capacity)
-            for i in range(self.size):
-                __get_address_as_uninit_lvalue(new_data.offset(i).address) = __get_address_as_lvalue(self.data.offset(i).address)
-            self.data.free()
-            self.data = new_data
-            self.capacity = new_capacity
-        else:
-            print("Can't resize collection to capcity smaller then current size.")
+    @always_inline
+    fn reserve(inout self, new_capacity: Int):
+        if new_capacity <= self.capacity:
+            return
+        var new_data = AnyPointer[Tensor[dtype]].alloc(new_capacity)
+        for i in range(self.size):
+            # print(__get_address_as_lvalue((self.data + i).value))
+            # (new_data + i).emplace_value((self.data + i).take_value())
+            # new_data[i] = (self.data + i).take_value()
+            # new_data[i] = __get_address_as_lvalue((self.data + i).value)
+            # __get_address_as_uninit_lvalue()
+            (self.data + i).move_into(new_data + i)
+        
+        # TODO: Segmenation fault when freeing the old data
+        # And/or assigning the new data to self.data
+        
+        # self.data.free()
+        # self.data = new_data
+        self.capacity = new_capacity
 
-    fn print(self, i: Int):
-        print(__get_address_as_lvalue(self.data.offset(i).address))
+    @always_inline
+    fn clear(inout self):
+        for i in range(self.size):
+            _ = (self.data + i).take_value()
+        self.size = 0
+
+    @always_inline
+    fn __len__(self) -> Int:
+        return self.size

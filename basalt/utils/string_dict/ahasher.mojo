@@ -1,4 +1,4 @@
-# This code is based on https://github.com/mzaks/compact-dict
+# This code is based on https://github.com/mzaks/compact-dict/tree/main
 # This code is based on https://github.com/tkaitchuck/aHash
 
 from math.bit import bswap

@@ -1,10 +1,31 @@
-# This code is based on https://github.com/mzaks/compact-dict
+# This code is based on https://github.com/mzaks/compact-dict/tree/main
 
 from math.bit import bit_length, ctpop
 from memory import memset_zero, memcpy
-from .string_eq import eq
 from .keys_container import KeysContainer
 from .ahasher import ahash
+
+
+@always_inline
+fn eq(a: StringRef, b: String) -> Bool:
+    var l = len(a)
+    if l != len(b):
+        return False
+    var p1 = a.data
+    var p2 = b._as_ptr()
+    var offset = 0
+    alias step = 16
+    while l - offset >= step:
+        var unequal = p1.simd_load[step](offset) != p2.simd_load[step](offset)
+        if unequal.reduce_or():
+            return False
+        offset += step
+    while l - offset > 0:
+        if p1.load(offset) != p2.load(offset):
+            return False
+        offset += 1
+    return True
+
 
 struct StringDict[
     V: CollectionElement, 
@@ -43,10 +64,9 @@ struct StringDict[
             self.key_hashes = DTypePointer[KeyCountType].alloc(self.capacity)
         else:
             self.key_hashes = DTypePointer[KeyCountType].alloc(0)
-        self.values = DynamicVector[V](capacity=self.capacity)
+        self.values = DynamicVector[V](capacity=capacity)
         self.key_map = DTypePointer[KeyCountType].alloc(self.capacity)
         memset_zero(self.key_map, self.capacity)
-
         @parameter
         if destructive:
             self.deleted_mask = DTypePointer[DType.uint8].alloc(self.capacity >> 3)
@@ -90,6 +110,10 @@ struct StringDict[
 
     fn __len__(self) -> Int:
         return self.count
+
+    @always_inline
+    fn __contains__(inout self, key: String) -> Bool:
+        return self._find_key_index(key) != 0
 
     fn put(inout self, key: String, value: V):
         if self.count / self.capacity >= 0.87:
@@ -210,69 +234,30 @@ struct StringDict[
         old_key_map.free()
 
     fn get(self, key: String, default: V) -> V:
-        var key_hash = hash(key).cast[KeyCountType]()
-        var modulo_mask = self.capacity - 1
+        var key_index = self._find_key_index(key)
+        if key_index == 0:
+            return default
 
-        var key_map_index = (key_hash & modulo_mask).to_int()
-        while True:
-            var key_index = self.key_map.load(key_map_index).to_int()
-            if key_index == 0:
+        @parameter
+        if destructive: 
+            if self._is_deleted(key_index - 1):
                 return default
-            
-            @parameter
-            if caching_hashes:
-                var other_key_hash = self.key_hashes[key_map_index]
-                if key_hash == other_key_hash:
-                    var other_key = self.keys[key_index - 1]
-                    if eq(other_key, key):
-                        if destructive: 
-                            if self._is_deleted(key_index - 1):
-                                return default
-                        return self.values[key_index - 1]
-            else:
-                var other_key = self.keys[key_index - 1]
-                if eq(other_key, key):
-                    if destructive: 
-                        if self._is_deleted(key_index - 1):
-                            return default
-                    return self.values[key_index - 1]
-            
-            key_map_index = (key_map_index + 1) & modulo_mask
-
-    fn __contains__(self, key: String) -> Bool:
-        var key_hash = hash(key).cast[KeyCountType]()
-        var modulo_mask = self.capacity - 1
-
-        var key_map_index = (key_hash & modulo_mask).to_int()
-        while True:
-            var key_index = self.key_map.load(key_map_index).to_int()
-            if key_index == 0:
-                return False
-            
-            @parameter
-            if caching_hashes:
-                var other_key_hash = self.key_hashes[key_map_index]
-                if key_hash == other_key_hash:
-                    var other_key = self.keys[key_index - 1]
-                    if eq(other_key, key):
-                        if destructive: 
-                            if self._is_deleted(key_index - 1):
-                                return False
-                        return True
-            else:
-                var other_key = self.keys[key_index - 1]
-                if eq(other_key, key):
-                    if destructive: 
-                        if self._is_deleted(key_index - 1):
-                            return False
-                    return True
-            
-            key_map_index = (key_map_index + 1) & modulo_mask
+        return self.values[key_index - 1]
 
     fn delete(inout self, key: String):
         @parameter
         if not destructive:
             return
+
+        var key_index = self._find_key_index(key)
+        if key_index == 0:
+                return
+        if not self._is_deleted(key_index - 1):
+            self.count -= 1
+        self._deleted(key_index - 1)
+
+    @always_inline
+    fn _find_key_index(self, key: String) -> Int:
         var key_hash = hash(key).cast[KeyCountType]()
         var modulo_mask = self.capacity - 1
 
@@ -280,26 +265,20 @@ struct StringDict[
         while True:
             var key_index = self.key_map.load(key_map_index).to_int()
             if key_index == 0:
-                return
+                return key_index
+            
             @parameter
             if caching_hashes:
                 var other_key_hash = self.key_hashes[key_map_index]
                 if key_hash == other_key_hash:
                     var other_key = self.keys[key_index - 1]
                     if eq(other_key, key):
-                        if not self._is_deleted(key_index - 1):
-                            self.count -= 1
-                        self._deleted(key_index - 1)
-                        return
+                        return key_index
             else:
                 var other_key = self.keys[key_index - 1]
                 if eq(other_key, key):
-                    # if String(other_key) != key:
-                        # print("!!!!", key, other_key)
-                    if not self._is_deleted(key_index - 1):
-                        self.count -= 1
-                    self._deleted(key_index - 1)
-                    return
+                    return key_index
+            
             key_map_index = (key_map_index + 1) & modulo_mask
 
     fn debug(self):

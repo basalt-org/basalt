@@ -62,17 +62,33 @@ struct TensorShape(Stringable):
         return str(self._std_shape())
 
 
-@register_passable("trivial")
-struct Tensor[dtype: DType, shape: TensorShape](Stringable):
+# @register_passable("trivial")
+struct Tensor[dtype: DType](Stringable, Movable):
     var _data: DTypePointer[dtype]
+    var _shape: TensorShape
 
     @always_inline("nodebug")
-    fn __init__(inout self):
+    fn __init__(inout self, owned shape: TensorShape):
         self._data = DTypePointer[dtype].alloc(shape.num_elements())
+        memset_zero(self._data, shape.num_elements())
+        self._shape = shape
+
+    @always_inline("nodebug")
+    fn __init__(inout self, owned data: DTypePointer[dtype], owned shape: TensorShape):
+        self._data = data
+        self._shape = shape
+
+    @always_inline("nodebug")
+    fn __moveinit__(inout self, owned other: Tensor[dtype]):
+        self._data = other._data
+        self._shape = other._shape
+        # other._data = DTypePointer[dtype]()
+        # other._shape = TensorShape()
 
     # @always_inline("nodebug")
-    # fn __init__(inout self, data: DTypePointer[dtype]):
-    #     self._data = data
+    # fn __copyinit__(inout self, other: Tensor[dtype]):
+    #     self._data = other._data
+    #     self._shape = other._shape
 
     @always_inline("nodebug")
     fn __getitem__(self, index: Int) -> SIMD[dtype, 1]:
@@ -87,6 +103,10 @@ struct Tensor[dtype: DType, shape: TensorShape](Stringable):
         return self._data
 
     @always_inline("nodebug")
+    fn shape(self) -> TensorShape:
+        return self._shape
+
+    @always_inline("nodebug")
     fn simd_load[simd_width: Int](self, index: Int) -> SIMD[dtype, simd_width]:
         return self._data.simd_load[simd_width](index)
 
@@ -96,17 +116,21 @@ struct Tensor[dtype: DType, shape: TensorShape](Stringable):
 
     @always_inline("nodebug")
     fn strides(self) -> InlinedFixedVector[Int]:
-        return shape.strides()
+        return self._shape.strides()
 
     @always_inline("nodebug")
     fn rank(self) -> Int:
-        return shape.rank()
+        return self._shape.rank()
 
     @always_inline("nodebug")
     fn num_elements(self) -> Int:
-        return shape.num_elements()
+        return self._shape.num_elements()
 
     @always_inline("nodebug")
     fn __str__(self) -> String:
-        return str(_Tensor[dtype](self._data, shape._std_shape()))
+        return str(_Tensor[dtype](self._data, self._shape._std_shape()))
+
+    @always_inline("nodebug")
+    fn __del__(owned self):
+        self._data.free()
     
