@@ -128,7 +128,9 @@ struct Tensor[dtype: DType](Stringable, Movable):
 
     @always_inline("nodebug")
     fn __str__(self) -> String:
-        return str(_Tensor[dtype](self._data, self._shape._std_shape()))
+        var new_data = DTypePointer[dtype].alloc(self.num_elements())
+        memcpy(new_data, self._data, self.num_elements())
+        return str(_Tensor[dtype](new_data, self._shape._std_shape()))
 
     @always_inline("nodebug")
     fn __del__(owned self):
