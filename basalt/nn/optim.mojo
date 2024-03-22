@@ -1,16 +1,23 @@
 from math import add, mul, div, sqrt, sub
 from algorithm import vectorize, parallelize
 
-from .model import Parameters, calc_n_tensors
+from .model import Parameters, collect_trainable_parameters
 
 from basalt import Graph
 from basalt.utils.collection import Collection
-from basalt.utils.string_dict import StringDict
-from basalt.utils.tensorutils import elwise_op, elwise_pow, elwise_transform
 
 
 
-struct Adam[g: Graph, N: Int = calc_n_tensors(g)]:
+fn get_num_trainable_parameters[g: Graph]() -> Int:
+    var count = 0
+    for i in range(len(g.params)):
+        if g.params.symbols[i].trainable:
+            count += 1
+    return count
+
+
+
+struct Adam[g: Graph]:
     var lr: SIMD[dtype, 1]
     var beta1: SIMD[dtype, 1]
     var beta2: SIMD[dtype, 1]
@@ -33,8 +40,11 @@ struct Adam[g: Graph, N: Int = calc_n_tensors(g)]:
         self.epsilon = epsilon
         self.iter = 0
 
-        self.rms_grads = Collection(N)
-        self.momentum_grads = Collection(N)
+        # Capacity of the collections should be the n of trainable parameters
+        # TODO: len(model.parameters.trainable_parameters) when model parameters are passed as reference.
+        var N = get_num_trainable_parameters[g]()  
+        self.rms_grads = Collection(capacity=N)
+        self.momentum_grads = Collection(capacity=N)
 
     fn zero_grad(inout self, inout parameters: Parameters):
         """Set all gradients to zero."""

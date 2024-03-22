@@ -21,6 +21,13 @@ struct TensorShape(Stringable):
             self._shape[i] = shape[i]
 
     @always_inline("nodebug")
+    fn __init__(inout self, shapes: VariadicList[Int]):
+        self._rank = len(shapes)
+        self._shape = StaticIntTuple[max_rank]()
+        for i in range(min(self._rank, max_rank)):
+            self._shape[i] = shapes[i]
+
+    @always_inline("nodebug")
     fn __init__(inout self, shape: DynamicVector[Int]):
         self._rank = len(shape)
         self._shape = StaticIntTuple[max_rank]()
@@ -61,11 +68,30 @@ struct TensorShape(Stringable):
     fn __str__(self) -> String:
         return str(self._std_shape())
 
+    @always_inline("nodebug")
+    fn __eq__(self, other: TensorShape) -> Bool:
+        if self.rank() != other.rank():
+            return False
+        for i in range(self.rank()):
+            if self[i] != other[i]:
+                return False
+        return True
+
+    @always_inline("nodebug")
+    fn __ne__(self, other: TensorShape) -> Bool:
+        return not self.__eq__(other)
+
 
 # @register_passable("trivial")
 struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
     var _data: DTypePointer[dtype]
     var _shape: TensorShape
+
+    @always_inline("nodebug")
+    fn __init__(inout self, *dims: Int):
+        self._shape = TensorShape(dims)
+        self._data = DTypePointer[dtype].alloc(self._shape.num_elements())
+        memset_zero(self._data, self._shape.num_elements())
 
     @always_inline("nodebug")
     fn __init__(inout self, owned shape: TensorShape):
@@ -127,6 +153,10 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
     @always_inline("nodebug")
     fn num_elements(self) -> Int:
         return self._shape.num_elements()
+
+    @always_inline("nodebug")
+    fn dim(self, index: Int) -> Int:
+        return self._shape[index]
 
     @always_inline("nodebug")
     fn __str__(self) -> String:

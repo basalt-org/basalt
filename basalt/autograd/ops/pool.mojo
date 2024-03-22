@@ -1,6 +1,6 @@
 from math.limit import neginf
 
-from basalt import TensorShape
+from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
 from basalt.autograd.ops.conv import get_result_shape
 from basalt.utils.tensorutils import calculate_strides

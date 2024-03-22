@@ -1,5 +1,5 @@
 # from math import sqrt
-from tensor import TensorShape
+from basalt import Tensor, TensorShape
 
 from basalt import Graph, Symbol, OP
 from basalt.autograd.params import Param
@@ -28,10 +28,10 @@ fn Linear(inout g: Graph,
     A fully connected layer.
     """
 
-    var fan_in: SIMD[dtype, 1] = inputs.static_shape[1]
+    var fan_in: SIMD[dtype, 1] = inputs.shape[1]
     var bound = 1/sqrt(fan_in)
     var weights = g.param(
-        TensorShape(inputs.static_shape[1], n_outputs),
+        TensorShape(inputs.shape[1], n_outputs),
         init=Param("random_uniform", -bound, bound)
         # init=Param("random_uniform", 1) # NOTE: mode: fan_out required as weight are defined transposed
     )

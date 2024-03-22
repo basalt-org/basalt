@@ -1,4 +1,4 @@
-from basalt import TensorShape
+from basalt import Tensor, TensorShape
 from basalt.utils.uuid import UUID
 
 

@@ -5,17 +5,17 @@ from basalt import Tensor, TensorShape
 from basalt.utils.rand_utils import rand_normal, rand_uniform
 
 
-fn initialize_tensor[shape: TensorShape](type: String, data: DynamicVector[SIMD[dtype, 1]]) -> Tensor[dtype, shape]:
+fn initialize_tensor(shape: TensorShape, type: String, data: DynamicVector[SIMD[dtype, 1]]) -> Tensor[dtype]:
     if type == "random_uniform":
         var low = data[0]
         var high = data[1]
-        var t = Tensor[dtype, shape]()
+        var t = Tensor[dtype]()
         rand_uniform(t, low = low, high = high)
         return t
     elif type == "random_normal":
         var mean = data[0].cast[DType.float64]()
         var std = data[1].cast[DType.float64]()
-        var t = Tensor[dtype, shape]()
+        var t = Tensor[dtype]()
         rand_normal(t, mean = mean, std = std)
         return t
     # elif type == "kaiming_uniform":
@@ -30,7 +30,7 @@ fn initialize_tensor[shape: TensorShape](type: String, data: DynamicVector[SIMD[
     #     return kaiming_normal(shape, mode = mode)
     else:
         print("[ERROR] Unsupported initialization type: " + type)
-        return Tensor[dtype, shape]()
+        return Tensor[dtype]()
 
 
 fn calculate_fan(shape: TensorShape, mode: String) -> SIMD[dtype, 1]:

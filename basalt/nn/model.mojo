@@ -1,6 +1,6 @@
 from collections.optional import Optional
 
-from basalt import Graph, Symbol, Tensor
+from basalt import Graph, Symbol, Tensor, TensorShape
 from basalt.autograd.ops import forward_op, backward_op
 from basalt.utils.collection import Collection
 from basalt.utils.tensorutils import fill
@@ -32,14 +32,10 @@ fn collect_trainable_parameters(g: Graph) -> DynamicVector[Symbol]:
     """
 
     var trainable_parameters = DynamicVector[Symbol]()
-
-    # @parameter
-    # fn params_unroll[i: Int]():
     
     for i in range(len(g.params)):
         if g.params.symbols[i].trainable:
             trainable_parameters.push_back(g.params.symbols[i])
-    # unroll[params_unroll, len(g.params)]()
 
     return trainable_parameters ^
 
@@ -260,7 +256,7 @@ struct Model[
                 # 1. Specific parameter initialization defined
                 var initializer_attr = g.params.values[i].initializer.value()
                 par = initialize_tensor(
-                    shape=g.params.symbols[i].shape(),
+                    shape=g.params.symbols[i].shape,
                     type=initializer_attr.value.to_string(),
                     data=g.params.values[i].data.value()
                 )

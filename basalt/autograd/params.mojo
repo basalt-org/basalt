@@ -1,7 +1,7 @@
 from collections.optional import Optional
 
-from basalt import Tensor
 from basalt import dtype
+from basalt import Tensor, TensorShape
 from .symbol import Symbol
 from .attributes import Attribute
 

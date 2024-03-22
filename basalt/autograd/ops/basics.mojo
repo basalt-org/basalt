@@ -2,7 +2,7 @@ from math import add, sub, mul, div, log, exp
 from algorithm import vectorize
 from memory import memcpy
 
-from basalt import TensorShape
+from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import *
 from basalt.autograd.attributes import Attribute, AttributeVector
 
@@ -361,7 +361,7 @@ struct SUM:
     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of sum."""
         var res_grad = Tensor[dtype](t_shape)
-        fill[dtype, nelts](res_grad, 1.0)
+        fill(res_grad, 1.0)
 
         elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
 
@@ -437,7 +437,7 @@ struct MEAN:
 
         var grad: SIMD[dtype, 1] = 1.0 / t_shape[axis]
 
-        fill[dtype, nelts](res_grad, grad)
+        fill(res_grad, grad)
 
         elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
 

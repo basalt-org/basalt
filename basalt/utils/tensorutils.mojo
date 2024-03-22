@@ -125,6 +125,7 @@ fn dot[
     t1_shape: TensorShape, t2_shape: TensorShape
 ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
     alias res1 = t2_shape[1]
+    alias M = t1_shape[0]
     memset_zero[dtype](res.data(), res.num_elements())
 
     @parameter
@@ -136,12 +137,12 @@ fn dot[
                 res.simd_store[nelts](
                     m * res1 + n,
                     res.simd_load[nelts](m * res1 + n)
-                    + t1[m, k] * t2.simd_load[nelts](k * res1 + n),
+                    + t1[m * M + k] * t2.simd_load[nelts](k * res1 + n),
                 )
 
             vectorize[dot, nelts](res1)
 
-    parallelize[calc_row](t1_shape[0], t1_shape[0])
+    parallelize[calc_row](M, M)
 
 
 fn dot_transpose_t2[

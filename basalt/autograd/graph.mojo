@@ -8,7 +8,7 @@ from .ops import OP, static_result_shape
 from .params import ParamDict, Param
 
 from basalt import seed, dtype
-from basalt import TensorShape
+from basalt import Tensor, TensorShape
 from basalt.utils.uuid import UUIDGenerator, UUID
 
 

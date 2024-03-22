@@ -1,7 +1,7 @@
 from algorithm import vectorize
 from math import exp, pow
 
-from basalt import TensorShape
+from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import (
     elwise_transform
 )

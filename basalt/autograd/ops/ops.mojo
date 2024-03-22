@@ -1,11 +1,9 @@
-from math import add
-
 from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, SUM, MEAN, MAX, FLATTEN, RESHAPE, TRANSPOSE
 from .mlops import SIGMOID, RELU, TANH
 from .conv import CONV2D
 from .pool import MAXPOOL2D
 
-from basalt import TensorShape
+from basalt import Tensor, TensorShape
 from basalt.utils.bytes import bytes
 from basalt.utils.tensorutils import broadcast_shapes, accumulate_grad
 from ..attributes import AttributeVector
