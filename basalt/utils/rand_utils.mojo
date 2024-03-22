@@ -3,6 +3,9 @@ from random import rand, randn
 from algorithm import vectorize
 
 
+
+
+
 @always_inline
 fn rand_uniform[dtype: DType](inout res: Tensor[dtype], low: SIMD[dtype, 1], high: SIMD[dtype, 1]):
     rand[dtype](res.data(), res.num_elements()) # Uniform initialize the tensor between 0 and 1

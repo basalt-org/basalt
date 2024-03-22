@@ -2,7 +2,6 @@ from basalt import Tensor, TensorShape
 from basalt.utils.uuid import UUID
 
 
-@value
 @register_passable("trivial")
 struct Symbol(CollectionElement, Stringable):
     var name: UUID

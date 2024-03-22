@@ -7,11 +7,6 @@ from basalt import Tensor, TensorShape
 
 
 @always_inline
-fn zero[dtype: DType](inout t: Tensor[dtype]):
-    memset_zero[dtype](t.data(), t.num_elements())
-
-
-@always_inline
 fn fill[dtype: DType](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
     @parameter
     fn fill_vec[nelts: Int](idx: Int):
@@ -124,25 +119,25 @@ fn calculate_strides(shape: TensorShape) -> DynamicVector[Int]:
 fn dot[
     t1_shape: TensorShape, t2_shape: TensorShape
 ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
-    alias res1 = t2_shape[1]
     alias M = t1_shape[0]
+    alias K = t1_shape[1]
+    alias N = t2_shape[1]
     memset_zero[dtype](res.data(), res.num_elements())
 
     @parameter
     fn calc_row(m: Int):
-        for k in range(t2_shape[0]):
+        for k in range(K):
 
             @parameter
-            fn dot[nelts: Int](n: Int):
+            fn vec_n[nelts: Int](n: Int):
                 res.simd_store[nelts](
-                    m * res1 + n,
-                    res.simd_load[nelts](m * res1 + n)
-                    + t1[m * M + k] * t2.simd_load[nelts](k * res1 + n),
+                    m * N + n,
+                    res.simd_load[nelts](m * N + n)
+                    + t1[m * K + k] * t2.simd_load[nelts](k * N + n),
                 )
-
-            vectorize[dot, nelts](res1)
-
-    parallelize[calc_row](M, M)
+            vectorize[vec_n, nelts](N)
+    
+    parallelize[calc_row](M)
 
 
 fn dot_transpose_t2[

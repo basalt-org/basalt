@@ -5,24 +5,21 @@ from basalt import Tensor, TensorShape
 from basalt.utils.bytes import bytes
 
 
-# alias max_attrs = 10
+alias max_attrs = 10
 alias max_attr_char_size = 16
 alias max_attr_value_size = 32
 
 
-# @value
 @register_passable("trivial")
 struct AttributeVector(Sized, Stringable, CollectionElement):
-    # var _attrs: StaticTuple[max_attrs, Attribute]
-    var _attrs: VariadicList[Attribute]
+    var _attrs: StaticTuple[max_attrs, Attribute]
     var _size: Int
 
     fn __init__(inout self, *attributes: Attribute):
-        self._attrs = attributes
-        # self._attrs = StaticTuple[max_attrs, Attribute]()
+        self._attrs = StaticTuple[max_attrs, Attribute]()
         self._size = len(attributes)
-        # for i in range(self._size):
-        #     self._attrs[i] = attributes[i]
+        for i in range(self._size):
+            self._attrs[i] = attributes[i]
 
     fn __len__(self) -> Int:
         return self._size
@@ -44,7 +41,6 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
         return s + "]"
 
 
-# @value
 @register_passable("trivial")
 struct Attribute(Stringable, CollectionElement):
     var name: bytes[max_attr_char_size] # defines the maximum number of characters in the string
@@ -70,7 +66,6 @@ struct Attribute(Stringable, CollectionElement):
         return "Attribute(" + str(self.name) + ", " + "..." + ")"
 
 
-# @value
 @register_passable("trivial")
 struct AttributeValue(CollectionElement):
     """
@@ -104,9 +99,7 @@ struct AttributeValue(CollectionElement):
     # AttributeValue: TensorShape
     fn __init__(inout self, shape: TensorShape):
         self._buffer = StaticIntTuple[max_attr_value_size]()
-        self._shape = shape.rank()
-        for i in range(shape.rank()):
-            self._buffer[i] = shape[i]
+        self._shape = shape
 
     fn to_shape(self) -> TensorShape:
         return self._shape
