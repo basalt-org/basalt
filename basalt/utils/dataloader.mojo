@@ -1,21 +1,19 @@
 from testing import assert_equal
-from algorithm import parallelize, vectorize
 from math import min
+from memory import memcpy
 
-from basalt import dtype
+from basalt import dtype, nelts
 from basalt import Tensor, TensorShape
 
 
 @value
-struct MyBatch[dtype: DType](CollectionElement):
-    #TODO: Mojo v0.6.0: Tensor is missing the CollectionElement trait
-    # Remove MyBatch and replace with DynamicVector[Tensor[dtype]]()
+struct Batch[dtype: DType](CollectionElement):
     var data: Tensor[dtype]
     var labels: Tensor[dtype]
 
-    fn __init__(inout self, data: Tensor[dtype], labels: Tensor[dtype]):
-        self.data = data
-        self.labels = labels
+    fn __init__(inout self, owned data: Tensor[dtype], owned labels: Tensor[dtype]):
+        self.data = data^
+        self.labels = labels^
 
     fn __getitem__(self, index: Int) -> Tensor[dtype]:
         if index == 0:
@@ -23,7 +21,7 @@ struct MyBatch[dtype: DType](CollectionElement):
         elif index == 1:
             return self.labels
         else:
-            print("[ERROR] MyBatch.__getitem__(): Index out of bounds")
+            print("[ERROR] Batch.__getitem__(): Index out of bounds")
             return Tensor[dtype]()
 
 
@@ -34,8 +32,8 @@ struct DataLoader:
     var batch_size: Int
     var _current_index: Int
     var _num_batches: Int
-    var _data_shape: TensorShape
-    var _label_shape: TensorShape
+    var _data_batch_shape: TensorShape
+    var _label_batch_shape: TensorShape
 
     fn __init__(
             inout self, 
@@ -48,17 +46,12 @@ struct DataLoader:
         self.batch_size = batch_size
         self._current_index = 0
         self._num_batches = 0
-        self._data_shape = self.data.shape()
-        self._label_shape = self.labels.shape()
-
-        # Handle data as a (total x flattened data element) tensor
-        var total = data.shape()[0]
-        try:
-            assert_equal(labels.shape()[0], total)
-            self.data.ireshape(TensorShape(total, data.num_elements() // total))
-            self.labels.ireshape(TensorShape(total, labels.num_elements() // total))
-        except:
-            print("[ERROR] Dataloader initialization reshape failed")
+        
+        # Batch shapes
+        self._data_batch_shape = self.data.shape()
+        self._label_batch_shape = self.labels.shape()
+        self._data_batch_shape[0] = self.batch_size
+        self._label_batch_shape[0] = self.batch_size
 
     @always_inline
     fn __len__(self) -> Int:
@@ -68,15 +61,14 @@ struct DataLoader:
         return self._num_batches
 
     fn __iter__(inout self) -> Self:
-        self._current_index = 0
-        var full_batches = self.data.dim(0) // self.batch_size
-        # NOTE: ignore the remainder for now
+        # Number of batches left, NOTE: ignore the remainder for now
         # var remainder = 1 if self.data.dim(0) % self.batch_size != 0 else 0
-        var remainder = 0
-        self._num_batches = full_batches + remainder
+        var full_batches = self.data.dim(0) // self.batch_size
+        self._num_batches = full_batches + 0
+        self._current_index = 0
         return self
 
-    fn __next__(inout self) -> MyBatch[dtype]:
+    fn __next__(inout self) -> Batch[dtype]:
         var start = self._current_index
         var end = min(self._current_index + self.batch_size, self.data.dim(0))
         
@@ -84,38 +76,16 @@ struct DataLoader:
         # self._data_shape[0] = end - start
         # self._label_shape[0] = end - start
 
-        var data_batch = self.create_batch(self.data, self._data_shape, start)
-        var label_batch = self.create_batch(self.labels, self._label_shape, start) 
-        
+        var data_batch = self.create_batch(self.data, self._data_batch_shape, start)
+        var label_batch = self.create_batch(self.labels, self._label_batch_shape, start) 
+
         self._current_index += self.batch_size
         self._num_batches -= 1
-        return MyBatch[dtype](data_batch, label_batch)
-
+        return Batch[dtype](data_batch, label_batch)
 
     @staticmethod
     @always_inline
-    fn create_batch(tensor: Tensor[dtype], shape: TensorShape, start: Int) -> Tensor[dtype]:
-        var flat = shape.num_elements() // shape[0]
-        var batch_tensor = Tensor[dtype](shape[0], flat)
-        alias nelts: Int = simdwidthof[dtype]()
-
-        @parameter
-        fn calc_row(n: Int):
-            
-            @parameter
-            fn calc_batch[nelts: Int](i: Int):
-                batch_tensor.simd_store[nelts](
-                    (start + n)*flat + i,
-                    tensor.simd_load[nelts]((start + n)*flat + i)
-                )
-
-            vectorize[calc_batch, nelts](shape.num_elements() // shape[0])
-
-        parallelize[calc_row](shape[0], shape[0])
-
-        try:
-            batch_tensor.ireshape(shape)
-        except:
-            print("[ERROR] Batch reshape failed")
-
-        return batch_tensor
+    fn create_batch(tensor: Tensor[dtype], batch_shape: TensorShape, start: Int) -> Tensor[dtype]:
+        var batch_tensor = Tensor[dtype](batch_shape)
+        memcpy(batch_tensor.data(), tensor.data().offset(start*batch_shape.strides()[0]), batch_shape.num_elements())        
+        return batch_tensor ^
