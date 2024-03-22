@@ -62,20 +62,13 @@ struct Collection(Sized):
     fn reserve(inout self, new_capacity: Int):
         if new_capacity <= self.capacity:
             return
+        
         var new_data = AnyPointer[Tensor[dtype]].alloc(new_capacity)
         for i in range(self.size):
-            # print(__get_address_as_lvalue((self.data + i).value))
-            # (new_data + i).emplace_value((self.data + i).take_value())
-            # new_data[i] = (self.data + i).take_value()
-            # new_data[i] = __get_address_as_lvalue((self.data + i).value)
-            # __get_address_as_uninit_lvalue()
             (self.data + i).move_into(new_data + i)
         
-        # TODO: Segmenation fault when freeing the old data
-        # And/or assigning the new data to self.data
-        
-        # self.data.free()
-        # self.data = new_data
+        self.data.free()
+        self.data = new_data
         self.capacity = new_capacity
 
     @always_inline

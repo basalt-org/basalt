@@ -3,7 +3,7 @@ from memory import memset_zero, memset
 from math import sqrt, pow, equal, max, min, abs, add, div
 from random import rand
 
-from basalt import TensorShape
+from basalt import Tensor, TensorShape
 
 
 @always_inline
@@ -12,12 +12,13 @@ fn zero[dtype: DType](inout t: Tensor[dtype]):
 
 
 @always_inline
-fn fill[dtype: DType, nelts: Int](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
+fn fill[dtype: DType](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
     @parameter
     fn fill_vec[nelts: Int](idx: Int):
         t.simd_store[nelts](idx, t.simd_load[nelts](idx).splat(val))
 
     vectorize[fill_vec, nelts](t.num_elements())
+
 
 # ----- Functions to access positions in tensor data -----
 fn get_real_index[

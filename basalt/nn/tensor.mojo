@@ -85,10 +85,12 @@ struct Tensor[dtype: DType](Stringable, Movable):
         # other._data = DTypePointer[dtype]()
         # other._shape = TensorShape()
 
-    # @always_inline("nodebug")
-    # fn __copyinit__(inout self, other: Tensor[dtype]):
-    #     self._data = other._data
-    #     self._shape = other._shape
+    @always_inline("nodebug")
+    fn __copyinit__(inout self, other: Tensor[dtype]):
+        print("[WARNING] Copying tensor")
+        self._data = DTypePointer[dtype].alloc(other._shape.num_elements())
+        memcpy(self._data, other._data, other.num_elements())
+        self._shape = other._shape
 
     @always_inline("nodebug")
     fn __getitem__(self, index: Int) -> SIMD[dtype, 1]:

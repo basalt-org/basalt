@@ -1,8 +1,8 @@
-# from tensor import TensorShape
 # from random import rand
-# from testing import assert_equal, assert_true, assert_almost_equal
+from testing import assert_equal, assert_true, assert_almost_equal
 
-# from basalt import dtype, nelts
+from basalt import dtype, nelts
+from basalt import Tensor, TensorShape
 # from basalt.utils.tensorutils import zero, fill, dot
 # from basalt.utils.tensorutils import (
 #     elwise_transform,
@@ -20,20 +20,20 @@
 
 
 
-# fn assert_tensors_equal(t1: Tensor[dtype], t2: Tensor[dtype], mode: String = "exact") raises:
-#     # Assert equal shapes
-#     assert_equal(t1.num_elements(), t2.num_elements())
-#     assert_equal(t1.rank(), t2.rank())
-#     for i in range(t1.rank()):
-#         assert_equal(t1.dim(i), t2.dim(i))
-#     # Assert equal values
-#     for i in range(t1.num_elements()):
-#         if mode == "exact":
-#             assert_equal(t1[i], t2[i])
-#         elif mode == "almost":
-#             assert_almost_equal[dtype, 1](t1[i], t2[i], rtol=1e-5)
-#         else:
-#             print("Mode must be 'exact' or 'almost'")
+fn assert_tensors_equal(t1: Tensor[dtype], t2: Tensor[dtype], mode: String = "exact") raises:
+    # Assert equal shapes
+    assert_equal(t1.num_elements(), t2.num_elements(), "Number of elements mismatch")
+    assert_equal(t1.rank(), t2.rank(), "Rank mismatch")
+    for i in range(t1.rank()):
+        assert_equal(t1.shape()[i], t2.shape()[i], "Dimention mismatch")
+    # Assert equal values
+    for i in range(t1.num_elements()):
+        if mode == "exact":
+            assert_equal(t1[i], t2[i])
+        elif mode == "almost":
+            assert_almost_equal[dtype, 1](t1[i], t2[i], rtol=1e-5)
+        else:
+            print("Mode must be 'exact' or 'almost'")
 
 
 # fn test_zero() raises:
