@@ -47,6 +47,10 @@ struct TensorShape(Stringable):
         return self._shape[index if index >= 0 else self._rank + index]
 
     @always_inline("nodebug")
+    fn __setitem__(inout self, index: Int, value: Int):
+        self._shape[index if index >= 0 else self._rank + index] = value
+
+    @always_inline("nodebug")
     fn rank(self) -> Int:
         return self._rank
 
@@ -119,7 +123,7 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
 
     @always_inline("nodebug")
     fn __copyinit__(inout self, other: Tensor[dtype]):
-        print("[WARNING] Copying tensor")
+        # print("[WARNING] Copying tensor")
         self._data = DTypePointer[dtype].alloc(other._shape.num_elements())
         memcpy(self._data, other._data, other.num_elements())
         self._shape = other._shape

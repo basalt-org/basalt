@@ -105,19 +105,19 @@ fn test_CrossEntropy_perfect() raises:
     var y_pred = Tensor[dtype](y_pred_shape)       # batch of 2, 10 classes
     var y_true = Tensor[dtype](y_true_shape)
     
-    y_pred[0 * y_pred.dim(0) + 0] = 0.1
-    y_pred[0 * y_pred.dim(0) + 1] = 0.2
-    y_pred[0 * y_pred.dim(0) + 2] = 0.7
-    y_true[0 * y_true.dim(0) + 0] = 0
-    y_true[0 * y_true.dim(0) + 1] = 0
-    y_true[0 * y_true.dim(0) + 2] = 1
+    y_pred[0 * y_pred.dim(1) + 0] = 0.1
+    y_pred[0 * y_pred.dim(1) + 1] = 0.2
+    y_pred[0 * y_pred.dim(1) + 2] = 0.7
+    y_true[0 * y_true.dim(1) + 0] = 0
+    y_true[0 * y_true.dim(1) + 1] = 0
+    y_true[0 * y_true.dim(1) + 2] = 1
 
-    y_pred[1 * y_pred.dim(0) + 0] = 0.7
-    y_pred[1 * y_pred.dim(0) + 1] = 0.2
-    y_pred[1 * y_pred.dim(0) + 2] = 0.1
-    y_true[1 * y_true.dim(0) + 0] = 1
-    y_true[1 * y_true.dim(0) + 1] = 0
-    y_true[1 * y_true.dim(0) + 2] = 0
+    y_pred[1 * y_pred.dim(1) + 0] = 0.7
+    y_pred[1 * y_pred.dim(1) + 1] = 0.2
+    y_pred[1 * y_pred.dim(1) + 2] = 0.1
+    y_true[1 * y_true.dim(1) + 0] = 1
+    y_true[1 * y_true.dim(1) + 1] = 0
+    y_true[1 * y_true.dim(1) + 2] = 0
 
     var model = nn.Model[graph](inference_only=True)
 
@@ -148,19 +148,19 @@ fn test_CrossEntropy_imperfect() raises:
     var y_pred = Tensor[dtype](y_pred_shape)       # batch of 2, 10 classes
     var y_true = Tensor[dtype](y_true_shape)
 
-    y_pred[0 * y_pred.dim(0) + 0] = 0.1
-    y_pred[0 * y_pred.dim(0) + 1] = 0.2
-    y_pred[0 * y_pred.dim(0) + 2] = 0.7
-    y_true[0 * y_true.dim(0) + 0] = 0
-    y_true[0 * y_true.dim(0) + 1] = 1
-    y_true[0 * y_true.dim(0) + 2] = 0
+    y_pred[0 * y_pred.dim(1) + 0] = 0.1
+    y_pred[0 * y_pred.dim(1) + 1] = 0.2
+    y_pred[0 * y_pred.dim(1) + 2] = 0.7
+    y_true[0 * y_true.dim(1) + 0] = 0
+    y_true[0 * y_true.dim(1) + 1] = 1
+    y_true[0 * y_true.dim(1) + 2] = 0
 
-    y_pred[1 * y_pred.dim(0) + 0] = 0.7
-    y_pred[1 * y_pred.dim(0) + 1] = 0.2
-    y_pred[1 * y_pred.dim(0) + 2] = 0.1
-    y_true[1 * y_true.dim(0) + 0] = 0
-    y_true[1 * y_true.dim(0) + 1] = 0
-    y_true[1 * y_true.dim(0) + 2] = 1
+    y_pred[1 * y_pred.dim(1) + 0] = 0.7
+    y_pred[1 * y_pred.dim(1) + 1] = 0.2
+    y_pred[1 * y_pred.dim(1) + 2] = 0.1
+    y_true[1 * y_true.dim(1) + 0] = 0
+    y_true[1 * y_true.dim(1) + 1] = 0
+    y_true[1 * y_true.dim(1) + 2] = 1
 
     var model = nn.Model[graph](inference_only=True)
 
@@ -175,7 +175,7 @@ fn main():
         test_MSE_perfect()
         test_MSE_imperfect()
         test_CrossEntropy_perfect()
-        # test_CrossEntropy_imperfect()
+        test_CrossEntropy_imperfect()
     except e:
         print("[ERROR] Error in loss")
         print(e)

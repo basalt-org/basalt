@@ -60,20 +60,22 @@ fn main():
     optimizer.allocate_rms_and_momentum(model.parameters)
 
     # Dummy data
-    var x = Tensor[dtype](rand[dtype](batch_size, n_inputs).data(), TensorShape(batch_size, n_inputs))
-    var y = Tensor[dtype](rand[dtype](batch_size, n_outputs).data(), TensorShape(batch_size, n_outputs))
+    var x = Tensor[dtype](batch_size, n_inputs)
+    var y = Tensor[dtype](batch_size, n_outputs)
+    rand[dtype](x.data(), x.num_elements())
+    rand[dtype](y.data(), y.num_elements())
 
     print("Training started")
     var start = now()
     
-    alias epochs = 10
+    alias epochs = 1000
     for i in range(epochs):
         var out = model.forward(x, y)
         print("[", i + 1, "/", epochs,"] \tLoss: ", out[0])
 
         # Backward pass
         optimizer.zero_grad(model.parameters)
-        # model.backward()
-        # optimizer.step(model.parameters)
+        model.backward()
+        optimizer.step(model.parameters)
 
-    # print("Training finished: ", (now() - start)/1e9, "seconds")
+    print("Training finished: ", (now() - start)/1e9, "seconds")

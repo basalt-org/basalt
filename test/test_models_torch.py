@@ -87,31 +87,3 @@ class CNN(nn.Module):
         print("\nLINEAR1 BIAS", self.linear1_bias.grad.shape)
         print(self.linear1_bias.grad)
 
-
-import numpy as np
-if __name__ == "__main__":
-
-    t_pred = np.array([[0.1, 0.2, 0.7], [0.7, 0.2, 0.1]])
-    t_true = np.array([[0, 0, 1], [1, 0, 0]])
-
-    loss = CrossEntropyLoss2()
-    t_pred = torch.tensor(t_pred, dtype=torch.float32)
-    t_true = torch.tensor(t_true, dtype=torch.float32)
-
-    print(loss(t_pred, t_true))
-
-    print("-------")
-
-
-    t_pred = np.array([[0.1, 0.2, 0.7], [0.7, 0.2, 0.1]])
-    t_true = np.array([[0, 1, 0], [0, 0, 1]])
-
-    loss = CrossEntropyLoss2()
-    t_pred = torch.tensor(t_pred, dtype=torch.float32)
-    t_true = torch.tensor(t_true, dtype=torch.float32)
-
-    print(loss(t_pred, t_true))
-
-
-
-
