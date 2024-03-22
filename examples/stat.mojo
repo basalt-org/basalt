@@ -3,7 +3,8 @@ from time.time import now
 
 import basalt.nn as nn
 from basalt import dtype
-from basalt import Graph, Symbol, OP, TensorShape
+from basalt import Tensor, TensorShape
+from basalt import Graph, Symbol, OP
 from basalt.utils.tensorutils import fill
 
 from basalt.autograd.attributes import Attribute, AttributeVector

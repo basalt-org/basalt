@@ -13,7 +13,7 @@ fn dv_contains(dv: DynamicVector[Symbol], symbol: Symbol) -> Bool:
             return True
     return False
 
-
+# TODO: remove when ability to concatenate graphs
 fn calc_n_inference_nodes(g: Graph) -> Optional[Int]:
     """
     Calculate the index of the node up to wich the forward pass should be executed for a model inference.

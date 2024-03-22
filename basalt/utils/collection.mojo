@@ -1,6 +1,6 @@
 from memory.anypointer import AnyPointer
 
-from basalt import Tensor, Symbol
+from basalt import Tensor, TensorShape, Symbol
 from .string_dict import StringDict
 
 

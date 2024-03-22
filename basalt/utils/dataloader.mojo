@@ -1,10 +1,9 @@
-from tensor import TensorShape
 from testing import assert_equal
 from algorithm import parallelize, vectorize
-from utils.index import Index
 from math import min
 
 from basalt import dtype
+from basalt import Tensor, TensorShape
 
 
 @value
@@ -35,8 +34,8 @@ struct DataLoader:
     var batch_size: Int
     var _current_index: Int
     var _num_batches: Int
-    var _data_shape: DynamicVector[Int]
-    var _label_shape: DynamicVector[Int]
+    var _data_shape: TensorShape
+    var _label_shape: TensorShape
 
     fn __init__(
             inout self, 
@@ -49,14 +48,8 @@ struct DataLoader:
         self.batch_size = batch_size
         self._current_index = 0
         self._num_batches = 0
-
-        # Store original input shapes
-        self._data_shape = DynamicVector[Int]()
-        self._label_shape = DynamicVector[Int]()
-        for i in range(self.data.rank()):
-            self._data_shape.push_back(self.data.dim(i))       
-        for i in range(self.labels.rank()):
-            self._label_shape.push_back(self.labels.dim(i))
+        self._data_shape = self.data.shape()
+        self._label_shape = self.labels.shape()
 
         # Handle data as a (total x flattened data element) tensor
         var total = data.shape()[0]
@@ -77,6 +70,7 @@ struct DataLoader:
     fn __iter__(inout self) -> Self:
         self._current_index = 0
         var full_batches = self.data.dim(0) // self.batch_size
+        # NOTE: ignore the remainder for now
         # var remainder = 1 if self.data.dim(0) % self.batch_size != 0 else 0
         var remainder = 0
         self._num_batches = full_batches + remainder
@@ -86,11 +80,12 @@ struct DataLoader:
         var start = self._current_index
         var end = min(self._current_index + self.batch_size, self.data.dim(0))
         
-        self._data_shape[0] = end - start
-        self._label_shape[0] = end - start
+        # NOTE: ignore the remainder for now
+        # self._data_shape[0] = end - start
+        # self._label_shape[0] = end - start
 
-        var data_batch = self.create_batch(self.data, TensorShape(self._data_shape), start)
-        var label_batch = self.create_batch(self.labels, TensorShape(self._label_shape), start) 
+        var data_batch = self.create_batch(self.data, self._data_shape, start)
+        var label_batch = self.create_batch(self.labels, self._label_shape, start) 
         
         self._current_index += self.batch_size
         self._num_batches -= 1
@@ -100,7 +95,8 @@ struct DataLoader:
     @staticmethod
     @always_inline
     fn create_batch(tensor: Tensor[dtype], shape: TensorShape, start: Int) -> Tensor[dtype]:
-        var batch_tensor = Tensor[dtype](shape[0], shape.num_elements() // shape[0])
+        var flat = shape.num_elements() // shape[0]
+        var batch_tensor = Tensor[dtype](shape[0], flat)
         alias nelts: Int = simdwidthof[dtype]()
 
         @parameter
@@ -109,8 +105,8 @@ struct DataLoader:
             @parameter
             fn calc_batch[nelts: Int](i: Int):
                 batch_tensor.simd_store[nelts](
-                    Index(n, i),
-                    tensor.simd_load[nelts](Index(start + n, i))
+                    (start + n)*flat + i,
+                    tensor.simd_load[nelts]((start + n)*flat + i)
                 )
 
             vectorize[calc_batch, nelts](shape.num_elements() // shape[0])

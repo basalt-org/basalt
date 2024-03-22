@@ -1,8 +1,8 @@
 from utils.index import Index
-from tensor import TensorShape
 from time.time import now
 
 import basalt.nn as nn
+from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP, dtype
 from basalt.utils.datasets import MNIST
 from basalt.utils.dataloader import DataLoader

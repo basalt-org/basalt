@@ -1,4 +1,5 @@
 from math import min
+from testing import assert_true
 
 from tensor import Tensor as _Tensor
 from tensor import TensorShape as _TensorShape
@@ -160,6 +161,12 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
     fn zero(self):
         memset_zero(self._data, self.num_elements())
     
+    @always_inline("nodebug")
+    fn ireshape(inout self, new_shape: TensorShape) raises:
+        # NOTE Consider not raising on error
+        assert_true(self.num_elements() == new_shape.num_elements())
+        self._shape = new_shape
+
     @always_inline("nodebug")
     fn __str__(self) -> String:
         var new_data = DTypePointer[dtype].alloc(self.num_elements())

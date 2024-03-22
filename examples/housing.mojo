@@ -1,7 +1,7 @@
-from tensor import TensorShape
 from time.time import now
 
 import basalt.nn as nn
+from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
 from basalt.utils.datasets import BostonHousing
 from basalt.utils.dataloader import DataLoader

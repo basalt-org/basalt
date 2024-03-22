@@ -1,9 +1,8 @@
-from tensor import Tensor
-from utils.index import Index
 from algorithm import vectorize
 from math import div
 
 from basalt import dtype
+from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_op, tmean, tstd
 
 
@@ -34,7 +33,7 @@ struct BostonHousing:
                 idx_low = find_nth(s, ",", n) + 1
                 idx_high = find_nth(s, ",", n + 1)
                 
-                self.data[Index(i, n)] = cast_string[dtype](s[idx_low:idx_high])
+                self.data[i*self.n_inputs + n] = cast_string[dtype](s[idx_low:idx_high])
 
             idx_low = find_nth(s, ",", self.n_inputs) + 1 
             self.labels[i] = cast_string[dtype](s[idx_low:idx_line-1])
@@ -45,9 +44,9 @@ struct BostonHousing:
         var col = Tensor[dtype](N)
         for j in range(self.n_inputs):
             for k in range(N):
-                col[k] = self.data[Index(k, j)]
+                col[k] = self.data[k*self.n_inputs + j]
             for i in range(N):
-                self.data[Index(i, j)] = (self.data[Index(i, j)] - tmean(col)) / tstd(col)
+                self.data[i*self.n_inputs + j] = (self.data[i*self.n_inputs + j] - tmean(col)) / tstd(col)
 
 
 struct MNIST:
@@ -76,10 +75,10 @@ struct MNIST:
                 for n in range(28):
                     idx_low = find_nth(s, ",", 28 * m + n + 1) + 1
                     if m == 27 and n == 27:
-                        self.data[Index(i, 0, m, n)] = atol(s[idx_low:idx_line-1])
+                        self.data[i*28*28 + m*28 + n] = atol(s[idx_low:idx_line-1])
                     else:
                         idx_high = find_nth(s, ",", 28 * m + n + 2)
-                        self.data[Index(i, 0, m, n)] = atol(s[idx_low:idx_high])
+                        self.data[i*28*28 + m*28 + n] = atol(s[idx_low:idx_high])
 
         # Normalize data
         alias nelts = simdwidthof[dtype]()
