@@ -36,8 +36,15 @@ struct TensorShape(Stringable):
             self._shape[i] = shape[i]
 
     @always_inline("nodebug")
+    fn __init__[num: Int](inout self, shape: StaticIntTuple[num]):
+        self._rank = num
+        self._shape = StaticIntTuple[max_rank]()
+        for i in range(min(self._rank, max_rank)):
+            self._shape[i] = shape[i]
+
+    @always_inline("nodebug")
     fn __getitem__(self, index: Int) -> Int:
-        return self._shape[index]
+        return self._shape[index if index >= 0 else self._rank + index]
 
     @always_inline("nodebug")
     fn rank(self) -> Int:
