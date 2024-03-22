@@ -80,3 +80,11 @@ struct Collection(Sized):
     @always_inline
     fn __len__(self) -> Int:
         return self.size
+
+    @always_inline
+    fn set_zero(self):
+        """
+        Zeroes out all the tensors in the collection.
+        """
+        for i in range(self.size):
+            self.data[i].zero()

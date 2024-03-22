@@ -95,6 +95,34 @@ fn test_resize_collection(inout uuid: UUIDGenerator) raises:
     assert_tensors_equal(c[s3], t3_expected)
 
 
+fn test_set_zero(inout uuid: UUIDGenerator) raises:
+    alias t1_shape = TensorShape(1, 10)
+    alias t2_shape = TensorShape(2, 20)
+    var s1 = Symbol(uuid.next(), dtype, t1_shape, True)
+    var s2 = Symbol(uuid.next(), dtype, t2_shape, True)
+    var t1 = Tensor[dtype](s1.shape)
+    var t2 = Tensor[dtype](s2.shape)
+    fill(t1, 1)
+    fill(t2, 2)
+
+    var c = Collection(capacity=2)
+    c.append(t1^, s1)
+    c.append(t2^, s2)
+
+    var t1_expected = Tensor[dtype](s1.shape)
+    var t2_expected = Tensor[dtype](s2.shape)
+    fill(t1_expected, 1)
+    fill(t2_expected, 2)
+    assert_tensors_equal(c[s1], t1_expected)
+    assert_tensors_equal(c[s2], t2_expected)
+    
+    c.set_zero()
+
+    assert_tensors_equal(c[s1], Tensor[dtype](t1_shape))
+    assert_tensors_equal(c[s2], Tensor[dtype](t2_shape))
+
+
+
 fn main() raises:
     var uuid = UUIDGenerator(42)
 
@@ -102,6 +130,7 @@ fn main() raises:
         test_append_tensors(uuid)
         test_get_tensor_reference(uuid)
         test_resize_collection(uuid)
+        test_set_zero(uuid)
     except e:
         print(e)
         raise e

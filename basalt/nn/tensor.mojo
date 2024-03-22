@@ -82,7 +82,7 @@ struct TensorShape(Stringable):
         return not self.__eq__(other)
 
 
-# @register_passable("trivial")
+
 struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
     var _data: DTypePointer[dtype]
     var _shape: TensorShape
@@ -108,8 +108,6 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
     fn __moveinit__(inout self, owned other: Tensor[dtype]):
         self._data = other._data
         self._shape = other._shape
-        # other._data = DTypePointer[dtype]()
-        # other._shape = TensorShape()
 
     @always_inline("nodebug")
     fn __copyinit__(inout self, other: Tensor[dtype]):
@@ -158,6 +156,10 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
     fn dim(self, index: Int) -> Int:
         return self._shape[index]
 
+    @always_inline("nodebug")
+    fn zero(self):
+        memset_zero(self._data, self.num_elements())
+    
     @always_inline("nodebug")
     fn __str__(self) -> String:
         var new_data = DTypePointer[dtype].alloc(self.num_elements())
