@@ -74,13 +74,13 @@ struct ParamDict(Sized):
             # Uninitialized parameter
             self.values.push_back(Param())
 
-    fn get_data(self, idx: Int) -> DTypePointer[dtype]:
+    fn get_tensor(self, idx: Int) -> Tensor[dtype]:
         # May only be called at runtime
         var num = self.symbols[idx].shape.num_elements()
         var t = DTypePointer[dtype].alloc(num)
         for i in range(num):
             t[i] = self.values[idx][i].value()
-        return t
+        return Tensor[dtype](t, self.symbols[idx].shape)
 
     fn __len__(self) -> Int:
         return len(self.symbols)

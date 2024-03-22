@@ -63,7 +63,7 @@ struct TensorShape(Stringable):
 
 
 # @register_passable("trivial")
-struct Tensor[dtype: DType](Stringable, Movable):
+struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
     var _data: DTypePointer[dtype]
     var _shape: TensorShape
 
