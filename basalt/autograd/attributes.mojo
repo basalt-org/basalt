@@ -36,7 +36,7 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
     fn __str__(self) -> String:
         var s: String = "["
         for i in range(self._size):
-            # s += str(self._attrs[i])
+            s += str(self._attrs[i])
             if i < self._size - 1: s += ", "
         return s + "]"
 
