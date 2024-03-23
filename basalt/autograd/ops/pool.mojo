@@ -3,7 +3,6 @@ from math.limit import neginf
 from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
 from basalt.autograd.ops.conv import get_result_shape
-from basalt.utils.tensorutils import calculate_strides
 
 
 
@@ -36,9 +35,9 @@ struct MAXPOOL2D:
         alias stride = attributes["stride"].value().to_static[2]()
         alias dilation = attributes["dilation"].value().to_static[2]()
 
-        alias inputs_strides = calculate_strides(input_shape)
+        alias inputs_strides = input_shape.strides()
         alias output_shape = Self.result_shape(input_shape, attributes)
-        alias outputs_strides = calculate_strides(output_shape)
+        alias outputs_strides = output_shape.strides()
 
         for batch in range(input_shape[0]):
             for in_ch in range(input_shape[1]):
@@ -96,8 +95,8 @@ struct MAXPOOL2D:
         alias stride = attributes["stride"].value().to_static[2]()
         alias dilation = attributes["dilation"].value().to_static[2]()
 
-        alias ug_strides = calculate_strides(ug_shape)
-        alias inputs_strides = calculate_strides(input_shape)
+        alias ug_strides = ug_shape.strides()
+        alias inputs_strides = input_shape.strides()
 
         var res = Tensor[dtype](input_shape)
 

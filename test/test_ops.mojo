@@ -7,7 +7,7 @@ import basalt.nn as nn
 from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
 from basalt.autograd.attributes import Attribute, AttributeVector
-from basalt.utils.tensorutils import fill, calculate_strides
+from basalt.utils.tensorutils import fill
 
 alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
@@ -340,7 +340,7 @@ fn test_TRANSPOSE() raises:
     var res = model.inference(t1)[0]
 
     var expected = Tensor[dtype](4, 3, 2)
-    var expected_strides = calculate_strides(expected.shape())
+    var expected_strides = expected.strides()
 
     for i in range(t1_shape[0]):
         for j in range(t1_shape[1]):
@@ -357,7 +357,7 @@ fn test_TRANSPOSE() raises:
     res = model_2.inference(t1)[0]
 
     var expected_axis_1 = Tensor[dtype](3, 4, 2)
-    var expected_axis_1_strides = calculate_strides(expected_axis_1.shape())
+    var expected_axis_1_strides = expected_axis_1.strides()
 
     for i in range(t1_shape[0]):
         for j in range(t1_shape[1]):

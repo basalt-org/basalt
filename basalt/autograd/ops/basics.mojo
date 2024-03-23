@@ -516,7 +516,7 @@ struct MAX:
 
         var res_grad = Tensor[dtype](t_shape)
         var max_res = Tensor[dtype](ug_shape)
-        var strides = calculate_strides(t.shape())
+        alias strides = t_shape.strides()
 
         tmax(max_res, t, axis) # To not calculate this again we could receive the result of the forward pass as a parameter
 

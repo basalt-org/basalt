@@ -4,7 +4,7 @@ from test_tensorutils import assert_tensors_equal
 
 
 from basalt import Tensor, TensorShape
-from basalt.utils.tensorutils import fill, tsum, calculate_strides
+from basalt.utils.tensorutils import fill, tsum
 from basalt.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, MEAN, FLATTEN, SUM, MAX, RESHAPE, TRANSPOSE
 from basalt.autograd.attributes import Attribute, AttributeVector
 
@@ -378,7 +378,7 @@ fn test_TRANSPOSE() raises:
     alias attributes = AttributeVector(Attribute("axes", TensorShape(2, 1, 0)))
     var grad = TRANSPOSE.backward[ug_shape, t1_shape, attributes](ug, t1)
     var expected_grad = Tensor[dtype](t1_shape)
-    var t1_strides = calculate_strides(t1_shape)
+    var t1_strides = t1_shape.strides()
 
     for i in range(ug_shape[0]):
         for j in range(ug_shape[1]):
