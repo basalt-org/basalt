@@ -12,7 +12,7 @@ from ..attributes import AttributeVector
 # Define operators as named parameter expression
 @value
 @register_passable("trivial")
-struct OP:
+struct OP(Stringable):
     """
     Compile time Operators list.
     """
@@ -48,6 +48,9 @@ struct OP:
 
     fn __eq__(self, other: OP) -> Bool:
         return self.id == other.id
+
+    fn __str__(self) -> String:
+        return str(self.name)
 
 
 

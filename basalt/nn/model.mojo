@@ -92,12 +92,11 @@ struct Model[
         #
         #   model.forward(batch.labels, batch.inputs)
 
-
         # 1. Execute a full forward pass (model inference + loss)
-        self.execute[g.nodes.size](t_inputs)
+        self.execute[g.nodes.size](t_inputs ^)
 
         # 2. Return loss from allocated output memory
-        # TODO: known copy (create reference)
+        # TODO: known copy (reference?)
         return self.parameters.params[g.loss_out.value()]
 
 
@@ -107,24 +106,18 @@ struct Model[
         self.execute[n_inference_nodes.value()](t_inputs)
         
         # 2. Return outputs from allocated output memory
-        # TODO: known copies (create reference)
+        # TODO: known copies (reference?)
         var outputs = DynamicVector[Tensor[dtype]]()
         for i in range(len(g.outputs)):
             outputs.push_back(self.parameters.params[g.outputs[i]])
-
         return outputs ^
 
 
     fn execute[num_nodes: Int](inout self, t_input: VariadicListMem[Tensor[dtype]]):
+        
         # 1. Write inputs to allocated input memory
-        # print("#### inside execute")
         for i in range(len(g.inputs)):
             self.parameters.params[g.inputs[i]] = t_input[i]
-        
-        # for i in range(len(g.inputs)):
-        #     print(self.parameters.params[g.inputs[i]])
-        
-        # # print("INITIALIZED INPUTS")
 
         # 2. Loop over all nodes and execute forward operations        
         @parameter
@@ -133,10 +126,6 @@ struct Model[
             alias t1 = g.nodes[i].input_1
             alias out = g.nodes[i].output
             alias attrs = g.nodes[i].attributes
-
-           
-            # print(self.parameters.params[out])
-            # print(self.parameters.params[t1])
 
             @parameter
             if op.num_operands == 1:
@@ -148,8 +137,6 @@ struct Model[
             elif op.num_operands == 2:
                 # Binary operator
                 alias t2 = g.nodes[i].input_2.value()
-                # print(t2)
-                # print(self.parameters.params[t2])
                 forward_op[op, t1.shape, t2.shape, attrs](
                     self.parameters.params[out],
                     self.parameters.params[t1],
@@ -165,9 +152,6 @@ struct Model[
                     self.parameters.params[t2],
                     self.parameters.params[t3]
                 )
-
-            # print(self.parameters.params[out])
-            # print("---------------------------")
 
         unroll[fw_unroll, num_nodes]()
 
@@ -285,7 +269,7 @@ struct Model[
                 # Default parameter initialization to zero
                 par = Tensor[dtype](p.shape)
 
-            self.parameters.params.append(par, p)
+            self.parameters.params.append(par^, p)
         
         for i in range(len(g.nodes)):
             # Assumption: There is only one output tensor per node

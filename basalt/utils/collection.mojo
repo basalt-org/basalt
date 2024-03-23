@@ -29,9 +29,6 @@ struct Collection(Sized):
         self.size = other.size
         self.data = other.data
         self.symbol_map = other.symbol_map^
-        # other.data = AnyPointer[Tensor[dtype]]()
-        # other.size = 0
-        # other.capacity = 0
 
     fn append(inout self, owned value: Tensor[dtype], symbol: Symbol):
         if self.size == self.capacity:
