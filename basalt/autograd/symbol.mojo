@@ -1,15 +1,14 @@
 from basalt import Tensor, TensorShape
-from basalt.utils.uuid import UUID
 
 
 @register_passable("trivial")
 struct Symbol(CollectionElement, Stringable):
-    var name: UUID
+    var name: UInt32
     var dtype: DType
     var shape: TensorShape
     var trainable: Bool
     
-    fn __init__(inout self, name: UUID, dtype: DType, shape: TensorShape, trainable: Bool):
+    fn __init__(inout self, name: UInt32, dtype: DType, shape: TensorShape, trainable: Bool):
         self.name = name
         self.shape = shape
         self.dtype = dtype
