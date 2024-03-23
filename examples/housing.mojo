@@ -27,7 +27,7 @@ fn linear_regression(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
 fn main():
     # Train Parameters
     alias batch_size = 32
-    alias num_epochs = 100
+    alias num_epochs = 200
     alias learning_rate = 0.02
 
     alias graph = linear_regression(batch_size, 13, 1)
