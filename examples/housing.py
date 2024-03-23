@@ -43,7 +43,7 @@ if __name__ == "__main__":
     df = pd.read_csv("./examples/data/housing.csv")
 
     TRAIN_PCT = 0.99
-    shuffled_df = df.sample(frac=1, random_state=42)
+    shuffled_df = df # df.sample(frac=1, random_state=42)
     train_df = shuffled_df[:int(TRAIN_PCT * len(df))]
     test_df = shuffled_df[int(TRAIN_PCT * len(df)):]
 
@@ -51,7 +51,7 @@ if __name__ == "__main__":
     test_data = BostonHousing(test_df)
 
     # Train Parameters
-    batch_size = 32
+    batch_size = 4
     num_epochs = 200
     learning_rate = 0.02
 
@@ -90,29 +90,38 @@ if __name__ == "__main__":
         for (batch_data, batch_labels) in loaders['train']:    
             start_batch = time.time()
             
+            print(batch_data)
+            print(batch_labels)
+            
             # Forward pass
             outputs = model(batch_data)
             loss = loss_func(outputs, batch_labels)
 
-            # Backward pass
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            print(loss)
 
-            epoch_loss += loss.item()
-            num_batches += 1
+            break
+        break
 
-            # print time in ms
-            # print(f'Batch time: {1000 * (time.time() - start_batch):.2f} ms') # The speed of a batch in basalt and pytorch are similar or pytorch can be faster
+
+    #         # Backward pass
+    #         optimizer.zero_grad()
+    #         loss.backward()
+    #         optimizer.step()
+
+    #         epoch_loss += loss.item()
+    #         num_batches += 1
+
+    #         # print time in ms
+    #         # print(f'Batch time: {1000 * (time.time() - start_batch):.2f} ms') # The speed of a batch in basalt and pytorch are similar or pytorch can be faster
             
-        print (f'Epoch [{epoch + 1}/{num_epochs}],\t Avg loss per epoch: {epoch_loss / num_batches}')
+    #     print (f'Epoch [{epoch + 1}/{num_epochs}],\t Avg loss per epoch: {epoch_loss / num_batches}')
 
-    print(f"Training time: {time.time() - start:.2f} seconds")
+    # print(f"Training time: {time.time() - start:.2f} seconds")
 
 
-    # Evaluate the model
-    model.eval()
-    with torch.no_grad():
-        test_predictions = model(test_data.data)
-        mse_loss = loss_func(test_predictions, test_data.target).item()
-        print(f"Mean Squared Error on Test Data: {mse_loss:.4f}")
+    # # Evaluate the model
+    # model.eval()
+    # with torch.no_grad():
+    #     test_predictions = model(test_data.data)
+    #     mse_loss = loss_func(test_predictions, test_data.target).item()
+    #     print(f"Mean Squared Error on Test Data: {mse_loss:.4f}")

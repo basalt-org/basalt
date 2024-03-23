@@ -9,13 +9,13 @@ fn initialize_tensor(shape: TensorShape, type: String, data: DynamicVector[SIMD[
     if type == "random_uniform":
         var low = data[0]
         var high = data[1]
-        var t = Tensor[dtype]()
+        var t = Tensor[dtype](shape)
         rand_uniform(t, low = low, high = high)
         return t
     elif type == "random_normal":
         var mean = data[0].cast[DType.float64]()
         var std = data[1].cast[DType.float64]()
-        var t = Tensor[dtype]()
+        var t = Tensor[dtype](shape)
         rand_normal(t, mean = mean, std = std)
         return t
     # elif type == "kaiming_uniform":

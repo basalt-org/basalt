@@ -1,4 +1,3 @@
-from utils.index import Index
 from time.time import now
 
 import basalt.nn as nn
@@ -19,7 +18,7 @@ def plot_image(data: Tensor, num: Int):
     var pyimage: PythonObject = np.empty((28, 28), np.float64)
     for m in range(28):
         for n in range(28):
-            pyimage.itemset((m, n), data[Index(num, 0, m, n)])
+            pyimage.itemset((m, n), data[num*28*28 + m*28 + n])
 
     plt.imshow(pyimage)
     plt.show()
@@ -36,9 +35,8 @@ fn create_CNN(batch_size: Int) -> Graph:
     var x4 = nn.Conv2d(g, x3, out_channels=32, kernel_size=5, padding=2)
     var x5 = nn.ReLU(g, x4)
     var x6 = nn.MaxPool2d(g, x5, kernel_size=2)
-    var x6_shape = x6.shape()
     var x7 = g.op(OP.RESHAPE, x6, attributes=AttributeVector(Attribute("shape", 
-        TensorShape(x6_shape[0], x6_shape[1]*x6_shape[2]*x6_shape[3])
+        TensorShape(x6.shape[0], x6.shape[1]*x6.shape[2]*x6.shape[3])
     )))
     var out = nn.Linear(g, x7, n_outputs=10)
     g.out(out)
@@ -72,8 +70,8 @@ fn main():
     print("Loading data ...")
     var train_data: MNIST
     try:
-        train_data = MNIST(file_path='./examples/data/mnist_train_small.csv')
-        # _ = plot_image(train_data.data, 1)
+        train_data = MNIST(file_path='./examples/data/mnist_test_small.csv')
+        _ = plot_image(train_data.data, 1)
     except:
         print("Could not load data")
 
@@ -96,12 +94,10 @@ fn main():
             # [ONE HOT ENCODING!]
             var labels_one_hot = Tensor[dtype](batch.labels.dim(0), 10)
             for bb in range(batch.labels.dim(0)):
-                labels_one_hot[Index(bb, batch.labels[bb])] = 1.0
+                labels_one_hot[(bb * 10 + batch.labels[bb]).to_int()] = 1.0
 
             # Forward pass
             var loss = model.forward(batch.data, labels_one_hot)
-            # print(loss)
-            # pass
 
             # Backward pass
             optim.zero_grad(model.parameters)
