@@ -36,3 +36,11 @@ function profile() {
 }
 
 profile "$1"
+
+# If you get an error with kptr_restrict
+# echo 0 | sudo tee /proc/sys/kernel/kptr_restrict
+# sudo sysctl -p
+
+# If you get an error with perf_event_paranoid
+# echo -1 | sudo tee /proc/sys/kernel/perf_event_paranoid
+# sudo sysctl -p
