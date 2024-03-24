@@ -1,5 +1,7 @@
+import basalt.nn as nn
+from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
-from basalt.nn.activations import LogSoftmax
+
 
 
 fn MSELoss(inout g: Graph,
@@ -13,7 +15,7 @@ fn MSELoss(inout g: Graph,
     var loss = g.op(OP.POW, diff, 2)
     var mean_loss = g.op(OP.MEAN, loss)
 
-    return mean_loss ^
+    return mean_loss
 
 
 fn CrossEntropyLoss(inout g: Graph,
@@ -23,11 +25,11 @@ fn CrossEntropyLoss(inout g: Graph,
 
     # -1/N * sum( targets * log_softmax(outputs) )
 
-    var log_softmax = LogSoftmax(g, y_pred, 1)
+    var log_softmax = nn.LogSoftmax(g, y_pred, axis=1)
 
     # CrossEntropy (reduction Mean)
     var targets_log_softmax = g.op(OP.MUL, y_true, log_softmax)
     var ret = g.op(OP.SUM, targets_log_softmax)
-    var negDivN = g.op(OP.MUL, ret, -1.0 / y_pred.shape()[0])
+    var negDivN = g.op(OP.MUL, ret, -1.0 / y_pred.shape[0])
 
-    return negDivN ^
+    return negDivN

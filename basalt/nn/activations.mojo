@@ -1,8 +1,4 @@
-# from tensor import Tensor
-
-# from basalt.autograd.node import Node
-# from basalt.autograd.ops.basics import SUM, SUB, DIV, EXP, MAX, LOG
-# import basalt.autograd.ops.mlops
+from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
 from basalt.autograd.attributes import Attribute, AttributeVector
 

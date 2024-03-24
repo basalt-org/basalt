@@ -1,8 +1,5 @@
-from tensor import TensorShape
-
-from basalt.utils.tensorutils import calculate_strides
+from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
-from time import now
 
 
 @always_inline
@@ -69,10 +66,10 @@ struct CONV2D:
         alias dilation_0 = dilation[0]
         alias dilation_1 = dilation[1]
 
-        alias inputs_strides = calculate_strides(input_shape)
-        alias kernel_strides = calculate_strides(kernel_shape)
+        alias inputs_strides = input_shape.strides()
+        alias kernel_strides = kernel_shape.strides()
         alias output_shape = Self.result_shape(input_shape, kernel_shape, bias_shape, attributes)
-        alias outputs_strides = calculate_strides(output_shape)
+        alias outputs_strides = output_shape.strides()
         alias inputs_strides_0 = inputs_strides[0]
         alias inputs_strides_1 = inputs_strides[1]
         alias inputs_strides_2 = inputs_strides[2]
@@ -206,9 +203,9 @@ struct CONV2D:
         alias dilation_0 = dilation[0]
         alias dilation_1 = dilation[1]
 
-        alias inputs_strides = calculate_strides(input_shape)
-        alias kernel_strides = calculate_strides(kernel_shape)
-        alias ug_strides = calculate_strides(ug_shape)
+        alias inputs_strides = input_shape.strides()
+        alias kernel_strides = kernel_shape.strides()
+        alias ug_strides = ug_shape.strides()
         alias inputs_strides_0 = inputs_strides[0]
         alias inputs_strides_1 = inputs_strides[1]
         alias inputs_strides_2 = inputs_strides[2]

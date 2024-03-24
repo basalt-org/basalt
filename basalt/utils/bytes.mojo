@@ -2,7 +2,7 @@ from math import min
 
 
 @value
-@register_passable
+@register_passable("trivial")
 struct bytes[
     capacity: Int
 ](Stringable, CollectionElement):

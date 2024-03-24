@@ -1,22 +1,20 @@
 from algorithm import vectorize, parallelize
 from memory import memset_zero, memset
-from tensor import TensorShape
 from math import sqrt, pow, equal, max, min, abs, add, div
 from random import rand
+from collections.vector import InlinedFixedVector
+
+from basalt import Tensor, TensorShape
 
 
 @always_inline
-fn zero[dtype: DType](inout t: Tensor[dtype]):
-    memset_zero[dtype](t.data(), t.num_elements())
-
-
-@always_inline
-fn fill[dtype: DType, nelts: Int](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
+fn fill[dtype: DType](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
     @parameter
     fn fill_vec[nelts: Int](idx: Int):
         t.simd_store[nelts](idx, t.simd_load[nelts](idx).splat(val))
 
     vectorize[fill_vec, nelts](t.num_elements())
+
 
 # ----- Functions to access positions in tensor data -----
 fn get_real_index[
@@ -106,40 +104,30 @@ fn broadcast_calculate_strides(
     return strides ^
 
 
-@always_inline
-fn calculate_strides(shape: TensorShape) -> DynamicVector[Int]:
-    var strides = DynamicVector[Int]()
-    strides.resize(shape.rank(), 1)
-
-    for i in range(shape.rank() - 2, -1, -1):
-        strides[i] = strides[i + 1] * shape[i + 1]
-
-    return strides
-
-
 # ----- Dot functions -----
 @always_inline
 fn dot[
     t1_shape: TensorShape, t2_shape: TensorShape
 ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
-    alias res1 = t2_shape[1]
+    alias M = t1_shape[0]
+    alias K = t1_shape[1]
+    alias N = t2_shape[1]
     memset_zero[dtype](res.data(), res.num_elements())
 
     @parameter
     fn calc_row(m: Int):
-        for k in range(t2_shape[0]):
+        for k in range(K):
 
             @parameter
-            fn dot[nelts: Int](n: Int):
+            fn vec_n[nelts: Int](n: Int):
                 res.simd_store[nelts](
-                    m * res1 + n,
-                    res.simd_load[nelts](m * res1 + n)
-                    + t1[m, k] * t2.simd_load[nelts](k * res1 + n),
+                    m * N + n,
+                    res.simd_load[nelts](m * N + n)
+                    + t1[m * K + k] * t2.simd_load[nelts](k * N + n),
                 )
-
-            vectorize[dot, nelts](res1)
-
-    parallelize[calc_row](t1_shape[0], t1_shape[0])
+            vectorize[vec_n, nelts](N)
+    
+    parallelize[calc_row](M)
 
 
 fn dot_transpose_t2[
@@ -407,7 +395,7 @@ fn reduce[
     ],
 ](inout res: Tensor[dtype], t: Tensor[dtype], axis: Int, starting_value: SIMD[dtype, nelts]):
 
-    var strides = calculate_strides(t.shape())
+    var strides = t.strides()
 
     @parameter
     fn parallel_reduce(i: Int):
@@ -486,11 +474,11 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
     tmean(mu, t, axis)
 
     var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)    
-    var strides = calculate_strides(t.shape())
-    var strides_mu = calculate_strides(mu.shape())
+    var strides = t.strides()
+    var strides_mu = mu.strides()
 
     @parameter
-    fn get_t_index(i: Int, j: Int, axis: Int, shape: TensorShape, strides: DynamicVector[Int]) -> Int:
+    fn get_t_index(i: Int, j: Int, axis: Int, shape: TensorShape, strides: InlinedFixedVector[Int]) -> Int:
         var index_res = 0
         for k in range(shape.rank()):
             if k == axis:
@@ -500,7 +488,7 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
         return index_res
 
     @parameter
-    fn get_mu_index(i: Int, axis: Int, shape: TensorShape, strides: DynamicVector[Int]) -> Int:
+    fn get_mu_index(i: Int, axis: Int, shape: TensorShape, strides: InlinedFixedVector[Int]) -> Int:
         var index_res = 0
         for k in range(shape.rank()):
             if k != axis:
@@ -623,8 +611,8 @@ fn transpose(inout res: Tensor[dtype], t: Tensor[dtype], axes: TensorShape):
     # NOTE: The rank of of the t tensor should be 2 or more
     # NOTE: Axes should be the same size as the rank of t
 
-    var original_strides = calculate_strides(t.shape())
-    var transposed_strides = calculate_strides(res.shape())
+    var original_strides = t.strides()
+    var transposed_strides = res.strides()
 
     var position_of_last_rank_new_shape = 0
 
@@ -679,8 +667,8 @@ fn transpose(inout res: Tensor[dtype], t: Tensor[dtype], axes: TensorShape):
 #         new_shape.push_back(t.dim(i) + pad_with[i * 2] + pad_with[i * 2 + 1])
 #     var t_new = Tensor[dtype](new_shape)
 
-#     var original_strides = calculate_strides(t.shape())
-#     var result_strides = calculate_strides(t_new.shape())
+#     var original_strides = t.strides()
+#     var result_strides = t_new.strides()
 
 #     # Parallelize over the first axis
 #     # NOTE: Possible dynamically choose the axis to parallelize over

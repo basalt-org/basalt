@@ -7,3 +7,4 @@ examples/data/mnist_test.csv
 examples/data/mnist_train.csv
 
 output_model.onnx
+Makefile
