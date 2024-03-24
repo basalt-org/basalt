@@ -43,20 +43,27 @@ fn main():
     optimizer.allocate_rms_and_momentum(model.parameters)
 
     var x = Tensor[dtype](batch_size, n_inputs)
-    rand[dtype](x.data(), x.num_elements())
     var y = Tensor[dtype](batch_size, n_outputs)
 
-    for i in range(batch_size):
-        y[i] = math.sin(x[i])
+    @parameter
+    @always_inline("nodebug")
+    fn refresh():
+        rand[dtype](x.data(), x.num_elements())
+        for i in range(batch_size):
+            y[i] = math.sin(x[i] * 15)
+
+    refresh()
 
     print("Training started")
     var start = now()
     
-    alias epochs = 10000
+    alias epochs = 200000
     for i in range(epochs):
-        var out = model.forward(x, y)
+        refresh()
 
-        if i % 1000 == 0:
+        var out = model.forward(x, y)
+        
+        if i + 1 % 1000 == 0:
             print("[", i + 1, "/", epochs,"] \tLoss: ", out[0])
 
         optimizer.zero_grad(model.parameters)

@@ -41,7 +41,9 @@ if __name__ == '__main__':
     model.train()
     start = time.time()
     for i in range(epochs):
-        # Forward pass
+        x = torch.rand(batch_size, n_inputs).to(device) * 2 - 1
+        y = torch.sin(x).to(device)
+
         outputs = model(x)
         loss = loss_func(outputs, y)
 
@@ -50,7 +52,7 @@ if __name__ == '__main__':
         loss.backward()
         optimizer.step()
 
-        if i % 1000 == 0:
+        if i - 1 % 1000 == 0:
             print(f'Epoch [{i + 1}/{epochs}],\t Loss: {loss.item()}')
 
     print(f"Training time: {time.time() - start:.2f} seconds. Loss: {loss.item()}")
