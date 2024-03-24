@@ -36,7 +36,7 @@ if __name__ == '__main__':
     x = torch.rand(batch_size, n_inputs).to(device) * 2 - 1
     y = torch.sin(x).to(device)
     
-    epochs = 10000
+    epochs = 20000
 
     model.train()
     start = time.time()
@@ -52,7 +52,7 @@ if __name__ == '__main__':
         loss.backward()
         optimizer.step()
 
-        if i - 1 % 1000 == 0:
+        if (i + 1) % 1000 == 0:
             print(f'Epoch [{i + 1}/{epochs}],\t Loss: {loss.item()}')
 
     print(f"Training time: {time.time() - start:.2f} seconds. Loss: {loss.item()}")

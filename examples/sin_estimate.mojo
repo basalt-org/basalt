@@ -36,7 +36,7 @@ fn main():
     alias n_outputs = 1
     alias learning_rate = 0.01
 
-    alias epochs = 10000
+    alias epochs = 20000
 
     alias graph = create_simple_nn(batch_size, n_inputs, n_outputs)
 
@@ -44,6 +44,7 @@ fn main():
     var optimizer = nn.optim.Adam[graph](lr=learning_rate)
     optimizer.allocate_rms_and_momentum(model.parameters)
 
+    print("Loading data...")
     var test_data = DynamicVector[Tensor[dtype]]()
     var test_labels = DynamicVector[Tensor[dtype]]()
     test_data.reserve(epochs)
@@ -55,7 +56,7 @@ fn main():
         rand[dtype](x_data.data(), x_data.num_elements())
 
         for j in range(batch_size):
-            y_data[j] = math.sin(x_data[j] * 15)
+            y_data[j] = math.sin(x_data[j])
 
         test_data.append(x_data)
         test_labels.append(y_data)
@@ -66,7 +67,7 @@ fn main():
     for i in range(epochs):
         var out = model.forward(test_data[i], test_labels[i])
         
-        if i % 1000 == 0:
+        if (i + 1) % 1000 == 0:
             print("[", i + 1, "/", epochs,"] \tLoss: ", out[0])
 
         optimizer.zero_grad(model.parameters)
