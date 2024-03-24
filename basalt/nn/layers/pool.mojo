@@ -1,4 +1,4 @@
-from tensor import TensorShape
+from basalt import Tensor, TensorShape
 from collections.optional import Optional
 
 from basalt import Graph, Symbol, OP

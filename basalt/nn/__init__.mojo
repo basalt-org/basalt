@@ -1,3 +1,4 @@
+from .tensor import Tensor, TensorShape
 from .model import Model
 
 from .layers.linear import Linear

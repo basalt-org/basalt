@@ -1,11 +1,13 @@
 from random import rand
 from time.time import now
-from tensor import TensorShape
 
 import basalt.nn as nn
 from basalt import dtype
+from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
 from basalt.utils.tensorutils import fill
+
+from basalt.autograd.attributes import Attribute, AttributeVector
 
 
 fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
@@ -14,7 +16,7 @@ fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
     var loss = g.op(OP.MUL, diff, diff)
     var mean_loss = g.op(OP.MEAN, loss, None)
 
-    return mean_loss ^
+    return mean_loss
 
 
 fn create_linear_graph(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
@@ -25,6 +27,7 @@ fn create_linear_graph(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
 
     var W = g.param(TensorShape(n_inputs, n_outputs))
     var b = g.param(TensorShape(n_outputs))
+
     var res = g.op(OP.DOT, x, W)
 
     var y_pred = g.op(OP.ADD, res, b)
@@ -57,8 +60,10 @@ fn main():
     optimizer.allocate_rms_and_momentum(model.parameters)
 
     # Dummy data
-    var x = rand[dtype](batch_size, n_inputs)
-    var y = rand[dtype](batch_size, n_outputs)
+    var x = Tensor[dtype](batch_size, n_inputs)
+    var y = Tensor[dtype](batch_size, n_outputs)
+    rand[dtype](x.data(), x.num_elements())
+    rand[dtype](y.data(), y.num_elements())
 
     print("Training started")
     var start = now()

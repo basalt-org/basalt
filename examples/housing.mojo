@@ -1,7 +1,7 @@
-from tensor import TensorShape
 from time.time import now
 
 import basalt.nn as nn
+from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
 from basalt.utils.datasets import BostonHousing
 from basalt.utils.dataloader import DataLoader
@@ -57,10 +57,9 @@ fn main():
         var num_batches: Int = 0
         var epoch_loss: Float32 = 0.0
         for batch in training_loader:
-
+            
             # Forward pass
             var loss = model.forward(batch.data, batch.labels)
-            # print(loss)
 
             # Backward pass
             optim.zero_grad(model.parameters)
@@ -71,7 +70,6 @@ fn main():
             num_batches += 1
 
         print("Epoch: [", epoch+1, "/", num_epochs, "] \t Avg loss per epoch:", epoch_loss / num_batches)
-
 
     print("Training finished: ", (now() - start)/1e9, "seconds")
 

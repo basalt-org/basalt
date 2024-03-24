@@ -1,5 +1,5 @@
 # from math import sqrt
-from tensor import TensorShape
+from basalt import Tensor, TensorShape
 
 from basalt import Graph, Symbol, OP
 from basalt.autograd.params import Param
@@ -39,7 +39,7 @@ fn Conv2d( inout g: Graph,
         output.shape     [batch, out_channels, oX, oY].
     """
 
-    var in_channels: Int = inputs.static_shape[1]
+    var in_channels: Int = inputs.shape[1]
     var fan_in: SIMD[dtype, 1] = in_channels * kernel_size[0] * kernel_size[1]
     var bound = 1/sqrt(fan_in)
     var weights = g.param(
