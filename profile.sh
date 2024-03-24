@@ -58,12 +58,16 @@ function runProfile() {
     perf script -i "$perf_output" | ~/FlameGraph/stackcollapse-perf.pl | ~/FlameGraph/flamegraph.pl > "$flamegraph_output"
 
     echo "Opening flamegraph: $flamegraph_output"
+
     case "$OSTYPE" in
         darwin*)
             open "$flamegraph_output"
             ;;
-        linux-gnu*|msys)
+        mysys*)
             explorer.exe "$flamegraph_output"
+            ;;
+        linux-gnu*)
+            google-chrome "$flamegraph_output"
             ;;
     esac
 
