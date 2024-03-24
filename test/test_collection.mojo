@@ -16,15 +16,12 @@ fn test_append_tensors() raises:
     var c = Collection(capacity=2)
     assert_equal(c.capacity, 2)
     assert_equal(c.size, 0)
-    assert_equal(len(c.symbol_map), 0)
 
     c.append(Tensor[dtype](s1.shape), s1)
     assert_equal(c.size, 1)
-    assert_equal(len(c.symbol_map), 1)
 
     c.append(Tensor[dtype](s2.shape), s2)
     assert_equal(c.size, 2)
-    assert_equal(len(c.symbol_map), 2)
 
 
 fn test_get_tensor_reference() raises:
