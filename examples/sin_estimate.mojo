@@ -1,9 +1,8 @@
 from random import rand
 from time.time import now
 
-from tensor import Tensor, TensorShape
-
 import basalt.nn as nn
+from basalt import Tensor, TensorShape
 from basalt import dtype
 from basalt import Graph, Symbol, OP
 from basalt.utils.tensorutils import fill

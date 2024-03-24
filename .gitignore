@@ -6,5 +6,6 @@ basalt.📦
 examples/data/mnist_test.csv
 examples/data/mnist_train.csv
 
+profile.sh
 output_model.onnx
 Makefile
