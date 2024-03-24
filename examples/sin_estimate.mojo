@@ -36,34 +36,37 @@ fn main():
     alias n_outputs = 1
     alias learning_rate = 0.01
 
+    alias epochs = 10000
+
     alias graph = create_simple_nn(batch_size, n_inputs, n_outputs)
 
     var model = nn.Model[graph]()
     var optimizer = nn.optim.Adam[graph](lr=learning_rate)
     optimizer.allocate_rms_and_momentum(model.parameters)
 
-    var x = Tensor[dtype](batch_size, n_inputs)
-    var y = Tensor[dtype](batch_size, n_outputs)
+    var test_data = DynamicVector[Tensor[dtype]]()
+    var test_labels = DynamicVector[Tensor[dtype]]()
+    test_data.reserve(epochs)
+    test_labels.reserve(epochs)
 
-    @parameter
-    @always_inline("nodebug")
-    fn refresh():
-        rand[dtype](x.data(), x.num_elements())
-        for i in range(batch_size):
-            y[i] = math.sin(x[i] * 15)
+    for i in range(epochs):
+        var x_data = Tensor[dtype](batch_size, n_inputs)
+        var y_data = Tensor[dtype](batch_size, n_outputs)
+        rand[dtype](x_data.data(), x_data.num_elements())
 
-    refresh()
+        for j in range(batch_size):
+            y_data[j] = math.sin(x_data[j] * 15)
+
+        test_data.append(x_data)
+        test_labels.append(y_data)
 
     print("Training started")
     var start = now()
     
-    alias epochs = 200000
     for i in range(epochs):
-        refresh()
-
-        var out = model.forward(x, y)
+        var out = model.forward(test_data[i], test_labels[i])
         
-        if i + 1 % 1000 == 0:
+        if i % 1000 == 0:
             print("[", i + 1, "/", epochs,"] \tLoss: ", out[0])
 
         optimizer.zero_grad(model.parameters)
