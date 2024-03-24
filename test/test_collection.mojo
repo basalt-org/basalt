@@ -2,17 +2,16 @@ from testing import assert_equal
 
 from basalt import dtype
 from basalt import Tensor, TensorShape, Symbol
-from basalt.utils.uuid import UUID, UUIDGenerator
 from basalt.utils.collection import Collection
 from basalt.utils.tensorutils import fill
 from test_tensorutils import assert_tensors_equal
 
 
-fn test_append_tensors(inout uuid: UUIDGenerator) raises:
+fn test_append_tensors() raises:
     alias t1_shape = TensorShape(1, 10)
     alias t2_shape = TensorShape(2, 20)
-    var s1 = Symbol(uuid.next(), dtype, t1_shape, True)
-    var s2 = Symbol(uuid.next(), dtype, t2_shape, True)
+    var s1 = Symbol(0, dtype, t1_shape, True)
+    var s2 = Symbol(1, dtype, t2_shape, True)
 
     var c = Collection(capacity=2)
     assert_equal(c.capacity, 2)
@@ -28,11 +27,11 @@ fn test_append_tensors(inout uuid: UUIDGenerator) raises:
     assert_equal(len(c.symbol_map), 2)
 
 
-fn test_get_tensor_reference(inout uuid: UUIDGenerator) raises:
+fn test_get_tensor_reference() raises:
     alias t1_shape = TensorShape(1, 10)
     alias t2_shape = TensorShape(2, 20)
-    var s1 = Symbol(uuid.next(), dtype, t1_shape, True)
-    var s2 = Symbol(uuid.next(), dtype, t2_shape, True)
+    var s1 = Symbol(0, dtype, t1_shape, True)
+    var s2 = Symbol(1, dtype, t2_shape, True)
 
     var t1 = Tensor[dtype](s1.shape)
     var t2 = Tensor[dtype](s2.shape)
@@ -52,13 +51,13 @@ fn test_get_tensor_reference(inout uuid: UUIDGenerator) raises:
     assert_tensors_equal(c[s2], t2_expected)
 
 
-fn test_resize_collection(inout uuid: UUIDGenerator) raises:
+fn test_resize_collection() raises:
     alias t1_shape = TensorShape(1, 10)
     alias t2_shape = TensorShape(2, 20)
     alias t3_shape = TensorShape(3, 30)
-    var s1 = Symbol(uuid.next(), dtype, t1_shape, True)
-    var s2 = Symbol(uuid.next(), dtype, t2_shape, True)
-    var s3 = Symbol(uuid.next(), dtype, t3_shape, True)
+    var s1 = Symbol(0, dtype, t1_shape, True)
+    var s2 = Symbol(1, dtype, t2_shape, True)
+    var s3 = Symbol(2, dtype, t3_shape, True)
 
     var t1 = Tensor[dtype](s1.shape)
     var t2 = Tensor[dtype](s2.shape)
@@ -95,11 +94,11 @@ fn test_resize_collection(inout uuid: UUIDGenerator) raises:
     assert_tensors_equal(c[s3], t3_expected)
 
 
-fn test_set_zero(inout uuid: UUIDGenerator) raises:
+fn test_set_zero() raises:
     alias t1_shape = TensorShape(1, 10)
     alias t2_shape = TensorShape(2, 20)
-    var s1 = Symbol(uuid.next(), dtype, t1_shape, True)
-    var s2 = Symbol(uuid.next(), dtype, t2_shape, True)
+    var s1 = Symbol(0, dtype, t1_shape, True)
+    var s2 = Symbol(1, dtype, t2_shape, True)
     var t1 = Tensor[dtype](s1.shape)
     var t2 = Tensor[dtype](s2.shape)
     fill(t1, 1)
@@ -122,11 +121,11 @@ fn test_set_zero(inout uuid: UUIDGenerator) raises:
     assert_tensors_equal(c[s2], Tensor[dtype](t2_shape))
 
 
-fn test_operate_on_reference(inout uuid: UUIDGenerator) raises:
+fn test_operate_on_reference() raises:
     alias res_shape = TensorShape(1, 10)
     alias t1_shape = TensorShape(1, 10)
-    var sr = Symbol(uuid.next(), dtype, t1_shape, True)
-    var s1 = Symbol(uuid.next(), dtype, t1_shape, True)
+    var sr = Symbol(0, dtype, t1_shape, True)
+    var s1 = Symbol(1, dtype, t1_shape, True)
     var res = Tensor[dtype](res_shape)
     var t1 = Tensor[dtype](s1.shape)
         
@@ -153,14 +152,12 @@ fn test_operate_on_reference(inout uuid: UUIDGenerator) raises:
 
 
 fn main() raises:
-    var uuid = UUIDGenerator(42)
-
     try:
-        test_append_tensors(uuid)
-        test_get_tensor_reference(uuid)
-        test_resize_collection(uuid)
-        test_set_zero(uuid)
-        test_operate_on_reference(uuid)
+        test_append_tensors()
+        test_get_tensor_reference()
+        test_resize_collection()
+        test_set_zero()
+        test_operate_on_reference()
     except e:
         print(e)
         raise e
