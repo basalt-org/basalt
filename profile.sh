@@ -5,18 +5,18 @@ function profile() {
         InstallFlameGraph
     fi
 
-    case "$OSTYPE" in
-        darwin*)
-            profileMac "$1"
-            ;;
-        linux-gnu*|msys)
-            profileLinux "$1"
-            ;;
-        *)
-            echo "Error: Unknown OS"
-            exit 1
-            ;;
-    esac
+    if [ -f /proc/sys/fs/binfmt_misc/WSLInterop ]; then
+        profileLinux "$1"
+    else
+        case "$OSTYPE" in
+            darwin*)
+                profileMac "$1"
+                ;;
+            linux-gnu*|msys)
+                profileLinux "$1"
+                ;;
+        esac
+    fi
 }
 
 function profileLinux() {
@@ -52,24 +52,20 @@ function runProfile() {
     llvm-strip --strip-debug "$temp_dir/run.exe"
 
     echo "Running perf record..."
-    perf record -F 99 -a -g -o "$perf_output" -- "$temp_dir/run.exe"
+    sudo perf record -F 99 -a -g -o "$perf_output" -- "$temp_dir/run.exe"
 
     echo "Generating flamegraph..."
-    perf script -i "$perf_output" | ~/FlameGraph/stackcollapse-perf.pl | ~/FlameGraph/flamegraph.pl > "$flamegraph_output"
+    sudo perf script -i "$perf_output" | ~/FlameGraph/stackcollapse-perf.pl | ~/FlameGraph/flamegraph.pl > "$flamegraph_output"
 
     echo "Opening flamegraph: $flamegraph_output"
 
-    case "$OSTYPE" in
-        darwin*)
-            open "$flamegraph_output"
-            ;;
-        mysys*)
-            explorer.exe "$flamegraph_output"
-            ;;
-        linux-gnu*)
-            google-chrome "$flamegraph_output"
-            ;;
-    esac
+    if command -v open &> /dev/null; then
+        open "$flamegraph_output"
+    elif command -v explorer.exe &> /dev/null; then
+        explorer.exe "$flamegraph_output"
+    elif command -v google-chrome &> /dev/null; then
+        google-chrome "$flamegraph_output"
+    fi
 
     echo "Cleaning up temporary files..."
     rm -rf "$temp_dir"
