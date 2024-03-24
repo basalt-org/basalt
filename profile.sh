@@ -1,3 +1,5 @@
+# Usage . profile.sh <mojo_file>
+
 function profile() {
     local mojo_file=$1
     local mojo_name="${mojo_file%.mojo}"
