@@ -1,20 +1,36 @@
 function profile() {
     local mojo_file=$1
     local mojo_name="${mojo_file%.mojo}"
-    if [ ! -d "./temp" ]; then
-        mkdir ./temp
+    local temp_dir="./temp"
+    local perf_output="$temp_dir/out.perf"
+    local flamegraph_output="flamegraph.svg"
+
+    echo "Profiling $mojo_file..."
+
+    if [ ! -d "$temp_dir" ]; then
+        mkdir $temp_dir
     fi
+
+    echo "Building $mojo_file..."
     mojo build -O0 -I . $mojo_file
-    mv "$mojo_name" "./run.exe"
-    ~/perf record -F 99 -a -g -o ./temp/out.perf -- ./run.exe
-    ~/perf script -i ./temp/out.perf | ~/FlameGraph/stackcollapse-perf.pl | ~/FlameGraph/flamegraph.pl > flamegraph.svg
-    explorer.exe flamegraph.svg
-    rm -rf ./temp
-    rm -rf ./run.exe
+
+    echo "Stripping debug symbols..."
+    mv "$mojo_name" "$temp_dir/run.exe"
+    llvm-strip --strip-debug "$temp_dir/run.exe"
+
+    echo "Running perf record..."
+    ~/perf record -F 99 -a -g -o $perf_output -- $temp_dir/run.exe
+
+    echo "Generating flamegraph..."
+    ~/perf script -i $perf_output | ~/FlameGraph/stackcollapse-perf.pl | ~/FlameGraph/flamegraph.pl > $flamegraph_output
+
+    echo "Opening flamegraph: $flamegraph_output"
+    explorer.exe $flamegraph_output
+
+    echo "Cleaning up temporary files..."
+    rm -rf $temp_dir
+
+    echo "Profiling completed."
 }
 
-profile "$1" 
-
-# If cat /proc/sys/kernel/kptr_restrict = 1
-# Run echo 0 | sudo tee /proc/sys/kernel/kptr_restrict
-# Then sudo sysctl -p
+profile "$1"
