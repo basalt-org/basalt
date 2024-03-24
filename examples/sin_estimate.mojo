@@ -57,14 +57,11 @@ fn main():
     print("Training started")
     var start = now()
     
-    alias epochs = 200000
+    alias epochs = 10000
     for i in range(epochs):
         refresh()
 
         var out = model.forward(x, y)
-        
-        if i + 1 % 1000 == 0:
-            print("[", i + 1, "/", epochs,"] \tLoss: ", out[0])
 
         optimizer.zero_grad(model.parameters)
         model.backward()
