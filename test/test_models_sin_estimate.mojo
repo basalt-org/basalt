@@ -1,4 +1,5 @@
 from random import rand
+from math.limit import max_finite
 from python import Python
 from testing import assert_almost_equal
 from test_conv import to_numpy, to_tensor
@@ -7,6 +8,7 @@ from test_tensorutils import assert_tensors_equal
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP, dtype
+from basalt.utils.rand_utils import MersenneTwister
 
 
 fn create_simple_nn(
@@ -31,7 +33,7 @@ fn create_simple_nn(
 
     # ReLU 1
     var x2 = nn.ReLU(g, x1)
-    
+
     # Linear 2: nn.Linear(g, x2, n_outputs=32)
     var l2_w = g.param(TensorShape(32, 32), init=linear2_weights)
     var l2_b = g.param(TensorShape(32), init=linear2_bias)
@@ -40,7 +42,7 @@ fn create_simple_nn(
 
     # ReLU 2
     var x4 = nn.ReLU(g, x3)
-    
+
     # Linear 3: nn.Linear(g, x4, n_outputs=1)
     var l3_w = g.param(TensorShape(32, 1), init=linear3_weights)
     var l3_b = g.param(TensorShape(1), init=linear3_bias)
@@ -121,11 +123,17 @@ fn run_torch(
         var inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
         var labels = torch.from_numpy(to_numpy(labels)).requires_grad_(True)
 
-        var linear1_weights = torch.from_numpy(to_numpy(linear1_weights)).requires_grad_(True)
+        var linear1_weights = torch.from_numpy(
+            to_numpy(linear1_weights)
+        ).requires_grad_(True)
         var linear1_bias = torch.from_numpy(to_numpy(linear1_bias)).requires_grad_(True)
-        var linear2_weights = torch.from_numpy(to_numpy(linear2_weights)).requires_grad_(True)
+        var linear2_weights = torch.from_numpy(
+            to_numpy(linear2_weights)
+        ).requires_grad_(True)
         var linear2_bias = torch.from_numpy(to_numpy(linear2_bias)).requires_grad_(True)
-        var linear3_weights = torch.from_numpy(to_numpy(linear3_weights)).requires_grad_(True)
+        var linear3_weights = torch.from_numpy(
+            to_numpy(linear3_weights)
+        ).requires_grad_(True)
         var linear3_bias = torch.from_numpy(to_numpy(linear3_bias)).requires_grad_(True)
 
         var regression = torch_models.SimpleNN(
@@ -159,12 +167,16 @@ fn run_torch(
 
 
 fn create_weights(num_elements: Int, zero: Bool) -> DynamicVector[SIMD[dtype, 1]]:
+    var prng = MersenneTwister(123456)
     var weights = DynamicVector[SIMD[dtype, 1]](capacity=num_elements)
     for i in range(num_elements):
         if zero:
             weights.push_back(SIMD[dtype, 1](0.0))
         else:
-            weights.push_back(SIMD[dtype, 1](0.1))
+            var rand_float = prng.next().cast[dtype]() / max_finite[DType.int32]().cast[
+                dtype
+            ]()
+            weights.push_back(SIMD[dtype, 1](rand_float / 10))
     return weights ^
 
 
@@ -211,10 +223,8 @@ fn main():
         linear2_weights,
         linear2_bias,
         linear3_weights,
-        linear3_bias
-    ](
-        epochs, learning_rate, x_data, y_data
-    )
+        linear3_bias,
+    ](epochs, learning_rate, x_data, y_data)
 
     var losses_torch = run_torch(
         epochs,
@@ -241,3 +251,6 @@ fn main():
             print(e)
             success = False
             break
+
+    if success:
+        print("SUCCES: All losses in Linear Regression model are equal.")

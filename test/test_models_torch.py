@@ -95,23 +95,23 @@ class CNN(nn.Module):
 
 class SimpleNN(nn.Module):
     def __init__(
-            self,
-            linear1_weights,
-            linear1_bias,
-            linear2_weights,
-            linear2_bias,
-            linear3_weights,
-            linear3_bias,
-        ):
+        self,
+        linear1_weights,
+        linear1_bias,
+        linear2_weights,
+        linear2_bias,
+        linear3_weights,
+        linear3_bias,
+    ):
         super(SimpleNN, self).__init__()
-        
+
         self.linear1_weights = nn.Parameter(linear1_weights)
         self.linear1_bias = nn.Parameter(linear1_bias)
         self.linear2_weights = nn.Parameter(linear2_weights)
         self.linear2_bias = nn.Parameter(linear2_bias)
         self.linear3_weights = nn.Parameter(linear3_weights)
         self.linear3_bias = nn.Parameter(linear3_bias)
-    
+
         self.relu1 = nn.ReLU()
         self.relu2 = nn.ReLU()
 
