@@ -17,23 +17,24 @@ fn fill[dtype: DType](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
 
 
 # ----- Functions to access positions in tensor data -----
+@always_inline
 fn get_real_index[
+    size: Int,
+    strides_shape: StaticIntTuple[size],
     broadcast_shape: TensorShape
-](i: Int, strides_shape: DynamicVector[Int]) -> Int:
+](i: Int) -> Int:
     # broadcast_shape is of same rank as strides_shape (the not broadcasted shape), because of broadcast_calculate_strides
     var index_res = 0
     var linear_index = i
 
     @parameter
     fn unroll_dims[dim: Int]():
-        var j = (broadcast_shape.rank() - 1) - dim
+        var j = (size - 1) - dim
 
-        var stride = strides_shape[j]
-        var index = linear_index % broadcast_shape[j]
+        index_res += (linear_index % broadcast_shape[j]) * strides_shape[j]
         linear_index = linear_index // broadcast_shape[j]
-        index_res += index * stride
-
-    unroll[unroll_dims, broadcast_shape.rank()]()
+        
+    unroll[unroll_dims, size]()
 
     return index_res
 
@@ -88,20 +89,23 @@ fn broadcast_shapes(*s: TensorShape) -> TensorShape:
 
 
 @always_inline
-fn broadcast_calculate_strides(
-    shape: TensorShape, broadcast_shape: TensorShape
-) -> DynamicVector[Int]:
-    var strides = DynamicVector[Int]()
-    strides.resize(broadcast_shape.rank(), 0)
+fn broadcast_calculate_strides[
+    size: Int,
+    shape: TensorShape, 
+    broadcast_shape: TensorShape
+]() -> StaticIntTuple[size]:
+    alias shape_rank = shape.rank()
+    alias diff = size - shape_rank
+    
+    var strides = StaticIntTuple[size](0)
 
-    var diff = broadcast_shape.rank() - shape.rank()
     var stride = 1
-    for i in range(shape.rank() - 1, -1, -1):
+    for i in range(shape_rank - 1, -1, -1):
         if shape[i] != 1:
             strides[i + diff] = stride
             stride *= shape[i]
 
-    return strides ^
+    return strides
 
 
 # ----- Dot functions -----
@@ -281,13 +285,14 @@ fn broadcast_elwise_op[
         x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]
     ) -> SIMD[dtype, nelts],
 ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
-    alias strides1 = broadcast_calculate_strides(t1_shape, res_shape)
-    alias strides2 = broadcast_calculate_strides(t2_shape, res_shape)
+    alias size = res_shape.rank()
+    alias strides1 = broadcast_calculate_strides[size, t1_shape, res_shape]()
+    alias strides2 = broadcast_calculate_strides[size, t2_shape, res_shape]()
 
     @parameter
     fn vec_op[nelts: Int](i: Int):
-        var index1 = get_real_index[res_shape](i, strides1)
-        var index2 = get_real_index[res_shape](i, strides2)
+        var index1 = get_real_index[size, strides1, res_shape](i)
+        var index2 = get_real_index[size, strides2, res_shape](i)
 
         res.simd_store[nelts](
             i,
@@ -313,12 +318,12 @@ fn accumulate_grad[
         # Backward resulting gradient (res_grad) was formed from an operation that required broadcasting.
         # In order to accumulate res_grad to the gradient, the res_grad tensor needs to be unbroadcasted.
         # The following is equivalent to: Summing along the axes that were expanded during the broadcasting process.
-
-        alias strides_grad = broadcast_calculate_strides(grad_shape, res_grad_shape)
+        alias size = res_grad_shape.rank()
+        alias strides_grad = broadcast_calculate_strides[size, grad_shape, res_grad_shape]()
 
         @parameter
         fn vec_op[nelts: Int](i: Int):
-            var index = get_real_index[res_grad_shape](i, strides_grad)
+            var index = get_real_index[size, strides_grad, res_grad_shape](i)
             grad[index] += res_grad.simd_load[nelts](i).reduce_add()
 
         # TODO: Check how to vectorize this

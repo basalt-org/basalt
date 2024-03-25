@@ -162,13 +162,14 @@ struct DIV:
                 vectorize[vec_div_bw_scalar, nelts](ug_shape.num_elements())
 
             elif broadcast and not is_scalar:
-                alias strides1 = broadcast_calculate_strides(t1_shape, ug_shape)
-                alias strides2 = broadcast_calculate_strides(t2_shape, ug_shape)
+                alias size = ug_shape.rank()
+                alias strides1 = broadcast_calculate_strides[size, t1_shape, ug_shape]()
+                alias strides2 = broadcast_calculate_strides[size, t2_shape, ug_shape]()
 
                 @parameter
                 fn vec_div_bw_broadcast[netls: Int](i: Int):
-                    var index1 = get_real_index[ug_shape](i, strides1)
-                    var index2 = get_real_index[ug_shape](i, strides2)
+                    var index1 = get_real_index[size, strides1, ug_shape](i)
+                    var index2 = get_real_index[size, strides2, ug_shape](i)
                     res_grad.simd_store[nelts](
                         i,
                         -t1.simd_load[nelts](index1)
