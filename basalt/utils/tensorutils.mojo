@@ -1,6 +1,6 @@
 from algorithm import vectorize, parallelize
 from memory import memset_zero, memset
-from math import sqrt, pow, equal, max, min, abs, add, div
+from math import sqrt, pow, equal, max, min, abs, add, div, divmod
 from random import rand
 from collections.vector import InlinedFixedVector
 
@@ -24,15 +24,17 @@ fn get_real_index[
     broadcast_shape: TensorShape
 ](i: Int) -> Int:
     # broadcast_shape is of same rank as strides_shape (the not broadcasted shape), because of broadcast_calculate_strides
+    alias size_minus_one = size - 1
     var index_res = 0
     var linear_index = i
 
     @parameter
     fn unroll_dims[dim: Int]():
-        var j = (size - 1) - dim
+        var j = size_minus_one - dim
+        var divmod_index = divmod(linear_index, broadcast_shape[j])
 
-        index_res += (linear_index % broadcast_shape[j]) * strides_shape[j]
-        linear_index = linear_index // broadcast_shape[j]
+        index_res += divmod_index[1] * strides_shape[j]
+        linear_index = divmod_index[0]
         
     unroll[unroll_dims, size]()
 
