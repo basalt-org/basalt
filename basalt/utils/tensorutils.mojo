@@ -125,8 +125,9 @@ fn dot[
                     res.simd_load[nelts](m * N + n)
                     + t1[m * K + k] * t2.simd_load[nelts](k * N + n),
                 )
+
             vectorize[vec_n, nelts](N)
-    
+
     parallelize[calc_row](M)
 
 
@@ -301,24 +302,19 @@ fn broadcast_elwise_op[
 
 @always_inline
 fn accumulate_grad[
-    grad_shape: TensorShape,
-    res_grad_shape: TensorShape
+    grad_shape: TensorShape, res_grad_shape: TensorShape
 ](inout grad: Tensor[dtype], res_grad: Tensor[dtype]):
-
     @parameter
     if grad_shape == res_grad_shape:
         elwise_op[add](grad, grad, res_grad)
     elif res_grad_shape == TensorShape(1):
         elwise_op[add](grad, grad, res_grad[0])
     elif grad_shape != res_grad_shape:
-        
         # Backward resulting gradient (res_grad) was formed from an operation that required broadcasting.
         # In order to accumulate res_grad to the gradient, the res_grad tensor needs to be unbroadcasted.
         # The following is equivalent to: Summing along the axes that were expanded during the broadcasting process.
 
-        alias strides_grad = broadcast_calculate_strides(
-            grad_shape, res_grad_shape
-        )
+        alias strides_grad = broadcast_calculate_strides(grad_shape, res_grad_shape)
 
         @parameter
         fn vec_op[nelts: Int](i: Int):
@@ -393,8 +389,12 @@ fn reduce[
     reduce_op: fn[type: DType, simd_width: Int] (x: SIMD[type, simd_width]) -> SIMD[
         type, 1
     ],
-](inout res: Tensor[dtype], t: Tensor[dtype], axis: Int, starting_value: SIMD[dtype, nelts]):
-
+](
+    inout res: Tensor[dtype],
+    t: Tensor[dtype],
+    axis: Int,
+    starting_value: SIMD[dtype, nelts],
+):
     var strides = t.strides()
 
     @parameter
@@ -466,19 +466,21 @@ fn tmean(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
     var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)
     tsum(res, t, axis)
     elwise_op[div](res, res, num_elements_axis)
-    
+
 
 @always_inline
 fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
     var mu = Tensor[dtype](get_reduce_shape(t.shape(), axis))
     tmean(mu, t, axis)
 
-    var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)    
+    var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)
     var strides = t.strides()
     var strides_mu = mu.strides()
 
     @parameter
-    fn get_t_index(i: Int, j: Int, axis: Int, shape: TensorShape, strides: InlinedFixedVector[Int]) -> Int:
+    fn get_t_index(
+        i: Int, j: Int, axis: Int, shape: TensorShape, strides: InlinedFixedVector[Int]
+    ) -> Int:
         var index_res = 0
         for k in range(shape.rank()):
             if k == axis:
@@ -488,18 +490,18 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
         return index_res
 
     @parameter
-    fn get_mu_index(i: Int, axis: Int, shape: TensorShape, strides: InlinedFixedVector[Int]) -> Int:
+    fn get_mu_index(
+        i: Int, axis: Int, shape: TensorShape, strides: InlinedFixedVector[Int]
+    ) -> Int:
         var index_res = 0
         for k in range(shape.rank()):
             if k != axis:
                 index_res += (i % shape[k]) * strides[k]
         return index_res
 
-
     for i in range(t.num_elements() // t.dim(axis)):
-
         var mu_index = get_mu_index(i, axis, mu.shape(), strides_mu)
-        
+
         @parameter
         fn vecvar[nelts: Int](j: Int):
             var t_index = get_t_index(i, j, axis, t.shape(), strides)
@@ -531,7 +533,6 @@ fn tmax(t: Tensor[dtype]) -> SIMD[dtype, 1]:
 fn tmax(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
     var starting_value = math.limit.min_finite[dtype]()
     reduce[max, _reduce_max](res, t, axis, starting_value)
-
 
 
 # @always_inline
@@ -618,12 +619,11 @@ fn transpose(inout res: Tensor[dtype], t: Tensor[dtype], axes: TensorShape):
 
     # Get position of where the last dim of the old shape is in the new shape
     for i in range(axes.rank()):
-       if t.rank() - 1 == axes[i]:
-           position_of_last_rank_new_shape = i
+        if t.rank() - 1 == axes[i]:
+            position_of_last_rank_new_shape = i
 
     @parameter
     fn p_transpose(i: Int):
-
         @parameter
         fn v_transpose[nelts: Int](j: Int):
             var new_index = 0

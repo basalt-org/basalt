@@ -20,17 +20,18 @@ alias nelts: Int = simdwidthof[dtype]()
 struct torch_maxpool2d_output:
     var expected: Tensor[dtype]
     var expected_grad: Tensor[dtype]
-    
+
+
 fn torch_maxpool2d(
     inputs: Tensor,
     kernel_size: StaticIntTuple[2],
     padding: StaticIntTuple[2],
     stride: StaticIntTuple[2],
     dilation: StaticIntTuple[2],
-    upper_grad: Tensor
+    upper_grad: Tensor,
 ) -> torch_maxpool2d_output:
     var out: torch_maxpool2d_output
-    
+
     try:
         var torch = Python.import_module("torch")
         var F = Python.import_module("torch.nn.functional")
@@ -52,8 +53,7 @@ fn torch_maxpool2d(
 
         # expected
         out = torch_maxpool2d_output(
-            to_tensor(expected.detach().numpy()),
-            to_tensor(inputs.grad.numpy())
+            to_tensor(expected.detach().numpy()), to_tensor(inputs.grad.numpy())
         )
         return out
 
@@ -69,21 +69,22 @@ fn test_pool_forward[
     kernel_size: StaticIntTuple[2],
     padding: StaticIntTuple[2],
     stride: StaticIntTuple[2],
-    dilation: StaticIntTuple[2]
-](
-    inputs: Tensor[dtype]
-) raises:
-
+    dilation: StaticIntTuple[2],
+](inputs: Tensor[dtype]) raises:
     fn create_graph() -> Graph:
         var g = Graph()
         var inp = g.input(input_shape)
 
-        var res = g.op(OP.MAXPOOL2D, inp, attributes=AttributeVector(
-            Attribute("kernel_size", kernel_size),
-            Attribute("padding", padding),
-            Attribute("stride", stride),
-            Attribute("dilation", dilation)
-        ))
+        var res = g.op(
+            OP.MAXPOOL2D,
+            inp,
+            attributes=AttributeVector(
+                Attribute("kernel_size", kernel_size),
+                Attribute("padding", padding),
+                Attribute("stride", stride),
+                Attribute("dilation", dilation),
+            ),
+        )
         g.out(res)
 
         return g ^
@@ -100,7 +101,7 @@ fn test_pool_forward[
         padding=padding,
         stride=stride,
         dilation=dilation,
-        upper_grad=Tensor[dtype](res.shape())
+        upper_grad=Tensor[dtype](res.shape()),
     )
 
     assert_tensors_equal(res, torch_out.expected)
@@ -148,25 +149,21 @@ fn test_forward_3() raises:
     test_pool_forward[input_shape, kernel_size, padding, stride, dilation](inputs)
 
 
-
 fn test_pool_backward[
     ug_shape: TensorShape,
     input_shape: TensorShape,
     kernel_size: StaticIntTuple[2],
     padding: StaticIntTuple[2],
     stride: StaticIntTuple[2],
-    dilation: StaticIntTuple[2]
-](
-    ug: Tensor[dtype], inputs: Tensor[dtype]
-) raises:
-
+    dilation: StaticIntTuple[2],
+](ug: Tensor[dtype], inputs: Tensor[dtype]) raises:
     alias attributes = AttributeVector(
         Attribute("kernel_size", kernel_size),
         Attribute("padding", padding),
         Attribute("stride", stride),
-        Attribute("dilation", dilation)
+        Attribute("dilation", dilation),
     )
-    
+
     var grad = MAXPOOL2D.backward[ug_shape, input_shape, attributes](ug, inputs)
 
     var torch_out = torch_maxpool2d(
@@ -175,7 +172,7 @@ fn test_pool_backward[
         padding=padding,
         stride=stride,
         dilation=dilation,
-        upper_grad=ug
+        upper_grad=ug,
     )
 
     assert_tensors_equal(grad, torch_out.expected_grad, "almost")
@@ -193,12 +190,16 @@ fn test_backward_1() raises:
     rand[dtype](inputs.data(), inputs.num_elements())
 
     # uppergrad
-    alias res = get_result_shape(input_shape, TensorShape(kernel_size, kernel_size), padding, stride, dilation)
+    alias res = get_result_shape(
+        input_shape, TensorShape(kernel_size, kernel_size), padding, stride, dilation
+    )
     alias ug_shape = TensorShape(input_shape[0], input_shape[1], res[0], res[1])
     var ug = Tensor[dtype](ug_shape)
     rand[dtype](ug.data(), ug.num_elements())
 
-    test_pool_backward[ug_shape, input_shape, kernel_size, padding, stride, dilation](ug, inputs)
+    test_pool_backward[ug_shape, input_shape, kernel_size, padding, stride, dilation](
+        ug, inputs
+    )
 
 
 fn test_backward_2() raises:
@@ -213,12 +214,16 @@ fn test_backward_2() raises:
     rand[dtype](inputs.data(), inputs.num_elements())
 
     # uppergrad
-    alias res = get_result_shape(input_shape, TensorShape(kernel_size, kernel_size), padding, stride, dilation)
+    alias res = get_result_shape(
+        input_shape, TensorShape(kernel_size, kernel_size), padding, stride, dilation
+    )
     alias ug_shape = TensorShape(input_shape[0], input_shape[1], res[0], res[1])
     var ug = Tensor[dtype](ug_shape)
     rand[dtype](ug.data(), ug.num_elements())
 
-    test_pool_backward[ug_shape, input_shape, kernel_size, padding, stride, dilation](ug, inputs)
+    test_pool_backward[ug_shape, input_shape, kernel_size, padding, stride, dilation](
+        ug, inputs
+    )
 
 
 fn test_backward_3() raises:
@@ -234,12 +239,16 @@ fn test_backward_3() raises:
 
     # uppergrad
     alias kernel_size_static: StaticIntTuple[2] = kernel_size
-    alias res = get_result_shape(input_shape, TensorShape(kernel_size_static), padding, stride, dilation)
+    alias res = get_result_shape(
+        input_shape, TensorShape(kernel_size_static), padding, stride, dilation
+    )
     alias ug_shape = TensorShape(input_shape[0], input_shape[1], res[0], res[1])
     var ug = Tensor[dtype](ug_shape)
     rand[dtype](ug.data(), ug.num_elements())
 
-    test_pool_backward[ug_shape, input_shape, kernel_size, padding, stride, dilation](ug, inputs)
+    test_pool_backward[ug_shape, input_shape, kernel_size, padding, stride, dilation](
+        ug, inputs
+    )
 
 
 fn main():

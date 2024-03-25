@@ -14,7 +14,6 @@ alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
 
 
-
 # ------ Test Unary Ops ------
 fn test_unary_op[
     op: OP, t1_shape: TensorShape
@@ -43,7 +42,7 @@ fn test_SIGMOID() raises:
 
     var expected = Tensor[dtype](2, 3)
     fill(expected, 0.5)
-    
+
     test_unary_op[OP.SIGMOID, t1_shape](t1, expected)
 
 
@@ -58,7 +57,7 @@ fn test_backward_SIGMOID() raises:
     fill(
         expected_grad, 5.0 * 0.25
     )  # 0.25 = d(sigmoid(0))/dx = sigmoid(0) * (1 - sigmoid(0))
-    
+
     var grad = SIGMOID.backward[ug_shape, t1_shape](ug, t1)
     assert_tensors_equal(grad, expected_grad)
 
@@ -77,7 +76,7 @@ fn test_RELU() raises:
         expected[i] = 3
     for i in range(3, 6):
         expected[i] = 0
-    
+
     test_unary_op[OP.RELU, t1_shape](t1, expected)
 
 
@@ -121,7 +120,7 @@ fn test_backward_TANH() raises:
 
     var expected_grad = Tensor[dtype](2, 3)
     fill(expected_grad, 5.0 * 1.0)  # 1.0 = d(tanh(0))/dx = 1 - tanh(0)^2
-    
+
     var grad = TANH.backward[ug_shape, t1_shape](ug, t1)
     assert_tensors_equal(grad, expected_grad)
 

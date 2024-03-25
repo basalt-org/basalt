@@ -2,6 +2,7 @@
 
 from collections.vector import InlinedFixedVector
 
+
 struct KeysContainer[KeyEndType: DType = DType.uint32](Sized):
     var keys: DTypePointer[DType.int8]
     var allocated_bytes: Int
@@ -11,11 +12,11 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized):
 
     fn __init__(inout self, capacity: Int):
         constrained[
-            KeyEndType == DType.uint8 or 
-            KeyEndType == DType.uint16 or 
-            KeyEndType == DType.uint32 or 
-            KeyEndType == DType.uint64,
-            "KeyEndType needs to be an unsigned integer"
+            KeyEndType == DType.uint8
+            or KeyEndType == DType.uint16
+            or KeyEndType == DType.uint32
+            or KeyEndType == DType.uint64,
+            "KeyEndType needs to be an unsigned integer",
         ]()
         self.allocated_bytes = capacity << 3
         self.keys = DTypePointer[DType.int8].alloc(self.allocated_bytes)
@@ -48,7 +49,7 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized):
         var prev_end = 0 if self.count == 0 else self.keys_end[self.count - 1]
         var key_length = len(key)
         var new_end = prev_end + key_length
-        
+
         var needs_realocation = False
         while new_end > self.allocated_bytes:
             self.allocated_bytes += self.allocated_bytes >> 1
@@ -59,7 +60,7 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized):
             memcpy(keys, self.keys, prev_end.to_int())
             self.keys.free()
             self.keys = keys
-        
+
         memcpy(self.keys.offset(prev_end), key._as_ptr(), key_length)
         var count = self.count + 1
         if count >= self.capacity:
@@ -72,7 +73,6 @@ struct KeysContainer[KeyEndType: DType = DType.uint32](Sized):
 
         self.keys_end.store(self.count, new_end)
         self.count = count
-
 
     @always_inline
     fn get(self, index: Int) -> StringRef:

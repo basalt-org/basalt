@@ -28,7 +28,7 @@ struct Collection(Sized):
         self.capacity = other.capacity
         self.size = other.size
         self.data = other.data
-        self.symbol_map = other.symbol_map^
+        self.symbol_map = other.symbol_map ^
 
     fn append(inout self, owned value: Tensor[dtype], symbol: Symbol):
         if self.size == self.capacity:
@@ -46,9 +46,8 @@ struct Collection(Sized):
         self: Reference[Self, mutability, lifetime].mlir_ref_type,
         symbol: Symbol,
     ) -> Reference[Tensor[dtype], mutability, lifetime]:
-        
         var index = Reference(self)[].symbol_map.get(str(symbol.name), -1)
-        
+
         return Reference(
             __mlir_op.`lit.ref.from_pointer`[
                 _type = Reference[Tensor[dtype], mutability, lifetime].mlir_ref_type
@@ -59,11 +58,11 @@ struct Collection(Sized):
     fn reserve(inout self, new_capacity: Int):
         if new_capacity <= self.capacity:
             return
-        
+
         var new_data = AnyPointer[Tensor[dtype]].alloc(new_capacity)
         for i in range(self.size):
             (self.data + i).move_into(new_data + i)
-        
+
         self.data.free()
         self.data = new_data
         self.capacity = new_capacity

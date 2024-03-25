@@ -5,7 +5,22 @@ from test_tensorutils import assert_tensors_equal
 
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import fill, tsum
-from basalt.autograd.ops.basics import ADD, SUB, MUL, DIV, DOT, EXP, LOG, POW, MEAN, FLATTEN, SUM, MAX, RESHAPE, TRANSPOSE
+from basalt.autograd.ops.basics import (
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    DOT,
+    EXP,
+    LOG,
+    POW,
+    MEAN,
+    FLATTEN,
+    SUM,
+    MAX,
+    RESHAPE,
+    TRANSPOSE,
+)
 from basalt.autograd.attributes import Attribute, AttributeVector
 
 alias dtype = DType.float32
@@ -203,6 +218,7 @@ fn test_SUM_0() raises:
 
     assert_tensors_equal(grad1, expected_grad1)
 
+
 fn test_SUM_1() raises:
     alias t1_shape = TensorShape(2, 3)
     alias ug_shape = TensorShape(2, 1)
@@ -383,7 +399,9 @@ fn test_TRANSPOSE() raises:
     for i in range(ug_shape[0]):
         for j in range(ug_shape[1]):
             for k in range(ug_shape[2]):
-                expected_grad[k * t1_strides[0] + j * t1_strides[1] + i] = ug[i * ug_shape[1] * ug_shape[2] + j * ug_shape[2] + k]
+                expected_grad[k * t1_strides[0] + j * t1_strides[1] + i] = ug[
+                    i * ug_shape[1] * ug_shape[2] + j * ug_shape[2] + k
+                ]
 
     assert_tensors_equal(grad, expected_grad)
 
@@ -400,7 +418,9 @@ fn test_TRANSPOSE() raises:
     for i in range(ug_shape_2[0]):
         for j in range(ug_shape_2[1]):
             for k in range(ug_shape_2[2]):
-                expected_grad[k * t1_strides[0] + i * t1_strides[1] + j] = ug[i * ug_shape_2[1] * ug_shape_2[2] + j * ug_shape_2[2] + k]
+                expected_grad[k * t1_strides[0] + i * t1_strides[1] + j] = ug[
+                    i * ug_shape_2[1] * ug_shape_2[2] + j * ug_shape_2[2] + k
+                ]
 
     assert_tensors_equal(grad, expected_grad)
 

@@ -1,9 +1,9 @@
-
 @register_passable("trivial")
 struct MersenneTwister:
     """
     Pseudo-random generator Mersenne Twister (MT19937-32bit).
     """
+
     alias N: Int = 624
     alias M: Int = 397
     alias MATRIX_A: Int32 = 0x9908B0DF
@@ -19,14 +19,16 @@ struct MersenneTwister:
         alias W: Int = 32
         alias F: Int32 = 1812433253
         alias D: Int32 = 0xFFFFFFFF
-        
+
         self.index = Self.N
         self.state = StaticTuple[Self.N, Int32]()
         self.state[0] = seed & D
-        
+
         for i in range(1, Self.N):
-            self.state[i] = (F * (self.state[i - 1] ^ (self.state[i - 1] >> (W - 2))) + i) & D
-        
+            self.state[i] = (
+                F * (self.state[i - 1] ^ (self.state[i - 1] >> (W - 2))) + i
+            ) & D
+
     fn next(inout self) -> Int32:
         if self.index >= Self.N:
             for i in range(Self.N):
@@ -38,14 +40,14 @@ struct MersenneTwister:
                     xA ^= Self.MATRIX_A
                 self.state[i] = self.state[(i + Self.M) % Self.N] ^ xA
             self.index = 0
-        
+
         var y = self.state[self.index]
         y ^= y >> 11
         y ^= (y << 7) & Self.TEMPERING_MASK_B
         y ^= (y << 15) & Self.TEMPERING_MASK_C
         y ^= y >> 18
         self.index += 1
-        
+
         return y
 
     fn next_ui8(inout self) -> UInt8:
@@ -100,9 +102,9 @@ struct UUIDGenerator:
         @unroll
         for i in range(16):
             uuid[i] = self.prng.next_ui8()
-        
+
         # Version 4, variant 10xx
         uuid[6] = 0x40 | (0x0F & uuid[6])
         uuid[8] = 0x80 | (0x3F & uuid[8])
-        
+
         return uuid

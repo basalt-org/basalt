@@ -11,7 +11,6 @@ alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
 
 
-
 fn test_SOFTMAX() raises:
     alias x_shape = TensorShape(2, 3, 2)
 
@@ -42,7 +41,9 @@ fn test_SOFTMAX() raises:
 
     assert_tensors_equal(res, expected, "almost")
 
-    assert_equal(len(graph.nodes), 5) # max_values, exp_values, sum_values, diff_max_values, result_div
+    assert_equal(
+        len(graph.nodes), 5
+    )  # max_values, exp_values, sum_values, diff_max_values, result_div
 
     # Test axis 1
     alias graph_2 = create_graph(1)
@@ -82,7 +83,7 @@ fn test_LOGSOFTMAX() raises:
         g.out(logsoftmax)
 
         return g ^
-    
+
     var x = Tensor[dtype](x_shape)
 
     fill(x, 4)
@@ -99,7 +100,9 @@ fn test_LOGSOFTMAX() raises:
 
     assert_tensors_equal(res, expected, "almost")
 
-    assert_equal(len(graph.nodes), 6) # max_values, exp_values, sum_values, diff_max_values, log_values, result_sub
+    assert_equal(
+        len(graph.nodes), 6
+    )  # max_values, exp_values, sum_values, diff_max_values, log_values, result_sub
 
     # Test axis 1
     alias graph_2 = create_graph(1)
@@ -139,7 +142,7 @@ fn test_RELU() raises:
         g.out(relu)
 
         return g ^
-    
+
     var x = Tensor[dtype](x_shape)
     for i in range(3):
         x[i] = 3

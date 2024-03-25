@@ -1,4 +1,19 @@
-from .basics import ADD, SUB, MUL, DIV, EXP, LOG, POW, DOT, SUM, MEAN, MAX, FLATTEN, RESHAPE, TRANSPOSE
+from .basics import (
+    ADD,
+    SUB,
+    MUL,
+    DIV,
+    EXP,
+    LOG,
+    POW,
+    DOT,
+    SUM,
+    MEAN,
+    MAX,
+    FLATTEN,
+    RESHAPE,
+    TRANSPOSE,
+)
 from .mlops import SIGMOID, RELU, TANH
 from .conv import CONV2D
 from .pool import MAXPOOL2D
@@ -51,7 +66,6 @@ struct OP(Stringable):
 
     fn __str__(self) -> String:
         return str(self.name)
-
 
 
 fn static_result_shape(
@@ -134,7 +148,6 @@ fn static_result_shape(
         return TensorShape(-1, -1)
 
 
-
 fn forward_op[
     op: OP, t1_shape: TensorShape, attributes: AttributeVector
 ](inout res: Tensor[dtype], t1: Tensor[dtype]):
@@ -196,17 +209,21 @@ fn forward_op[
 
 
 fn forward_op[
-    op: OP, t1_shape: TensorShape, t2_shape: TensorShape, t3_shape: TensorShape, attributes: AttributeVector
+    op: OP,
+    t1_shape: TensorShape,
+    t2_shape: TensorShape,
+    t3_shape: TensorShape,
+    attributes: AttributeVector,
 ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype]):
     """
     Forward pass for ternary operators.
     """
+
     @parameter
     if op == OP.CONV2D:
         CONV2D.forward[t1_shape, t2_shape, t3_shape, attributes](res, t1, t2, t3)
     else:
         print("[ERROR] Operator not found.")
-
 
 
 fn backward_op[
@@ -290,7 +307,9 @@ fn backward_op[
 
     @parameter
     if tensor_id == 0:
-        alias res_grad_shape = t1_shape if op == OP.DOT else broadcast_shapes(t1_shape, t2_shape)
+        alias res_grad_shape = t1_shape if op == OP.DOT else broadcast_shapes(
+            t1_shape, t2_shape
+        )
         # grad_shape = t1_shape
         # NOTE: Assumption res_grad.shape() == res_grad_shape
         # if res_grad.shape() != res_grad_shape:
@@ -298,7 +317,9 @@ fn backward_op[
         accumulate_grad[t1_shape, res_grad_shape](grad, res_grad)
 
     elif tensor_id == 1:
-        alias res_grad_shape = t2_shape if op == OP.DOT else broadcast_shapes(t1_shape, t2_shape)
+        alias res_grad_shape = t2_shape if op == OP.DOT else broadcast_shapes(
+            t1_shape, t2_shape
+        )
         # grad_shape = t2_shape
         # NOTE: Assumption res_grad.shape() == res_grad_shape
         # if res_grad.shape() != res_grad_shape:
@@ -314,15 +335,23 @@ fn backward_op[
     t2_shape: TensorShape,
     t3_shape: TensorShape,
     attributes: AttributeVector,
-](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype], inout grad: Tensor[dtype]):
+](
+    ug: Tensor[dtype],
+    t1: Tensor[dtype],
+    t2: Tensor[dtype],
+    t3: Tensor[dtype],
+    inout grad: Tensor[dtype],
+):
     """
     Backward pass for ternary operators.
     """
     var res_grad: Tensor[dtype]
-    
+
     @parameter
     if op == OP.CONV2D:
-        res_grad = CONV2D.backward[tensor_id, ug_shape, t1_shape, t2_shape, t3_shape, attributes](ug, t1, t2, t3)
+        res_grad = CONV2D.backward[
+            tensor_id, ug_shape, t1_shape, t2_shape, t3_shape, attributes
+        ](ug, t1, t2, t3)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)

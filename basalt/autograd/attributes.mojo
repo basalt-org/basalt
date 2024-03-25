@@ -37,14 +37,17 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
         var s: String = "["
         for i in range(self._size):
             s += str(self._attrs[i])
-            if i < self._size - 1: s += ", "
+            if i < self._size - 1:
+                s += ", "
         return s + "]"
 
 
 @register_passable("trivial")
 struct Attribute(Stringable, CollectionElement):
-    var name: bytes[max_attr_char_size] # defines the maximum number of characters in the string
-    var value: AttributeValue # Variant doesn't seem to be register passable
+    var name: bytes[
+        max_attr_char_size
+    ]  # defines the maximum number of characters in the string
+    var value: AttributeValue  # Variant doesn't seem to be register passable
 
     fn __init__(inout self, name: String, value: Int):
         self.name = bytes[max_attr_char_size](name)
@@ -71,6 +74,7 @@ struct AttributeValue(CollectionElement):
     """
     Workaround to support Variant attribute values, while still register passable.
     """
+
     var _buffer: StaticIntTuple[max_attr_value_size]
     var _shape: TensorShape
 

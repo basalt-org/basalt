@@ -4,12 +4,12 @@ from basalt.autograd.attributes import AttributeVector
 
 @always_inline
 fn get_result_shape(
-        input_shape: TensorShape,
-        kernel_shape: TensorShape,
-        padding: StaticIntTuple[2],
-        stride: StaticIntTuple[2],
-        dilation: StaticIntTuple[2]
-    ) -> StaticIntTuple[2]:
+    input_shape: TensorShape,
+    kernel_shape: TensorShape,
+    padding: StaticIntTuple[2],
+    stride: StaticIntTuple[2],
+    dilation: StaticIntTuple[2],
+) -> StaticIntTuple[2]:
     """
     Calculates the X and Y dimensions of the resulting convolution.
     Dimensions X, Y are on the end of the shape (..., X, Y)
@@ -31,9 +31,14 @@ fn get_result_shape(
 
 struct CONV2D:
     @staticmethod
-    fn result_shape(input_shape: TensorShape, kernel_shape: TensorShape, bias_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+    fn result_shape(
+        input_shape: TensorShape,
+        kernel_shape: TensorShape,
+        bias_shape: TensorShape,
+        attributes: AttributeVector,
+    ) -> TensorShape:
         # Output shape = [batch, out_channels, oX, oY]
-        
+
         var padding = attributes["padding"].value().to_static[2]()
         var stride = attributes["stride"].value().to_static[2]()
         var dilation = attributes["dilation"].value().to_static[2]()
@@ -46,8 +51,13 @@ struct CONV2D:
         input_shape: TensorShape,
         kernel_shape: TensorShape,
         bias_shape: TensorShape,
-        attributes: AttributeVector
-    ](inout outputs: Tensor[dtype], inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]):
+        attributes: AttributeVector,
+    ](
+        inout outputs: Tensor[dtype],
+        inputs: Tensor[dtype],
+        kernel: Tensor[dtype],
+        bias: Tensor[dtype],
+    ):
         """
         Performs a 2D convolution on the input tensor using the kernel and bias.
             inputs.shape     [batch, in_channels, iX, iY]
@@ -68,7 +78,9 @@ struct CONV2D:
 
         alias inputs_strides = input_shape.strides()
         alias kernel_strides = kernel_shape.strides()
-        alias output_shape = Self.result_shape(input_shape, kernel_shape, bias_shape, attributes)
+        alias output_shape = Self.result_shape(
+            input_shape, kernel_shape, bias_shape, attributes
+        )
         alias outputs_strides = output_shape.strides()
         alias inputs_strides_0 = inputs_strides[0]
         alias inputs_strides_1 = inputs_strides[1]
@@ -128,9 +140,7 @@ struct CONV2D:
                             + iy
                         )
 
-                        result += (
-                            inputs[input_index] * kernel[kernel_index]
-                        )
+                        result += inputs[input_index] * kernel[kernel_index]
 
             var output_index = (
                 batch * outputs_strides_0
@@ -186,8 +196,13 @@ struct CONV2D:
         input_shape: TensorShape,
         kernel_shape: TensorShape,
         bias_shape: TensorShape,
-        attributes: AttributeVector
-    ](ug: Tensor[dtype], inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]) -> Tensor[dtype]:
+        attributes: AttributeVector,
+    ](
+        ug: Tensor[dtype],
+        inputs: Tensor[dtype],
+        kernel: Tensor[dtype],
+        bias: Tensor[dtype],
+    ) -> Tensor[dtype]:
         """
         Backward operation of 2D convolution.
 
@@ -215,7 +230,7 @@ struct CONV2D:
         alias ug_strides_0 = ug_strides[0]
         alias ug_strides_1 = ug_strides[1]
         alias ug_strides_2 = ug_strides[2]
-        
+
         alias input_shape_0 = input_shape[0]
         alias input_shape_1 = input_shape[1]
         alias input_shape_2 = input_shape[2]

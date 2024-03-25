@@ -10,7 +10,6 @@ from basalt.autograd.attributes import AttributeVector, Attribute
 from test_conv import to_numpy, to_tensor
 
 
-
 fn create_CNN(
     batch_size: Int,
     conv1_weights: DynamicVector[SIMD[dtype, 1]],
@@ -20,40 +19,58 @@ fn create_CNN(
     linear1_weights: DynamicVector[SIMD[dtype, 1]],
     linear1_bias: DynamicVector[SIMD[dtype, 1]],
 ) -> Graph:
-
     var g = Graph()
     var x = g.input(TensorShape(batch_size, 1, 28, 28))
-    
+
     # conv1
     # var x1 = nn.Conv2d(g, x, out_channels=16, kernel_size=5, padding=2)
     var c1_w = g.param(TensorShape(16, x.shape[1], 5, 5), init=conv1_weights)
     var c1_b = g.param(TensorShape(16), init=conv1_bias)
-    var x1 = g.op(OP.CONV2D, x, c1_w, c1_b, attributes=AttributeVector(
-        Attribute("padding", StaticIntTuple[2](2, 2)),
-        Attribute("stride", StaticIntTuple[2](1, 1)),
-        Attribute("dilation", StaticIntTuple[2](1, 1))
-    ))
+    var x1 = g.op(
+        OP.CONV2D,
+        x,
+        c1_w,
+        c1_b,
+        attributes=AttributeVector(
+            Attribute("padding", StaticIntTuple[2](2, 2)),
+            Attribute("stride", StaticIntTuple[2](1, 1)),
+            Attribute("dilation", StaticIntTuple[2](1, 1)),
+        ),
+    )
 
     var x2 = nn.ReLU(g, x1)
     var x3 = nn.MaxPool2d(g, x2, kernel_size=2)
-    
+
     # conv2
     # var x4 = nn.Conv2d(g, x3, out_channels=32, kernel_size=5, padding=2)
     var c2_w = g.param(TensorShape(32, x3.shape[1], 5, 5), init=conv2_weights)
     var c2_b = g.param(TensorShape(32), init=conv2_bias)
-    var x4 = g.op(OP.CONV2D, x3, c2_w, c2_b, attributes=AttributeVector(
-        Attribute("padding", StaticIntTuple[2](2, 2)),
-        Attribute("stride", StaticIntTuple[2](1, 1)),
-        Attribute("dilation", StaticIntTuple[2](1, 1))
-    ))
+    var x4 = g.op(
+        OP.CONV2D,
+        x3,
+        c2_w,
+        c2_b,
+        attributes=AttributeVector(
+            Attribute("padding", StaticIntTuple[2](2, 2)),
+            Attribute("stride", StaticIntTuple[2](1, 1)),
+            Attribute("dilation", StaticIntTuple[2](1, 1)),
+        ),
+    )
 
     var x5 = nn.ReLU(g, x4)
     var x6 = nn.MaxPool2d(g, x5, kernel_size=2)
     var x6_shape = x6.shape
-    var x7 = g.op(OP.RESHAPE, x6, attributes=AttributeVector(Attribute("shape", 
-        TensorShape(x6_shape[0], x6_shape[1]*x6_shape[2]*x6_shape[3])
-    )))
-    
+    var x7 = g.op(
+        OP.RESHAPE,
+        x6,
+        attributes=AttributeVector(
+            Attribute(
+                "shape",
+                TensorShape(x6_shape[0], x6_shape[1] * x6_shape[2] * x6_shape[3]),
+            )
+        ),
+    )
+
     # linear1
     # var out = nn.Linear(g, x7, n_outputs=10)
     var l1_w = g.param(TensorShape(x7.shape[1], 10), init=linear1_weights)
@@ -67,7 +84,7 @@ fn create_CNN(
     # var loss = nn.MSELoss(g, out, y_true)
     g.loss(loss)
 
-    return g^
+    return g ^
 
 
 fn run_mojo[
@@ -84,7 +101,6 @@ fn run_mojo[
     inputs: Tensor[dtype],
     labels: Tensor[dtype],
 ) -> DynamicVector[SIMD[dtype, 1]]:
-
     alias graph = create_CNN(
         batch_size,
         conv1_weights,
@@ -182,7 +198,6 @@ fn run_torch(
         return out
 
 
-
 fn create_weights(num_elements: Int, zero: Bool) -> DynamicVector[SIMD[dtype, 1]]:
     var weights = DynamicVector[SIMD[dtype, 1]](capacity=num_elements)
     for i in range(num_elements):
@@ -190,7 +205,7 @@ fn create_weights(num_elements: Int, zero: Bool) -> DynamicVector[SIMD[dtype, 1]
             weights.push_back(SIMD[dtype, 1](0.0))
         else:
             weights.push_back(SIMD[dtype, 1](0.02))
-    return weights^
+    return weights ^
 
 
 fn dv_to_tensor(dv: DynamicVector[SIMD[dtype, 1]], shape: TensorShape) -> Tensor[dtype]:
@@ -199,7 +214,7 @@ fn dv_to_tensor(dv: DynamicVector[SIMD[dtype, 1]], shape: TensorShape) -> Tensor
         print("[WARNING] tensor and dv not the shame shape")
     for i in range(t.num_elements()):
         t[i] = dv[i]
-    return t^
+    return t ^
 
 
 fn main():
@@ -209,7 +224,7 @@ fn main():
 
     var inputs = Tensor[dtype](batch_size, 1, 28, 28)
     rand[dtype](inputs.data(), inputs.num_elements())
-    var labels = Tensor[dtype](batch_size, 10) # one-hot encoded (probabilities)
+    var labels = Tensor[dtype](batch_size, 10)  # one-hot encoded (probabilities)
     for i in range(4):
         labels[i * 10 + i] = 1.0
 
@@ -227,7 +242,7 @@ fn main():
     alias linear1_weights = create_weights(l1_w_shape.num_elements(), zero=False)
     alias l1_b_shape = TensorShape(10)
     alias linear1_bias = create_weights(10, zero=True)
-    
+
     var losses_mojo = run_mojo[
         batch_size,
         conv1_weights,

@@ -8,8 +8,10 @@ struct Symbol(CollectionElement, Stringable):
     var dtype: DType
     var shape: TensorShape
     var trainable: Bool
-    
-    fn __init__(inout self, name: UUID, dtype: DType, shape: TensorShape, trainable: Bool):
+
+    fn __init__(
+        inout self, name: UUID, dtype: DType, shape: TensorShape, trainable: Bool
+    ):
         self.name = name
         self.shape = shape
         self.dtype = dtype
@@ -22,4 +24,12 @@ struct Symbol(CollectionElement, Stringable):
         return self.json()
 
     fn json(self) -> String:
-        return "{\"name\": \"" + str(self.name)[:8] + "\", \"dtype\": \"" + str(self.dtype) + "\", \"shape\": \"" + str(self.shape) + "\"}"
+        return (
+            '{"name": "'
+            + str(self.name)[:8]
+            + '", "dtype": "'
+            + str(self.dtype)
+            + '", "shape": "'
+            + str(self.shape)
+            + '"}'
+        )
