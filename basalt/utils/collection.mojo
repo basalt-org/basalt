@@ -34,17 +34,26 @@ struct Collection(Sized):
     fn append(inout self, owned value: Tensor[dtype], symbol: Symbol):
         # Assumption: Symbol.name contains a unique identifier for the tensor.
         if self.size == self.capacity:
-            self.reserve(self.capacity * 2)
+            self.reserve(self.capacity << 1)
         self.data[self.size] = value ^
         self.symbols[self.size] = symbol.name
         self.size += 1
 
     @always_inline("nodebug")
     fn get_index(self, symbol_name: UInt32) -> Int:
-        for i in range(self.size):
-            if self.symbols[i] == symbol_name:
-                return i
+        alias width = simdwidthof[DType.uint32]()
+
+        for i in range(0, self.size, width):
+            var data = self.symbols.simd_load[width](i)
+            var mask = data == symbol_name
+
+            for j in range(width):
+                if mask[j]:
+                    return i + j
+        
         return -1
+            
+
     
     # TODO: Check if this can be simplified after #1921 was fixed.
     # Mojo #1921: https://github.com/modularml/mojo/issues/1921#event-12066222345

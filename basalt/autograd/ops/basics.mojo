@@ -667,3 +667,50 @@ struct RESHAPE:
         memcpy(res_grad.data(), ug.data(), ug_shape.num_elements())
 
         return res_grad ^
+
+struct FMA:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape, t3_shape: TensorShape) -> TensorShape:
+        return broadcast_shapes(t1_shape, t2_shape, t3_shape)
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+        t3_shape: TensorShape,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype]):
+        """
+        Forward pass of the fma operation.
+        """
+        @parameter
+        @always_inline("nodebug")
+        fn fma_forward[nelts: Int](i: Int):
+            res.simd_store[nelts](i, t1.simd_load[nelts](i).fma(
+                t2.simd_load[nelts](i), t3.simd_load[nelts](i)
+            ))
+
+        vectorize[fma_forward, nelts](res.num_elements())
+
+    @staticmethod
+    fn backward[
+        tensor_id: Int,
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+        t3_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of fma."""
+        # d(x * y + z) / dx = y
+        # d(x * y + z) / dy = x
+        # d(x * y + z) / dz = 1
+        @parameter
+        if tensor_id == 0:
+            var res_grad = Tensor[dtype](ug_shape)
+            elwise_op[ug_shape, t2_shape, mul](res_grad, ug, t2)
+            return res_grad ^
+        elif tensor_id == 1:
+            var res_grad = Tensor[dtype](ug_shape)
+            elwise_op[ug_shape, t1_shape, mul](res_grad, ug, t1)
+            return res_grad ^
+        else:
+            return ug
