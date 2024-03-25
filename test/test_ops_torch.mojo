@@ -363,10 +363,12 @@ fn torch_unary_op(op: OP, input_1: Tensor, upper_grad: Tensor) -> torch_output_u
 
         if op == OP.EXP:
             expected = torch.exp(input_1)
+        elif op == OP.LOG:
+            expected = torch.log(input_1)
+        elif op == OP.POW:
+            expected = torch.pow(input_1, 2)
         else:
-            print(
-                "Error: op not supported (returning the default input 1 result): ", op
-            )
+            print("Error: op not supported (returning the value input_1): ", op)
             expected = input_1
 
         # uppergrad & backwards
@@ -428,6 +430,21 @@ fn test_EXP() raises:
     test_unary_op_backward[OP.EXP, t1_shape, ug_shape](t1, ug, expected_and_grad.grad_1)
 
 
+fn test_LOG() raises:
+    alias t1_shape = TensorShape(37, 63, 107)
+    alias ug_shape = TensorShape(37, 63, 107)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    rand(t1.data(), t1.num_elements())
+
+    var ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    var expected_and_grad = torch_unary_op(OP.LOG, t1, ug)
+
+    test_unary_op[OP.LOG, t1_shape](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.LOG, t1_shape, ug_shape](t1, ug, expected_and_grad.grad_1)
+
+
 fn main():
     print("Running ops (compare with torch) tests")
     try:
@@ -437,6 +454,7 @@ fn main():
         test_DIV()
         test_DOT()
         test_EXP()
+        test_LOG()
     except e:
         print("[ERROR] Error in ops (compare with torch)")
         print(e)
