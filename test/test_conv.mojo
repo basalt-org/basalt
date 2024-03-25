@@ -55,7 +55,11 @@ fn test_get_result_shape() raises:
     kernel = Tensor[dtype](3, 2)
 
     res = get_result_shape(
-        inputs.shape(), kernel.shape(), StaticIntTuple[2](3, 2), StaticIntTuple[2](2, 1), StaticIntTuple[2](2, 3)
+        inputs.shape(),
+        kernel.shape(),
+        StaticIntTuple[2](3, 2),
+        StaticIntTuple[2](2, 1),
+        StaticIntTuple[2](2, 3),
     )
     assert_equal(res[0], 17)
     assert_equal(res[1], 18)
@@ -159,23 +163,26 @@ fn test_conv_forward[
     kernel_shape: TensorShape,
     padding: StaticIntTuple[2],
     stride: StaticIntTuple[2],
-    dilation: StaticIntTuple[2]
-](
-    inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]
-) raises:
-
+    dilation: StaticIntTuple[2],
+](inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]) raises:
     fn create_graph() -> Graph:
         var g = Graph()
         var inp = g.input(input_shape)
-        
+
         var weights = g.input(kernel_shape)  # as input
         var bias = g.input(kernel_shape[0])  # as input
 
-        var res = g.op(OP.CONV2D, inp, weights, bias, attributes=AttributeVector(
-            Attribute("padding", padding),
-            Attribute("stride", stride),
-            Attribute("dilation", dilation)
-        ))
+        var res = g.op(
+            OP.CONV2D,
+            inp,
+            weights,
+            bias,
+            attributes=AttributeVector(
+                Attribute("padding", padding),
+                Attribute("stride", stride),
+                Attribute("dilation", dilation),
+            ),
+        )
         g.out(res)
 
         return g ^
@@ -208,14 +215,16 @@ fn test_forward_1() raises:
     alias dilation = 1
     alias input_shape = TensorShape(4, 1, 28, 28)
     alias kernel_shape = TensorShape(1, 1, 1, 16)
-    
+
     var inputs = Tensor[dtype](input_shape)
     var kernel = Tensor[dtype](kernel_shape)
     var bias = Tensor[dtype](kernel_shape[0])
     fill(inputs, 1.0)
     fill(kernel, 1.0)
-    
-    test_conv_forward[input_shape, kernel_shape, padding, stride, dilation](inputs, kernel, bias)
+
+    test_conv_forward[input_shape, kernel_shape, padding, stride, dilation](
+        inputs, kernel, bias
+    )
 
 
 fn test_forward_2() raises:
@@ -235,7 +244,9 @@ fn test_forward_2() raises:
     var bias = Tensor[dtype](kernel_shape[0])
     fill(bias, 66.99)
 
-    test_conv_forward[input_shape, kernel_shape, padding, stride, dilation](inputs, kernel, bias)
+    test_conv_forward[input_shape, kernel_shape, padding, stride, dilation](
+        inputs, kernel, bias
+    )
 
 
 fn test_forward_3() raises:
@@ -255,7 +266,9 @@ fn test_forward_3() raises:
     var bias = Tensor[dtype](kernel_shape[0])
     fill(bias, 3)
 
-    test_conv_forward[input_shape, kernel_shape, padding, stride, dilation](inputs, kernel, bias)
+    test_conv_forward[input_shape, kernel_shape, padding, stride, dilation](
+        inputs, kernel, bias
+    )
 
 
 fn test_conv_backward[
@@ -264,22 +277,27 @@ fn test_conv_backward[
     kernel_shape: TensorShape,
     padding: StaticIntTuple[2],
     stride: StaticIntTuple[2],
-    dilation: StaticIntTuple[2]
+    dilation: StaticIntTuple[2],
 ](
     ug: Tensor[dtype], inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]
 ) raises:
-
     alias bias_shape = TensorShape(kernel_shape[0])
     alias attributes = AttributeVector(
         Attribute("padding", padding),
         Attribute("stride", stride),
-        Attribute("dilation", dilation)
+        Attribute("dilation", dilation),
     )
-    
-    var grad1 = CONV2D.backward[0, ug_shape, input_shape, kernel_shape, bias_shape, attributes](ug, inputs, kernel, bias)
-    var grad2 = CONV2D.backward[1, ug_shape, input_shape, kernel_shape, bias_shape, attributes](ug, inputs, kernel, bias)
-    var grad3 = CONV2D.backward[2, ug_shape, input_shape, kernel_shape, bias_shape, attributes](ug, inputs, kernel, bias)
-    
+
+    var grad1 = CONV2D.backward[
+        0, ug_shape, input_shape, kernel_shape, bias_shape, attributes
+    ](ug, inputs, kernel, bias)
+    var grad2 = CONV2D.backward[
+        1, ug_shape, input_shape, kernel_shape, bias_shape, attributes
+    ](ug, inputs, kernel, bias)
+    var grad3 = CONV2D.backward[
+        2, ug_shape, input_shape, kernel_shape, bias_shape, attributes
+    ](ug, inputs, kernel, bias)
+
     var torch_out = torch_conv2d(
         inputs,
         kernel,
@@ -293,7 +311,6 @@ fn test_conv_backward[
     assert_tensors_equal(grad1, torch_out.expected_inputs_grad, "almost")
     assert_tensors_equal(grad2, torch_out.expected_kernel_grad, "almost")
     assert_tensors_equal(grad3, torch_out.expected_bias_grad, "almost")
-
 
 
 fn test_backward_1() raises:
@@ -316,7 +333,9 @@ fn test_backward_1() raises:
     alias ug_shape = TensorShape(input_shape[0], kernel_shape[0], res[0], res[1])
     var ug = Tensor[dtype](ug_shape)
 
-    test_conv_backward[ug_shape, input_shape, kernel_shape, padding, stride, dilation](ug, inputs, kernel, bias)
+    test_conv_backward[ug_shape, input_shape, kernel_shape, padding, stride, dilation](
+        ug, inputs, kernel, bias
+    )
 
 
 fn test_backward_2() raises:
@@ -340,7 +359,9 @@ fn test_backward_2() raises:
     var ug = Tensor[dtype](ug_shape)
     rand[dtype](ug.data(), ug.num_elements())
 
-    test_conv_backward[ug_shape, input_shape, kernel_shape, padding, stride, dilation](ug, inputs, kernel, bias)
+    test_conv_backward[ug_shape, input_shape, kernel_shape, padding, stride, dilation](
+        ug, inputs, kernel, bias
+    )
 
 
 fn test_backward_3() raises:
@@ -350,7 +371,7 @@ fn test_backward_3() raises:
     alias dilation = StaticIntTuple[2](3, 2)
     alias input_shape = TensorShape(4, 2, 28, 28)
     alias kernel_shape = TensorShape(3, 2, 5, 6)
-    
+
     var inputs = Tensor[dtype](input_shape)
     var kernel = Tensor[dtype](kernel_shape)
     fill(inputs, 3.0)
@@ -364,7 +385,9 @@ fn test_backward_3() raises:
     var ug = Tensor[dtype](ug_shape)
     rand[dtype](ug.data(), ug.num_elements())
 
-    test_conv_backward[ug_shape, input_shape, kernel_shape, padding, stride, dilation](ug, inputs, kernel, bias)
+    test_conv_backward[ug_shape, input_shape, kernel_shape, padding, stride, dilation](
+        ug, inputs, kernel, bias
+    )
 
 
 fn main():

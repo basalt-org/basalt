@@ -3,12 +3,11 @@ from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
 
 
-
-fn MSELoss(inout g: Graph,
+fn MSELoss(
+    inout g: Graph,
     y_pred: Symbol,
     y_true: Symbol,
 ) -> Symbol:
-
     # 1/N * sum( (outputs - targets)^2 )
 
     var diff = g.op(OP.SUB, y_true, y_pred)
@@ -18,11 +17,11 @@ fn MSELoss(inout g: Graph,
     return mean_loss
 
 
-fn CrossEntropyLoss(inout g: Graph,
+fn CrossEntropyLoss(
+    inout g: Graph,
     y_pred: Symbol,
     y_true: Symbol,
 ) -> Symbol:
-
     # -1/N * sum( targets * log_softmax(outputs) )
 
     var log_softmax = nn.LogSoftmax(g, y_pred, axis=1)

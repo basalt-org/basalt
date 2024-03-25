@@ -7,14 +7,12 @@ from basalt import Graph, Tensor, TensorShape
 from basalt.utils.collection import Collection
 
 
-
 fn get_num_trainable_parameters[g: Graph]() -> Int:
     var count = 0
     for i in range(len(g.params)):
         if g.params.symbols[i].trainable:
             count += 1
     return count
-
 
 
 struct Adam[g: Graph]:
@@ -42,7 +40,7 @@ struct Adam[g: Graph]:
 
         # Capacity of the collections should be the n of trainable parameters
         # TODO: len(model.parameters.trainable_parameters) when model parameters are passed as reference.
-        var N = get_num_trainable_parameters[g]()  
+        var N = get_num_trainable_parameters[g]()
         self.rms_grads = Collection(capacity=N)
         self.momentum_grads = Collection(capacity=N)
 
@@ -70,32 +68,34 @@ struct Adam[g: Graph]:
                 # f1 = beta1 * momentum + (1 - beta1) * grad
                 momentum_grads = self.beta1 * momentum_grads + (1 - self.beta1) * grads
                 self.momentum_grads[param].simd_store[nelts](j, momentum_grads)
-                
+
                 # Bias correction
                 # f2 = f1 / (1 - beta1 ** iter)
-                momentum_grads = momentum_grads / (1 - self.beta1 ** self.iter)
+                momentum_grads = momentum_grads / (1 - self.beta1**self.iter)
 
                 # RMS beta 2
                 # f1 = beta2 * rms + (1 - beta2) * grad ** 2
                 rms_grads = self.beta2 * rms_grads + (1 - self.beta2) * grads * grads
                 self.rms_grads[param].simd_store[nelts](j, rms_grads)
-                
+
                 # Bias correction
                 # f2 = f1 / (1 - beta2 ** iter)
-                rms_grads = rms_grads / (1 - self.beta2 ** self.iter)
-                
+                rms_grads = rms_grads / (1 - self.beta2**self.iter)
+
                 # tensor = tensor - lr * (f2 / (sqrt(rms) + epsilon))
-                params = params - self.lr * (momentum_grads / (sqrt(rms_grads) + self.epsilon))
+                params = params - self.lr * (
+                    momentum_grads / (sqrt(rms_grads) + self.epsilon)
+                )
                 parameters.params[param].simd_store[nelts](j, params)
 
             vectorize[v_step, 1](param.shape.num_elements())
-        
+
         parallelize[p_step](len(parameters.trainable_parameters))
 
     fn allocate_rms_and_momentum(inout self, inout parameters: Parameters):
         # They are initialized to zero
         # Loop over all trainable parameters
-        for i in range(len(parameters.trainable_parameters)):   
+        for i in range(len(parameters.trainable_parameters)):
             var param = parameters.trainable_parameters[i]
             self.rms_grads.append(Tensor[dtype](param.shape), param)
             self.momentum_grads.append(Tensor[dtype](param.shape), param)

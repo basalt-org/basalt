@@ -9,17 +9,15 @@ from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP, dtype
 
 
-
 fn create_linear_regression(
     batch_size: Int,
     n_outputs: Int,
     linear1_weights: DynamicVector[SIMD[dtype, 1]],
     linear1_bias: DynamicVector[SIMD[dtype, 1]],
 ) -> Graph:
-
     var g = Graph()
     var x = g.input(TensorShape(batch_size, 13))
-    
+
     # linear1
     # var out = nn.Linear(g, x, n_outputs=1)
     var l1_w = g.param(TensorShape(13, n_outputs), init=linear1_weights)
@@ -32,7 +30,7 @@ fn create_linear_regression(
     var loss = nn.MSELoss(g, out, y_true)
     g.loss(loss)
 
-    return g^
+    return g ^
 
 
 fn run_mojo[
@@ -46,7 +44,6 @@ fn run_mojo[
     inputs: Tensor[dtype],
     labels: Tensor[dtype],
 ) -> DynamicVector[SIMD[dtype, 1]]:
-
     alias graph = create_linear_regression(
         batch_size,
         n_outputs,
@@ -124,7 +121,6 @@ fn run_torch(
         return out
 
 
-
 fn create_weights(num_elements: Int, zero: Bool) -> DynamicVector[SIMD[dtype, 1]]:
     var weights = DynamicVector[SIMD[dtype, 1]](capacity=num_elements)
     for i in range(num_elements):
@@ -132,7 +128,7 @@ fn create_weights(num_elements: Int, zero: Bool) -> DynamicVector[SIMD[dtype, 1]
             weights.push_back(SIMD[dtype, 1](0.0))
         else:
             weights.push_back(SIMD[dtype, 1](0.1))
-    return weights^
+    return weights ^
 
 
 fn dv_to_tensor(dv: DynamicVector[SIMD[dtype, 1]], shape: TensorShape) -> Tensor[dtype]:
@@ -141,7 +137,7 @@ fn dv_to_tensor(dv: DynamicVector[SIMD[dtype, 1]], shape: TensorShape) -> Tensor
         print("[WARNING] tensor and dv not the shame shape")
     for i in range(t.num_elements()):
         t[i] = dv[i]
-    return t^
+    return t ^
 
 
 fn main():
@@ -155,19 +151,14 @@ fn main():
     var labels = Tensor[dtype](batch_size, n_outputs)
     for i in range(batch_size):
         for j in range(n_outputs):
-            labels[i*n_outputs + j] = 1
+            labels[i * n_outputs + j] = 1
 
     alias l1_w_shape = TensorShape(13, n_outputs)
     alias linear1_weights = create_weights(l1_w_shape.num_elements(), zero=False)
     alias l1_b_shape = TensorShape(n_outputs)
     alias linear1_bias = create_weights(l1_b_shape.num_elements(), zero=True)
-    
-    var losses_mojo = run_mojo[
-        batch_size,
-        n_outputs,
-        linear1_weights,
-        linear1_bias,
-    ](
+
+    var losses_mojo = run_mojo[batch_size, n_outputs, linear1_weights, linear1_bias,](
         epochs,
         learning_rate,
         inputs,

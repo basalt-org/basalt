@@ -20,22 +20,22 @@ class SimpleNN(nn.Module):
         x4 = self.relu2(x3)
         y_pred = self.linear3(x4)
         return y_pred
-    
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     batch_size = 32
     n_inputs = 1
     n_outputs = 1
     learning_rate = 0.01
 
-    device = torch.device('cpu')
+    device = torch.device("cpu")
     model = SimpleNN(n_inputs, n_outputs).to(device)
     loss_func = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
     x = torch.rand(batch_size, n_inputs).to(device) * 2 - 1
     y = torch.sin(x).to(device)
-    
+
     epochs = 20000
 
     model.train()
@@ -53,6 +53,6 @@ if __name__ == '__main__':
         optimizer.step()
 
         if (i + 1) % 1000 == 0:
-            print(f'Epoch [{i + 1}/{epochs}],\t Loss: {loss.item()}')
+            print(f"Epoch [{i + 1}/{epochs}],\t Loss: {loss.item()}")
 
     print(f"Training time: {time.time() - start:.2f} seconds. Loss: {loss.item()}")

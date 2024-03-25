@@ -15,13 +15,28 @@ struct Batch[dtype: DType](CollectionElement):
         self.data = batch_data
         self.labels = batch_labels
 
-    fn __init__(inout self, df_data: Tensor[dtype], df_labels: Tensor[dtype], start: Int, batch_data_shape: TensorShape, batch_labels_shape: TensorShape):
+    fn __init__(
+        inout self,
+        df_data: Tensor[dtype],
+        df_labels: Tensor[dtype],
+        start: Int,
+        batch_data_shape: TensorShape,
+        batch_labels_shape: TensorShape,
+    ):
         # TODO: find a better way to do this
         # Links to the copies of the input tensors in model.forward()
         self.data = Tensor[dtype](batch_data_shape)
         self.labels = Tensor[dtype](batch_labels_shape)
-        memcpy(self.data.data(), df_data.data().offset(start*batch_data_shape.strides()[0]), batch_data_shape.num_elements())
-        memcpy(self.labels.data(), df_labels.data().offset(start*batch_labels_shape.strides()[0]), batch_labels_shape.num_elements()) 
+        memcpy(
+            self.data.data(),
+            df_data.data().offset(start * batch_data_shape.strides()[0]),
+            batch_data_shape.num_elements(),
+        )
+        memcpy(
+            self.labels.data(),
+            df_labels.data().offset(start * batch_labels_shape.strides()[0]),
+            batch_labels_shape.num_elements(),
+        )
 
     fn __getitem__(self, index: Int) -> Tensor[dtype]:
         if index == 0:
@@ -44,19 +59,19 @@ struct DataLoader:
     var _label_batch_shape: TensorShape
 
     fn __init__(
-            inout self, 
-            data: Tensor[dtype],
-            labels: Tensor[dtype],
-            batch_size: Int, 
-        ):
+        inout self,
+        data: Tensor[dtype],
+        labels: Tensor[dtype],
+        batch_size: Int,
+    ):
         self.data = data
         self.labels = labels
         self.batch_size = batch_size
-        
+
         # Number of batches to iter, NOTE: ignore the remainder for now
         # var remainder = 1 if self.data.dim(0) % self.batch_size != 0 else 0
         self._current_index = 0
-        self._num_batches = self.data.dim(0) // self.batch_size #+ remainder
+        self._num_batches = self.data.dim(0) // self.batch_size  # + remainder
 
         # Batch shapes
         self._data_batch_shape = self.data.shape()
@@ -66,9 +81,9 @@ struct DataLoader:
 
     @always_inline
     fn __len__(self) -> Int:
-        '''
+        """
         Returns the number of the batches left in the dataset.
-        '''
+        """
         return self._num_batches
 
     fn __iter__(self) -> Self:
@@ -76,8 +91,7 @@ struct DataLoader:
         # Does this mean that the whole dataset is copied every epoch ?!
         return self
 
-    fn __next__(inout self) -> Batch[dtype]:        
-        
+    fn __next__(inout self) -> Batch[dtype]:
         # NOTE: ignore the remainder for now
         # var end = min(self._current_index + self.batch_size, self.data.dim(0))
         # self._data_shape[0] = end - self._current_index
@@ -87,9 +101,9 @@ struct DataLoader:
         self._num_batches -= 1
 
         return Batch[dtype](
-            self.data, 
-            self.labels, 
-            self._current_index, 
-            self._data_batch_shape, 
-            self._label_batch_shape
+            self.data,
+            self.labels,
+            self._current_index,
+            self._data_batch_shape,
+            self._label_batch_shape,
         )

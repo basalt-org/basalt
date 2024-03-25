@@ -10,6 +10,7 @@ from basalt.autograd.attributes import Attribute, AttributeVector
 Implement forward and backward operations for basic tensor manipulations.
 """
 
+
 @value
 struct ADD:
     @staticmethod
@@ -62,6 +63,7 @@ struct SUB:
         t2_shape: TensorShape,
     ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of element wise subtraction."""
+
         # d(x - y) / dx = 1
         # d(x - y) / dy = -1
         @parameter
@@ -97,6 +99,7 @@ struct MUL:
         t2_shape: TensorShape,
     ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of element wise multiplication."""
+
         # d(x * y) / dx = y
         # d(x * y) / dy = x
         @parameter
@@ -118,8 +121,7 @@ struct DIV:
 
     @staticmethod
     fn forward[
-        t1_shape: TensorShape,
-        t2_shape: TensorShape
+        t1_shape: TensorShape, t2_shape: TensorShape
     ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
         """
         Forward operation of element wise division.
@@ -149,32 +151,44 @@ struct DIV:
 
             @parameter
             if is_scalar:
-                var factor: SIMD[dtype, 1] = - 1.0 / (t2[0] ** 2)
+                var factor: SIMD[dtype, 1] = -1.0 / (t2[0] ** 2)
+
                 @parameter
                 fn vec_div_bw_scalar[nelts: Int](i: Int):
-                    res_grad.simd_store[nelts](i,
-                        factor * t1.simd_load[nelts](i) * ug.simd_load[nelts](i)
+                    res_grad.simd_store[nelts](
+                        i, factor * t1.simd_load[nelts](i) * ug.simd_load[nelts](i)
                     )
+
                 vectorize[vec_div_bw_scalar, nelts](ug_shape.num_elements())
 
             elif broadcast and not is_scalar:
                 alias strides1 = broadcast_calculate_strides(t1_shape, ug_shape)
                 alias strides2 = broadcast_calculate_strides(t2_shape, ug_shape)
+
                 @parameter
                 fn vec_div_bw_broadcast[netls: Int](i: Int):
                     var index1 = get_real_index[ug_shape](i, strides1)
                     var index2 = get_real_index[ug_shape](i, strides2)
-                    res_grad.simd_store[nelts](i,
-                        - t1.simd_load[nelts](index1) / (t2.simd_load[nelts](index2) ** 2) * ug.simd_load[nelts](i)
+                    res_grad.simd_store[nelts](
+                        i,
+                        -t1.simd_load[nelts](index1)
+                        / (t2.simd_load[nelts](index2) ** 2)
+                        * ug.simd_load[nelts](i),
                     )
+
                 vectorize[vec_div_bw_broadcast, nelts](ug_shape.num_elements())
 
             else:
+
                 @parameter
                 fn vec_div_bw[nelts: Int](i: Int):
-                    res_grad.simd_store[nelts](i, 
-                        - t1.simd_load[nelts](i) / (t2.simd_load[nelts](i) ** 2) * ug.simd_load[nelts](i)
+                    res_grad.simd_store[nelts](
+                        i,
+                        -t1.simd_load[nelts](i)
+                        / (t2.simd_load[nelts](i) ** 2)
+                        * ug.simd_load[nelts](i),
                     )
+
                 vectorize[vec_div_bw, nelts](ug_shape.num_elements())
 
             return res_grad ^
@@ -242,9 +256,10 @@ struct EXP:
 
         @parameter
         fn vec_exp_bw[nelts: Int](i: Int):
-            res_grad.simd_store[nelts](i,
-                exp(t1.simd_load[nelts](i)) * ug.simd_load[nelts](i)
+            res_grad.simd_store[nelts](
+                i, exp(t1.simd_load[nelts](i)) * ug.simd_load[nelts](i)
             )
+
         vectorize[vec_exp_bw, nelts](ug_shape.num_elements())
         return res_grad ^
 
@@ -289,7 +304,6 @@ struct POW:
         # t2_shape is a graph scalar
         elwise_pow(res, t1, t2[0].to_int())
 
-
     @staticmethod
     fn backward[
         tensor_id: Int,
@@ -306,22 +320,27 @@ struct POW:
         @parameter
         if tensor_id == 0:
             res_grad = Tensor[dtype](t1_shape)
+
             @parameter
             fn vec_pow_bw_x[nelts: Int](i: Int):
-                res_grad.simd_store[nelts](i,
-                    a * (t1.simd_load[nelts](i) ** (a - 1)) * ug.simd_load[nelts](i)
+                res_grad.simd_store[nelts](
+                    i, a * (t1.simd_load[nelts](i) ** (a - 1)) * ug.simd_load[nelts](i)
                 )
+
             vectorize[vec_pow_bw_x, nelts](t1_shape.num_elements())
 
         else:
             res_grad = Tensor[dtype](t2_shape)  # t2_shape == TensorShape(1)
+
             @parameter
             fn vec_pow_bw_y[nelts: Int](i: Int):
                 res_grad[0] += (
-                    (t1.simd_load[nelts](i) ** a) * log(t1.simd_load[nelts](i)) * ug.simd_load[nelts](i)
+                    (t1.simd_load[nelts](i) ** a)
+                    * log(t1.simd_load[nelts](i))
+                    * ug.simd_load[nelts](i)
                 ).reduce_add()
 
-            vectorize[vec_pow_bw_y, nelts](ug_shape.num_elements()) 
+            vectorize[vec_pow_bw_y, nelts](ug_shape.num_elements())
 
         return res_grad ^
 
@@ -337,21 +356,25 @@ struct SUM:
             return TensorShape(1)
 
     @staticmethod
-    fn forward[t_shape: TensorShape, attributes: AttributeVector](inout res: Tensor[dtype], t: Tensor[dtype]):
+    fn forward[
+        t_shape: TensorShape, attributes: AttributeVector
+    ](inout res: Tensor[dtype], t: Tensor[dtype]):
         """
         Forward pass of the sum operation.
         """
 
         alias axis = attributes["axis"]
-        
-        @parameter   
+
+        @parameter
         if axis:
             tsum(res, t, axis.value().to_int())
         else:
             res[0] = tsum(t)
 
     @staticmethod
-    fn backward[ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+    fn backward[
+        ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector
+    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of sum."""
         return Self.backward[ug_shape, t_shape](ug, t)
 
@@ -380,14 +403,16 @@ struct MEAN:
             return TensorShape(1)
 
     @staticmethod
-    fn forward[t_shape: TensorShape, attributes: AttributeVector](inout res: Tensor[dtype], t: Tensor[dtype]):
+    fn forward[
+        t_shape: TensorShape, attributes: AttributeVector
+    ](inout res: Tensor[dtype], t: Tensor[dtype]):
         """
         Forward pass of the mean operation.
         """
 
         alias axis = attributes["axis"]
-        
-        @parameter   
+
+        @parameter
         if axis:
             tmean(res, t, axis.value().to_int())
         else:
@@ -398,7 +423,7 @@ struct MEAN:
         ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector
     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of mean."""
-        
+
         alias axis = attributes["axis"]
 
         @parameter
@@ -417,7 +442,9 @@ struct MEAN:
 
         var grad: SIMD[dtype, 1] = 1.0 / t_shape.num_elements()
 
-        grad = grad * ug[0] # because ug is a tensor of size 1 when mean is used without an axis
+        grad = (
+            grad * ug[0]
+        )  # because ug is a tensor of size 1 when mean is used without an axis
 
         @parameter
         fn v_mean_d[nelts: Int](i: Int):
@@ -444,7 +471,7 @@ struct MEAN:
         return res_grad ^
 
 
-struct MAX:    
+struct MAX:
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axis = attributes["axis"]
@@ -455,21 +482,25 @@ struct MAX:
             return TensorShape(1)
 
     @staticmethod
-    fn forward[t_shape: TensorShape, attributes: AttributeVector](inout res: Tensor[dtype], t: Tensor[dtype]):
+    fn forward[
+        t_shape: TensorShape, attributes: AttributeVector
+    ](inout res: Tensor[dtype], t: Tensor[dtype]):
         """
         Forward pass of the max operation.
         """
 
         alias axis = attributes["axis"]
-        
-        @parameter   
+
+        @parameter
         if axis:
             tmax(res, t, axis.value().to_int())
         else:
             res[0] = tmax(t)
 
     @staticmethod
-    fn backward[ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+    fn backward[
+        ug_shape: TensorShape, t_shape: TensorShape, attributes: AttributeVector
+    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of max."""
         alias axis = attributes["axis"]
 
@@ -480,7 +511,9 @@ struct MAX:
             return Self.backward[ug_shape, t_shape](ug, t)
 
     @staticmethod
-    fn backward[ug_shape: TensorShape, t_shape: TensorShape](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+    fn backward[
+        ug_shape: TensorShape, t_shape: TensorShape
+    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of max."""
         # This could be changed to something like in tinygrad:
         # max_1s = CMPEQ(original_tensor, expanded(max_tensor), axis=axis)
@@ -508,7 +541,9 @@ struct MAX:
         return res_grad ^
 
     @staticmethod
-    fn backward[ug_shape: TensorShape, t_shape: TensorShape](ug: Tensor[dtype], t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
+    fn backward[
+        ug_shape: TensorShape, t_shape: TensorShape
+    ](ug: Tensor[dtype], t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
         """Backward operation of max."""
         # The selected element gradient is 1.0, the others are 0.0. And if there are
         # multiple max values, the gradient is divided by the number of max
@@ -518,7 +553,9 @@ struct MAX:
         var max_res = Tensor[dtype](ug_shape)
         alias strides = t_shape.strides()
 
-        tmax(max_res, t, axis) # To not calculate this again we could receive the result of the forward pass as a parameter
+        tmax(
+            max_res, t, axis
+        )  # To not calculate this again we could receive the result of the forward pass as a parameter
 
         for i in range(max_res.num_elements()):
             var index_base = (i % strides[axis]) + (i // strides[axis]) * (
@@ -544,10 +581,10 @@ struct MAX:
 struct TRANSPOSE:
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
-        var axes = attributes["axes"] # axes to be permuted
+        var axes = attributes["axes"]  # axes to be permuted
 
         var shape = DynamicVector[Int]()
-    
+
         if axes:
             # NOTE: axis has to be the size of rank of the tensor
             var axes_shape = axes.value().to_shape()
@@ -561,7 +598,9 @@ struct TRANSPOSE:
         return TensorShape(shape)
 
     @staticmethod
-    fn forward[t_shape: TensorShape, attributes: AttributeVector](inout res: Tensor[dtype], t: Tensor[dtype]):
+    fn forward[
+        t_shape: TensorShape, attributes: AttributeVector
+    ](inout res: Tensor[dtype], t: Tensor[dtype]):
         """
         Forward pass of the transpose operation.
         """
@@ -572,6 +611,7 @@ struct TRANSPOSE:
             var axes_shape = axes.value().to_shape()
             transpose(res, t, axes_shape)
         else:
+
             fn create_transpose_axes() -> TensorShape:
                 var axes = DynamicVector[Int]()
                 for i in range(t_shape.rank() - 1, -1, -1):
@@ -594,6 +634,7 @@ struct TRANSPOSE:
 
         @parameter
         if axes:
+
             fn create_inverse_axes() -> TensorShape:
                 var axes_shape = axes.value().to_shape()
 
@@ -604,11 +645,12 @@ struct TRANSPOSE:
                     axes_shape_inv[axes_shape[i]] = i
 
                 return TensorShape(axes_shape_inv)
-            
+
             alias axes_shape_inv = create_inverse_axes()
 
             transpose(res_grad, ug, axes_shape_inv)
         else:
+
             fn create_transpose_axes() -> TensorShape:
                 var axes = DynamicVector[Int]()
                 for i in range(t_shape.rank() - 1, -1, -1):
@@ -650,7 +692,7 @@ struct RESHAPE:
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var new_shape = attributes["shape"]
         return new_shape.value().to_shape()
-    
+
     @staticmethod
     fn forward[t_shape: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
         """

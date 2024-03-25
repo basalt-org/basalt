@@ -5,24 +5,29 @@ from basalt.autograd.attributes import AttributeVector
 from basalt.autograd.ops.conv import get_result_shape
 
 
-
 struct MAXPOOL2D:
     @staticmethod
-    fn result_shape(input_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
-        
+    fn result_shape(
+        input_shape: TensorShape, attributes: AttributeVector
+    ) -> TensorShape:
         var kernel_size = attributes["kernel_size"].value().to_static[2]()
         var padding = attributes["padding"].value().to_static[2]()
         var stride = attributes["stride"].value().to_static[2]()
         var dilation = attributes["dilation"].value().to_static[2]()
-        
-        var res = get_result_shape(input_shape, TensorShape(kernel_size[0], kernel_size[1]), padding, stride, dilation)
+
+        var res = get_result_shape(
+            input_shape,
+            TensorShape(kernel_size[0], kernel_size[1]),
+            padding,
+            stride,
+            dilation,
+        )
 
         return TensorShape(input_shape[0], input_shape[1], res[0], res[1])
-    
+
     @staticmethod
     fn forward[
-        input_shape: TensorShape,
-        attributes: AttributeVector
+        input_shape: TensorShape, attributes: AttributeVector
     ](inout outputs: Tensor[dtype], inputs: Tensor[dtype]):
         """
         Returns the max value of each kernel in the input tensor.
@@ -81,9 +86,7 @@ struct MAXPOOL2D:
 
     @staticmethod
     fn backward[
-        ug_shape: TensorShape,
-        input_shape: TensorShape,
-        attributes: AttributeVector
+        ug_shape: TensorShape, input_shape: TensorShape, attributes: AttributeVector
     ](ug: Tensor[dtype], inputs: Tensor[dtype]) -> Tensor[dtype]:
         """
         Backward operation of MAXPOOL2D.
@@ -112,7 +115,7 @@ struct MAXPOOL2D:
                             for ky in range(kernel_size[1]):
                                 var ix = ix_base + kx * dilation[0]
                                 var iy = iy_base + ky * dilation[1]
-                                
+
                                 if (
                                     ix < 0
                                     or iy < 0
@@ -134,7 +137,7 @@ struct MAXPOOL2D:
                                     max_idx = idx
 
                         var ug_idx = (
-                            batch * ug_strides[0] 
+                            batch * ug_strides[0]
                             + in_ch * ug_strides[1]
                             + x * ug_strides[2]
                             + y

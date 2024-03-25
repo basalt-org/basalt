@@ -4,7 +4,8 @@ from testing import assert_equal, assert_true, assert_almost_equal
 from basalt import dtype, nelts
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import (
-    fill, dot,
+    fill,
+    dot,
     elwise_transform,
     elwise_pow,
     elwise_op,
@@ -13,14 +14,21 @@ from basalt.utils.tensorutils import (
     get_reduce_shape,
     accumulate_grad,
 )
-from basalt.utils.tensorutils import tsum, tmean, tstd, tmax, transpose #, transpose_2D, transpose, pad_zeros
+from basalt.utils.tensorutils import (
+    tsum,
+    tmean,
+    tstd,
+    tmax,
+    transpose,
+)  # , transpose_2D, transpose, pad_zeros
 
 from math import sqrt, exp, round
 from math import add, sub, mul, div
 
 
-
-fn assert_tensors_equal(t1: Tensor[dtype], t2: Tensor[dtype], mode: String = "exact") raises:
+fn assert_tensors_equal(
+    t1: Tensor[dtype], t2: Tensor[dtype], mode: String = "exact"
+) raises:
     # Assert equal shapes
     assert_equal(t1.num_elements(), t2.num_elements(), "Number of elements mismatch")
     assert_equal(t1.rank(), t2.rank(), "Rank mismatch")
@@ -195,6 +203,7 @@ fn test_elwise_broadcast_tensor() raises:
 
 from test_tensorutils_data import SumMeanStdData
 
+
 fn test_sum_mean_std() raises:
     var t = Tensor[dtype](2, 10)
     var s = 0
@@ -258,6 +267,7 @@ fn test_sum_mean_std() raises:
     var expected_batch_std_1 = Tensor[dtype](2, 1)
     fill(expected_batch_std_1, 2.8722813129425049)
     assert_tensors_equal(batch_std_1, expected_batch_std_1)
+
 
 fn test_sum_mean_std_n() raises:
     var t = Tensor[dtype](3, 4, 5)
@@ -335,7 +345,9 @@ fn test_max() raises:
     assert_equal(tensor_max, 12)
 
     @parameter
-    fn fill_tensor[size: Int](inout tensor: Tensor[dtype], values: StaticIntTuple[size]):
+    fn fill_tensor[
+        size: Int
+    ](inout tensor: Tensor[dtype], values: StaticIntTuple[size]):
         for i in range(tensor.num_elements()):
             tensor[i] = values[i]
 
@@ -447,13 +459,12 @@ fn test_accumulate_grad() raises:
 #     data = PaddingData.generate_3d_test_case()
 #     padded_data = pad_zeros[dtype, nelts](data.A, data.pad_with)
 #     assert_tensors_equal(padded_data, data.expected)
-    
+
 #     # 4D padding
 #     data = PaddingData.generate_4d_test_case()
 #     padded_data = pad_zeros[dtype, nelts](data.A, data.pad_with)
 #     assert_tensors_equal(padded_data, data.expected)
 
-    
 
 fn main():
     try:
