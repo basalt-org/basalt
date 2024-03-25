@@ -8,3 +8,6 @@ examples/data/mnist_train.csv
 
 output_model.onnx
 Makefile
+
+./temp
+flamegraph.svg

@@ -2,10 +2,7 @@ from algorithm import vectorize
 from math import exp, pow
 
 from basalt import Tensor, TensorShape
-from basalt.utils.tensorutils import (
-    elwise_transform
-)
-
+from basalt.utils.tensorutils import elwise_transform
 
 
 @value
@@ -43,17 +40,18 @@ struct SIGMOID:
         """Backward operation of sigmoid."""
         # d(sigmod(x))/dx = sigmoid(x) * (1 - sigmoid(x))
         var res_grad = Tensor[dtype](ug_shape)
-        
+
         @parameter
         fn vec_sigmoid_bw[nelts: Int](idx: Int):
-            res_grad.simd_store[nelts](idx,
-                Self.sidmoid_bw(t1.simd_load[nelts](idx)) * ug.simd_load[nelts](idx)
+            res_grad.simd_store[nelts](
+                idx,
+                Self.sidmoid_bw(t1.simd_load[nelts](idx)) * ug.simd_load[nelts](idx),
             )
 
         vectorize[vec_sigmoid_bw, nelts](ug_shape.num_elements())
 
         return res_grad ^
-        
+
 
 struct RELU:
     @staticmethod
@@ -65,15 +63,17 @@ struct RELU:
     fn relu[
         type: DType, simd_width: Int
     ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
-        return x if x > 0 else 0    
-    
+        # x if x > 0 else 0
+        return (x > 0).select(x, 0)
+
     @staticmethod
     @always_inline
     fn relu_bw[
         type: DType, simd_width: Int
     ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
-        return 1 if x > 0 else 0
-    
+        # 1 if x > 0 else 0
+        return (x > 0).select[type](1, 0)
+
     @staticmethod
     fn forward[
         t1_shape: TensorShape,
@@ -92,8 +92,8 @@ struct RELU:
 
         @parameter
         fn vec_relu_bw[nelts: Int](idx: Int):
-            res_grad.simd_store[nelts](idx,
-                Self.relu_bw(t1.simd_load[nelts](idx)) * ug.simd_load[nelts](idx)
+            res_grad.simd_store[nelts](
+                idx, Self.relu_bw(t1.simd_load[nelts](idx)) * ug.simd_load[nelts](idx)
             )
 
         vectorize[vec_relu_bw, nelts](ug_shape.num_elements())
@@ -138,8 +138,8 @@ struct TANH:
 
         @parameter
         fn vec_tanh_bw[nelts: Int](idx: Int):
-            res_grad.simd_store[nelts](idx,
-                Self.tanh_bw(t1.simd_load[nelts](idx)) * ug.simd_load[nelts](idx)
+            res_grad.simd_store[nelts](
+                idx, Self.tanh_bw(t1.simd_load[nelts](idx)) * ug.simd_load[nelts](idx)
             )
 
         vectorize[vec_tanh_bw, nelts](ug_shape.num_elements())

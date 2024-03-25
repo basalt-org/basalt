@@ -66,7 +66,7 @@ fn test_broadcast_shapes() raises:
 
     # # Both errors expected
     # print("EXPECTED RAISE!")
-    # try: 
+    # try:
     #     s1 = TensorShape(3, 2, 2)
     #     s2 = TensorShape(3, 5, 2)
     #     s3 = broadcast_shapes(s1, s2)
@@ -75,7 +75,7 @@ fn test_broadcast_shapes() raises:
     #     print("Numpy:", e)
 
     # print("EXPECTED RAISE!")
-    # try: 
+    # try:
     #     s1 = TensorShape(3)
     #     s2 = TensorShape(2)
     #     s3 = broadcast_shapes(s1, s2)
@@ -103,9 +103,7 @@ fn test_broadcast_shapes_multiple() raises:
     assert_true(res == res_np)
 
 
-
 fn main():
-
     try:
         test_broadcast_shapes()
         test_broadcast_shapes_multiple()

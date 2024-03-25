@@ -3,12 +3,11 @@ from math import min
 
 @value
 @register_passable("trivial")
-struct bytes[
-    capacity: Int
-](Stringable, CollectionElement):
+struct bytes[capacity: Int](Stringable, CollectionElement):
     """
     Static sequence of bytes.
     """
+
     var _vector: StaticTuple[capacity, UInt8]
 
     fn __init__(inout self):
@@ -44,10 +43,13 @@ struct bytes[
             if self[i] != other[i]:
                 return False
         return True
-    
+
     fn hex(self) -> String:
         var result: String = ""
         alias hex_table: String = "0123456789abcdef"
         for i in range(self.__len__()):
-            result += hex_table[((self[i] >> 4) & 0xF).to_int()] + hex_table[(self[i] & 0xF).to_int()]
+            result += (
+                hex_table[((self[i] >> 4) & 0xF).to_int()]
+                + hex_table[(self[i] & 0xF).to_int()]
+            )
         return result
