@@ -8,7 +8,6 @@ from basalt.utils.tensorutils import (
 
 
 
-@value
 struct SIGMOID:
     @staticmethod
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
