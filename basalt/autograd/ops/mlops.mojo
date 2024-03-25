@@ -63,14 +63,16 @@ struct RELU:
     fn relu[
         type: DType, simd_width: Int
     ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
-        return x if x > 0 else 0
+        # x if x > 0 else 0
+        return (x > 0).select(x, 0)
 
     @staticmethod
     @always_inline
     fn relu_bw[
         type: DType, simd_width: Int
     ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
-        return 1 if x > 0 else 0
+        # 1 if x > 0 else 0
+        return (x > 0).select[type](1, 0)
 
     @staticmethod
     fn forward[

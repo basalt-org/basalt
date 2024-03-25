@@ -1,6 +1,6 @@
 from random import rand
-from math.limit import max_finite
 from python import Python
+from math.limit import max_finite
 from testing import assert_almost_equal
 from test_conv import to_numpy, to_tensor
 from test_tensorutils import assert_tensors_equal
@@ -243,7 +243,7 @@ fn main():
     for i in range(epochs):
         var loss_mojo = losses_mojo[i]
         var loss_torch = losses_torch[i]
-        print("loss_mojo: ", loss_mojo, " loss_torch: ", loss_torch)
+        # print("loss_mojo: ", loss_mojo, " loss_torch: ", loss_torch)
         try:
             assert_almost_equal(loss_mojo, loss_torch, rtol=1e-4)
         except e:
@@ -253,4 +253,4 @@ fn main():
             break
 
     if success:
-        print("SUCCES: All losses in Linear Regression model are equal.")
+        print("SUCCES: All losses in Sin estimate model are equal.")

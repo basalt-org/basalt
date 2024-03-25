@@ -1,5 +1,6 @@
 from random import rand
 from python import Python
+from math.limit import max_finite
 from testing import assert_almost_equal
 from test_conv import to_numpy, to_tensor
 from test_tensorutils import assert_tensors_equal
@@ -7,6 +8,7 @@ from test_tensorutils import assert_tensors_equal
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP, dtype
+from basalt.utils.rand_utils import MersenneTwister
 
 
 fn create_linear_regression(
@@ -122,12 +124,16 @@ fn run_torch(
 
 
 fn create_weights(num_elements: Int, zero: Bool) -> DynamicVector[SIMD[dtype, 1]]:
+    var prng = MersenneTwister(123456)
     var weights = DynamicVector[SIMD[dtype, 1]](capacity=num_elements)
     for i in range(num_elements):
         if zero:
             weights.push_back(SIMD[dtype, 1](0.0))
         else:
-            weights.push_back(SIMD[dtype, 1](0.1))
+            var rand_float = prng.next().cast[dtype]() / max_finite[DType.int32]().cast[
+                dtype
+            ]()
+            weights.push_back(SIMD[dtype, 1](rand_float / 10))
     return weights ^
 
 
@@ -156,7 +162,7 @@ fn main():
     alias l1_w_shape = TensorShape(13, n_outputs)
     alias linear1_weights = create_weights(l1_w_shape.num_elements(), zero=False)
     alias l1_b_shape = TensorShape(n_outputs)
-    alias linear1_bias = create_weights(l1_b_shape.num_elements(), zero=True)
+    alias linear1_bias = create_weights(l1_b_shape.num_elements(), zero=False)
 
     var losses_mojo = run_mojo[batch_size, n_outputs, linear1_weights, linear1_bias,](
         epochs,
