@@ -43,29 +43,20 @@ fn main():
     var optimizer = nn.optim.Adam[graph](lr=learning_rate)
     optimizer.allocate_rms_and_momentum(model.parameters)
 
-    print("Loading data...")
-    var test_data = DynamicVector[Tensor[dtype]]()
-    var test_labels = DynamicVector[Tensor[dtype]]()
-    test_data.reserve(epochs)
-    test_labels.reserve(epochs)
+    var x_data = Tensor[dtype](batch_size, n_inputs)
+    var y_data = Tensor[dtype](batch_size, n_outputs)
+
+    print("Training started")
+    var start = now()
 
     for i in range(epochs):
-        var x_data = Tensor[dtype](batch_size, n_inputs)
-        var y_data = Tensor[dtype](batch_size, n_outputs)
         rand[dtype](x_data.data(), x_data.num_elements())
 
         for j in range(batch_size):
             x_data[j] = x_data[j] * 2 - 1
             y_data[j] = math.sin(x_data[j])
 
-        test_data.append(x_data)
-        test_labels.append(y_data)
-
-    print("Training started")
-    var start = now()
-
-    for i in range(epochs):
-        var out = model.forward(test_data[i], test_labels[i])
+        var out = model.forward(x_data, y_data)
 
         if (i + 1) % 1000 == 0:
             print("[", i + 1, "/", epochs, "] \tLoss: ", out[0])
