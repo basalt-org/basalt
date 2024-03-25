@@ -56,8 +56,7 @@ struct StringDict[
             self.capacity = 8
         else:
             var icapacity = Int64(capacity)
-            self.capacity = capacity if ctpop(icapacity) == 1 else
-                            1 << (bit_length(icapacity)).to_int()
+            self.capacity = capacity if ctpop(icapacity) == 1 else 1 << (bit_length(icapacity)).to_int()
         self.keys = KeysContainer[KeyOffsetType](capacity)
         @parameter
         if caching_hashes:
