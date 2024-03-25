@@ -83,7 +83,7 @@ fn torch_binary_op(
 
         var input_1 = torch.from_numpy(to_numpy(input_1)).requires_grad_(True)
         var input_2 = torch.from_numpy(to_numpy(input_2)).requires_grad_(True)
-        
+
         var expected: PythonObject
 
         if op == OP.ADD:
@@ -94,6 +94,8 @@ fn torch_binary_op(
             expected = input_1 * input_2
         elif op == OP.DIV:
             expected = input_1 / input_2
+        elif op == OP.DOT:
+            expected = torch.matmul(input_1, input_2)
         else:
             print("Error: op not supported (returning the default add op result): ", op)
             expected = input_1 + input_2
@@ -133,7 +135,7 @@ fn test_binary_op[
 
     var model = nn.Model[graph](inference_only=True)
     var res = model.inference(t1, t2)[0]
-    assert_tensors_equal(res, expected)
+    assert_tensors_equal(res, expected, "almost")
 
 
 fn test_binary_op_backward[
@@ -279,6 +281,7 @@ fn test_MUL() raises:
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
 
+
 fn test_DIV() raises:
     alias t1_shape = TensorShape(37, 63, 107)
     alias t2_shape = TensorShape(37, 63, 107)
@@ -338,6 +341,26 @@ fn test_DIV() raises:
     )
 
 
+fn test_DOT() raises:
+    alias t1_shape = TensorShape(107, 203)
+    alias t2_shape = TensorShape(203, 139)
+    alias ug_shape = TensorShape(107, 139)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var t2: Tensor[dtype] = Tensor[dtype](t2_shape)
+    rand(t1.data(), t1.num_elements())
+    rand(t2.data(), t2.num_elements())
+
+    var ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    var expected_and_grad = torch_binary_op(OP.DOT, t1, t2, ug)
+
+    test_binary_op[OP.DOT, t1_shape, t2_shape](t1, t2, expected_and_grad.expected)
+    test_binary_op_backward[OP.DOT, t1_shape, t2_shape, ug_shape](
+        t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
+    )
+
+
 fn main():
     print("Running ops (compare with torch) tests")
     try:
@@ -345,6 +368,7 @@ fn main():
         test_SUB()
         test_MUL()
         test_DIV()
+        test_DOT()
     except e:
         print("[ERROR] Error in ops (compare with torch)")
         print(e)
