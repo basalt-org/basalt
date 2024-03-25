@@ -279,6 +279,64 @@ fn test_MUL() raises:
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
 
+fn test_DIV() raises:
+    alias t1_shape = TensorShape(37, 63, 107)
+    alias t2_shape = TensorShape(37, 63, 107)
+    alias ug_shape = TensorShape(37, 63, 107)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var t2: Tensor[dtype] = Tensor[dtype](t2_shape)
+    rand(t1.data(), t1.num_elements())
+    rand(t2.data(), t2.num_elements())
+
+    var ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    var expected_and_grad = torch_binary_op(OP.DIV, t1, t2, ug)
+
+    test_binary_op[OP.DIV, t1_shape, t2_shape](t1, t2, expected_and_grad.expected)
+    test_binary_op_backward[OP.DIV, t1_shape, t2_shape, ug_shape](
+        t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
+    )
+
+    # broadcasting
+    alias t1_shape_2 = TensorShape(37, 63, 107)
+    alias t2_shape_2 = TensorShape(37, 63, 1)
+    alias ug_shape_2 = TensorShape(37, 63, 107)
+
+    t1 = Tensor[dtype](t1_shape_2)
+    t2 = Tensor[dtype](t2_shape_2)
+    rand(t1.data(), t1.num_elements())
+    rand(t2.data(), t2.num_elements())
+
+    ug = Tensor[dtype](ug_shape_2)
+    rand(ug.data(), ug.num_elements())
+
+    expected_and_grad = torch_binary_op(OP.DIV, t1, t2, ug)
+
+    test_binary_op[OP.DIV, t1_shape_2, t2_shape_2](t1, t2, expected_and_grad.expected)
+    test_binary_op_backward[OP.DIV, t1_shape_2, t2_shape_2, ug_shape_2](
+        t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
+    )
+
+    alias t1_shape_3 = TensorShape(37, 63, 1)
+    alias t2_shape_3 = TensorShape(37, 63, 107)
+    alias ug_shape_3 = TensorShape(37, 63, 107)
+
+    t1 = Tensor[dtype](t1_shape_3)
+    t2 = Tensor[dtype](t2_shape_3)
+    rand(t1.data(), t1.num_elements())
+    rand(t2.data(), t2.num_elements())
+
+    ug = Tensor[dtype](ug_shape_3)
+    rand(ug.data(), ug.num_elements())
+
+    expected_and_grad = torch_binary_op(OP.DIV, t1, t2, ug)
+
+    test_binary_op[OP.DIV, t1_shape_3, t2_shape_3](t1, t2, expected_and_grad.expected)
+    test_binary_op_backward[OP.DIV, t1_shape_3, t2_shape_3, ug_shape_3](
+        t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
+    )
+
 
 fn main():
     print("Running ops (compare with torch) tests")
@@ -286,6 +344,7 @@ fn main():
         test_ADD()
         test_SUB()
         test_MUL()
+        test_DIV()
     except e:
         print("[ERROR] Error in ops (compare with torch)")
         print(e)
