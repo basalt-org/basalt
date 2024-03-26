@@ -2,9 +2,9 @@ from algorithm import vectorize, parallelize
 from memory import memset_zero, memset
 from math import sqrt, pow, equal, max, min, abs, add, div, divmod
 from random import rand
-from collections.vector import InlinedFixedVector
 
 from basalt import Tensor, TensorShape
+from basalt.nn.tensor import max_rank
 
 
 @always_inline
@@ -58,8 +58,7 @@ fn broadcast_shapes(s1: TensorShape, s2: TensorShape) -> TensorShape:
         big = s2
         small = s1
 
-    var res = DynamicVector[Int]()
-    res.resize(ndim, -1)
+    var res = StaticIntTuple[max_rank](-1)
 
     for i in range(ndim - 1, diff - 1, -1):
         var a = big[i]
@@ -79,7 +78,7 @@ fn broadcast_shapes(s1: TensorShape, s2: TensorShape) -> TensorShape:
     for i in range(diff - 1, -1, -1):
         res[i] = big[i]
 
-    return TensorShape(res)
+    return TensorShape(rank=ndim, shape=res)
 
 
 @always_inline
@@ -381,13 +380,14 @@ fn reduce[
 
 
 fn get_reduce_shape(t: TensorShape, axis: Int) -> TensorShape:
-    var new_shape = DynamicVector[Int](capacity=t.rank())
-    for i in range(t.rank()):
+    var rank = t.rank()
+    var new_shape = StaticIntTuple[max_rank]()
+    for i in range(rank):
         if i == axis:
-            new_shape.push_back(1)
+            new_shape[i] = 1
         else:
-            new_shape.push_back(t[i])
-    return TensorShape(new_shape)
+            new_shape[i] = t[i]
+    return TensorShape(rank=rank, shape=new_shape)
 
 
 @always_inline
@@ -488,7 +488,7 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 
     @parameter
     fn get_t_index(
-        i: Int, j: Int, axis: Int, shape: TensorShape, strides: InlinedFixedVector[Int]
+        i: Int, j: Int, axis: Int, shape: TensorShape, strides: StaticIntTuple[max_rank]
     ) -> Int:
         var index_res = 0
         for k in range(shape.rank()):
@@ -500,7 +500,7 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 
     @parameter
     fn get_mu_index(
-        i: Int, axis: Int, shape: TensorShape, strides: InlinedFixedVector[Int]
+        i: Int, axis: Int, shape: TensorShape, strides: StaticIntTuple[max_rank]
     ) -> Int:
         var index_res = 0
         for k in range(shape.rank()):
@@ -595,12 +595,13 @@ fn tmax(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 
 @always_inline
 fn get_transpose_shape(t: TensorShape, axes: TensorShape) -> TensorShape:
-    var new_shape = DynamicVector[Int](capacity=t.rank())
+    var rank = t.rank()
+    var new_shape = StaticIntTuple[max_rank]()
 
-    for i in range(t.rank()):
-        new_shape.push_back(t[axes[i]])
+    for i in range(rank):
+        new_shape[i] = t[axes[i]]
 
-    return TensorShape(new_shape)
+    return TensorShape(rank=rank, shape=new_shape)
 
 
 @always_inline

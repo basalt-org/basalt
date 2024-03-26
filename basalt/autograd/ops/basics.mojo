@@ -3,6 +3,7 @@ from algorithm import vectorize
 from memory import memcpy
 
 from basalt import Tensor, TensorShape
+from basalt.nn.tensor import max_rank
 from basalt.utils.tensorutils import *
 from basalt.autograd.attributes import Attribute, AttributeVector
 
@@ -584,19 +585,19 @@ struct TRANSPOSE:
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axes = attributes["axes"]  # axes to be permuted
 
-        var shape = DynamicVector[Int]()
+        var rank = t_shape.rank()
+        var shape = StaticIntTuple[max_rank]()
 
         if axes:
             # NOTE: axis has to be the size of rank of the tensor
             var axes_shape = axes.value().to_shape()
-
-            for i in range(t_shape.rank()):
-                shape.push_back(t_shape[axes_shape[i]])
+            for i in range(rank):
+                shape[i] = t_shape[axes_shape[i]]
         else:
-            for i in range(t_shape.rank() - 1, -1, -1):
-                shape.push_back(t_shape[i])
+            for i in range(rank):
+                shape[i] = t_shape[rank - i - 1]
 
-        return TensorShape(shape)
+        return TensorShape(rank=rank, shape=shape)
 
     @staticmethod
     fn forward[
@@ -614,10 +615,11 @@ struct TRANSPOSE:
         else:
 
             fn create_transpose_axes() -> TensorShape:
-                var axes = DynamicVector[Int]()
-                for i in range(t_shape.rank() - 1, -1, -1):
-                    axes.push_back(i)
-                return TensorShape(axes)
+                var rank = t_shape.rank()
+                var axes = StaticIntTuple[max_rank]()
+                for i in range(rank):
+                    axes[i] = rank - i - 1
+                return TensorShape(rank=rank, shape=axes)
 
             alias axes_shape = create_transpose_axes()
 
@@ -639,13 +641,13 @@ struct TRANSPOSE:
             fn create_inverse_axes() -> TensorShape:
                 var axes_shape = axes.value().to_shape()
 
-                var axes_shape_inv = DynamicVector[Int]()
-                axes_shape_inv.resize(axes_shape.rank(), 0)
+                var rank = axes_shape.rank()
+                var axes_shape_inv = StaticIntTuple[max_rank]()
 
-                for i in range(axes_shape.rank()):
+                for i in range(rank):
                     axes_shape_inv[axes_shape[i]] = i
 
-                return TensorShape(axes_shape_inv)
+                return TensorShape(rank=rank, shape=axes_shape_inv)
 
             alias axes_shape_inv = create_inverse_axes()
 
@@ -653,9 +655,10 @@ struct TRANSPOSE:
         else:
 
             fn create_transpose_axes() -> TensorShape:
-                var axes = DynamicVector[Int]()
-                for i in range(t_shape.rank() - 1, -1, -1):
-                    axes.push_back(i)
+                var rank = t_shape.rank()
+                var axes = StaticIntTuple[max_rank]()
+                for i in range(rank):
+                    axes[i] = rank - i - 1
                 return TensorShape(axes)
 
             alias axes_shape_inv = create_transpose_axes()
