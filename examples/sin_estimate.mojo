@@ -39,6 +39,12 @@ fn main():
 
     alias graph = create_simple_nn(batch_size, n_inputs, n_outputs)
 
+    # try:
+    #     graph.render("operator")
+    # except e:
+    #     print("Failed to render graph")
+    #     print(e)
+
     var model = nn.Model[graph]()
     var optimizer = nn.optim.Adam[graph](lr=learning_rate)
     optimizer.allocate_rms_and_momentum(model.parameters)
