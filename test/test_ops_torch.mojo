@@ -554,6 +554,8 @@ fn torch_reduction_op(
 
         if op == OP.SUM:
             expected = torch.sum(input_1, axis, True)
+        elif op == OP.MAX:
+            expected = torch.amax(input_1, axis, True)
         else:
             print("Error: op not supported (returning input 1 value): ", op)
             expected = input_1
@@ -652,6 +654,54 @@ fn test_SUM() raises:
     )
 
 
+fn test_MAX() raises:
+    alias t1_shape = TensorShape(87, 73, 107)
+    alias ug_shape = TensorShape(87, 1, 107)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    rand(t1.data(), t1.num_elements())
+
+    var ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    # 1 axis
+    alias axis = 1
+
+    var expected_and_grad = torch_reduction_op(OP.MAX, t1, axis, ug)
+
+    test_reduction_op[OP.MAX, t1_shape, axis](t1, expected_and_grad.expected)
+    test_reduction_op_backward[OP.MAX, t1_shape, axis, ug_shape](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+    # 2 axis
+    alias ug_shape_2 = TensorShape(87, 73, 1)
+    ug = Tensor[dtype](ug_shape_2)
+    rand(ug.data(), ug.num_elements())
+
+    alias axis_2 = 2
+
+    expected_and_grad = torch_reduction_op(OP.MAX, t1, axis_2, ug)
+
+    test_reduction_op[OP.MAX, t1_shape, axis_2](t1, expected_and_grad.expected)
+    test_reduction_op_backward[OP.MAX, t1_shape, axis_2, ug_shape_2](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+    # 0 axis
+    alias ug_shape_3 = TensorShape(1, 73, 107)
+    ug = Tensor[dtype](ug_shape_3)
+    rand(ug.data(), ug.num_elements())
+
+    alias axis_3 = 0
+
+    expected_and_grad = torch_reduction_op(OP.MAX, t1, axis_3, ug)
+
+    test_reduction_op[OP.MAX, t1_shape, axis_3](t1, expected_and_grad.expected)
+    test_reduction_op_backward[OP.MAX, t1_shape, axis_3, ug_shape_3](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+
 fn main():
     print("Running ops (compare with torch) tests")
     try:
@@ -664,6 +714,7 @@ fn main():
         test_LOG()
         test_POW()
         test_SUM()
+        test_MAX()
     except e:
         print("[ERROR] Error in ops (compare with torch)")
         print(e)
