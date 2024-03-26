@@ -534,6 +534,124 @@ fn test_POW() raises:
     )
 
 
+# ------ Test Reduction Ops ------
+@value
+struct torch_output_reduction_op:
+    var expected: Tensor[dtype]
+    var grad_1: Tensor[dtype]
+
+
+fn torch_reduction_op(
+    op: OP, input_1: Tensor, axis: Int, upper_grad: Tensor
+) -> torch_output_reduction_op:
+    try:
+        var torch = Python.import_module("torch")
+        var np = Python.import_module("numpy")
+
+        var input_1 = torch.from_numpy(to_numpy(input_1)).requires_grad_(True)
+
+        var expected: PythonObject
+
+        if op == OP.SUM:
+            expected = torch.sum(input_1, axis, True)
+        else:
+            print("Error: op not supported (returning input 1 value): ", op)
+            expected = input_1
+
+        # uppergrad & backwards
+        var upper_grad = torch.from_numpy(to_numpy(upper_grad))
+        _ = expected.backward(upper_grad)
+
+        return torch_output_reduction_op(
+            to_tensor(expected.detach().numpy()),
+            to_tensor(input_1.grad.numpy()),
+        )
+
+    except e:
+        print("Error importing torch: ", e)
+        var d = Tensor[dtype](1)
+        return torch_output_reduction_op(d, d)
+
+
+fn test_reduction_op[
+    op: OP, t1_shape: TensorShape, axis: Int
+](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
+    fn create_graph() -> Graph:
+        var g = Graph()
+        var t1 = g.input(t1_shape)
+
+        var res = g.op(op, t1, attributes=AttributeVector(Attribute("axis", axis)))
+        g.out(res)
+
+        return g ^
+
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+
+    var model = nn.Model[graph](inference_only=True)
+    var res = model.inference(t1)[0]
+
+    assert_tensors_equal(res, expected, "almost")
+
+
+fn test_reduction_op_backward[
+    op: OP, t1_shape: TensorShape, axis: Int, ug_shape: TensorShape
+](t1: Tensor[dtype], ug: Tensor[dtype], grad_1_expected: Tensor[dtype],) raises:
+    var grad_1 = Tensor[dtype](t1_shape)
+    backward_op[0, op, ug_shape, t1_shape, AttributeVector(Attribute("axis", axis))](
+        ug, t1, grad_1
+    )
+    assert_tensors_equal(grad_1, grad_1_expected, "almost")
+
+
+fn test_SUM() raises:
+    alias t1_shape = TensorShape(87, 73, 107)
+    alias ug_shape = TensorShape(87, 1, 107)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    rand(t1.data(), t1.num_elements())
+
+    var ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    # 1 axis
+    alias axis = 1
+
+    var expected_and_grad = torch_reduction_op(OP.SUM, t1, axis, ug)
+
+    test_reduction_op[OP.SUM, t1_shape, axis](t1, expected_and_grad.expected)
+    test_reduction_op_backward[OP.SUM, t1_shape, axis, ug_shape](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+    # 2 axis
+    alias ug_shape_2 = TensorShape(87, 73, 1)
+    ug = Tensor[dtype](ug_shape_2)
+    rand(ug.data(), ug.num_elements())
+
+    alias axis_2 = 2
+
+    expected_and_grad = torch_reduction_op(OP.SUM, t1, axis_2, ug)
+
+    test_reduction_op[OP.SUM, t1_shape, axis_2](t1, expected_and_grad.expected)
+    test_reduction_op_backward[OP.SUM, t1_shape, axis_2, ug_shape_2](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+    # 0 axis
+    alias ug_shape_3 = TensorShape(1, 73, 107)
+    ug = Tensor[dtype](ug_shape_3)
+    rand(ug.data(), ug.num_elements())
+
+    alias axis_3 = 0
+
+    expected_and_grad = torch_reduction_op(OP.SUM, t1, axis_3, ug)
+
+    test_reduction_op[OP.SUM, t1_shape, axis_3](t1, expected_and_grad.expected)
+    test_reduction_op_backward[OP.SUM, t1_shape, axis_3, ug_shape_3](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+
 fn main():
     print("Running ops (compare with torch) tests")
     try:
@@ -545,6 +663,7 @@ fn main():
         test_EXP()
         test_LOG()
         test_POW()
+        test_SUM()
     except e:
         print("[ERROR] Error in ops (compare with torch)")
         print(e)
