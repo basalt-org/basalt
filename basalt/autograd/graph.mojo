@@ -112,7 +112,7 @@ struct Graph:
             )
 
         self.nodes.push_back(
-            Node(op, res, operand_1, operand_2.take(), operand_3.take(), attributes)
+            Node(op, res, operand_1, operand_2, operand_3, attributes)
         )
         self.symbol_count += 1
         return res

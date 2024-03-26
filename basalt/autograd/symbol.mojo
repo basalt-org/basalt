@@ -25,7 +25,7 @@ struct Symbol(CollectionElement, Stringable):
     fn json(self) -> String:
         return (
             '{"name": "'
-            + str(self.name)[:8]
+            + str(self.name)
             + '", "dtype": "'
             + str(self.dtype)
             + '", "shape": "'
