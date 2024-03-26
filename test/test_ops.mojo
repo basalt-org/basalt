@@ -171,7 +171,7 @@ fn test_POW() raises:
 
     var expected = Tensor[dtype](2, 3)
     fill(expected, 4.0)
-    
+
     assert_tensors_equal(res, expected)
 
 
@@ -213,7 +213,7 @@ fn test_SUM() raises:
 fn test_MAX() raises:
     alias t1_shape = TensorShape(2, 3, 2)
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
-    
+
     for i in range(t1_shape.num_elements()):
         t1[i] = i + 1
 
@@ -238,7 +238,9 @@ fn test_MAX() raises:
     assert_tensors_equal(res, expected)
 
     @parameter
-    fn fill_tensor[size: Int](inout tensor: Tensor[dtype], values: StaticIntTuple[size]):
+    fn fill_tensor[
+        size: Int
+    ](inout tensor: Tensor[dtype], values: StaticIntTuple[size]):
         for i in range(tensor.num_elements()):
             tensor[i] = values[i]
 
@@ -327,9 +329,9 @@ fn test_TRANSPOSE() raises:
         var t1 = g.input(t1_shape)
 
         var res = g.op(OP.TRANSPOSE, t1, attributes=attributes)
-    
+
         g.out(res)
-    
+
         return g ^
 
     # Test tranpose (no attributes = reversing the axis by default)
@@ -345,12 +347,16 @@ fn test_TRANSPOSE() raises:
     for i in range(t1_shape[0]):
         for j in range(t1_shape[1]):
             for k in range(t1_shape[2]):
-                expected[k * expected_strides[0] + j * expected_strides[1] + i] = t1[i*t1_shape[1]*t1_shape[2] + j*t1_shape[2] + k]
+                expected[k * expected_strides[0] + j * expected_strides[1] + i] = t1[
+                    i * t1_shape[1] * t1_shape[2] + j * t1_shape[2] + k
+                ]
 
     assert_tensors_equal(res, expected)
 
     # Test tranpose 1, 2, 0
-    alias graph_axis_1 = create_graph(AttributeVector(Attribute("axes", TensorShape(1, 2, 0))))
+    alias graph_axis_1 = create_graph(
+        AttributeVector(Attribute("axes", TensorShape(1, 2, 0)))
+    )
 
     var model_2 = nn.Model[graph_axis_1](inference_only=True)
 
@@ -362,7 +368,9 @@ fn test_TRANSPOSE() raises:
     for i in range(t1_shape[0]):
         for j in range(t1_shape[1]):
             for k in range(t1_shape[2]):
-                expected_axis_1[j * expected_axis_1_strides[0] + k * expected_axis_1_strides[1] + i] = t1[i*t1_shape[1]*t1_shape[2] + j*t1_shape[2] + k]
+                expected_axis_1[
+                    j * expected_axis_1_strides[0] + k * expected_axis_1_strides[1] + i
+                ] = t1[i * t1_shape[1] * t1_shape[2] + j * t1_shape[2] + k]
 
     assert_tensors_equal(res, expected_axis_1)
 
@@ -407,7 +415,9 @@ fn test_RESHAPE() raises:
         var g = Graph()
         var t1 = g.input(t_shape)
 
-        var res = g.op(OP.RESHAPE, t1, attributes=AttributeVector(Attribute("shape", new_shape)))
+        var res = g.op(
+            OP.RESHAPE, t1, attributes=AttributeVector(Attribute("shape", new_shape))
+        )
         g.out(res)
 
         return g ^

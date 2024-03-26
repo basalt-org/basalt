@@ -7,7 +7,6 @@ from basalt.autograd.ops import OP
 from .attributes import AttributeVector
 
 
-
 @value
 struct Node(CollectionElement, Stringable):
     var operator: OP

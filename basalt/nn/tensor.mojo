@@ -3,7 +3,6 @@ from testing import assert_true
 
 from tensor import Tensor as _Tensor
 from tensor import TensorShape as _TensorShape
-from collections.vector import InlinedFixedVector
 
 
 alias max_rank = 8
@@ -43,6 +42,11 @@ struct TensorShape(Stringable):
             self._shape[i] = shape[i]
 
     @always_inline("nodebug")
+    fn __init__(inout self, rank: Int, shape: StaticIntTuple[max_rank]):
+        self._rank = rank
+        self._shape = shape
+
+    @always_inline("nodebug")
     fn __getitem__(self, index: Int) -> Int:
         return self._shape[index if index >= 0 else self._rank + index]
 
@@ -62,10 +66,10 @@ struct TensorShape(Stringable):
         return result
 
     @always_inline("nodebug")
-    fn strides(self) -> InlinedFixedVector[Int]:
-        var result = InlinedFixedVector[Int](self.rank())
-        result[self.rank() - 1] = 1
-        for i in range(self.rank() - 2, -1, -1):
+    fn strides(self) -> StaticIntTuple[max_rank]:
+        var result = StaticIntTuple[max_rank](0)
+        result[self._rank - 1] = 1
+        for i in range(self._rank - 2, -1, -1):
             result[i] = result[i + 1] * self._shape[i + 1]
         return result
 
@@ -75,7 +79,7 @@ struct TensorShape(Stringable):
         for i in range(self.rank()):
             s.push_back(self[i])
         return _TensorShape(s)
-    
+
     @always_inline("nodebug")
     fn __str__(self) -> String:
         return str(self._std_shape())
@@ -92,7 +96,6 @@ struct TensorShape(Stringable):
     @always_inline("nodebug")
     fn __ne__(self, other: TensorShape) -> Bool:
         return not self.__eq__(other)
-
 
 
 struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
@@ -153,7 +156,7 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
         self._data.simd_store[simd_width](index, value)
 
     @always_inline("nodebug")
-    fn strides(self) -> InlinedFixedVector[Int]:
+    fn strides(self) -> StaticIntTuple[max_rank]:
         return self._shape.strides()
 
     @always_inline("nodebug")
@@ -171,7 +174,7 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
     @always_inline("nodebug")
     fn zero(self):
         memset_zero(self._data, self.num_elements())
-    
+
     @always_inline("nodebug")
     fn ireshape(inout self, new_shape: TensorShape) raises:
         # NOTE Consider not raising on error
@@ -187,4 +190,3 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
     @always_inline("nodebug")
     fn __del__(owned self):
         self._data.free()
-    

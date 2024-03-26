@@ -11,7 +11,6 @@ from basalt.autograd.attributes import Attribute, AttributeVector
 
 
 fn mse(inout g: Graph, y_true: Symbol, y_pred: Symbol) -> Symbol:
-
     var diff = g.op(OP.SUB, y_true, y_pred)
     var loss = g.op(OP.MUL, diff, diff)
     var mean_loss = g.op(OP.MEAN, loss, None)
@@ -67,15 +66,15 @@ fn main():
 
     print("Training started")
     var start = now()
-    
+
     alias epochs = 1000
     for i in range(epochs):
         var out = model.forward(x, y)
-        print("[", i + 1, "/", epochs,"] \tLoss: ", out[0])
+        print("[", i + 1, "/", epochs, "] \tLoss: ", out[0])
 
         # Backward pass
         optimizer.zero_grad(model.parameters)
         model.backward()
         optimizer.step(model.parameters)
 
-    print("Training finished: ", (now() - start)/1e9, "seconds")
+    print("Training finished: ", (now() - start) / 1e9, "seconds")

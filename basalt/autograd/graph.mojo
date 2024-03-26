@@ -9,51 +9,61 @@ from .params import ParamDict, Param
 
 from basalt import seed, dtype
 from basalt import Tensor, TensorShape
-from basalt.utils.uuid import UUIDGenerator, UUID
 
 
 @value
 struct Graph:
-    var uuid: UUIDGenerator
     var inputs: DynamicVector[Symbol]
     var params: ParamDict
     var nodes: DynamicVector[Node]
     var outputs: DynamicVector[Symbol]
     var loss_out: Optional[Symbol]
+    var symbol_count: UInt32
 
     fn __init__(inout self):
-        self.uuid = UUIDGenerator(seed)
         self.inputs = DynamicVector[Symbol]()
         self.params = ParamDict()
         self.nodes = DynamicVector[Node]()
         self.outputs = DynamicVector[Symbol]()
         self.loss_out = None
+        self.symbol_count = 0
 
     fn input(inout self, shape: TensorShape) -> Symbol:
-        var inp = Symbol(self.uuid.next(), dtype, shape, False)
+        var inp = Symbol(self.symbol_count, dtype, shape, False)
         self.inputs.push_back(inp)
+        self.symbol_count += 1
         return inp
 
-    fn param(inout self, shape: TensorShape, init: Param, trainable: Bool = True) -> Symbol:
-        var param_id = Symbol(self.uuid.next(), dtype, shape, trainable)
+    fn param(
+        inout self, shape: TensorShape, init: Param, trainable: Bool = True
+    ) -> Symbol:
+        var param_id = Symbol(self.symbol_count, dtype, shape, trainable)
         self.params.put(param_id, init)
+        self.symbol_count += 1
         return param_id
 
     fn param(inout self, shape: TensorShape, trainable: Bool = True) -> Symbol:
-        var param_id = Symbol(self.uuid.next(), dtype, shape, trainable)
+        var param_id = Symbol(self.symbol_count, dtype, shape, trainable)
         self.params.put(param_id)
+        self.symbol_count += 1
         return param_id
 
     fn scalar(inout self, value: SIMD[dtype, 1]) -> Symbol:
         var scal = Param(value)
-        var scalar_id = Symbol(self.uuid.next(), dtype, TensorShape(1), trainable=False)
+        var scalar_id = Symbol(
+            self.symbol_count, dtype, TensorShape(1), trainable=False
+        )
         self.params.put(scalar_id, scal)
+        self.symbol_count += 1
         return scalar_id
 
-    fn constant(inout self, shape: TensorShape, data: DynamicVector[SIMD[dtype, 1]]) -> Symbol:
+    fn constant(
+        inout self, shape: TensorShape, data: DynamicVector[SIMD[dtype, 1]]
+    ) -> Symbol:
         var cst = Param(data)
-        var constant_id = Symbol(self.uuid.next(), dtype, shape, trainable=False)
+        var constant_id = Symbol(self.symbol_count, dtype, shape, trainable=False)
         self.params.put(constant_id, cst)
+        self.symbol_count += 1
         return constant_id
 
     fn out(inout self, symbol: Symbol):
@@ -61,72 +71,96 @@ struct Graph:
 
     fn loss(inout self, symbol: Symbol):
         self.loss_out = symbol
-    
-    fn op(inout self, op: OP,
+
+    fn op(
+        inout self,
+        op: OP,
         operand_1: Symbol,
         operand_2: Optional[Symbol] = None,
         operand_3: Optional[Symbol] = None,
-        attributes: AttributeVector = AttributeVector()
+        attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
-        
         var res: Symbol
         if operand_3:
             res = Symbol(
-                self.uuid.next(),
+                self.symbol_count,
                 dtype,
-                static_result_shape(op, operand_1.shape, operand_2.value().shape, operand_3.value().shape, attributes),
+                static_result_shape(
+                    op,
+                    operand_1.shape,
+                    operand_2.value().shape,
+                    operand_3.value().shape,
+                    attributes,
+                ),
                 self.result_trainable(operand_1, operand_2.value(), operand_3.value()),
             )
         elif operand_2:
             res = Symbol(
-                self.uuid.next(),
+                self.symbol_count,
                 dtype,
-                static_result_shape(op, operand_1.shape, operand_2.value().shape, attributes),
+                static_result_shape(
+                    op, operand_1.shape, operand_2.value().shape, attributes
+                ),
                 self.result_trainable(operand_1, operand_2.value()),
             )
         else:
             res = Symbol(
-                self.uuid.next(),
+                self.symbol_count,
                 dtype,
                 static_result_shape(op, operand_1.shape, attributes),
                 self.result_trainable(operand_1),
             )
 
-        self.nodes.push_back(Node(op, res, operand_1, operand_2.take(), operand_3.take(), attributes))
+        self.nodes.push_back(
+            Node(op, res, operand_1, operand_2, operand_3, attributes)
+        )
+        self.symbol_count += 1
         return res
 
-    fn op(inout self, op: OP,
+    fn op(
+        inout self,
+        op: OP,
         operand_1: Symbol,
         operand_2: FloatLiteral,
-        attributes: AttributeVector = AttributeVector()
+        attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
-        
         var operand_2_symbol = self.scalar(operand_2)
         var res = Symbol(
-            self.uuid.next(),
+            self.symbol_count,
             dtype,
-            static_result_shape(op, operand_1.shape, operand_2_symbol.shape, attributes),
+            static_result_shape(
+                op, operand_1.shape, operand_2_symbol.shape, attributes
+            ),
             self.result_trainable(operand_1),
         )
 
-        self.nodes.push_back(Node(op, res, operand_1, operand_2_symbol, attributes=attributes))
+        self.nodes.push_back(
+            Node(op, res, operand_1, operand_2_symbol, attributes=attributes)
+        )
+        self.symbol_count += 1
         return res
 
-    fn op(inout self, op: OP,
+    fn op(
+        inout self,
+        op: OP,
         operand_1: FloatLiteral,
         operand_2: Symbol,
-        attributes: AttributeVector = AttributeVector()
+        attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
-        
         var operand_1_symbol = self.scalar(operand_1)
         var res = Symbol(
-            self.uuid.next(),
+            self.symbol_count,
             dtype,
-            static_result_shape(op, operand_1_symbol.shape, operand_2.shape, attributes),
+            static_result_shape(
+                op, operand_1_symbol.shape, operand_2.shape, attributes
+            ),
             self.result_trainable(operand_2),
         )
 
-        self.nodes.push_back(Node(op, res, operand_1_symbol, operand_2, attributes=attributes))
+        self.nodes.push_back(
+            Node(op, res, operand_1_symbol, operand_2, attributes=attributes)
+        )
+        self.symbol_count += 1
         return res
 
     @staticmethod
@@ -138,7 +172,9 @@ struct Graph:
         return operand_1.trainable or operand_2.trainable
 
     @staticmethod
-    fn result_trainable(operand_1: Symbol, operand_2: Symbol, operand_3: Symbol) -> Bool:
+    fn result_trainable(
+        operand_1: Symbol, operand_2: Symbol, operand_3: Symbol
+    ) -> Bool:
         return operand_1.trainable or operand_2.trainable or operand_3.trainable
 
     fn json(self) -> String:
