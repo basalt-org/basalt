@@ -62,8 +62,8 @@ fn torch_binary_op(
             to_tensor(input_2.grad.numpy()),
         )
 
-    except:
-        print("Error importing torch")
+    except e:
+        print("Error importing torch: ", e)
         var d = Tensor[dtype](1)
         return torch_output_binary_op(d, d, d)
 
@@ -308,6 +308,63 @@ fn test_DOT() raises:
 
     test_binary_op[OP.DOT, t1_shape, t2_shape](t1, t2, expected_and_grad.expected)
     test_binary_op_backward[OP.DOT, t1_shape, t2_shape, ug_shape](
+        t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
+    )
+
+    # Test same M and N values
+    alias t1_shape_2 = TensorShape(107, 186)
+    alias t2_shape_2 = TensorShape(186, 107)
+    alias ug_shape_2 = TensorShape(107, 107)
+    t1 = Tensor[dtype](t1_shape_2)
+    t2 = Tensor[dtype](t2_shape_2)
+    rand(t1.data(), t1.num_elements())
+    rand(t2.data(), t2.num_elements())
+
+    ug = Tensor[dtype](ug_shape_2)
+    rand(ug.data(), ug.num_elements())
+
+    expected_and_grad = torch_binary_op(OP.DOT, t1, t2, ug)
+
+    test_binary_op[OP.DOT, t1_shape_2, t2_shape_2](t1, t2, expected_and_grad.expected)
+    test_binary_op_backward[OP.DOT, t1_shape_2, t2_shape_2, ug_shape_2](
+        t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
+    )
+
+    # Test square matrix
+    alias t1_shape_3 = TensorShape(207, 207)
+    alias t2_shape_3 = TensorShape(207, 207)
+    alias ug_shape_3 = TensorShape(207, 207)
+    t1 = Tensor[dtype](t1_shape_3)
+    t2 = Tensor[dtype](t2_shape_3)
+    rand(t1.data(), t1.num_elements())
+    rand(t2.data(), t2.num_elements())
+
+    ug = Tensor[dtype](ug_shape_3)
+    rand(ug.data(), ug.num_elements())
+
+    expected_and_grad = torch_binary_op(OP.DOT, t1, t2, ug)
+
+    test_binary_op[OP.DOT, t1_shape_3, t2_shape_3](t1, t2, expected_and_grad.expected)
+    test_binary_op_backward[OP.DOT, t1_shape_3, t2_shape_3, ug_shape_3](
+        t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
+    )
+
+    # Test with power of 2 values
+    alias t1_shape_4 = TensorShape(64, 128)
+    alias t2_shape_4 = TensorShape(128, 256)
+    alias ug_shape_4 = TensorShape(64, 256)
+    t1 = Tensor[dtype](t1_shape_4)
+    t2 = Tensor[dtype](t2_shape_4)
+    rand(t1.data(), t1.num_elements())
+    rand(t2.data(), t2.num_elements())
+
+    ug = Tensor[dtype](ug_shape_4)
+    rand(ug.data(), ug.num_elements())
+
+    expected_and_grad = torch_binary_op(OP.DOT, t1, t2, ug)
+
+    test_binary_op[OP.DOT, t1_shape_4, t2_shape_4](t1, t2, expected_and_grad.expected)
+    test_binary_op_backward[OP.DOT, t1_shape_4, t2_shape_4, ug_shape_4](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
 
