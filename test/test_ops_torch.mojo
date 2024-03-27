@@ -826,6 +826,137 @@ fn test_MEAN() raises:
     )
 
 
+# ------ Test transformation Ops ------
+@value
+struct torch_output_transform_op:
+    var expected: Tensor[dtype]
+    var grad_1: Tensor[dtype]
+
+
+fn torch_transform_op(
+    op: OP, input_1: Tensor, upper_grad: Tensor, new_shape: PythonObject = None
+) -> torch_output_transform_op:
+    try:
+        var torch = Python.import_module("torch")
+        var np = Python.import_module("numpy")
+
+        var input_1 = torch.from_numpy(to_numpy(input_1)).requires_grad_(True)
+
+        var expected: PythonObject
+
+        if op == OP.FLATTEN:
+            expected = input_1.flatten()
+        elif op == OP.RESHAPE:
+            expected = input_1.reshape(new_shape)
+        else:
+            print("Error: op not supported (returning input 1 value): ", op)
+            expected = input_1
+
+        # uppergrad & backwards
+        var upper_grad = torch.from_numpy(to_numpy(upper_grad))
+        _ = expected.backward(upper_grad)
+
+        return torch_output_transform_op(
+            to_tensor(expected.detach().numpy()),
+            to_tensor(input_1.grad.numpy()),
+        )
+
+    except e:
+        print("Error importing torch: ", e)
+        var d = Tensor[dtype](1)
+        return torch_output_transform_op(d, d)
+
+
+fn test_transform_op[
+    op: OP, t1_shape: TensorShape, new_shape: TensorShape = TensorShape(0)
+](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
+    fn create_graph() -> Graph:
+        var g = Graph()
+        var t1 = g.input(t1_shape)
+
+        var res: Symbol
+        if new_shape.num_elements() > 0:
+            if op == OP.RESHAPE:
+                res = g.op(
+                    op, t1, attributes=AttributeVector(Attribute("shape", new_shape))
+                )
+            else:
+                res = g.op(op, t1)
+        else:
+            res = g.op(op, t1)
+        g.out(res)
+
+        return g ^
+
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+
+    var model = nn.Model[graph](inference_only=True)
+    var res = model.inference(t1)[0]
+
+    assert_tensors_equal(res, expected, "almost")
+
+
+fn test_transform_op_backward[
+    op: OP,
+    t1_shape: TensorShape,
+    ug_shape: TensorShape,
+    new_shape: TensorShape = TensorShape(0),
+](t1: Tensor[dtype], ug: Tensor[dtype], grad_1_expected: Tensor[dtype],) raises:
+    var grad_1 = Tensor[dtype](t1_shape)
+
+    if new_shape.num_elements() > 0:
+        if op == OP.RESHAPE:
+            backward_op[
+                0,
+                op,
+                ug_shape,
+                t1_shape,
+                AttributeVector(Attribute("shape", new_shape)),
+            ](ug, t1, grad_1)
+    else:
+        backward_op[0, op, ug_shape, t1_shape, AttributeVector()](ug, t1, grad_1)
+
+    assert_tensors_equal(grad_1, grad_1_expected, "almost")
+
+
+fn test_FLATTEN() raises:
+    alias t1_shape = TensorShape(87, 73, 84)
+    alias ug_shape = TensorShape(t1_shape.num_elements())
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    rand(t1.data(), t1.num_elements())
+
+    var ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    var expected_and_grad = torch_transform_op(OP.FLATTEN, t1, ug, None)
+
+    test_transform_op[OP.FLATTEN, t1_shape](t1, expected_and_grad.expected)
+    test_transform_op_backward[OP.FLATTEN, t1_shape, ug_shape](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+
+fn test_RESHAPE() raises:
+    alias t1_shape = TensorShape(87, 73, 84)
+    alias ug_shape = TensorShape(87, 73 * 84)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    rand(t1.data(), t1.num_elements())
+
+    var ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    alias new_shape = TensorShape(87, 73 * 84)
+    alias new_shape_tuple = (new_shape[0], new_shape[1])
+
+    var expected_and_grad = torch_transform_op(OP.RESHAPE, t1, ug, new_shape_tuple)
+
+    test_transform_op[OP.RESHAPE, t1_shape, new_shape](t1, expected_and_grad.expected)
+    test_transform_op_backward[OP.RESHAPE, t1_shape, ug_shape, new_shape](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+
 fn main():
     print("Running ops (compare with torch) tests")
     try:
@@ -840,6 +971,8 @@ fn main():
         test_SUM()
         test_MAX()
         test_MEAN()
+        test_FLATTEN()
+        test_RESHAPE()
     except e:
         print("[ERROR] Error in ops (compare with torch)")
         print(e)
