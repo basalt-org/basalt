@@ -46,8 +46,11 @@ fn to_tensor(np_array: PythonObject) raises -> Tensor[dtype]:
 
     var tensor = Tensor[dtype](TensorShape(shape))
 
+    # Calling ravel a lot of times is slow
+    var np_array_temp = np_array.ravel()
+
     for i in range(tensor.num_elements()):
-        tensor[i] = np_array.ravel()[i].to_float64().cast[dtype]()
+        tensor[i] = np_array_temp[i].to_float64().cast[dtype]()
 
     return tensor
 
@@ -486,6 +489,7 @@ fn torch_pow_op(
 fn test_pow_op[
     op: OP, t1_shape: TensorShape, exponent: Int
 ](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
+    @parameter
     fn create_graph() -> Graph:
         var g = Graph()
         var t1 = g.input(t1_shape)
@@ -600,6 +604,7 @@ fn torch_reduction_op(
 fn test_reduction_op[
     op: OP, t1_shape: TensorShape, axis: Optional[Int]
 ](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
+    @parameter
     fn create_graph() -> Graph:
         var g = Graph()
         var t1 = g.input(t1_shape)
@@ -848,6 +853,8 @@ fn torch_transform_op(
             expected = input_1.flatten()
         elif op == OP.RESHAPE:
             expected = input_1.reshape(new_shape)
+        elif op == OP.TRANSPOSE:
+            expected = input_1.permute(new_shape)
         else:
             print("Error: op not supported (returning input 1 value): ", op)
             expected = input_1
@@ -870,18 +877,20 @@ fn torch_transform_op(
 fn test_transform_op[
     op: OP, t1_shape: TensorShape, new_shape: TensorShape = TensorShape(0)
 ](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
+    @parameter
     fn create_graph() -> Graph:
         var g = Graph()
         var t1 = g.input(t1_shape)
 
         var res: Symbol
-        if new_shape.num_elements() > 0:
-            if op == OP.RESHAPE:
-                res = g.op(
-                    op, t1, attributes=AttributeVector(Attribute("shape", new_shape))
-                )
-            else:
-                res = g.op(op, t1)
+
+        @parameter
+        if op == OP.RESHAPE:
+            res = g.op(
+                op, t1, attributes=AttributeVector(Attribute("shape", new_shape))
+            )
+        elif op == OP.TRANSPOSE:
+            res = g.op(op, t1, attributes=AttributeVector(Attribute("axes", new_shape)))
         else:
             res = g.op(op, t1)
         g.out(res)
@@ -905,15 +914,23 @@ fn test_transform_op_backward[
 ](t1: Tensor[dtype], ug: Tensor[dtype], grad_1_expected: Tensor[dtype],) raises:
     var grad_1 = Tensor[dtype](t1_shape)
 
-    if new_shape.num_elements() > 0:
-        if op == OP.RESHAPE:
-            backward_op[
-                0,
-                op,
-                ug_shape,
-                t1_shape,
-                AttributeVector(Attribute("shape", new_shape)),
-            ](ug, t1, grad_1)
+    @parameter
+    if op == OP.RESHAPE:
+        backward_op[
+            0,
+            op,
+            ug_shape,
+            t1_shape,
+            AttributeVector(Attribute("shape", new_shape)),
+        ](ug, t1, grad_1)
+    elif op == OP.TRANSPOSE:
+        backward_op[
+            0,
+            op,
+            ug_shape,
+            t1_shape,
+            AttributeVector(Attribute("axes", new_shape)),
+        ](ug, t1, grad_1)
     else:
         backward_op[0, op, ug_shape, t1_shape, AttributeVector()](ug, t1, grad_1)
 
@@ -957,6 +974,60 @@ fn test_RESHAPE() raises:
     )
 
 
+fn test_TRANSPOSE() raises:
+    alias t1_shape = TensorShape(87, 73, 84)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    rand(t1.data(), t1.num_elements())
+
+    alias ug_shape = TensorShape(73, 84, 87)
+    var ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    alias axes = TensorShape(1, 2, 0)
+    alias axes_tuple = (axes[0], axes[1], axes[2])
+
+    var expected_and_grad = torch_transform_op(OP.TRANSPOSE, t1, ug, axes_tuple)
+
+    test_transform_op[OP.TRANSPOSE, t1_shape, axes](t1, expected_and_grad.expected)
+    test_transform_op_backward[OP.TRANSPOSE, t1_shape, ug_shape, axes](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+    # Test reverse axis
+    alias ug_shape_2 = TensorShape(84, 73, 87)
+    ug = Tensor[dtype](ug_shape_2)
+    rand(ug.data(), ug.num_elements())
+
+    alias axes_2 = TensorShape(2, 1, 0)
+    alias axes_tuple_2 = (axes_2[0], axes_2[1], axes_2[2])
+
+    expected_and_grad = torch_transform_op(OP.TRANSPOSE, t1, ug, axes_tuple_2)
+
+    test_transform_op[OP.TRANSPOSE, t1_shape, axes_2](t1, expected_and_grad.expected)
+    test_transform_op_backward[OP.TRANSPOSE, t1_shape, ug_shape_2, axes_2](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+    # Test with rank 2 tensor
+    alias t1_shape_3 = TensorShape(87, 73)
+    t1 = Tensor[dtype](t1_shape_3)
+    rand(t1.data(), t1.num_elements())
+
+    alias ug_shape_3 = TensorShape(73, 87)
+    ug = Tensor[dtype](ug_shape_3)
+    rand(ug.data(), ug.num_elements())
+
+    alias axes_3 = TensorShape(1, 0)
+    alias axes_tuple_3 = (axes_3[0], axes_3[1])
+
+    expected_and_grad = torch_transform_op(OP.TRANSPOSE, t1, ug, axes_tuple_3)
+
+    test_transform_op[OP.TRANSPOSE, t1_shape_3, axes_3](t1, expected_and_grad.expected)
+    test_transform_op_backward[OP.TRANSPOSE, t1_shape_3, ug_shape_3, axes_3](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+
 fn main():
     print("Running ops (compare with torch) tests")
     try:
@@ -973,6 +1044,7 @@ fn main():
         test_MEAN()
         test_FLATTEN()
         test_RESHAPE()
+        test_TRANSPOSE()
     except e:
         print("[ERROR] Error in ops (compare with torch)")
         print(e)
