@@ -686,6 +686,20 @@ fn test_SUM() raises:
         t1, ug, expected_and_grad.grad_1
     )
 
+    # all dims
+    alias ug_shape_4 = TensorShape(1)
+    ug = Tensor[dtype](ug_shape_4)
+    rand(ug.data(), ug.num_elements())
+
+    alias axis_4 = None
+
+    expected_and_grad = torch_reduction_op(OP.SUM, t1, axis_4, ug)
+
+    test_reduction_op[OP.SUM, t1_shape, axis_4](t1, expected_and_grad.expected)
+    test_reduction_op_backward[OP.SUM, t1_shape, axis_4, ug_shape_4](
+        t1, ug, expected_and_grad.grad_1
+    )
+
 
 fn test_MAX() raises:
     alias t1_shape = TensorShape(87, 73, 107)
@@ -735,6 +749,18 @@ fn test_MAX() raises:
     )
 
     # all dims
+    alias ug_shape_4 = TensorShape(1)
+    ug = Tensor[dtype](ug_shape_4)
+    rand(ug.data(), ug.num_elements())
+
+    alias axis_4 = None
+
+    expected_and_grad = torch_reduction_op(OP.MAX, t1, axis_4, ug)
+
+    test_reduction_op[OP.MAX, t1_shape, axis_4](t1, expected_and_grad.expected)
+    test_reduction_op_backward[OP.MAX, t1_shape, axis_4, ug_shape_4](
+        t1, ug, expected_and_grad.grad_1
+    )
 
 
 fn test_MEAN() raises:
