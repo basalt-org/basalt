@@ -109,7 +109,7 @@ fn test_DIV() raises:
 
     var grad2 = DIV.backward[1, ug_shape, t1_shape, t2_shape](ug, t1, t2)
     var expected_grad2 = Tensor[dtype](t2_shape)
-    fill(expected_grad2, -1.0 / (2.0**2))
+    fill[dtype](expected_grad2, -1.0 / (2.0**2))
     assert_tensors_equal(grad2, expected_grad2)
 
 

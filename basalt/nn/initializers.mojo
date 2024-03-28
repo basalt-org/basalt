@@ -6,7 +6,7 @@ from basalt.utils.rand_utils import rand_normal, rand_uniform
 
 
 fn initialize_tensor(
-    shape: TensorShape, type: String, data: DynamicVector[SIMD[dtype, 1]]
+    shape: TensorShape, type: String, data: List[SIMD[dtype, 1]]
 ) -> Tensor[dtype]:
     if type == "random_uniform":
         var low = data[0]

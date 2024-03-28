@@ -13,12 +13,12 @@ from basalt.utils.rand_utils import MersenneTwister
 
 fn create_simple_nn(
     batch_size: Int,
-    linear1_weights: DynamicVector[SIMD[dtype, 1]],
-    linear1_bias: DynamicVector[SIMD[dtype, 1]],
-    linear2_weights: DynamicVector[SIMD[dtype, 1]],
-    linear2_bias: DynamicVector[SIMD[dtype, 1]],
-    linear3_weights: DynamicVector[SIMD[dtype, 1]],
-    linear3_bias: DynamicVector[SIMD[dtype, 1]],
+    linear1_weights: List[SIMD[dtype, 1]],
+    linear1_bias: List[SIMD[dtype, 1]],
+    linear2_weights: List[SIMD[dtype, 1]],
+    linear2_bias: List[SIMD[dtype, 1]],
+    linear3_weights: List[SIMD[dtype, 1]],
+    linear3_bias: List[SIMD[dtype, 1]],
 ) -> Graph:
     var g = Graph()
 
@@ -58,18 +58,18 @@ fn create_simple_nn(
 
 fn run_mojo[
     batch_size: Int,
-    linear1_weights: DynamicVector[SIMD[dtype, 1]],
-    linear1_bias: DynamicVector[SIMD[dtype, 1]],
-    linear2_weights: DynamicVector[SIMD[dtype, 1]],
-    linear2_bias: DynamicVector[SIMD[dtype, 1]],
-    linear3_weights: DynamicVector[SIMD[dtype, 1]],
-    linear3_bias: DynamicVector[SIMD[dtype, 1]],
+    linear1_weights: List[SIMD[dtype, 1]],
+    linear1_bias: List[SIMD[dtype, 1]],
+    linear2_weights: List[SIMD[dtype, 1]],
+    linear2_bias: List[SIMD[dtype, 1]],
+    linear3_weights: List[SIMD[dtype, 1]],
+    linear3_bias: List[SIMD[dtype, 1]],
 ](
     epochs: Int,
-    learning_rate: FloatLiteral,
+    learning_rate: Float64,
     inputs: Tensor[dtype],
     labels: Tensor[dtype],
-) -> DynamicVector[SIMD[dtype, 1]]:
+) -> List[SIMD[dtype, 1]]:
     alias graph = create_simple_nn(
         batch_size,
         linear1_weights,
@@ -84,7 +84,7 @@ fn run_mojo[
     var optim = nn.optim.Adam[graph](lr=learning_rate)
     optim.allocate_rms_and_momentum(model.parameters)
 
-    var losses = DynamicVector[SIMD[dtype, 1]]()
+    var losses = List[SIMD[dtype, 1]]()
 
     for i in range(epochs):
         var loss = model.forward(inputs, labels)
@@ -94,14 +94,14 @@ fn run_mojo[
         model.backward()
         optim.step(model.parameters)
 
-        losses.push_back(loss[0])
+        losses.append(loss[0])
 
     return losses
 
 
 fn run_torch(
     epochs: Int,
-    learning_rate: FloatLiteral,
+    learning_rate: Float64,
     inputs: Tensor,
     labels: Tensor,
     owned linear1_weights: Tensor,
@@ -110,8 +110,8 @@ fn run_torch(
     owned linear2_bias: Tensor,
     owned linear3_weights: Tensor,
     owned linear3_bias: Tensor,
-) -> DynamicVector[SIMD[dtype, 1]]:
-    var out: DynamicVector[SIMD[dtype, 1]] = DynamicVector[SIMD[dtype, 1]]()
+) -> List[SIMD[dtype, 1]]:
+    var out: List[SIMD[dtype, 1]] = List[SIMD[dtype, 1]]()
 
     try:
         var torch = Python.import_module("torch")
@@ -156,7 +156,7 @@ fn run_torch(
             _ = loss.backward()
             _ = optimizer.step()
 
-            out.push_back(to_tensor(loss)[0].cast[dtype]())
+            out.append(to_tensor(loss)[0].cast[dtype]())
 
         return out
 
@@ -166,21 +166,21 @@ fn run_torch(
         return out
 
 
-fn create_weights(num_elements: Int, zero: Bool) -> DynamicVector[SIMD[dtype, 1]]:
+fn create_weights(num_elements: Int, zero: Bool) -> List[SIMD[dtype, 1]]:
     var prng = MersenneTwister(123456)
-    var weights = DynamicVector[SIMD[dtype, 1]](capacity=num_elements)
+    var weights = List[SIMD[dtype, 1]](capacity=num_elements)
     for i in range(num_elements):
         if zero:
-            weights.push_back(SIMD[dtype, 1](0.0))
+            weights.append(SIMD[dtype, 1](0.0))
         else:
             var rand_float = prng.next().cast[dtype]() / max_finite[DType.int32]().cast[
                 dtype
             ]()
-            weights.push_back(SIMD[dtype, 1](rand_float / 10))
+            weights.append(SIMD[dtype, 1](rand_float / 10))
     return weights ^
 
 
-fn dv_to_tensor(dv: DynamicVector[SIMD[dtype, 1]], shape: TensorShape) -> Tensor[dtype]:
+fn dv_to_tensor(dv: List[SIMD[dtype, 1]], shape: TensorShape) -> Tensor[dtype]:
     var t = Tensor[dtype](shape)
     if t.num_elements() != len(dv):
         print("[WARNING] tensor and dv not the shame shape")

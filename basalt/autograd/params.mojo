@@ -8,20 +8,20 @@ from .attributes import Attribute
 
 @value
 struct Param(CollectionElement, Stringable):
-    var data: Optional[DynamicVector[SIMD[dtype, 1]]]
+    var data: Optional[List[SIMD[dtype, 1]]]
     var initializer: Optional[Attribute]
 
     fn __init__(inout self):
         self.data = None
         self.initializer = None
 
-    fn __init__(inout self, data: DynamicVector[SIMD[dtype, 1]]):
+    fn __init__(inout self, data: List[SIMD[dtype, 1]]):
         self.data = data
         self.initializer = None
 
     fn __init__(inout self, a: SIMD[dtype, 1]):
-        var data = DynamicVector[SIMD[dtype, 1]]()
-        data.push_back(a)
+        var data = List[SIMD[dtype, 1]]()
+        data.append(a)
         self.data = data
         self.initializer = None
 
@@ -32,9 +32,9 @@ struct Param(CollectionElement, Stringable):
         #   #TODO: "kaiming_uniform", mode, nonlinearity
         #   #TODO: "kaiming_normal", mode, nonlinearity
         self.initializer = Attribute("initializer", initializer)
-        var data = DynamicVector[SIMD[dtype, 1]]()
+        var data = List[SIMD[dtype, 1]]()
         for arg in args:
-            data.push_back(arg)
+            data.append(arg)
         self.data = data
 
     fn __getitem__(self, i: Int) -> Optional[SIMD[dtype, 1]]:
@@ -58,21 +58,21 @@ struct Param(CollectionElement, Stringable):
 
 @value
 struct ParamDict(Sized):
-    var symbols: DynamicVector[Symbol]
-    var values: DynamicVector[Param]
+    var symbols: List[Symbol]
+    var values: List[Param]
 
     fn __init__(inout self):
-        self.symbols = DynamicVector[Symbol]()
-        self.values = DynamicVector[Param]()
+        self.symbols = List[Symbol]()
+        self.values = List[Param]()
 
     fn put(inout self, param_id: Symbol, value: Optional[Param] = None):
-        self.symbols.push_back(param_id)
+        self.symbols.append(param_id)
         if value:
             # Initialized parameter
-            self.values.push_back(value.value())
+            self.values.append(value.value())
         else:
             # Uninitialized parameter
-            self.values.push_back(Param())
+            self.values.append(Param())
 
     fn get_tensor(self, idx: Int) -> Tensor[dtype]:
         # May only be called at runtime

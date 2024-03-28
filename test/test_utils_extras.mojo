@@ -29,9 +29,9 @@ def to_numpy(tensor: Tensor) -> PythonObject:
 
 
 fn to_tensor(np_array: PythonObject) raises -> Tensor[dtype]:
-    var shape = DynamicVector[Int]()
+    var shape = List[Int]()
     for i in range(np_array.ndim):
-        shape.push_back(np_array.shape[i].to_float64().to_int())
+        shape.append(np_array.shape[i].to_float64().to_int())
 
     var tensor = Tensor[dtype](TensorShape(shape))
 

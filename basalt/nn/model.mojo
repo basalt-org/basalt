@@ -7,7 +7,7 @@ from basalt.utils.tensorutils import fill
 from .initializers import initialize_tensor
 
 
-fn dv_contains(dv: DynamicVector[Symbol], symbol: Symbol) -> Bool:
+fn dv_contains(dv: List[Symbol], symbol: Symbol) -> Bool:
     for i in range(len(dv)):
         if dv[i] == symbol:
             return True
@@ -27,16 +27,16 @@ fn calc_n_inference_nodes(g: Graph) -> Optional[Int]:
     return None
 
 
-fn collect_trainable_parameters(g: Graph) -> DynamicVector[Symbol]:
+fn collect_trainable_parameters(g: Graph) -> List[Symbol]:
     """
     Collect all symbols of trainable parameters.
     """
 
-    var trainable_parameters = DynamicVector[Symbol]()
+    var trainable_parameters = List[Symbol]()
 
     for i in range(len(g.params)):
         if g.params.symbols[i].trainable:
-            trainable_parameters.push_back(g.params.symbols[i])
+            trainable_parameters.append(g.params.symbols[i])
 
     return trainable_parameters ^
 
@@ -98,15 +98,15 @@ struct Model[
         # TODO: known copy (reference?)
         return self.parameters.params[g.loss_out.value()]
 
-    fn inference(inout self, *t_inputs: Tensor[dtype]) -> DynamicVector[Tensor[dtype]]:
+    fn inference(inout self, *t_inputs: Tensor[dtype]) -> List[Tensor[dtype]]:
         # 1. Execute forward pass up to model out
         self.execute[n_inference_nodes.value()](t_inputs)
 
         # 2. Return outputs from allocated output memory
         # TODO: known copies (reference?)
-        var outputs = DynamicVector[Tensor[dtype]]()
+        var outputs = List[Tensor[dtype]]()
         for i in range(len(g.outputs)):
-            outputs.push_back(self.parameters.params[g.outputs[i]])
+            outputs.append(self.parameters.params[g.outputs[i]])
         return outputs ^
 
     fn execute[num_nodes: Int](inout self, t_input: VariadicListMem[Tensor[dtype]]):

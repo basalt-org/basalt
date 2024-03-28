@@ -1,5 +1,6 @@
 from random import rand
 from time.time import now
+import math
 
 import basalt.nn as nn
 from basalt import Tensor, TensorShape

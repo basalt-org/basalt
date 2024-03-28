@@ -351,13 +351,13 @@ struct TransposeData:
 struct PaddingData:
     var A: Tensor[dtype]
     var expected: Tensor[dtype]
-    var pad_with: DynamicVector[Int]
+    var pad_with: List[Int]
 
     fn __init__(
         inout self,
         A: Tensor[dtype],
         expected: Tensor[dtype],
-        pad_with: DynamicVector[Int],
+        pad_with: List[Int],
     ):
         self.A = A
         self.expected = expected
@@ -368,9 +368,9 @@ struct PaddingData:
         var A = generate_tensor(2)
 
         var expected = StaticIntTuple[4](1, 2, 0, 0)
-        var pad_with = DynamicVector[Int]()
-        pad_with.push_back(0)  # before
-        pad_with.push_back(2)  # after
+        var pad_with = List[Int]()
+        pad_with.append(0)  # before
+        pad_with.append(2)  # after
 
         var B = generate_expected_tensor(expected, 4)
 
@@ -381,9 +381,9 @@ struct PaddingData:
         var A = generate_tensor(3)
 
         var expected = StaticIntTuple[6](0, 0, 1, 2, 3, 0)
-        var pad_with = DynamicVector[Int]()
-        pad_with.push_back(2)  # before
-        pad_with.push_back(1)  # after
+        var pad_with = List[Int]()
+        pad_with.append(2)  # before
+        pad_with.append(1)  # after
 
         var B = generate_expected_tensor(expected, 6)
 
@@ -393,7 +393,7 @@ struct PaddingData:
     fn generate_2d_test_case() -> PaddingData:
         var A = generate_tensor(2, 2)
 
-        var expected = StaticTuple[45](
+        var expected = StaticIntTuple[45](
             0,
             0,
             0,
@@ -440,11 +440,11 @@ struct PaddingData:
             0,
             0,
         )
-        var pad_with = DynamicVector[Int]()
-        pad_with.push_back(1)  # before_1
-        pad_with.push_back(2)  # after_1
-        pad_with.push_back(3)  # before_2
-        pad_with.push_back(4)  # after_2
+        var pad_with = List[Int]()
+        pad_with.append(1)  # before_1
+        pad_with.append(2)  # after_1
+        pad_with.append(3)  # before_2
+        pad_with.append(4)  # after_2
 
         var B = generate_expected_tensor[45](expected, 5, 9)
 
@@ -457,13 +457,13 @@ struct PaddingData:
         var expected = StaticIntTuple[16](
             0, 0, 1, 2, 3, 4, 0, 0, 0, 0, 5, 6, 7, 8, 0, 0
         )
-        var pad_with = DynamicVector[Int]()
-        pad_with.push_back(0)  # before_1
-        pad_with.push_back(0)  # after_1
-        pad_with.push_back(1)  # before_2
-        pad_with.push_back(1)  # after_2
-        pad_with.push_back(0)  # before_3
-        pad_with.push_back(0)  # after_3
+        var pad_with = List[Int]()
+        pad_with.append(0)  # before_1
+        pad_with.append(0)  # after_1
+        pad_with.append(1)  # before_2
+        pad_with.append(1)  # after_2
+        pad_with.append(0)  # before_3
+        pad_with.append(0)  # after_3
 
         var B = generate_expected_tensor[16](expected, 2, 4, 2)
 
@@ -520,13 +520,13 @@ struct PaddingData:
             0,
             0,
         )
-        var pad_with = DynamicVector[Int]()
-        pad_with.push_back(1)  # before_1
-        pad_with.push_back(1)  # after_1
-        pad_with.push_back(1)  # before_2
-        pad_with.push_back(0)  # after_2
-        pad_with.push_back(0)  # before_3
-        pad_with.push_back(2)  # after_3
+        var pad_with = List[Int]()
+        pad_with.append(1)  # before_1
+        pad_with.append(1)  # after_1
+        pad_with.append(1)  # before_2
+        pad_with.append(0)  # after_2
+        pad_with.append(0)  # before_3
+        pad_with.append(2)  # after_3
 
         var B = generate_expected_tensor[45](expected, 3, 3, 5)
 
@@ -620,15 +620,15 @@ struct PaddingData:
             0,
         )
 
-        var pad_with = DynamicVector[Int]()
-        pad_with.push_back(0)  # before_1
-        pad_with.push_back(1)  # after_1
-        pad_with.push_back(0)  # before_2
-        pad_with.push_back(1)  # after_2
-        pad_with.push_back(0)  # before_3
-        pad_with.push_back(1)  # after_3
-        pad_with.push_back(0)  # before_4
-        pad_with.push_back(1)  # after_4
+        var pad_with = List[Int]()
+        pad_with.append(0)  # before_1
+        pad_with.append(1)  # after_1
+        pad_with.append(0)  # before_2
+        pad_with.append(1)  # after_2
+        pad_with.append(0)  # before_3
+        pad_with.append(1)  # after_3
+        pad_with.append(0)  # before_4
+        pad_with.append(1)  # after_4
 
         var B = generate_expected_tensor[81](expected, 3, 3, 3, 3)
 
