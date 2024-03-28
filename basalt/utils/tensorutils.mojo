@@ -418,9 +418,9 @@ fn reduce[
         fn axisreduce[_nelts: Int](j: Int):
             var index = index_base + j * strides[axis]
             if _nelts == 1:
-                m[0] = op(m[0], t.simd_load[_nelts](index)[0])
+                m[0] = op(m[0], t.data().offset(index).simd_strided_load[_nelts](strides[axis])[0])
             else:
-                m = op(m, t.simd_load[nelts](index))
+                m = op(m, t.data().offset(index).simd_strided_load[nelts](strides[axis]))
 
         vectorize[axisreduce, nelts](t.dim(axis))
 

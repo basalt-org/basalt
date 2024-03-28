@@ -177,8 +177,7 @@ struct DIV:
                         / (t2.simd_load[nelts](index2) ** 2)
                         * ug.simd_load[nelts](i),
                     )
-
-                vectorize[vec_div_bw_broadcast, nelts](ug_shape.num_elements())
+                vectorize[vec_div_bw_broadcast, 1](ug_shape.num_elements())
 
             else:
 
