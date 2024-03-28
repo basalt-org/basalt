@@ -13,24 +13,24 @@ from basalt import Tensor, TensorShape
 
 @value
 struct Graph:
-    var inputs: DynamicVector[Symbol]
+    var inputs: List[Symbol]
     var params: ParamDict
-    var nodes: DynamicVector[Node]
-    var outputs: DynamicVector[Symbol]
+    var nodes: List[Node]
+    var outputs: List[Symbol]
     var loss_out: Optional[Symbol]
     var symbol_count: UInt32
 
     fn __init__(inout self):
-        self.inputs = DynamicVector[Symbol]()
+        self.inputs = List[Symbol]()
         self.params = ParamDict()
-        self.nodes = DynamicVector[Node]()
-        self.outputs = DynamicVector[Symbol]()
+        self.nodes = List[Node]()
+        self.outputs = List[Symbol]()
         self.loss_out = None
         self.symbol_count = 0
 
     fn input(inout self, shape: TensorShape) -> Symbol:
         var inp = Symbol(self.symbol_count, dtype, shape, False)
-        self.inputs.push_back(inp)
+        self.inputs.append(inp)
         self.symbol_count += 1
         return inp
 
@@ -58,7 +58,7 @@ struct Graph:
         return scalar_id
 
     fn constant(
-        inout self, shape: TensorShape, data: DynamicVector[SIMD[dtype, 1]]
+        inout self, shape: TensorShape, data: List[SIMD[dtype, 1]]
     ) -> Symbol:
         var cst = Param(data)
         var constant_id = Symbol(self.symbol_count, dtype, shape, trainable=False)
@@ -67,7 +67,7 @@ struct Graph:
         return constant_id
 
     fn out(inout self, symbol: Symbol):
-        self.outputs.push_back(symbol)
+        self.outputs.append(symbol)
 
     fn loss(inout self, symbol: Symbol):
         self.loss_out = symbol
@@ -111,7 +111,7 @@ struct Graph:
                 self.result_trainable(operand_1),
             )
 
-        self.nodes.push_back(
+        self.nodes.append(
             Node(op, res, operand_1, operand_2, operand_3, attributes)
         )
         self.symbol_count += 1
@@ -121,7 +121,7 @@ struct Graph:
         inout self,
         op: OP,
         operand_1: Symbol,
-        operand_2: FloatLiteral,
+        operand_2: Float64,
         attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
         var operand_2_symbol = self.scalar(operand_2)
@@ -134,7 +134,7 @@ struct Graph:
             self.result_trainable(operand_1),
         )
 
-        self.nodes.push_back(
+        self.nodes.append(
             Node(op, res, operand_1, operand_2_symbol, attributes=attributes)
         )
         self.symbol_count += 1
@@ -143,7 +143,7 @@ struct Graph:
     fn op(
         inout self,
         op: OP,
-        operand_1: FloatLiteral,
+        operand_1: Float64,
         operand_2: Symbol,
         attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
@@ -157,7 +157,7 @@ struct Graph:
             self.result_trainable(operand_2),
         )
 
-        self.nodes.push_back(
+        self.nodes.append(
             Node(op, res, operand_1_symbol, operand_2, attributes=attributes)
         )
         self.symbol_count += 1

@@ -157,7 +157,7 @@ fn dot_transpose_t2[
                     A.simd_load[nelts](A_pos) * B.simd_load[nelts](B_pos)
                 ).reduce_add()
 
-            vectorize[calc_row_A_B, nelts, A_shape[1]]()
+            vectorize[calc_row_A_B, nelts, size=A_shape[1]]()
 
     parallelize[calc_row](A_shape[0], 1)
 
@@ -183,7 +183,7 @@ fn dot_transpose_t1[
                     + A[A_pos] * B.simd_load[nelts](B_pos),
                 )
 
-            vectorize[calc_row_t_new_B, nelts, B_shape[1]]()
+            vectorize[calc_row_t_new_B, nelts, size=B_shape[1]]()
 
     parallelize[calc_row](A_shape[1], 1)
 

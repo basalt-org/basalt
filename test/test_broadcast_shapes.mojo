@@ -6,9 +6,9 @@ from basalt.utils.tensorutils import broadcast_shapes
 
 
 fn to_tensor_shape(owned shape: PythonObject) raises -> TensorShape:
-    var tensor_shape = DynamicVector[Int]()
+    var tensor_shape = List[Int]()
     for dim in shape:
-        tensor_shape.push_back(dim.to_float64().to_int())
+        tensor_shape.append(dim.to_float64().to_int())
     return TensorShape(tensor_shape)
 
 

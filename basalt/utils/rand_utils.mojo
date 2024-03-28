@@ -39,7 +39,7 @@ struct MersenneTwister:
     alias TEMPERING_MASK_B: Int32 = 0x9D2C5680
     alias TEMPERING_MASK_C: Int32 = 0xEFC60000
 
-    var state: StaticTuple[Self.N, Int32]
+    var state: StaticTuple[Int32, Self.N]
     var index: Int
 
     fn __init__(inout self, seed: Int):
@@ -48,7 +48,7 @@ struct MersenneTwister:
         alias D: Int32 = 0xFFFFFFFF
 
         self.index = Self.N
-        self.state = StaticTuple[Self.N, Int32]()
+        self.state = StaticTuple[Int32, Self.N, ]()
         self.state[0] = seed & D
 
         for i in range(1, Self.N):

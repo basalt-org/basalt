@@ -1,4 +1,4 @@
-# from math import sqrt
+from math import nan
 from basalt import Tensor, TensorShape
 
 from basalt import Graph, Symbol, OP

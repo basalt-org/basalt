@@ -28,7 +28,7 @@ struct TensorShape(Stringable):
             self._shape[i] = shapes[i]
 
     @always_inline("nodebug")
-    fn __init__(inout self, shape: DynamicVector[Int]):
+    fn __init__(inout self, shape: List[Int]):
         self._rank = len(shape)
         self._shape = StaticIntTuple[max_rank]()
         for i in range(min(self._rank, max_rank)):
@@ -75,9 +75,9 @@ struct TensorShape(Stringable):
 
     @always_inline("nodebug")
     fn _std_shape(self) -> _TensorShape:
-        var s = DynamicVector[Int](capacity=self.rank())
+        var s = List[Int](capacity=self.rank())
         for i in range(self.rank()):
-            s.push_back(self[i])
+            s.append(self[i])
         return _TensorShape(s)
 
     @always_inline("nodebug")
@@ -149,11 +149,11 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
 
     @always_inline("nodebug")
     fn simd_load[simd_width: Int](self, index: Int) -> SIMD[dtype, simd_width]:
-        return self._data.simd_load[simd_width](index)
+        return self._data.load[width=simd_width](index)
 
     @always_inline("nodebug")
     fn simd_store[simd_width: Int](self, index: Int, value: SIMD[dtype, simd_width]):
-        self._data.simd_store[simd_width](index, value)
+        self._data.store[width=simd_width](index, value)
 
     @always_inline("nodebug")
     fn strides(self) -> StaticIntTuple[max_rank]:

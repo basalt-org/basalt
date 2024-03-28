@@ -12,11 +12,11 @@ alias max_attr_value_size = 32
 
 @register_passable("trivial")
 struct AttributeVector(Sized, Stringable, CollectionElement):
-    var _attrs: StaticTuple[max_attrs, Attribute]
+    var _attrs: StaticTuple[Attribute, max_attrs]
     var _size: Int
 
     fn __init__(inout self, *attributes: Attribute):
-        self._attrs = StaticTuple[max_attrs, Attribute]()
+        self._attrs = StaticTuple[Attribute, max_attrs]()
         self._size = len(attributes)
         for i in range(self._size):
             self._attrs[i] = attributes[i]
