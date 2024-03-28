@@ -13,7 +13,7 @@ fn rand_uniform[
 
     @parameter
     fn vecscale[nelts: Int](idx: Int):
-        res.simd_store[nelts](idx, res.simd_load[nelts](idx) * (high - low) + low)
+        res.store[nelts](idx, res.load[nelts](idx) * (high - low) + low)
 
     vectorize[vecscale, nelts](res.num_elements())
 

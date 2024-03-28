@@ -156,8 +156,8 @@ struct DIV:
 
                 @parameter
                 fn vec_div_bw_scalar[nelts: Int](i: Int):
-                    res_grad.simd_store[nelts](
-                        i, factor * t1.simd_load[nelts](i) * ug.simd_load[nelts](i)
+                    res_grad.store[nelts](
+                        i, factor * t1.load[nelts](i) * ug.load[nelts](i)
                     )
 
                 vectorize[vec_div_bw_scalar, nelts](ug_shape.num_elements())
@@ -171,11 +171,11 @@ struct DIV:
                 fn vec_div_bw_broadcast[netls: Int](i: Int):
                     var index1 = get_real_index[size, strides1, ug_shape](i)
                     var index2 = get_real_index[size, strides2, ug_shape](i)
-                    res_grad.simd_store[nelts](
+                    res_grad.store[nelts](
                         i,
-                        -t1.simd_load[nelts](index1)
-                        / (t2.simd_load[nelts](index2) ** 2)
-                        * ug.simd_load[nelts](i),
+                        -t1.load[nelts](index1)
+                        / (t2.load[nelts](index2) ** 2)
+                        * ug.load[nelts](i),
                     )
                 vectorize[vec_div_bw_broadcast, 1](ug_shape.num_elements())
 
@@ -183,11 +183,11 @@ struct DIV:
 
                 @parameter
                 fn vec_div_bw[nelts: Int](i: Int):
-                    res_grad.simd_store[nelts](
+                    res_grad.store[nelts](
                         i,
-                        -t1.simd_load[nelts](i)
-                        / (t2.simd_load[nelts](i) ** 2)
-                        * ug.simd_load[nelts](i),
+                        -t1.load[nelts](i)
+                        / (t2.load[nelts](i) ** 2)
+                        * ug.load[nelts](i),
                     )
 
                 vectorize[vec_div_bw, nelts](ug_shape.num_elements())
@@ -257,8 +257,8 @@ struct EXP:
 
         @parameter
         fn vec_exp_bw[nelts: Int](i: Int):
-            res_grad.simd_store[nelts](
-                i, exp(t1.simd_load[nelts](i)) * ug.simd_load[nelts](i)
+            res_grad.store[nelts](
+                i, exp(t1.load[nelts](i)) * ug.load[nelts](i)
             )
 
         vectorize[vec_exp_bw, nelts](ug_shape.num_elements())
@@ -324,8 +324,8 @@ struct POW:
 
             @parameter
             fn vec_pow_bw_x[nelts: Int](i: Int):
-                res_grad.simd_store[nelts](
-                    i, a * (t1.simd_load[nelts](i) ** (a - 1)) * ug.simd_load[nelts](i)
+                res_grad.store[nelts](
+                    i, a * (t1.load[nelts](i) ** (a - 1)) * ug.load[nelts](i)
                 )
 
             vectorize[vec_pow_bw_x, nelts](t1_shape.num_elements())
@@ -336,9 +336,9 @@ struct POW:
             @parameter
             fn vec_pow_bw_y[nelts: Int](i: Int):
                 res_grad[0] += (
-                    (t1.simd_load[nelts](i) ** a)
-                    * log(t1.simd_load[nelts](i))
-                    * ug.simd_load[nelts](i)
+                    (t1.load[nelts](i) ** a)
+                    * log(t1.load[nelts](i))
+                    * ug.load[nelts](i)
                 ).reduce_add()
 
             vectorize[vec_pow_bw_y, nelts](ug_shape.num_elements())
@@ -449,7 +449,7 @@ struct MEAN:
 
         @parameter
         fn v_mean_d[nelts: Int](i: Int):
-            res_grad.simd_store[nelts](i, grad)
+            res_grad.store[nelts](i, grad)
 
         vectorize[v_mean_d, nelts](t_shape.num_elements())
 
