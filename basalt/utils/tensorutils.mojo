@@ -11,7 +11,7 @@ from basalt.nn.tensor import max_rank
 fn fill[dtype: DType](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
     @parameter
     fn fill_vec[nelts: Int](idx: Int):
-        t.simd_store[nelts](idx, t.simd_load[nelts](idx).splat(val))
+        t.store[nelts](idx, t.load[nelts](idx).splat(val))
 
     vectorize[fill_vec, nelts](t.num_elements())
 
@@ -127,10 +127,10 @@ fn dot[
 
             @parameter
             fn vec_n[nelts: Int](n: Int):
-                res.simd_store[nelts](
+                res.store[nelts](
                     m * N + n,
-                    res.simd_load[nelts](m * N + n)
-                    + t1[m * K + k] * t2.simd_load[nelts](k * N + n),
+                    res.load[nelts](m * N + n)
+                    + t1[m * K + k] * t2.load[nelts](k * N + n),
                 )
 
             vectorize[vec_n, nelts](N)
@@ -154,7 +154,7 @@ fn dot_transpose_t2[
                 var t_new_pos = i * C.dim(1) + j
 
                 C[t_new_pos] += (
-                    A.simd_load[nelts](A_pos) * B.simd_load[nelts](B_pos)
+                    A.load[nelts](A_pos) * B.load[nelts](B_pos)
                 ).reduce_add()
 
             vectorize[calc_row_A_B, nelts, size=A_shape[1]]()
@@ -177,10 +177,10 @@ fn dot_transpose_t1[
                 var B_pos = j * B.dim(1) + k
                 var t_new_pos = i * C.dim(1) + k
 
-                C.simd_store[nelts](
+                C.store[nelts](
                     t_new_pos,
-                    C.simd_load[nelts](t_new_pos)
-                    + A[A_pos] * B.simd_load[nelts](B_pos),
+                    C.load[nelts](t_new_pos)
+                    + A[A_pos] * B.load[nelts](B_pos),
                 )
 
             vectorize[calc_row_t_new_B, nelts, size=B_shape[1]]()
@@ -195,7 +195,7 @@ fn elwise_transform[
 ](inout res: Tensor[dtype], t: Tensor[dtype]):
     @parameter
     fn vecmath[nelts: Int](idx: Int):
-        res.simd_store[nelts](idx, func[dtype, nelts](t.simd_load[nelts](idx)))
+        res.store[nelts](idx, func[dtype, nelts](t.load[nelts](idx)))
 
     vectorize[vecmath, nelts](t.num_elements())
 
@@ -205,7 +205,7 @@ fn elwise_transform[
 fn elwise_pow(inout res: Tensor[dtype], t: Tensor[dtype], x: Int):
     @parameter
     fn vecpow[nelts: Int](idx: Int):
-        res.simd_store[nelts](idx, pow(t.simd_load[nelts](idx), x))
+        res.store[nelts](idx, pow(t.load[nelts](idx), x))
 
     vectorize[vecpow, nelts](t.num_elements())
 
@@ -243,8 +243,8 @@ fn elwise_op[
 
     @parameter
     fn vecmath[nelts: Int](idx: Int):
-        res.simd_store[nelts](
-            idx, func[dtype, nelts](t1.simd_load[nelts](idx), t2.simd_load[nelts](idx))
+        res.store[nelts](
+            idx, func[dtype, nelts](t1.load[nelts](idx), t2.load[nelts](idx))
         )
 
     vectorize[vecmath, nelts](t1.num_elements())
@@ -260,7 +260,7 @@ fn elwise_op[
 
     @parameter
     fn vecmath[nelts: Int](idx: Int):
-        res.simd_store[nelts](idx, func[dtype, nelts](t1.simd_load[nelts](idx), a))
+        res.store[nelts](idx, func[dtype, nelts](t1.load[nelts](idx), a))
 
     vectorize[vecmath, nelts](t1.num_elements())
 
@@ -275,7 +275,7 @@ fn elwise_op[
 
     @parameter
     fn vecmath[nelts: Int](idx: Int):
-        res.simd_store[nelts](idx, func[dtype, nelts](a, t1.simd_load[nelts](idx)))
+        res.store[nelts](idx, func[dtype, nelts](a, t1.load[nelts](idx)))
 
     vectorize[vecmath, nelts](t1.num_elements())
 
@@ -297,10 +297,10 @@ fn broadcast_elwise_op[
         var index1 = get_real_index[size, strides1, res_shape](i)
         var index2 = get_real_index[size, strides2, res_shape](i)
 
-        res.simd_store[nelts](
+        res.store[nelts](
             i,
             func[dtype, nelts](
-                t1.simd_load[nelts](index1), t2.simd_load[nelts](index2)
+                t1.load[nelts](index1), t2.load[nelts](index2)
             ),
         )
 
@@ -327,7 +327,7 @@ fn accumulate_grad[
         @parameter
         fn vec_op[nelts: Int](i: Int):
             var index = get_real_index[size, strides_grad, res_grad_shape](i)
-            grad[index] += res_grad.simd_load[nelts](i).reduce_add()
+            grad[index] += res_grad.load[nelts](i).reduce_add()
 
         # TODO: Check how to vectorize this
         vectorize[vec_op, 1](res_grad.num_elements())
@@ -345,7 +345,7 @@ fn transpose_2D[dtype: DType, nelts: Int](t: Tensor[dtype]) -> Tensor[dtype]:
         @parameter
         fn proc_column[nelts: Int](j: Int):
             t_new.data().offset(j * t.dim(0) + i).simd_strided_store[nelts](
-                t.simd_load[nelts](i * t.dim(1) + j), stride
+                t.load[nelts](i * t.dim(1) + j), stride
             )
 
         vectorize[proc_column, nelts](t.dim(1))
@@ -371,9 +371,9 @@ fn reduce[
     fn vecreduce[_nelts: Int](idx: Int):
         @parameter
         if _nelts == 1:
-            m[0] = op(m[0], t.simd_load[_nelts](idx)[0])
+            m[0] = op(m[0], t.load[_nelts](idx)[0])
         else:
-            m = op(m, t.simd_load[nelts](idx))
+            m = op(m, t.load[nelts](idx))
 
     vectorize[vecreduce, nelts](t.num_elements())
     return reduce_op(m)
@@ -456,7 +456,7 @@ fn tstd(t: Tensor[dtype]) -> SIMD[dtype, 1]:
 
     @parameter
     fn vecvar[nelts: Int](idx: Int):
-        var diff = t.simd_load[nelts](idx) - mu
+        var diff = t.load[nelts](idx) - mu
         variance += (diff * diff).reduce_add()
 
     vectorize[vecvar, nelts](t.num_elements())
@@ -514,7 +514,7 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
         @parameter
         fn vecvar[nelts: Int](j: Int):
             var t_index = get_t_index(i, j, axis, t.shape(), strides)
-            var diff = t.simd_load[nelts](t_index) - mu[mu_index]
+            var diff = t.load[nelts](t_index) - mu[mu_index]
             res[i] += (diff * diff).reduce_add()
 
         vectorize[vecvar, nelts](t.dim(axis))
@@ -647,7 +647,7 @@ fn transpose(inout res: Tensor[dtype], t: Tensor[dtype], axes: TensorShape):
                 new_index += index * transposed_strides[k]
 
             res.data().offset(new_index).simd_strided_store[nelts](
-                t.simd_load[nelts](original_index),
+                t.load[nelts](original_index),
                 transposed_strides[position_of_last_rank_new_shape],
             )
 

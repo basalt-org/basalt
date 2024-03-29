@@ -148,11 +148,11 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
         return self._shape
 
     @always_inline("nodebug")
-    fn simd_load[simd_width: Int](self, index: Int) -> SIMD[dtype, simd_width]:
+    fn load[simd_width: Int](self, index: Int) -> SIMD[dtype, simd_width]:
         return self._data.load[width=simd_width](index)
 
     @always_inline("nodebug")
-    fn simd_store[simd_width: Int](self, index: Int, value: SIMD[dtype, simd_width]):
+    fn store[simd_width: Int](self, index: Int, value: SIMD[dtype, simd_width]):
         self._data.store[width=simd_width](index, value)
 
     @always_inline("nodebug")

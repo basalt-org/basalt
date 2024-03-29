@@ -43,9 +43,9 @@ struct SIGMOID:
 
         @parameter
         fn vec_sigmoid_bw[nelts: Int](idx: Int):
-            res_grad.simd_store[nelts](
+            res_grad.store[nelts](
                 idx,
-                Self.sidmoid_bw(t1.simd_load[nelts](idx)) * ug.simd_load[nelts](idx),
+                Self.sidmoid_bw(t1.load[nelts](idx)) * ug.load[nelts](idx),
             )
 
         vectorize[vec_sigmoid_bw, nelts](ug_shape.num_elements())
@@ -92,8 +92,8 @@ struct RELU:
 
         @parameter
         fn vec_relu_bw[nelts: Int](idx: Int):
-            res_grad.simd_store[nelts](
-                idx, Self.relu_bw(t1.simd_load[nelts](idx)) * ug.simd_load[nelts](idx)
+            res_grad.store[nelts](
+                idx, Self.relu_bw(t1.load[nelts](idx)) * ug.load[nelts](idx)
             )
 
         vectorize[vec_relu_bw, nelts](ug_shape.num_elements())
@@ -138,8 +138,8 @@ struct TANH:
 
         @parameter
         fn vec_tanh_bw[nelts: Int](idx: Int):
-            res_grad.simd_store[nelts](
-                idx, Self.tanh_bw(t1.simd_load[nelts](idx)) * ug.simd_load[nelts](idx)
+            res_grad.store[nelts](
+                idx, Self.tanh_bw(t1.load[nelts](idx)) * ug.load[nelts](idx)
             )
 
         vectorize[vec_tanh_bw, nelts](ug_shape.num_elements())

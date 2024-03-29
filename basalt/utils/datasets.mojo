@@ -92,7 +92,7 @@ struct MNIST:
 
         @parameter
         fn vecdiv[nelts: Int](idx: Int):
-            res.simd_store[nelts](idx, div(self.data.simd_load[nelts](idx), 255.0))
+            res.store[nelts](idx, div(self.data.load[nelts](idx), 255.0))
 
         vectorize[vecdiv, nelts](self.data.num_elements())
 
