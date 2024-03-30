@@ -218,6 +218,8 @@ fn dot_transpose_t2[
 ](inout C: Tensor[dtype], A: Tensor[dtype], B: Tensor[dtype]):
     memset_zero[dtype](C.data(), C.num_elements())
 
+    # dot[A_shape, TensorShape(B_shape[1], B_shape[0])](C, A, transpose_2D[B_shape](B))
+
     @parameter
     fn calc_row(i: Int):
         for j in range(B_shape[0]):
@@ -241,6 +243,8 @@ fn dot_transpose_t1[
     A_shape: TensorShape, B_shape: TensorShape
 ](inout C: Tensor[dtype], A: Tensor[dtype], B: Tensor[dtype]):
     memset_zero[dtype](C.data(), C.num_elements())
+
+    # dot[TensorShape(A_shape[1], A_shape[0]), B_shape](C, transpose_2D[A_shape](A), B)
 
     @parameter
     fn calc_row(i: Int):
@@ -410,22 +414,22 @@ fn accumulate_grad[
 
 # ---- Transform functions -----
 @always_inline
-fn transpose_2D[dtype: DType, nelts: Int](t: Tensor[dtype]) -> Tensor[dtype]:
-    var t_new = Tensor[dtype](t.dim(1), t.dim(0))
+fn transpose_2D[t_shape: TensorShape](t: Tensor[dtype]) -> Tensor[dtype]:
+    var t_new = Tensor[dtype](t_shape[1], t_shape[0])
 
-    var stride = t.dim(0)
+    alias stride = t_shape[0]
 
     @parameter
-    fn proc_row(i: Int):
+    fn proc_row(i: Int): 
         @parameter
         fn proc_column[nelts: Int](j: Int):
-            t_new.data().offset(j * t.dim(0) + i).simd_strided_store[nelts](
-                t.load[nelts](i * t.dim(1) + j), stride
+            t_new.data().offset(j * t_shape[0] + i).simd_strided_store[nelts](
+                t.load[nelts](i * t_shape[1] + j), stride
             )
 
         vectorize[proc_column, nelts](t.dim(1))
 
-    parallelize[proc_row](t.dim(0))
+    parallelize[proc_row](t_shape[0])
 
     return t_new ^
 
