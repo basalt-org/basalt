@@ -100,8 +100,39 @@ struct CONV2D:
         alias outputs_strides = output_shape.strides()
 
         var col = im2col2D[input_shape, kernel_shape, output_shape, padding, stride, dilation](inputs)
+        # [batch, in_channels * kX * kY, oX, oY]
+        
+        for batch in range(batch_size):
+            for out_ch in range(out_channels):
+                for ux in range(out_x):
+                    for uy in range(out_y):
+                        var result: SIMD[dtype, 1] = 0
+                        for in_ch in range(in_channels):
+                            for kx in range(k_x):
+                                for ky in range(k_y):
+                                    var col_index = (
+                                        batch * col.strides()[0]
+                                        + (in_ch * k_x * k_y + kx * k_y + ky) * col.strides()[1]
+                                        + ux * col.strides()[2]
+                                        + uy
+                                    )
 
-        ...
+                                    var kernel_index = (
+                                        out_ch * kernel_strides[0]
+                                        + in_ch * kernel_strides[1]
+                                        + kx * kernel_strides[2]
+                                        + ky
+                                    )
+
+                                    result += col[col_index] * kernel[kernel_index]
+
+                        var output_index = (
+                            batch * outputs_strides[0]
+                            + out_ch * outputs_strides[1]
+                            + ux * outputs_strides[2]
+                            + uy
+                        )
+                        outputs[output_index] = result + bias[out_ch]
 
 
     @staticmethod
@@ -288,4 +319,69 @@ fn im2col2D[
 ](
     input: Tensor[dtype]
 ) -> Tensor[dtype]:
-    ...
+    """
+    Converts the input tensor to a 2D matrix for convolution.
+
+    input.shape     [batch, in_channels, iX, iY]
+    kernel.shape    [out_channels, in_channels, kX, kY]
+    output.shape    [batch, out_channels, oX, oY]
+
+    Returns a tensor of shape [batch, in_channels * kX * kY, oX, oY].
+    """
+
+    alias padding_x = padding[0]
+    alias padding_y = padding[1]
+    alias stride_x = stride[0]
+    alias stride_y = stride[1]
+    alias dilation_x = dilation[0]
+    alias dilation_y = dilation[1]
+
+    alias batch_size = input_shape[0]
+    alias in_channels = input_shape[1]
+    alias in_x = input_shape[2]
+    alias in_y = input_shape[3]
+    alias out_channels = kernel_shape[0]
+    alias k_x = kernel_shape[2]
+    alias k_y = kernel_shape[3]
+    alias out_x = output_shape[2]
+    alias out_y = output_shape[3]
+
+    alias col_x = (in_x + 2 * padding_x - dilation_x * (k_x - 1) - 1) // stride_x + 1
+    alias col_y = (in_y + 2 * padding_y - dilation_y * (k_y - 1) - 1) // stride_y + 1
+
+    var col = Tensor[dtype](batch_size, in_channels * k_x * k_y, col_x, col_y)
+
+    for batch in range(batch_size):
+        for in_ch in range(in_channels):
+            for kx in range(k_x):
+                for ky in range(k_y):
+                    for ux in range(col_x):
+                        for uy in range(col_y):
+                            var ix = ux * stride_x - padding_x + kx * dilation_x
+                            var iy = uy * stride_y - padding_y + ky * dilation_y
+
+                            if (
+                                ix < 0
+                                or iy < 0
+                                or ix >= in_x
+                                or iy >= in_y
+                            ):
+                                continue
+
+                            var input_index = (
+                                batch * input_shape.strides()[0]
+                                + in_ch * input_shape.strides()[1]
+                                + ix * input_shape.strides()[2]
+                                + iy
+                            )
+
+                            var col_index = (
+                                batch * col.strides()[0]
+                                + (in_ch * k_x * k_y + kx * k_y + ky) * col.strides()[1]
+                                + ux * col.strides()[2]
+                                + uy
+                            )
+
+                            col[col_index] = input[input_index]
+
+    return col
