@@ -1,3 +1,4 @@
+from sys.info import num_physical_cores
 from algorithm import vectorize, parallelize, swap
 from memory import memset_zero, memset, stack_allocation
 from math import sqrt, pow, equal, max, min, abs, add, div, divmod
@@ -191,7 +192,7 @@ fn dot[
             
             calculate_block[M, N, K, BLOCK_M, BLOCK_N_REMAINDER, nelts](res, t1, t2, bm, bn)
 
-    parallelize[bm_par](M // BLOCK_M, THREADS)  
+    parallelize[bm_par](M // BLOCK_M, M // BLOCK_M)  
 
 
     # Handle the remainder of M
@@ -218,25 +219,25 @@ fn dot_transpose_t2[
 ](inout C: Tensor[dtype], A: Tensor[dtype], B: Tensor[dtype]):
     memset_zero[dtype](C.data(), C.num_elements())
 
-    # dot[A_shape, TensorShape(B_shape[1], B_shape[0])](C, A, transpose_2D[B_shape](B))
+    dot[A_shape, TensorShape(B_shape[1], B_shape[0])](C, A, transpose_2D[B_shape](B))
 
-    @parameter
-    fn calc_row(i: Int):
-        for j in range(B_shape[0]):
+    # @parameter
+    # fn calc_row(i: Int):
+    #     for j in range(B_shape[0]):
 
-            @parameter
-            fn calc_row_A_B[nelts: Int](k: Int):
-                var A_pos = i * A.dim(1) + k
-                var B_pos = j * A.dim(1) + k
-                var t_new_pos = i * C.dim(1) + j
+    #         @parameter
+    #         fn calc_row_A_B[nelts: Int](k: Int):
+    #             var A_pos = i * A.dim(1) + k
+    #             var B_pos = j * A.dim(1) + k
+    #             var t_new_pos = i * C.dim(1) + j
 
-                C[t_new_pos] += (
-                    A.load[nelts](A_pos) * B.load[nelts](B_pos)
-                ).reduce_add()
+    #             C[t_new_pos] += (
+    #                 A.load[nelts](A_pos) * B.load[nelts](B_pos)
+    #             ).reduce_add()
 
-            vectorize[calc_row_A_B, nelts, size=A_shape[1]]()
+    #         vectorize[calc_row_A_B, nelts, size=A_shape[1]]()
 
-    parallelize[calc_row](A_shape[0], 1)
+    # parallelize[calc_row](A_shape[0], 1)
 
 
 fn dot_transpose_t1[
@@ -244,27 +245,27 @@ fn dot_transpose_t1[
 ](inout C: Tensor[dtype], A: Tensor[dtype], B: Tensor[dtype]):
     memset_zero[dtype](C.data(), C.num_elements())
 
-    # dot[TensorShape(A_shape[1], A_shape[0]), B_shape](C, transpose_2D[A_shape](A), B)
+    dot[TensorShape(A_shape[1], A_shape[0]), B_shape](C, transpose_2D[A_shape](A), B)
 
-    @parameter
-    fn calc_row(i: Int):
-        for j in range(A_shape[0]):
+    # @parameter
+    # fn calc_row(i: Int):
+    #     for j in range(A_shape[0]):
 
-            @parameter
-            fn calc_row_t_new_B[nelts: Int](k: Int):
-                var A_pos = j * A.dim(1) + i
-                var B_pos = j * B.dim(1) + k
-                var t_new_pos = i * C.dim(1) + k
+    #         @parameter
+    #         fn calc_row_t_new_B[nelts: Int](k: Int):
+    #             var A_pos = j * A.dim(1) + i
+    #             var B_pos = j * B.dim(1) + k
+    #             var t_new_pos = i * C.dim(1) + k
 
-                C.store[nelts](
-                    t_new_pos,
-                    C.load[nelts](t_new_pos)
-                    + A[A_pos] * B.load[nelts](B_pos),
-                )
+    #             C.store[nelts](
+    #                 t_new_pos,
+    #                 C.load[nelts](t_new_pos)
+    #                 + A[A_pos] * B.load[nelts](B_pos),
+    #             )
 
-            vectorize[calc_row_t_new_B, nelts, size=B_shape[1]]()
+    #         vectorize[calc_row_t_new_B, nelts, size=B_shape[1]]()
 
-    parallelize[calc_row](A_shape[1], 1)
+    # parallelize[calc_row](A_shape[1], 1)
 
 
 # ----- Element-wise unary operations -----

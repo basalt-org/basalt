@@ -15,11 +15,15 @@ fn create_simple_nn(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
     var x = g.input(TensorShape(batch_size, n_inputs))
     var y_true = g.input(TensorShape(batch_size, n_outputs))
 
-    var x1 = nn.Linear(g, x, n_outputs=32)
-    var x2 = nn.ReLU(g, x1)
-    var x3 = nn.Linear(g, x2, n_outputs=32)
-    var x4 = nn.ReLU(g, x3)
-    var y_pred = nn.Linear(g, x4, n_outputs=n_outputs)
+    var x1 = nn.Linear(g, x, n_outputs=128)
+    var x2 = nn.Linear(g, x1, n_outputs=512)
+    var x3 = nn.Linear(g, x2, n_outputs=1024)
+    var x4 = nn.Linear(g, x3, n_outputs=2048)
+    var x5 = nn.Linear(g, x4, n_outputs=1024)
+    var x6 = nn.Linear(g, x5, n_outputs=512)
+    var x7 = nn.Linear(g, x6, n_outputs=128)
+    var x8 = nn.ReLU(g, x7)
+    var y_pred = nn.Linear(g, x8, n_outputs=n_outputs)
     g.out(y_pred)
 
     var loss = nn.MSELoss(g, y_pred, y_true)
@@ -36,7 +40,7 @@ fn main():
     alias n_outputs = 1
     alias learning_rate = 0.01
 
-    alias epochs = 20000
+    alias epochs = 1000
 
     alias graph = create_simple_nn(batch_size, n_inputs, n_outputs)
 
@@ -65,7 +69,7 @@ fn main():
 
         var out = model.forward(x_data, y_data)
 
-        if (i + 1) % 1000 == 0:
+        if (i + 1) % 10 == 0:
             print("[", i + 1, "/", epochs, "] \tLoss: ", out[0])
 
         optimizer.zero_grad(model.parameters)
