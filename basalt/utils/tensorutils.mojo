@@ -121,7 +121,7 @@ fn calculate_block[
     BLOCK_M: Int, 
     BLOCK_N: Int, 
     nelts: Int
-](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], bm: Int, bn: Int):
+](res: DTypePointer[dtype], t1: DTypePointer[dtype], t2: DTypePointer[dtype], bm: Int, bn: Int):
 
     # Compute tile
     var acc = stack_allocation[BLOCK_M * BLOCK_N, dtype]()
@@ -137,7 +137,7 @@ fn calculate_block[
                 acc.store[width=nelts](
                     m*BLOCK_N + n,
                     SIMD[dtype, nelts].splat(t1[(bm + m) * K + k]).fma(
-                        t2.load[nelts](k*N + (bn + n)),
+                        t2.load[width=nelts](k*N + (bn + n)),
                         acc.load[width=nelts](m*BLOCK_N + n)
                     )
                 )
@@ -149,19 +149,25 @@ fn calculate_block[
 
         @parameter
         fn vec_store[nelts: Int](n: Int):
-            res.store[nelts](
+            res.store[width=nelts](
                 (bm + m) * N + (bn + n), acc.load[width=nelts](m * BLOCK_N + n)
             )
 
         vectorize[vec_store, nelts](BLOCK_N)
-
-
 
 @parameter
 @always_inline
 fn dot[
     t1_shape: TensorShape, t2_shape: TensorShape
 ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
+    dot[t1_shape, t2_shape](res.data(), t1.data(), t2.data())
+
+
+@parameter
+@always_inline
+fn dot[
+    t1_shape: TensorShape, t2_shape: TensorShape
+](res: DTypePointer[dtype], t1: DTypePointer[dtype], t2: DTypePointer[dtype]):
     alias M = t1_shape[0]  # t1[0]
     alias K = t1_shape[1]  # t1[1], t2[0]
     alias N = t2_shape[1]  # t2[1]

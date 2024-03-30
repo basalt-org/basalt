@@ -102,37 +102,57 @@ struct CONV2D:
         var col = im2col2D[input_shape, kernel_shape, output_shape, padding, stride, dilation](inputs)
         # [batch, in_channels * kX * kY, oX, oY]
         
+        # for batch in range(batch_size):
+        #     for out_ch in range(out_channels):
+        #         for ux in range(out_x):
+        #             for uy in range(out_y):
+        #                 var result: SIMD[dtype, 1] = 0
+        #                 for in_ch in range(in_channels):
+        #                     for kx in range(k_x):
+        #                         for ky in range(k_y):
+        #                             var col_index = (
+        #                                 batch * col.strides()[0]
+        #                                 + (in_ch * k_x * k_y + kx * k_y + ky) * col.strides()[1]
+        #                                 + ux * col.strides()[2]
+        #                                 + uy
+        #                             )
+
+        #                             var kernel_index = (
+        #                                 out_ch * kernel_strides[0]
+        #                                 + in_ch * kernel_strides[1]
+        #                                 + kx * kernel_strides[2]
+        #                                 + ky
+        #                             )
+
+        #                             result += col[col_index] * kernel[kernel_index]
+
+        #                 var output_index = (
+        #                     batch * outputs_strides[0]
+        #                     + out_ch * outputs_strides[1]
+        #                     + ux * outputs_strides[2]
+        #                     + uy
+        #                 )
+        #                 outputs[output_index] = result + bias[out_ch]
+
+        # Version using dot[shape1, shape2](res, t1, t2) for dot product
+        # For slicing, get the data pointers, offset them
+        # For result, get the data pointer, offset it
+
+        var col_strides = col.strides()
+
+        var col_data = col.data()
+        var kernel_data = kernel.data()
+        var outputs_data = outputs.data()
+
         for batch in range(batch_size):
             for out_ch in range(out_channels):
                 for ux in range(out_x):
                     for uy in range(out_y):
-                        var result: SIMD[dtype, 1] = 0
-                        for in_ch in range(in_channels):
-                            for kx in range(k_x):
-                                for ky in range(k_y):
-                                    var col_index = (
-                                        batch * col.strides()[0]
-                                        + (in_ch * k_x * k_y + kx * k_y + ky) * col.strides()[1]
-                                        + ux * col.strides()[2]
-                                        + uy
-                                    )
-
-                                    var kernel_index = (
-                                        out_ch * kernel_strides[0]
-                                        + in_ch * kernel_strides[1]
-                                        + kx * kernel_strides[2]
-                                        + ky
-                                    )
-
-                                    result += col[col_index] * kernel[kernel_index]
-
-                        var output_index = (
-                            batch * outputs_strides[0]
-                            + out_ch * outputs_strides[1]
-                            + ux * outputs_strides[2]
-                            + uy
-                        )
-                        outputs[output_index] = result + bias[out_ch]
+                        var col_slice = col_data + batch * col_strides[0] + (out_ch * in_channels * k_x * k_y) * col_strides[1] + ux * col_strides[2] + uy
+                        var kernel_slice = kernel_data + out_ch * kernel_strides[0]
+                        var output_slice = outputs_data + batch * outputs_strides[0] + out_ch * outputs_strides[1] + ux * outputs_strides[2] + uy
+                        dot[k_x * k_y, 1](output_slice, col_slice, kernel_slice)
+                        outputs_data[output_slice] += bias[out_ch]
 
 
     @staticmethod
@@ -319,16 +339,6 @@ fn im2col2D[
 ](
     input: Tensor[dtype]
 ) -> Tensor[dtype]:
-    """
-    Converts the input tensor to a 2D matrix for convolution.
-
-    input.shape     [batch, in_channels, iX, iY]
-    kernel.shape    [out_channels, in_channels, kX, kY]
-    output.shape    [batch, out_channels, oX, oY]
-
-    Returns a tensor of shape [batch, in_channels * kX * kY, oX, oY].
-    """
-
     alias padding_x = padding[0]
     alias padding_y = padding[1]
     alias stride_x = stride[0]
@@ -351,37 +361,24 @@ fn im2col2D[
 
     var col = Tensor[dtype](batch_size, in_channels * k_x * k_y, col_x, col_y)
 
+    var input_ptr = input.data()
+    var col_ptr = col.data()
+    
+    var input_strides = input.strides()
+    var col_strides = col.strides()
+
+
     for batch in range(batch_size):
         for in_ch in range(in_channels):
             for kx in range(k_x):
                 for ky in range(k_y):
-                    for ux in range(col_x):
-                        for uy in range(col_y):
-                            var ix = ux * stride_x - padding_x + kx * dilation_x
-                            var iy = uy * stride_y - padding_y + ky * dilation_y
+                    var ix_start = -padding_x + kx * dilation_x
+                    var iy_start = -padding_y + ky * dilation_y
+                    var ix_end = ix_start + (col_x - 1) * stride_x + 1
+                    var iy_end = iy_start + (col_y - 1) * stride_y + 1
 
-                            if (
-                                ix < 0
-                                or iy < 0
-                                or ix >= in_x
-                                or iy >= in_y
-                            ):
-                                continue
-
-                            var input_index = (
-                                batch * input_shape.strides()[0]
-                                + in_ch * input_shape.strides()[1]
-                                + ix * input_shape.strides()[2]
-                                + iy
-                            )
-
-                            var col_index = (
-                                batch * col.strides()[0]
-                                + (in_ch * k_x * k_y + kx * k_y + ky) * col.strides()[1]
-                                + ux * col.strides()[2]
-                                + uy
-                            )
-
-                            col[col_index] = input[input_index]
+                    var input_slice = input_ptr + batch * input_strides[0] + in_ch * input_strides[1] + ix_start * input_strides[2] + iy_start
+                    var col_slice = col_ptr + batch * col_strides[0] + (in_ch * k_x * k_y + kx * k_y + ky) * col_strides[1]
+                    memcpy(col_slice, input_slice, col_x * col_y)
 
     return col
