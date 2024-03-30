@@ -2,6 +2,7 @@ from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
 from basalt.utils.tensorutils import dot
 
+from algorithm import vectorize, tile
 
 @always_inline
 fn get_result_shape(
@@ -98,66 +99,9 @@ struct CONV2D:
         alias kernel_strides = kernel_shape.strides()
         alias outputs_strides = output_shape.strides()
 
-        alias kernel_reshape = TensorShape(out_channels, in_channels * k_x * k_y)
-        var reshaped_kernel = Tensor[dtype](kernel_reshape)
-        
-        # Reshape kernel to [out_channels, in_channels * kX * kY]
-        for out_ch in range(out_channels):
-            for in_ch in range(in_channels):
-                for kx in range(k_x):
-                    for ky in range(k_y):
-                        var kernel_index = (
-                            out_ch * kernel_strides[0]
-                            + in_ch * kernel_strides[1]
-                            + kx * kernel_strides[2]
-                            + ky
-                        )
-                        var reshape_index = out_ch * in_channels * k_x * k_y + in_ch * k_x * k_y + kx * k_y + ky
-                        reshaped_kernel[reshape_index] = kernel[kernel_index]
+        var col = im2col2D[input_shape, kernel_shape, output_shape, padding, stride, dilation](inputs)
 
-        # Perform convolution
-        alias batch_shape = TensorShape(in_channels * k_x * k_y, out_x * out_y)
-        for b in range(batch_size):
-            var batch_tensor = Tensor[dtype](batch_shape)
-            # Fill batch tensor
-            for in_ch in range(in_channels):
-                for kx in range(k_x):
-                    for ky in range(k_y):
-                        var ix_base = -padding_x + kx * dilation_x
-                        var iy_base = -padding_y + ky * dilation_y
-                        for ox in range(out_x):
-                            for oy in range(out_y):
-                                var ix = ix_base + ox * stride_x
-                                var iy = iy_base + oy * stride_y
-
-                                if ix >= 0 and ix < in_x and iy >= 0 and iy < in_y:
-                                    var input_index = (
-                                        b * inputs_strides[0]
-                                        + in_ch * inputs_strides[1]
-                                        + ix * inputs_strides[2]
-                                        + iy
-                                    )
-                                    var batch_index = (in_ch * k_x * k_y + kx * k_y + ky) * out_x * out_y + ox * out_y + oy
-                                    batch_tensor[batch_index] = inputs[input_index]
-                                else:
-                                    var batch_index = (in_ch * k_x * k_y + kx * k_y + ky) * out_x * out_y + ox * out_y + oy
-                                    batch_tensor[batch_index] = 0
-            # Perform dot product
-            var batch_result = Tensor[dtype](out_channels, out_x * out_y)
-            dot[kernel_reshape, batch_shape](reshaped_kernel, batch_tensor, batch_result)
-            
-            # Add bias and store result in output tensor
-            for out_ch in range(out_channels):
-                for ox in range(out_x):
-                    for oy in range(out_y):
-                        var output_index = (
-                            b * outputs_strides[0]
-                            + out_ch * outputs_strides[1]
-                            + ox * outputs_strides[2]
-                            + oy
-                        )
-                        var batch_index = out_ch * out_x * out_y + ox * out_y + oy
-                        outputs[output_index] = batch_result[batch_index] + bias[out_ch]
+        ...
 
 
     @staticmethod
@@ -333,3 +277,15 @@ struct CONV2D:
                 res[out_ch] = sum
 
         return res
+
+fn im2col2D[
+    input_shape: TensorShape,
+    kernel_shape: TensorShape,
+    output_shape: TensorShape,   
+    padding: StaticIntTuple[2],
+    stride: StaticIntTuple[2],
+    dilation: StaticIntTuple[2],
+](
+    input: Tensor[dtype]
+) -> Tensor[dtype]:
+    ...
