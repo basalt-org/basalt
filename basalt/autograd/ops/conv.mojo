@@ -1,5 +1,6 @@
 from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
+from basalt.utils.tensorutils import dot
 
 
 @always_inline
@@ -65,129 +66,99 @@ struct CONV2D:
             bias.shape       [out_channels].
             output.shape     [batch, out_channels, oX, oY].
         """
-        # NOTE: Parsing the static list at compile time (alias) makes the operations slower (another bug it seems)
         alias padding = attributes["padding"].value().to_static[2]()
         alias stride = attributes["stride"].value().to_static[2]()
         alias dilation = attributes["dilation"].value().to_static[2]()
-        alias padding_0 = padding[0]
-        alias padding_1 = padding[1]
-        alias stride_0 = stride[0]
-        alias stride_1 = stride[1]
-        alias dilation_0 = dilation[0]
-        alias dilation_1 = dilation[1]
 
-        alias inputs_strides = input_shape.strides()
-        alias kernel_strides = kernel_shape.strides()
+        alias padding_x = padding[0]
+        alias padding_y = padding[1]
+        alias stride_x = stride[0]
+        alias stride_y = stride[1]
+        alias dilation_x = dilation[0]
+        alias dilation_y = dilation[1]
+
         alias output_shape = Self.result_shape(
             input_shape, kernel_shape, bias_shape, attributes
         )
+
+        alias batch_size = input_shape[0]
+        alias in_channels = input_shape[1]
+        alias in_x = input_shape[2]
+        alias in_y = input_shape[3]
+        alias out_channels = kernel_shape[0]
+        alias k_x = kernel_shape[2]
+        alias k_y = kernel_shape[3]
+        alias out_x = output_shape[2]
+        alias out_y = output_shape[3]
+
+        alias col_x = (in_x + 2 * padding_x - dilation_x * (k_x - 1) - 1) // stride_x + 1
+        alias col_y = (in_y + 2 * padding_y - dilation_y * (k_y - 1) - 1) // stride_y + 1
+
+        alias inputs_strides = input_shape.strides()
+        alias kernel_strides = kernel_shape.strides()
         alias outputs_strides = output_shape.strides()
-        alias inputs_strides_0 = inputs_strides[0]
-        alias inputs_strides_1 = inputs_strides[1]
-        alias inputs_strides_2 = inputs_strides[2]
-        alias kernel_strides_0 = kernel_strides[0]
-        alias kernel_strides_1 = kernel_strides[1]
-        alias kernel_strides_2 = kernel_strides[2]
-        alias outputs_strides_0 = outputs_strides[0]
-        alias outputs_strides_1 = outputs_strides[1]
-        alias outputs_strides_2 = outputs_strides[2]
 
-        alias input_shape_0 = input_shape[0]
-        alias input_shape_1 = input_shape[1]
-        alias input_shape_2 = input_shape[2]
-        alias input_shape_3 = input_shape[3]
-        alias output_shape_1 = output_shape[1]
-        alias output_shape_2 = output_shape[2]
-        alias output_shape_3 = output_shape[3]
-        alias kernel_shape_2 = kernel_shape[2]
-        alias kernel_shape_3 = kernel_shape[3]
-
-        @parameter
-        fn kernel_iteration[
-            all_checks: Bool = True
-        ](batch: Int, out_ch: Int, x: Int, y: Int):
-            var result: SIMD[dtype, 1] = 0
-
-            var ix_base = x * stride_0 - padding_0
-            var iy_base = y * stride_1 - padding_1
-            for in_ch in range(input_shape_1):
-                for kx in range(kernel_shape_2):
-                    for ky in range(kernel_shape_3):
-                        var ix = ix_base + kx * dilation_0
-                        var iy = iy_base + ky * dilation_1
-
-                        @parameter
-                        if all_checks:
-                            if (
-                                ix < 0
-                                or iy < 0
-                                or ix >= input_shape_2
-                                or iy >= input_shape_3
-                            ):
-                                continue
-
+        alias kernel_reshape = TensorShape(out_channels, in_channels * k_x * k_y)
+        var reshaped_kernel = Tensor[dtype](kernel_reshape)
+        
+        # Reshape kernel to [out_channels, in_channels * kX * kY]
+        for out_ch in range(out_channels):
+            for in_ch in range(in_channels):
+                for kx in range(k_x):
+                    for ky in range(k_y):
                         var kernel_index = (
-                            out_ch * kernel_strides_0
-                            + in_ch * kernel_strides_1
-                            + kx * kernel_strides_2
+                            out_ch * kernel_strides[0]
+                            + in_ch * kernel_strides[1]
+                            + kx * kernel_strides[2]
                             + ky
                         )
+                        var reshape_index = out_ch * in_channels * k_x * k_y + in_ch * k_x * k_y + kx * k_y + ky
+                        reshaped_kernel[reshape_index] = kernel[kernel_index]
 
-                        var input_index = (
-                            batch * inputs_strides_0
-                            + in_ch * inputs_strides_1
-                            + ix * inputs_strides_2
-                            + iy
+        # Perform convolution
+        alias batch_shape = TensorShape(in_channels * k_x * k_y, out_x * out_y)
+        for b in range(batch_size):
+            var batch_tensor = Tensor[dtype](batch_shape)
+            # Fill batch tensor
+            for in_ch in range(in_channels):
+                for kx in range(k_x):
+                    for ky in range(k_y):
+                        var ix_base = -padding_x + kx * dilation_x
+                        var iy_base = -padding_y + ky * dilation_y
+                        for ox in range(out_x):
+                            for oy in range(out_y):
+                                var ix = ix_base + ox * stride_x
+                                var iy = iy_base + oy * stride_y
+
+                                if ix >= 0 and ix < in_x and iy >= 0 and iy < in_y:
+                                    var input_index = (
+                                        b * inputs_strides[0]
+                                        + in_ch * inputs_strides[1]
+                                        + ix * inputs_strides[2]
+                                        + iy
+                                    )
+                                    var batch_index = (in_ch * k_x * k_y + kx * k_y + ky) * out_x * out_y + ox * out_y + oy
+                                    batch_tensor[batch_index] = inputs[input_index]
+                                else:
+                                    var batch_index = (in_ch * k_x * k_y + kx * k_y + ky) * out_x * out_y + ox * out_y + oy
+                                    batch_tensor[batch_index] = 0
+            # Perform dot product
+            var batch_result = Tensor[dtype](out_channels, out_x * out_y)
+            dot[kernel_reshape, batch_shape](reshaped_kernel, batch_tensor, batch_result)
+            
+            # Add bias and store result in output tensor
+            for out_ch in range(out_channels):
+                for ox in range(out_x):
+                    for oy in range(out_y):
+                        var output_index = (
+                            b * outputs_strides[0]
+                            + out_ch * outputs_strides[1]
+                            + ox * outputs_strides[2]
+                            + oy
                         )
+                        var batch_index = out_ch * out_x * out_y + ox * out_y + oy
+                        outputs[output_index] = batch_result[batch_index] + bias[out_ch]
 
-                        result += inputs[input_index] * kernel[kernel_index]
-
-            var output_index = (
-                batch * outputs_strides_0
-                + out_ch * outputs_strides_1
-                + x * outputs_strides_2
-                + y
-            )
-
-            outputs[output_index] = result + bias[out_ch]
-
-        alias oH_border_0 = 0
-        alias oH_border_1 = (padding_0 + stride_0 + 1) // stride_0
-        alias oH_border_2 = (
-            input_shape_2 + padding_0 - kernel_shape_2 * dilation_0
-        ) // stride_0
-        alias oH_border_3 = output_shape_2
-
-        alias oW_border_0 = 0
-        alias oW_border_1 = (padding_1 + stride_0 + 1) // stride_1
-        alias oW_border_2 = (
-            input_shape_3 + padding_1 - kernel_shape_3 * dilation_1
-        ) // stride_1
-        alias oW_border_3 = output_shape_3
-
-        for batch in range(input_shape_0):
-            for out_ch in range(output_shape_1):
-                var batch_o_idx = batch * outputs_strides_0
-                var out_ch_o_idx = out_ch * outputs_strides_1
-                # Case 1: oh might put us out of bounds
-                for x in range(oH_border_0, oH_border_1):
-                    for y in range(output_shape_3):
-                        kernel_iteration(batch, out_ch, x, y)
-                # Case 2: oh in bounds
-                for x in range(oH_border_1, oH_border_2):
-                    # Case a: ow might put us out of bounds
-                    for y in range(oW_border_0, oW_border_1):
-                        kernel_iteration(batch, out_ch, x, y)
-                    # Case b: ow in bounds
-                    for y in range(oW_border_1, oW_border_2):
-                        kernel_iteration[False](batch, out_ch, x, y)
-                    # Case c: ow might put us out of bounds
-                    for y in range(oW_border_2, oW_border_3):
-                        kernel_iteration(batch, out_ch, x, y)
-                # Case 3: oh might put us out of bounds
-                for x in range(oH_border_2, oH_border_3):
-                    for y in range(output_shape_3):
-                        kernel_iteration(batch, out_ch, x, y)
 
     @staticmethod
     fn backward[
