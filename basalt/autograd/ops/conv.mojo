@@ -1,6 +1,6 @@
 from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
-from basalt.utils.tensorutils import dot
+from basalt.utils.tensorutils import dot_transpose_t2
 
 from algorithm import vectorize, tile
 
@@ -144,15 +144,31 @@ struct CONV2D:
         var kernel_data = kernel.data()
         var outputs_data = outputs.data()
 
+        # Dot product takes in dot[Shape1, Shape2](res, t1, t2)
+        # Expecting shape rank 2 for both t1 and t2 (2D matrix)
+        # For each batch and out_channel, we will perform dot product
+        # between the input matrix and the kernel matrix
+        # The result will be stored in the output matrix plus the bias
+
         for batch in range(batch_size):
             for out_ch in range(out_channels):
+                var col_index_start = batch * col_strides[0] + (out_ch * in_channels * k_x * k_y) * col_strides[1]
+                var kernel_index_start = out_ch * kernel_strides[0]
+                var output_index_start = batch * outputs_strides[0] + out_ch * outputs_strides[1]
+
+                var col_slice = col_data + col_index_start
+                var kernel_slice = kernel_data + kernel_index_start
+                var output_slice = outputs_data + output_index_start
+
+                alias col_slice_shape = TensorShape(in_channels * k_x * k_y, out_x * out_y)
+                alias kernel_slice_shape = TensorShape(in_channels * k_x * k_y, out_channels)
+
+                dot_transpose_t2[col_slice_shape, kernel_slice_shape](output_slice, col_slice, kernel_slice)
+
                 for ux in range(out_x):
                     for uy in range(out_y):
-                        var col_slice = col_data + batch * col_strides[0] + (out_ch * in_channels * k_x * k_y) * col_strides[1] + ux * col_strides[2] + uy
-                        var kernel_slice = kernel_data + out_ch * kernel_strides[0]
-                        var output_slice = outputs_data + batch * outputs_strides[0] + out_ch * outputs_strides[1] + ux * outputs_strides[2] + uy
-                        dot[k_x * k_y, 1](output_slice, col_slice, kernel_slice)
-                        outputs_data[output_slice] += bias[out_ch]
+                        var output_index = output_index_start + ux * outputs_strides[2] + uy
+                        outputs[output_index] += bias[out_ch]
 
 
     @staticmethod

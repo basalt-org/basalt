@@ -218,6 +218,10 @@ fn dot[
             
             calculate_block[M, N, K, BLOCK_M_REMAINDER, BLOCK_N_REMAINDER, nelts](res, t1, t2, bm, bn) 
 
+fn dot_transpose_t2[
+    A_shape: TensorShape, B_shape: TensorShape
+](inout C: DTypePointer[dtype], A: DTypePointer[dtype], B: DTypePointer[dtype]):
+    dot[A_shape, TensorShape(B_shape[1], B_shape[0])](C, A, transpose_2D[B_shape](B))
 
 
 fn dot_transpose_t2[
@@ -439,6 +443,26 @@ fn transpose_2D[t_shape: TensorShape](t: Tensor[dtype]) -> Tensor[dtype]:
     parallelize[proc_row](t_shape[0])
 
     return t_new ^
+
+@always_inline
+fn transpose_2D[t_shape: TensorShape](t: DTypePointer[dtype]) -> DTypePointer[dtype]:
+    var t_new = DTypePointer[dtype].alloc(t_shape[1] * t_shape[0])
+
+    alias stride = t_shape[0]
+
+    @parameter
+    fn proc_row(i: Int): 
+        @parameter
+        fn proc_column[nelts: Int](j: Int):
+            t_new.offset(j * t_shape[0] + i).simd_strided_store[nelts](
+                t.load[width=nelts](i * t_shape[1] + j), stride
+            )
+
+        vectorize[proc_column, nelts](t_shape[1])
+
+    parallelize[proc_row](t_shape[0])
+
+    return t_new
 
 
 # ----- Reduction functions -----
