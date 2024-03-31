@@ -2,7 +2,7 @@ from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
 from basalt.utils.tensorutils import dot, dot_transpose_t1, dot_transpose_t2
 
-from algorithm import parallelize
+from algorithm import parallelize, vectorize
 from math import divmod
 from utils.loop import unroll
 
@@ -98,29 +98,29 @@ struct CONV2D:
             in_y + 2 * padding_y - dilation_y * (k_y - 1) - 1
         ) // stride_y + 1
 
-        alias col_shape = TensorShape(batch_size, in_channels * k_x * k_y, col_x, col_y)
+        alias col_shape = TensorShape(batch_size, col_x * col_y, in_channels * k_x * k_y) # [batch, colX * colY, in_channels * kX * kY]
         alias output_shape = Self.result_shape(
             input_shape, kernel_shape, bias_shape, attributes
         )
-        alias col_kernel_shape = TensorShape(out_channels, in_channels * k_x * k_y)
+        # alias col_kernel_shape = TensorShape(out_channels, in_channels * k_x * k_y)
         alias col_shape_stripped = TensorShape(in_channels * k_x * k_y, col_x, col_y)
 
         alias inputs_strides = input_shape.strides()
         alias kernel_strides = kernel_shape.strides()
         alias outputs_strides = output_shape.strides()
         alias col_strides = col_shape.strides()
-        alias col_kernel_strides = col_kernel_shape.strides()
+        # alias col_kernel_strides = col_kernel_shape.strides()
 
         var col_ptr = DTypePointer[dtype].alloc(col_shape.num_elements())
         memset_zero(col_ptr, col_shape.num_elements())
 
         @parameter
         fn im2col(batch: Int):
-            for in_ch in range(in_channels):
-                for kx in range(k_x):
-                    for ky in range(k_y):
-                        for ux in range(out_x):
-                            for uy in range(out_y):
+            for ux in range(out_x):
+                for uy in range(out_y):
+                    for in_ch in range(in_channels):
+                        for kx in range(k_x):
+                            for ky in range(k_y):
                                 var ix = ux * stride_x - padding_x + kx * dilation_x
                                 var iy = uy * stride_y - padding_y + ky * dilation_y
 
@@ -134,10 +134,8 @@ struct CONV2D:
 
                                 var col_index = (
                                     batch * col_strides[0]
-                                    + (in_ch * k_x * k_y + kx * k_y + ky)
-                                    * col_strides[1]
-                                    + ux * col_strides[2]
-                                    + uy
+                                    + (ux * col_y + uy) * col_strides[1]
+                                    +  (in_ch * k_x * k_y + kx * k_y + ky)
                                 )
 
                                 var input_index = (
@@ -150,32 +148,32 @@ struct CONV2D:
                                 col_ptr[col_index] = inputs[input_index]
 
         parallelize[im2col](batch_size)
-
+    
         for batch in range(batch_size):
             for out_ch in range(out_channels):
                 for ux in range(out_x):
                     for uy in range(out_y):
-                        var result: SIMD[dtype, 1] = 0
-                        for in_ch in range(in_channels):
-                            for kx in range(k_x):
-                                for ky in range(k_y):
-                                    var col_index = (
-                                        batch * col_strides[0]
-                                        + (in_ch * k_x * k_y + kx * k_y + ky)
-                                        * col_strides[1]
-                                        + ux * col_strides[2]
-                                        + uy
-                                    )
+                        var result: SIMD[dtype, nelts] = 0
+                        @parameter
+                        fn v_im2col[_nelts: Int](in_ch_kx_ky: Int):
+                            var col_index = (
+                                batch * col_strides[0]
+                                + (ux * col_y + uy) * col_strides[1]
+                                + in_ch_kx_ky
+                            )
 
-                                    var kernel_index = (
-                                        out_ch * kernel_strides[0]
-                                        + in_ch * kernel_strides[1]
-                                        + kx * kernel_strides[2]
-                                        + ky
-                                    )
+                            var kernel_index = (
+                                out_ch * kernel_strides[0]
+                                + in_ch_kx_ky
+                            )
 
-                                    result += col_ptr[col_index] * kernel[kernel_index]
+                            if _nelts == nelts:
+                                result += col_ptr.load[width=nelts](col_index) * kernel.load[nelts](kernel_index)
+                            else:
+                                result[0] += (col_ptr.load[width=_nelts](col_index) * kernel.load[_nelts](kernel_index)).reduce_add()
 
+                        vectorize[v_im2col, nelts](in_channels * k_x * k_y)
+ 
                         var output_index = (
                             batch * outputs_strides[0]
                             + out_ch * outputs_strides[1]
@@ -183,7 +181,7 @@ struct CONV2D:
                             + uy
                         )
 
-                        outputs[output_index] = result + bias[out_ch]
+                        outputs[output_index] = result.reduce_add() + bias[out_ch]
 
         col_ptr.free()
 
