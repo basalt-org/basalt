@@ -3,7 +3,6 @@ from basalt.autograd.attributes import AttributeVector
 from basalt.utils.tensorutils import dot, dot_transpose_t1, dot_transpose_t2
 
 from algorithm import vectorize, tile, parallelize
-from math import min
 
 @always_inline
 fn get_result_shape(
@@ -115,29 +114,25 @@ struct CONV2D:
                                 var ix = ux * stride_x - padding_x + kx * dilation_x
                                 var iy = uy * stride_y - padding_y + ky * dilation_y
 
-                                if (
-                                    ix < 0
-                                    or iy < 0
-                                    or ix >= in_x
-                                    or iy >= in_y
-                                ):
-                                    continue
-
-                                var input_index = (
-                                    batch * inputs_strides[0]
-                                    + in_ch * inputs_strides[1]
-                                    + ix * inputs_strides[2]
-                                    + iy
-                                )
-
-                                var col_index = (
-                                    batch * col_strides[0]
-                                    + (in_ch * k_x * k_y + kx * k_y + ky) * col_strides[1]
-                                    + ux * col_strides[2]
-                                    + uy
-                                )
-
-                                col_ptr[col_index] = inputs[input_index]
+                                if ix < 0 or iy < 0 or ix >= in_x or iy >= in_y:
+                                    col_ptr[
+                                        batch * col_strides[0]
+                                        + (in_ch * k_x * k_y + kx * k_y + ky) * col_strides[1]
+                                        + ux * col_strides[2]
+                                        + uy
+                                    ] = 0
+                                else:
+                                    col_ptr[
+                                        batch * col_strides[0]
+                                        + (in_ch * k_x * k_y + kx * k_y + ky) * col_strides[1]
+                                        + ux * col_strides[2]
+                                        + uy
+                                    ] = inputs[
+                                        batch * inputs_strides[0]
+                                        + in_ch * inputs_strides[1]
+                                        + ix * inputs_strides[2]
+                                        + iy
+                                    ]
 
         parallelize[im2col](batch_size)
 
@@ -350,3 +345,12 @@ struct CONV2D:
                 res[out_ch] = sum
 
         return res
+
+fn flatten_tile[TileSize: Int](data: DTypePointer[dtype]) -> DTypePointer[dtype]:
+    var flattened = DTypePointer[dtype].alloc(TileSize * TileSize)
+
+    @unroll
+    for i in range(TileSize):
+        memcpy(flattened + i * TileSize, data + i * TileSize, TileSize)
+
+    return flattened
