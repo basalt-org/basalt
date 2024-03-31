@@ -2,7 +2,10 @@ from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
 from basalt.utils.tensorutils import dot, dot_transpose_t1, dot_transpose_t2
 
-from algorithm import vectorize, tile, parallelize
+from algorithm import parallelize
+from math import divmod
+from utils.loop import unroll
+
 
 @always_inline
 fn get_result_shape(
@@ -88,11 +91,17 @@ struct CONV2D:
         alias out_x = output_shape[2]
         alias out_y = output_shape[3]
 
-        alias col_x = (in_x + 2 * padding_x - dilation_x * (k_x - 1) - 1) // stride_x + 1
-        alias col_y = (in_y + 2 * padding_y - dilation_y * (k_y - 1) - 1) // stride_y + 1
+        alias col_x = (
+            in_x + 2 * padding_x - dilation_x * (k_x - 1) - 1
+        ) // stride_x + 1
+        alias col_y = (
+            in_y + 2 * padding_y - dilation_y * (k_y - 1) - 1
+        ) // stride_y + 1
 
         alias col_shape = TensorShape(batch_size, in_channels * k_x * k_y, col_x, col_y)
-        alias output_shape = Self.result_shape(input_shape, kernel_shape, bias_shape, attributes)
+        alias output_shape = Self.result_shape(
+            input_shape, kernel_shape, bias_shape, attributes
+        )
         alias col_kernel_shape = TensorShape(out_channels, in_channels * k_x * k_y)
         alias col_shape_stripped = TensorShape(in_channels * k_x * k_y, col_x, col_y)
 
@@ -109,30 +118,34 @@ struct CONV2D:
             for in_ch in range(in_channels):
                 for kx in range(k_x):
                     for ky in range(k_y):
-                        for ux in range(col_x):
-                            for uy in range(col_y):
-                                var ix = ux * stride_x - padding_x + kx * dilation_x
-                                var iy = uy * stride_y - padding_y + ky * dilation_y
 
-                                if ix < 0 or iy < 0 or ix >= in_x or iy >= in_y:
-                                    col_ptr[
-                                        batch * col_strides[0]
-                                        + (in_ch * k_x * k_y + kx * k_y + ky) * col_strides[1]
-                                        + ux * col_strides[2]
-                                        + uy
-                                    ] = 0
-                                else:
-                                    col_ptr[
-                                        batch * col_strides[0]
-                                        + (in_ch * k_x * k_y + kx * k_y + ky) * col_strides[1]
-                                        + ux * col_strides[2]
-                                        + uy
-                                    ] = inputs[
-                                        batch * inputs_strides[0]
-                                        + in_ch * inputs_strides[1]
-                                        + ix * inputs_strides[2]
-                                        + iy
-                                    ]
+                        @parameter
+                        fn col_loop[col: Int]():
+                            var col_index = (
+                                batch * col_strides[0]
+                                + (in_ch * k_x * k_y + kx * k_y + ky) * col_strides[1]
+                                + col
+                            )
+
+                            alias inds = divmod(col, col_y)
+                            alias ix_0 = inds[0] * stride_x - padding_x
+                            alias iy_0 = inds[1] * stride_y - padding_y
+
+                            var ix = ix_0 + kx * dilation_x
+                            var iy = iy_0 + ky * dilation_y
+
+                            if ix < 0 or iy < 0 or ix >= in_x or iy >= in_y:
+                                col_ptr[col_index] = 0
+                            else:
+                                var input_index = (
+                                    batch * inputs_strides[0]
+                                    + in_ch * inputs_strides[1]
+                                    + ix * inputs_strides[2]
+                                    + iy
+                                )
+                                col_ptr[col_index] = inputs[input_index]
+
+                        unroll[col_loop, col_x * col_y]()
 
         parallelize[im2col](batch_size)
 
@@ -146,7 +159,8 @@ struct CONV2D:
                                 for ky in range(k_y):
                                     var col_index = (
                                         batch * col_strides[0]
-                                        + (in_ch * k_x * k_y + kx * k_y + ky) * col_strides[1]
+                                        + (in_ch * k_x * k_y + kx * k_y + ky)
+                                        * col_strides[1]
                                         + ux * col_strides[2]
                                         + uy
                                     )
@@ -170,7 +184,6 @@ struct CONV2D:
                         outputs[output_index] = result + bias[out_ch]
 
         col_ptr.free()
-
 
     @staticmethod
     fn backward[
@@ -345,12 +358,3 @@ struct CONV2D:
                 res[out_ch] = sum
 
         return res
-
-fn flatten_tile[TileSize: Int](data: DTypePointer[dtype]) -> DTypePointer[dtype]:
-    var flattened = DTypePointer[dtype].alloc(TileSize * TileSize)
-
-    @unroll
-    for i in range(TileSize):
-        memcpy(flattened + i * TileSize, data + i * TileSize, TileSize)
-
-    return flattened
