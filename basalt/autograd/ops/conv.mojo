@@ -1,6 +1,6 @@
 from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
-from basalt.utils.tensorutils import dot_transpose_t2
+from basalt.utils.tensorutils import dot, dot_transpose_t1, dot_transpose_t2
 
 from algorithm import vectorize, tile
 
@@ -78,10 +78,6 @@ struct CONV2D:
         alias dilation_x = dilation[0]
         alias dilation_y = dilation[1]
 
-        alias output_shape = Self.result_shape(
-            input_shape, kernel_shape, bias_shape, attributes
-        )
-
         alias batch_size = input_shape[0]
         alias in_channels = input_shape[1]
         alias in_x = input_shape[2]
@@ -95,80 +91,86 @@ struct CONV2D:
         alias col_x = (in_x + 2 * padding_x - dilation_x * (k_x - 1) - 1) // stride_x + 1
         alias col_y = (in_y + 2 * padding_y - dilation_y * (k_y - 1) - 1) // stride_y + 1
 
+        alias col_shape = TensorShape(batch_size, in_channels * k_x * k_y, col_x, col_y)
+        alias output_shape = Self.result_shape(input_shape, kernel_shape, bias_shape, attributes)
+        alias col_kernel_shape = TensorShape(out_channels, in_channels * k_x * k_y)
+        alias col_shape_stripped = TensorShape(in_channels * k_x * k_y, col_x, col_y)
+
         alias inputs_strides = input_shape.strides()
         alias kernel_strides = kernel_shape.strides()
         alias outputs_strides = output_shape.strides()
+        alias col_strides = col_shape.strides()
+        alias col_kernel_strides = col_kernel_shape.strides()
 
-        var col = im2col2D[input_shape, kernel_shape, output_shape, padding, stride, dilation](inputs)
-        # [batch, in_channels * kX * kY, oX, oY]
-        
-        # for batch in range(batch_size):
-        #     for out_ch in range(out_channels):
-        #         for ux in range(out_x):
-        #             for uy in range(out_y):
-        #                 var result: SIMD[dtype, 1] = 0
-        #                 for in_ch in range(in_channels):
-        #                     for kx in range(k_x):
-        #                         for ky in range(k_y):
-        #                             var col_index = (
-        #                                 batch * col.strides()[0]
-        #                                 + (in_ch * k_x * k_y + kx * k_y + ky) * col.strides()[1]
-        #                                 + ux * col.strides()[2]
-        #                                 + uy
-        #                             )
+        var col_ptr = DTypePointer[dtype].alloc(col_shape.num_elements())
 
-        #                             var kernel_index = (
-        #                                 out_ch * kernel_strides[0]
-        #                                 + in_ch * kernel_strides[1]
-        #                                 + kx * kernel_strides[2]
-        #                                 + ky
-        #                             )
+        for batch in range(batch_size):
+            for in_ch in range(in_channels):
+                for kx in range(k_x):
+                    for ky in range(k_y):
+                        for ux in range(col_x):
+                            for uy in range(col_y):
+                                var ix = ux * stride_x - padding_x + kx * dilation_x
+                                var iy = uy * stride_y - padding_y + ky * dilation_y
 
-        #                             result += col[col_index] * kernel[kernel_index]
+                                if (
+                                    ix < 0
+                                    or iy < 0
+                                    or ix >= in_x
+                                    or iy >= in_y
+                                ):
+                                    continue
 
-        #                 var output_index = (
-        #                     batch * outputs_strides[0]
-        #                     + out_ch * outputs_strides[1]
-        #                     + ux * outputs_strides[2]
-        #                     + uy
-        #                 )
-        #                 outputs[output_index] = result + bias[out_ch]
+                                var input_index = (
+                                    batch * inputs_strides[0]
+                                    + in_ch * inputs_strides[1]
+                                    + ix * inputs_strides[2]
+                                    + iy
+                                )
 
-        # Version using dot[shape1, shape2](res, t1, t2) for dot product
-        # For slicing, get the data pointers, offset them
-        # For result, get the data pointer, offset it
+                                var col_index = (
+                                    batch * col_strides[0]
+                                    + (in_ch * k_x * k_y + kx * k_y + ky) * col_strides[1]
+                                    + ux * col_strides[2]
+                                    + uy
+                                )
 
-        var col_strides = col.strides()
-
-        var col_data = col.data()
-        var kernel_data = kernel.data()
-        var outputs_data = outputs.data()
-
-        # Dot product takes in dot[Shape1, Shape2](res, t1, t2)
-        # Expecting shape rank 2 for both t1 and t2 (2D matrix)
-        # For each batch and out_channel, we will perform dot product
-        # between the input matrix and the kernel matrix
-        # The result will be stored in the output matrix plus the bias
+                                col_ptr[col_index] = inputs[input_index]
 
         for batch in range(batch_size):
             for out_ch in range(out_channels):
-                var col_index_start = batch * col_strides[0] + (out_ch * in_channels * k_x * k_y) * col_strides[1]
-                var kernel_index_start = out_ch * kernel_strides[0]
-                var output_index_start = batch * outputs_strides[0] + out_ch * outputs_strides[1]
-
-                var col_slice = col_data + col_index_start
-                var kernel_slice = kernel_data + kernel_index_start
-                var output_slice = outputs_data + output_index_start
-
-                alias col_slice_shape = TensorShape(in_channels * k_x * k_y, out_x * out_y)
-                alias kernel_slice_shape = TensorShape(in_channels * k_x * k_y, out_channels)
-
-                dot_transpose_t2[col_slice_shape, kernel_slice_shape](output_slice, col_slice, kernel_slice)
-
                 for ux in range(out_x):
                     for uy in range(out_y):
-                        var output_index = output_index_start + ux * outputs_strides[2] + uy
-                        outputs[output_index] += bias[out_ch]
+                        var result: SIMD[dtype, 1] = 0
+                        for in_ch in range(in_channels):
+                            for kx in range(k_x):
+                                for ky in range(k_y):
+                                    var col_index = (
+                                        batch * col_strides[0]
+                                        + (in_ch * k_x * k_y + kx * k_y + ky) * col_strides[1]
+                                        + ux * col_strides[2]
+                                        + uy
+                                    )
+
+                                    var kernel_index = (
+                                        out_ch * kernel_strides[0]
+                                        + in_ch * kernel_strides[1]
+                                        + kx * kernel_strides[2]
+                                        + ky
+                                    )
+
+                                    result += col_ptr[col_index] * kernel[kernel_index]
+
+                        var output_index = (
+                            batch * outputs_strides[0]
+                            + out_ch * outputs_strides[1]
+                            + ux * outputs_strides[2]
+                            + uy
+                        )
+
+                        outputs[output_index] = result + bias[out_ch]
+
+        col_ptr.free()
 
 
     @staticmethod
@@ -344,57 +346,3 @@ struct CONV2D:
                 res[out_ch] = sum
 
         return res
-
-fn im2col2D[
-    input_shape: TensorShape,
-    kernel_shape: TensorShape,
-    output_shape: TensorShape,   
-    padding: StaticIntTuple[2],
-    stride: StaticIntTuple[2],
-    dilation: StaticIntTuple[2],
-](
-    input: Tensor[dtype]
-) -> Tensor[dtype]:
-    alias padding_x = padding[0]
-    alias padding_y = padding[1]
-    alias stride_x = stride[0]
-    alias stride_y = stride[1]
-    alias dilation_x = dilation[0]
-    alias dilation_y = dilation[1]
-
-    alias batch_size = input_shape[0]
-    alias in_channels = input_shape[1]
-    alias in_x = input_shape[2]
-    alias in_y = input_shape[3]
-    alias out_channels = kernel_shape[0]
-    alias k_x = kernel_shape[2]
-    alias k_y = kernel_shape[3]
-    alias out_x = output_shape[2]
-    alias out_y = output_shape[3]
-
-    alias col_x = (in_x + 2 * padding_x - dilation_x * (k_x - 1) - 1) // stride_x + 1
-    alias col_y = (in_y + 2 * padding_y - dilation_y * (k_y - 1) - 1) // stride_y + 1
-
-    var col = Tensor[dtype](batch_size, in_channels * k_x * k_y, col_x, col_y)
-
-    var input_ptr = input.data()
-    var col_ptr = col.data()
-    
-    var input_strides = input.strides()
-    var col_strides = col.strides()
-
-
-    for batch in range(batch_size):
-        for in_ch in range(in_channels):
-            for kx in range(k_x):
-                for ky in range(k_y):
-                    var ix_start = -padding_x + kx * dilation_x
-                    var iy_start = -padding_y + ky * dilation_y
-                    var ix_end = ix_start + (col_x - 1) * stride_x + 1
-                    var iy_end = iy_start + (col_y - 1) * stride_y + 1
-
-                    var input_slice = input_ptr + batch * input_strides[0] + in_ch * input_strides[1] + ix_start * input_strides[2] + iy_start
-                    var col_slice = col_ptr + batch * col_strides[0] + (in_ch * k_x * k_y + kx * k_y + ky) * col_strides[1]
-                    memcpy(col_slice, input_slice, col_x * col_y)
-
-    return col
