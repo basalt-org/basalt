@@ -112,40 +112,42 @@ struct CONV2D:
         alias col_kernel_strides = col_kernel_shape.strides()
 
         var col_ptr = DTypePointer[dtype].alloc(col_shape.num_elements())
+        memset_zero(col_ptr, col_shape.num_elements())
 
         @parameter
         fn im2col(batch: Int):
             for in_ch in range(in_channels):
                 for kx in range(k_x):
                     for ky in range(k_y):
+                        for ux in range(out_x):
+                            for uy in range(out_y):
+                                var ix = ux * stride_x - padding_x + kx * dilation_x
+                                var iy = uy * stride_y - padding_y + ky * dilation_y
 
-                        @parameter
-                        fn col_loop[col: Int]():
-                            var col_index = (
-                                batch * col_strides[0]
-                                + (in_ch * k_x * k_y + kx * k_y + ky) * col_strides[1]
-                                + col
-                            )
+                                if (
+                                    ix < 0
+                                    or iy < 0
+                                    or ix >= in_x
+                                    or iy >= in_y
+                                ):
+                                    continue
 
-                            alias inds = divmod(col, col_y)
-                            alias ix_0 = inds[0] * stride_x - padding_x
-                            alias iy_0 = inds[1] * stride_y - padding_y
+                                var col_index = (
+                                    batch * col_strides[0]
+                                    + (in_ch * k_x * k_y + kx * k_y + ky)
+                                    * col_strides[1]
+                                    + ux * col_strides[2]
+                                    + uy
+                                )
 
-                            var ix = ix_0 + kx * dilation_x
-                            var iy = iy_0 + ky * dilation_y
-
-                            if ix < 0 or iy < 0 or ix >= in_x or iy >= in_y:
-                                col_ptr[col_index] = 0
-                            else:
                                 var input_index = (
                                     batch * inputs_strides[0]
                                     + in_ch * inputs_strides[1]
                                     + ix * inputs_strides[2]
                                     + iy
                                 )
-                                col_ptr[col_index] = inputs[input_index]
 
-                        unroll[col_loop, col_x * col_y]()
+                                col_ptr[col_index] = inputs[input_index]
 
         parallelize[im2col](batch_size)
 
