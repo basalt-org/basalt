@@ -2,7 +2,8 @@ from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
 from basalt.utils.tensorutils import dot, dot_transpose_t1, dot_transpose_t2
 
-from algorithm import vectorize, tile
+from algorithm import vectorize, tile, parallelize
+from math import min
 
 @always_inline
 fn get_result_shape(
@@ -104,7 +105,8 @@ struct CONV2D:
 
         var col_ptr = DTypePointer[dtype].alloc(col_shape.num_elements())
 
-        for batch in range(batch_size):
+        @parameter
+        fn im2col(batch: Int):
             for in_ch in range(in_channels):
                 for kx in range(k_x):
                     for ky in range(k_y):
@@ -136,6 +138,8 @@ struct CONV2D:
                                 )
 
                                 col_ptr[col_index] = inputs[input_index]
+
+        parallelize[im2col](batch_size)
 
         for batch in range(batch_size):
             for out_ch in range(out_channels):
