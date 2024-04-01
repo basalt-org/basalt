@@ -66,8 +66,7 @@ if __name__ == "__main__":
     learning_rate = 1e-3
 
     # Load data
-    train_data = MNIST("./examples/data/mnist_train_small.csv")
-    test_data = MNIST("./examples/data/mnist_test_small.csv")
+    train_data = MNIST("./examples/data/mnist_test_small.csv")
 
     # Visualize data
     num = 0
@@ -79,9 +78,6 @@ if __name__ == "__main__":
     loaders = {
         "train": DataLoader(
             train_data, batch_size=batch_size, shuffle=True, num_workers=1
-        ),
-        "test": DataLoader(
-            test_data, batch_size=batch_size, shuffle=True, num_workers=1
         ),
     }
 
@@ -110,10 +106,3 @@ if __name__ == "__main__":
                     epoch + 1, num_epochs, i + 1, total_step, loss.item()
                 )
             )
-
-    # Evaluate the model
-    cnn.eval()
-    with torch.no_grad():
-        test_predictions = cnn(test_data.images)
-        ce_loss = loss_func(test_predictions, test_data.labels).item()
-        print(f"Cross Entropy Loss on Test Data: {ce_loss:.4f}")

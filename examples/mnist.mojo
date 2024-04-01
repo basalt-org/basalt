@@ -74,9 +74,11 @@ fn main():
     var train_data: MNIST
     try:
         train_data = MNIST(file_path="./examples/data/mnist_test_small.csv")
-        _ = plot_image(train_data.data, 1)
-    except:
+        # _ = plot_image(train_data.data, 1)
+    except e:
         print("Could not load data")
+        print(e)
+        return
 
     var training_loader = DataLoader(
         data=train_data.data, labels=train_data.labels, batch_size=batch_size

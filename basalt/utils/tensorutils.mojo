@@ -121,7 +121,7 @@ fn calculate_block[
     BLOCK_M: Int, 
     BLOCK_N: Int, 
     nelts: Int
-](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], bm: Int, bn: Int):
+](res: DTypePointer[dtype], t1: DTypePointer[dtype], t2: DTypePointer[dtype], bm: Int, bn: Int):
 
     # Compute tile
     var acc = stack_allocation[BLOCK_M * BLOCK_N, dtype]()
@@ -137,7 +137,7 @@ fn calculate_block[
                 acc.store[width=nelts](
                     m*BLOCK_N + n,
                     SIMD[dtype, nelts].splat(t1[(bm + m) * K + k]).fma(
-                        t2.load[nelts](k*N + (bn + n)),
+                        t2.load[width=nelts](k*N + (bn + n)),
                         acc.load[width=nelts](m*BLOCK_N + n)
                     )
                 )
@@ -149,19 +149,25 @@ fn calculate_block[
 
         @parameter
         fn vec_store[nelts: Int](n: Int):
-            res.store[nelts](
+            res.store[width=nelts](
                 (bm + m) * N + (bn + n), acc.load[width=nelts](m * BLOCK_N + n)
             )
 
         vectorize[vec_store, nelts](BLOCK_N)
-
-
 
 @parameter
 @always_inline
 fn dot[
     t1_shape: TensorShape, t2_shape: TensorShape
 ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
+    dot[t1_shape, t2_shape](res.data(), t1.data(), t2.data())
+
+
+@parameter
+@always_inline
+fn dot[
+    t1_shape: TensorShape, t2_shape: TensorShape
+](res: DTypePointer[dtype], t1: DTypePointer[dtype], t2: DTypePointer[dtype]):
     alias M = t1_shape[0]  # t1[0]
     alias K = t1_shape[1]  # t1[1], t2[0]
     alias N = t2_shape[1]  # t2[1]
@@ -212,6 +218,10 @@ fn dot[
             
             calculate_block[M, N, K, BLOCK_M_REMAINDER, BLOCK_N_REMAINDER, nelts](res, t1, t2, bm, bn) 
 
+fn dot_transpose_t2[
+    A_shape: TensorShape, B_shape: TensorShape
+](inout C: DTypePointer[dtype], A: DTypePointer[dtype], B: DTypePointer[dtype]):
+    dot[A_shape, TensorShape(B_shape[1], B_shape[0])](C, A, transpose_2D[B_shape](B))
 
 
 fn dot_transpose_t2[
@@ -433,6 +443,26 @@ fn transpose_2D[t_shape: TensorShape](t: Tensor[dtype]) -> Tensor[dtype]:
     parallelize[proc_row](t_shape[0])
 
     return t_new ^
+
+@always_inline
+fn transpose_2D[t_shape: TensorShape](t: DTypePointer[dtype]) -> DTypePointer[dtype]:
+    var t_new = DTypePointer[dtype].alloc(t_shape[1] * t_shape[0])
+
+    alias stride = t_shape[0]
+
+    @parameter
+    fn proc_row(i: Int): 
+        @parameter
+        fn proc_column[nelts: Int](j: Int):
+            t_new.offset(j * t_shape[0] + i).simd_strided_store[nelts](
+                t.load[width=nelts](i * t_shape[1] + j), stride
+            )
+
+        vectorize[proc_column, nelts](t_shape[1])
+
+    parallelize[proc_row](t_shape[0])
+
+    return t_new
 
 
 # ----- Reduction functions -----

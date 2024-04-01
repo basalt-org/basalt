@@ -5,6 +5,7 @@ basalt.📦
 
 examples/data/mnist_test.csv
 examples/data/mnist_train.csv
+examples/data/mnist_train_small.csv
 
 output_model.onnx
 Makefile
