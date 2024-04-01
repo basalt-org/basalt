@@ -1,9 +1,6 @@
 from algorithm import parallelize, vectorize
-from math import divmod
 
-from basalt.utils.tensorutils import dot, dot_transpose_t1, dot_transpose_t2
 from basalt.autograd.attributes import AttributeVector
-from basalt import Tensor, TensorShape
 
 
 fn get_result_shape(

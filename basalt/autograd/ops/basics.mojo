@@ -1,9 +1,7 @@
 from math import add, sub, mul, div, log, exp
 from algorithm import vectorize
-from memory import memcpy
 
-from basalt.autograd.attributes import Attribute, AttributeVector
-from basalt import Tensor, TensorShape
+from basalt.autograd.attributes import AttributeVector
 from basalt.nn.tensor import MAX_RANK
 from basalt.utils.tensorutils import (
     broadcast_calculate_strides,

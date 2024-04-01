@@ -1,8 +1,7 @@
 from math import min
 from testing import assert_true
 
-from tensor import Tensor as _Tensor
-from tensor import TensorShape as _TensorShape
+from tensor import Tensor as _Tensor, TensorShape as _TensorShape
 
 
 alias MAX_RANK = 8

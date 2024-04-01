@@ -2,7 +2,6 @@ from algorithm import vectorize
 from math import exp, pow
 
 from basalt.utils.tensorutils import elwise_transform
-from basalt import Tensor, TensorShape
 
 
 @register_passable("trivial")

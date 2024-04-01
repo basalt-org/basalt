@@ -1,10 +1,6 @@
-from sys.info import num_physical_cores
-from algorithm import vectorize, parallelize, swap
-from memory import memset_zero, memset, stack_allocation
-from math import sqrt, pow, equal, max, min, abs, add, div, divmod
-from random import rand
+from algorithm import vectorize, parallelize
+from math import sqrt, pow, max, abs, add, div, divmod
 
-from basalt import Tensor, TensorShape
 from basalt.nn.tensor import MAX_RANK
 
 

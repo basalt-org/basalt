@@ -18,7 +18,6 @@ from .mlops import Sigmoid, Relu, Tanh
 from .conv import Conv_2D
 from .pool import Maxpool_2D
 
-from basalt import Tensor, TensorShape
 from basalt.utils.bytes import Bytes
 from basalt.utils.tensorutils import broadcast_shapes, accumulate_grad
 from ..attributes import AttributeVector

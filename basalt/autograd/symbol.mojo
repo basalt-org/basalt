@@ -1,6 +1,3 @@
-from basalt import Tensor, TensorShape
-
-
 @register_passable("trivial")
 struct Symbol(CollectionElement, Stringable):
     var name: UInt32

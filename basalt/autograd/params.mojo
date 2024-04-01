@@ -1,10 +1,6 @@
 from collections.optional import Optional
 
 from .attributes import Attribute
-from .symbol import Symbol
-
-from basalt import Tensor, TensorShape
-from basalt import dtype
 
 
 @value

@@ -1,8 +1,6 @@
 from algorithm import vectorize
 from math import div
 
-from basalt import dtype
-from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_op, tmean, tstd
 
 

@@ -3,4 +3,4 @@ from .nn import Tensor, TensorShape
 
 alias dtype = DType.float32
 alias nelts = 2 * simdwidthof[dtype]()
-alias seed = 42
+alias SEED = 42

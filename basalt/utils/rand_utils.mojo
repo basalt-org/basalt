@@ -1,4 +1,3 @@
-from basalt import Tensor, TensorShape
 from random import rand, randn
 from algorithm import vectorize
 

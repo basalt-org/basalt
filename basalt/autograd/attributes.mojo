@@ -1,7 +1,6 @@
 from collections.optional import Optional
 from math import min
 
-from basalt import Tensor, TensorShape
 from basalt.utils.bytes import Bytes
 
 
