@@ -16,6 +16,7 @@ struct Node(CollectionElement, Stringable):
     var input_3: Optional[Symbol]
     var attributes: AttributeVector
 
+    @always_inline("nodebug")
     fn __init__(
         inout self,
         operator: OP,
@@ -32,9 +33,11 @@ struct Node(CollectionElement, Stringable):
         self.input_3 = input_3
         self.attributes = attributes
 
+    @always_inline("nodebug")
     fn __str__(self) -> String:
         return self.json()
 
+    @always_inline("nodebug")
     fn json(self) -> String:
         var s: String = '{"operator": "' + str(self.operator.name) + '", "inputs": ['
         s += self.input_1.json()
