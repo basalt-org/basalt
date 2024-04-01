@@ -5,18 +5,18 @@ from basalt import Tensor, TensorShape
 from basalt.utils.bytes import bytes
 
 
-alias max_attrs = 10
-alias max_attr_char_size = 16
-alias max_attr_value_size = 32
+alias MAX_ATTRIBUTES = 10
+alias MAX_CHAR_SIZE = 16
+alias MAX_VALUE_SIZE = 32
 
 
 @register_passable("trivial")
 struct AttributeVector(Sized, Stringable, CollectionElement):
-    var _attrs: StaticTuple[Attribute, max_attrs]
+    var _attrs: StaticTuple[Attribute, MAX_ATTRIBUTES]
     var _size: Int
 
     fn __init__(inout self, *attributes: Attribute):
-        self._attrs = StaticTuple[Attribute, max_attrs]()
+        self._attrs = StaticTuple[Attribute, MAX_ATTRIBUTES]()
         self._size = len(attributes)
         for i in range(self._size):
             self._attrs[i] = attributes[i]
@@ -29,7 +29,7 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
 
     fn __getitem__(self, index: StringLiteral) -> Optional[AttributeValue]:
         for i in range(self._size):
-            if self._attrs[i].name == bytes[max_attr_char_size](index):
+            if self._attrs[i].name == bytes[MAX_CHAR_SIZE](index):
                 return self._attrs[i].value
         return None
 
@@ -45,24 +45,24 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
 @register_passable("trivial")
 struct Attribute(Stringable, CollectionElement):
     var name: bytes[
-        max_attr_char_size
+        MAX_CHAR_SIZE
     ]  # defines the maximum number of characters in the string
     var value: AttributeValue  # Variant doesn't seem to be register passable
 
     fn __init__(inout self, name: String, value: Int):
-        self.name = bytes[max_attr_char_size](name)
+        self.name = bytes[MAX_CHAR_SIZE](name)
         self.value = AttributeValue(value)
 
     fn __init__(inout self, name: String, value: String):
-        self.name = bytes[max_attr_char_size](name)
+        self.name = bytes[MAX_CHAR_SIZE](name)
         self.value = AttributeValue(value)
 
     fn __init__(inout self, name: String, value: TensorShape):
-        self.name = bytes[max_attr_char_size](name)
+        self.name = bytes[MAX_CHAR_SIZE](name)
         self.value = AttributeValue(value)
 
-    fn __init__[N: Int](inout self, name: String, value: StaticIntTuple[N]):
-        self.name = bytes[max_attr_char_size](name)
+    fn __init__[Length: Int](inout self, name: String, value: StaticIntTuple[Length]):
+        self.name = bytes[MAX_CHAR_SIZE](name)
         self.value = AttributeValue(value)
 
     fn __str__(self) -> String:
@@ -75,12 +75,12 @@ struct AttributeValue(CollectionElement):
     Workaround to support Variant attribute values, while still register passable.
     """
 
-    var _buffer: StaticIntTuple[max_attr_value_size]
+    var _buffer: StaticIntTuple[MAX_VALUE_SIZE]
     var _shape: TensorShape
 
     # AttributeValue: Int
     fn __init__(inout self, value: Int):
-        self._buffer = StaticIntTuple[max_attr_value_size]()
+        self._buffer = StaticIntTuple[MAX_VALUE_SIZE]()
         self._shape = 1
         self._buffer[0] = value
 
@@ -89,9 +89,9 @@ struct AttributeValue(CollectionElement):
 
     # AttributeValue: String
     fn __init__(inout self, s: String):
-        self._buffer = StaticIntTuple[max_attr_value_size]()
+        self._buffer = StaticIntTuple[MAX_VALUE_SIZE]()
         self._shape = len(s)
-        for i in range(min(len(s), max_attr_value_size)):
+        for i in range(min(len(s), MAX_VALUE_SIZE)):
             self._buffer[i] = ord(s[i])
 
     fn to_string(self) -> String:
@@ -102,21 +102,21 @@ struct AttributeValue(CollectionElement):
 
     # AttributeValue: TensorShape
     fn __init__(inout self, shape: TensorShape):
-        self._buffer = StaticIntTuple[max_attr_value_size]()
+        self._buffer = StaticIntTuple[MAX_VALUE_SIZE]()
         self._shape = shape
 
     fn to_shape(self) -> TensorShape:
         return self._shape
 
     # AttributeValue: StaticIntTuple (of size N)
-    fn __init__[N: Int](inout self, value: StaticIntTuple[N]):
-        self._buffer = StaticIntTuple[max_attr_value_size]()
-        self._shape = N
-        for i in range(N):
+    fn __init__[Length: Int](inout self, value: StaticIntTuple[Length]):
+        self._buffer = StaticIntTuple[MAX_VALUE_SIZE]()
+        self._shape = Length
+        for i in range(Length):
             self._buffer[i] = value[i]
 
-    fn to_static[N: Int](self) -> StaticIntTuple[N]:
-        var result = StaticIntTuple[N]()
-        for i in range(N):
+    fn to_static[Length: Int](self) -> StaticIntTuple[Length]:
+        var result = StaticIntTuple[Length]()
+        for i in range(Length):
             result[i] = self._buffer[i]
         return result
