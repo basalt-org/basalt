@@ -5,6 +5,7 @@ from basalt.utils.tensorutils import dot, dot_transpose_t1, dot_transpose_t2
 from basalt.autograd.attributes import AttributeVector
 from basalt import Tensor, TensorShape
 
+
 @always_inline
 fn get_result_shape(
     InputShape: TensorShape,

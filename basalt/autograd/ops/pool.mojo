@@ -4,6 +4,7 @@ from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
 from basalt.autograd.ops.conv import get_result_shape
 
+
 @register_passable("trivial")
 struct Maxpool_2D:
     @staticmethod
@@ -27,7 +28,7 @@ struct Maxpool_2D:
 
     @staticmethod
     fn forward[
-        input_shape: TensorShape, attributes: AttributeVector
+        InputShape: TensorShape, Attributes: AttributeVector
     ](inout outputs: Tensor[dtype], inputs: Tensor[dtype]):
         """
         Returns the max value of each kernel in the input tensor.
@@ -35,17 +36,17 @@ struct Maxpool_2D:
             with kernel_size = (kX, kY)
             outputs.shape    [batch_size, channels, oX, oY].
         """
-        alias kernel_size = attributes["kernel_size"].value().to_static[2]()
-        alias padding = attributes["padding"].value().to_static[2]()
-        alias stride = attributes["stride"].value().to_static[2]()
-        alias dilation = attributes["dilation"].value().to_static[2]()
+        alias kernel_size = Attributes["kernel_size"].value().to_static[2]()
+        alias padding = Attributes["padding"].value().to_static[2]()
+        alias stride = Attributes["stride"].value().to_static[2]()
+        alias dilation = Attributes["dilation"].value().to_static[2]()
 
-        alias inputs_strides = input_shape.strides()
-        alias output_shape = Self.result_shape(input_shape, attributes)
+        alias inputs_strides = InputShape.strides()
+        alias output_shape = Self.result_shape(InputShape, Attributes)
         alias outputs_strides = output_shape.strides()
 
-        for batch in range(input_shape[0]):
-            for in_ch in range(input_shape[1]):
+        for batch in range(InputShape[0]):
+            for in_ch in range(InputShape[1]):
                 for x in range(output_shape[2]):
                     for y in range(output_shape[3]):
                         var max_val: SIMD[dtype, 1] = neginf[dtype]()
@@ -59,8 +60,8 @@ struct Maxpool_2D:
                                 if (
                                     ix < 0
                                     or iy < 0
-                                    or ix >= input_shape[2]
-                                    or iy >= input_shape[3]
+                                    or ix >= InputShape[2]
+                                    or iy >= InputShape[3]
                                 ):
                                     continue
 
@@ -86,27 +87,27 @@ struct Maxpool_2D:
 
     @staticmethod
     fn backward[
-        ug_shape: TensorShape, input_shape: TensorShape, attributes: AttributeVector
+        UGShape: TensorShape, InputShape: TensorShape, Attributes: AttributeVector
     ](ug: Tensor[dtype], inputs: Tensor[dtype]) -> Tensor[dtype]:
         """
         Backward operation of MAXPOOL2D.
 
         Upper gradient of shape: [batch_size, channels, uX, uY]
         """
-        alias kernel_size = attributes["kernel_size"].value().to_static[2]()
-        alias padding = attributes["padding"].value().to_static[2]()
-        alias stride = attributes["stride"].value().to_static[2]()
-        alias dilation = attributes["dilation"].value().to_static[2]()
+        alias kernel_size = Attributes["kernel_size"].value().to_static[2]()
+        alias padding = Attributes["padding"].value().to_static[2]()
+        alias stride = Attributes["stride"].value().to_static[2]()
+        alias dilation = Attributes["dilation"].value().to_static[2]()
 
-        alias ug_strides = ug_shape.strides()
-        alias inputs_strides = input_shape.strides()
+        alias ug_strides = UGShape.strides()
+        alias inputs_strides = InputShape.strides()
 
-        var res = Tensor[dtype](input_shape)
+        var res = Tensor[dtype](InputShape)
 
-        for batch in range(input_shape[0]):
-            for in_ch in range(input_shape[1]):
-                for x in range(ug_shape[2]):
-                    for y in range(ug_shape[3]):
+        for batch in range(InputShape[0]):
+            for in_ch in range(InputShape[1]):
+                for x in range(UGShape[2]):
+                    for y in range(UGShape[3]):
                         var max_val: SIMD[dtype, 1] = neginf[dtype]()
                         var max_idx: Int = -1
                         var ix_base = x * stride[0] - padding[0]
@@ -119,8 +120,8 @@ struct Maxpool_2D:
                                 if (
                                     ix < 0
                                     or iy < 0
-                                    or ix >= input_shape[2]
-                                    or iy >= input_shape[3]
+                                    or ix >= InputShape[2]
+                                    or iy >= InputShape[3]
                                 ):
                                     continue
 
