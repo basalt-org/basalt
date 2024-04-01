@@ -12,8 +12,8 @@ Implement forward and backward operations for basic tensor manipulations.
 """
 
 
-@value
-struct ADD:
+@register_passable("trivial")
+struct Add:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
@@ -40,8 +40,8 @@ struct ADD:
         return ug
 
 
-@value
-struct SUB:
+@register_passable("trivial")
+struct Sub:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
@@ -76,8 +76,8 @@ struct SUB:
             return res_grad ^
 
 
-@value
-struct MUL:
+@register_passable("trivial")
+struct Mul:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
@@ -114,8 +114,8 @@ struct MUL:
             return res_grad ^
 
 
-@value
-struct DIV:
+@register_passable("trivial")
+struct Div:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
@@ -196,8 +196,8 @@ struct DIV:
             return res_grad ^
 
 
-@value
-struct DOT:
+@register_passable("trivial")
+struct Dot:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return TensorShape(t1_shape[0], t2_shape[1])
@@ -234,8 +234,8 @@ struct DOT:
             return res_grad ^
 
 
-@value
-struct EXP:
+@register_passable("trivial")
+struct Exp:
     @staticmethod
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
         return t1_shape
@@ -264,8 +264,8 @@ struct EXP:
         return res_grad ^
 
 
-@value
-struct LOG:
+@register_passable("trivial")
+struct Log:
     @staticmethod
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
         return t1_shape
@@ -288,8 +288,8 @@ struct LOG:
         elwise_op[ug_shape, t1_shape, div](res_grad, ug, t1)
         return res_grad ^
 
-
-struct POW:
+@register_passable("trivial")
+struct Pow:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         # t2_shape == TensorShape(1)
@@ -344,8 +344,8 @@ struct POW:
 
         return res_grad ^
 
-
-struct SUM:
+@register_passable("trivial")
+struct Sum:
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axis = attributes["axis"]
@@ -391,8 +391,8 @@ struct SUM:
         return res_grad ^
 
 
-@value
-struct MEAN:
+@register_passable("trivial")
+struct Mean:
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axis = attributes["axis"]
@@ -470,8 +470,8 @@ struct MEAN:
 
         return res_grad ^
 
-
-struct MAX:
+@register_passable("trivial")
+struct Max:
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axis = attributes["axis"]
@@ -577,8 +577,8 @@ struct MAX:
 
         return res_grad ^
 
-
-struct TRANSPOSE:
+@register_passable("trivial")
+struct Transpose:
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axes = attributes["axes"]  # axes to be permuted
@@ -666,7 +666,8 @@ struct TRANSPOSE:
         return res_grad ^
 
 
-struct FLATTEN:
+@register_passable("trivial")
+struct Flatten:
     @staticmethod
     fn result_shape(t_shape: TensorShape) -> TensorShape:
         return TensorShape(t_shape.num_elements())
@@ -689,7 +690,8 @@ struct FLATTEN:
         return res_grad ^
 
 
-struct RESHAPE:
+@register_passable("trivial")
+struct Reshape:
     @staticmethod
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var new_shape = attributes["shape"]

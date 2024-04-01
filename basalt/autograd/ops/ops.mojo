@@ -1,18 +1,18 @@
 from .basics import (
-    ADD,
-    SUB,
-    MUL,
-    DIV,
-    EXP,
-    LOG,
-    POW,
-    DOT,
-    SUM,
-    MEAN,
-    MAX,
-    FLATTEN,
-    RESHAPE,
-    TRANSPOSE,
+    Add,
+    Sub,
+    Mul,
+    Div,
+    Exp,
+    Log,
+    Pow,
+    Dot,
+    Sum,
+    Mean,
+    Max,
+    Flatten,
+    Reshape,
+    Transpose,
 )
 from .mlops import SIGMOID, RELU, TANH
 from .conv import CONV2D
@@ -75,19 +75,19 @@ fn static_result_shape(
     Static result shape for unary operators.
     """
     if op == OP.EXP:
-        return EXP.result_shape(t1_shape)
+        return Exp.result_shape(t1_shape)
     elif op == OP.LOG:
-        return LOG.result_shape(t1_shape)
+        return Log.result_shape(t1_shape)
     elif op == OP.SUM:
-        return SUM.result_shape(t1_shape, attributes)
+        return Sum.result_shape(t1_shape, attributes)
     elif op == OP.MEAN:
-        return MEAN.result_shape(t1_shape, attributes)
+        return Mean.result_shape(t1_shape, attributes)
     elif op == OP.MAX:
-        return MAX.result_shape(t1_shape, attributes)
+        return Max.result_shape(t1_shape, attributes)
     elif op == OP.FLATTEN:
-        return FLATTEN.result_shape(t1_shape)
+        return Flatten.result_shape(t1_shape)
     elif op == OP.RESHAPE:
-        return RESHAPE.result_shape(t1_shape, attributes)
+        return Reshape.result_shape(t1_shape, attributes)
     elif op == OP.SIGMOID:
         return SIGMOID.result_shape(t1_shape)
     elif op == OP.RELU:
@@ -95,7 +95,7 @@ fn static_result_shape(
     elif op == OP.TANH:
         return TANH.result_shape(t1_shape)
     elif op == OP.TRANSPOSE:
-        return TRANSPOSE.result_shape(t1_shape, attributes)
+        return Transpose.result_shape(t1_shape, attributes)
     elif op == OP.MAXPOOL2D:
         return MAXPOOL2D.result_shape(t1_shape, attributes)
     else:
@@ -113,17 +113,17 @@ fn static_result_shape(
     Static result shape for binary operators.
     """
     if op == OP.ADD:
-        return ADD.result_shape(t1_shape, t2_shape)
+        return Add.result_shape(t1_shape, t2_shape)
     elif op == OP.SUB:
-        return SUB.result_shape(t1_shape, t2_shape)
+        return Sub.result_shape(t1_shape, t2_shape)
     elif op == OP.MUL:
-        return MUL.result_shape(t1_shape, t2_shape)
+        return Mul.result_shape(t1_shape, t2_shape)
     elif op == OP.DIV:
-        return DIV.result_shape(t1_shape, t2_shape)
+        return Div.result_shape(t1_shape, t2_shape)
     elif op == OP.POW:
-        return POW.result_shape(t1_shape, t2_shape)
+        return Pow.result_shape(t1_shape, t2_shape)
     elif op == OP.DOT:
-        return DOT.result_shape(t1_shape, t2_shape)
+        return Dot.result_shape(t1_shape, t2_shape)
     else:
         # We can't print at compile time (at least for now it crashes at comp time with an error)
         print("[ERROR] Operator not found.")
@@ -157,19 +157,19 @@ fn forward_op[
 
     @parameter
     if op == OP.EXP:
-        EXP.forward[t1_shape](res, t1)
+        Exp.forward[t1_shape](res, t1)
     elif op == OP.LOG:
-        LOG.forward[t1_shape](res, t1)
+        Log.forward[t1_shape](res, t1)
     elif op == OP.SUM:
-        SUM.forward[t1_shape, attributes](res, t1)
+        Sum.forward[t1_shape, attributes](res, t1)
     elif op == OP.MEAN:
-        MEAN.forward[t1_shape, attributes](res, t1)
+        Mean.forward[t1_shape, attributes](res, t1)
     elif op == OP.MAX:
-        MAX.forward[t1_shape, attributes](res, t1)
+        Max.forward[t1_shape, attributes](res, t1)
     elif op == OP.FLATTEN:
-        FLATTEN.forward[t1_shape](res, t1)
+        Flatten.forward[t1_shape](res, t1)
     elif op == OP.RESHAPE:
-        RESHAPE.forward[t1_shape](res, t1)
+        Reshape.forward[t1_shape](res, t1)
     elif op == OP.SIGMOID:
         SIGMOID.forward[t1_shape](res, t1)
     elif op == OP.RELU:
@@ -177,7 +177,7 @@ fn forward_op[
     elif op == OP.TANH:
         TANH.forward[t1_shape](res, t1)
     elif op == OP.TRANSPOSE:
-        TRANSPOSE.forward[t1_shape, attributes](res, t1)
+        Transpose.forward[t1_shape, attributes](res, t1)
     elif op == OP.MAXPOOL2D:
         MAXPOOL2D.forward[t1_shape, attributes](res, t1)
     else:
@@ -193,17 +193,17 @@ fn forward_op[
 
     @parameter
     if op == OP.ADD:
-        ADD.forward[t1_shape, t2_shape](res, t1, t2)
+        Add.forward[t1_shape, t2_shape](res, t1, t2)
     elif op == OP.SUB:
-        SUB.forward[t1_shape, t2_shape](res, t1, t2)
+        Sub.forward[t1_shape, t2_shape](res, t1, t2)
     elif op == OP.MUL:
-        MUL.forward[t1_shape, t2_shape](res, t1, t2)
+        Mul.forward[t1_shape, t2_shape](res, t1, t2)
     elif op == OP.DIV:
-        DIV.forward[t1_shape, t2_shape](res, t1, t2)
+        Div.forward[t1_shape, t2_shape](res, t1, t2)
     elif op == OP.POW:
-        POW.forward[t1_shape, t2_shape](res, t1, t2)
+        Pow.forward[t1_shape, t2_shape](res, t1, t2)
     elif op == OP.DOT:
-        DOT.forward[t1_shape, t2_shape](res, t1, t2)
+        Dot.forward[t1_shape, t2_shape](res, t1, t2)
     else:
         print("[ERROR] Operator not found.")
 
@@ -240,19 +240,19 @@ fn backward_op[
 
     @parameter
     if op == OP.EXP:
-        res_grad = EXP.backward[ug_shape, t1_shape](ug, t1)
+        res_grad = Exp.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.LOG:
-        res_grad = LOG.backward[ug_shape, t1_shape](ug, t1)
+        res_grad = Log.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.SUM:
-        res_grad = SUM.backward[ug_shape, t1_shape, attributes](ug, t1)
+        res_grad = Sum.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.MEAN:
-        res_grad = MEAN.backward[ug_shape, t1_shape, attributes](ug, t1)
+        res_grad = Mean.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.MAX:
-        res_grad = MAX.backward[ug_shape, t1_shape, attributes](ug, t1)
+        res_grad = Max.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.FLATTEN:
-        res_grad = FLATTEN.backward[ug_shape, t1_shape](ug, t1)
+        res_grad = Flatten.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.RESHAPE:
-        res_grad = RESHAPE.backward[ug_shape, t1_shape](ug, t1)
+        res_grad = Reshape.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.SIGMOID:
         res_grad = SIGMOID.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.RELU:
@@ -260,7 +260,7 @@ fn backward_op[
     elif op == OP.TANH:
         res_grad = TANH.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.TRANSPOSE:
-        res_grad = TRANSPOSE.backward[ug_shape, t1_shape, attributes](ug, t1)
+        res_grad = Transpose.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.MAXPOOL2D:
         res_grad = MAXPOOL2D.backward[ug_shape, t1_shape, attributes](ug, t1)
     else:
@@ -290,17 +290,17 @@ fn backward_op[
 
     @parameter
     if op == OP.ADD:
-        res_grad = ADD.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = Add.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
     elif op == OP.SUB:
-        res_grad = SUB.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = Sub.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
     elif op == OP.MUL:
-        res_grad = MUL.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = Mul.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
     elif op == OP.DIV:
-        res_grad = DIV.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = Div.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
     elif op == OP.POW:
-        res_grad = POW.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = Pow.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
     elif op == OP.DOT:
-        res_grad = DOT.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = Dot.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)
