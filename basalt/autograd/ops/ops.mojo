@@ -15,7 +15,7 @@ from .basics import (
     Transpose,
 )
 from .mlops import SIGMOID, RELU, TANH
-from .conv import CONV2D
+from .conv import Conv_2D
 from .pool import MAXPOOL2D
 
 from basalt import Tensor, TensorShape
@@ -142,7 +142,7 @@ fn static_result_shape(
     """
 
     if op == OP.CONV2D:
-        return CONV2D.result_shape(t1_shape, t2_shape, t3_shape, attributes)
+        return Conv_2D.result_shape(t1_shape, t2_shape, t3_shape, attributes)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1, -1)
@@ -221,7 +221,7 @@ fn forward_op[
 
     @parameter
     if op == OP.CONV2D:
-        CONV2D.forward[t1_shape, t2_shape, t3_shape, attributes](res, t1, t2, t3)
+        Conv_2D.forward[t1_shape, t2_shape, t3_shape, attributes](res, t1, t2, t3)
     else:
         print("[ERROR] Operator not found.")
 
@@ -349,7 +349,7 @@ fn backward_op[
 
     @parameter
     if op == OP.CONV2D:
-        res_grad = CONV2D.backward[
+        res_grad = Conv_2D.backward[
             tensor_id, ug_shape, t1_shape, t2_shape, t3_shape, attributes
         ](ug, t1, t2, t3)
     else:

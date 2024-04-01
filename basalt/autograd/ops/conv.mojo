@@ -33,8 +33,8 @@ fn get_result_shape(
 
     return StaticIntTuple[2](result_x_dim, result_y_dim)
 
-
-struct CONV2D:
+@register_passable("trivial")
+struct Conv_2D:
     @staticmethod
     fn result_shape(
         input_shape: TensorShape,
