@@ -16,7 +16,7 @@ from .basics import (
 )
 from .mlops import Sigmoid, Relu, Tanh
 from .conv import Conv_2D
-from .pool import MAXPOOL2D
+from .pool import Maxpool_2D
 
 from basalt import Tensor, TensorShape
 from basalt.utils.bytes import bytes
@@ -97,7 +97,7 @@ fn static_result_shape(
     elif op == OP.TRANSPOSE:
         return Transpose.result_shape(t1_shape, attributes)
     elif op == OP.MAXPOOL2D:
-        return MAXPOOL2D.result_shape(t1_shape, attributes)
+        return Maxpool_2D.result_shape(t1_shape, attributes)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1)
@@ -179,7 +179,7 @@ fn forward_op[
     elif op == OP.TRANSPOSE:
         Transpose.forward[t1_shape, attributes](res, t1)
     elif op == OP.MAXPOOL2D:
-        MAXPOOL2D.forward[t1_shape, attributes](res, t1)
+        Maxpool_2D.forward[t1_shape, attributes](res, t1)
     else:
         print("[ERROR] Operator not found.")
 
@@ -262,7 +262,7 @@ fn backward_op[
     elif op == OP.TRANSPOSE:
         res_grad = Transpose.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.MAXPOOL2D:
-        res_grad = MAXPOOL2D.backward[ug_shape, t1_shape, attributes](ug, t1)
+        res_grad = Maxpool_2D.backward[ug_shape, t1_shape, attributes](ug, t1)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1)

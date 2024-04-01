@@ -4,8 +4,8 @@ from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
 from basalt.autograd.ops.conv import get_result_shape
 
-
-struct MAXPOOL2D:
+@register_passable("trivial")
+struct Maxpool_2D:
     @staticmethod
     fn result_shape(
         input_shape: TensorShape, attributes: AttributeVector
