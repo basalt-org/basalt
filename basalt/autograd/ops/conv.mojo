@@ -6,7 +6,6 @@ from basalt.autograd.attributes import AttributeVector
 from basalt import Tensor, TensorShape
 
 
-@always_inline
 fn get_result_shape(
     InputShape: TensorShape,
     KernelShape: TensorShape,
@@ -36,7 +35,6 @@ fn get_result_shape(
 @register_passable("trivial")
 struct Conv_2D:
     @staticmethod
-    @always_inline("nodebug")
     fn result_shape(
         InputShape: TensorShape,
         KernelShape: TensorShape,
@@ -53,7 +51,6 @@ struct Conv_2D:
         return TensorShape(InputShape[0], KernelShape[0], res[0], res[1])
 
     @staticmethod
-    @always_inline("nodebug")
     fn forward[
         InputShape: TensorShape,
         KernelShape: TensorShape,
@@ -112,7 +109,6 @@ struct Conv_2D:
         memset_zero(col_ptr, col_shape.num_elements())
 
         @parameter
-        @always_inline("nodebug")
         fn im2col(batch: Int):
             for ux in range(out_x):
                 for uy in range(out_y):
@@ -149,7 +145,6 @@ struct Conv_2D:
                         var result: SIMD[dtype, nelts] = 0
 
                         @parameter
-                        @always_inline("nodebug")
                         fn v_im2col[_nelts: Int](in_ch_kx_ky: Int):
                             var col_index = (
                                 batch * col_strides[0]
@@ -186,7 +181,6 @@ struct Conv_2D:
         col_ptr.free()
 
     @staticmethod
-    @always_inline("nodebug")
     fn backward[
         TensorID: Int,
         UGShape: TensorShape,
@@ -247,7 +241,6 @@ struct Conv_2D:
             res = Tensor[dtype](InputShape)
 
             @parameter
-            @always_inline("nodebug")
             fn input_grad(batch: Int):
                 for out_ch in range(UGShape_1):
                     for ux in range(UGShape_2):
@@ -299,7 +292,6 @@ struct Conv_2D:
             res = Tensor[dtype](KernelShape)
 
             @parameter
-            @always_inline("nodebug")
             fn kernel_grad(in_ch: Int):
                 for out_ch in range(UGShape_1):
                     for kx in range(KernelShape_2):
@@ -352,7 +344,6 @@ struct Conv_2D:
             res = Tensor[dtype](BiasShape)
 
             @parameter
-            @always_inline("nodebug")
             fn bias_grad(out_ch: Int):
                 var sum: SIMD[dtype, 1] = 0
                 for batch in range(UGShape_0):

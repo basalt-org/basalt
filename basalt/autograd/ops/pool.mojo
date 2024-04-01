@@ -8,7 +8,6 @@ from basalt.autograd.ops.conv import get_result_shape
 @register_passable("trivial")
 struct Maxpool_2D:
     @staticmethod
-    @always_inline("nodebug")
     fn result_shape(
         input_shape: TensorShape, attributes: AttributeVector
     ) -> TensorShape:
@@ -28,7 +27,6 @@ struct Maxpool_2D:
         return TensorShape(input_shape[0], input_shape[1], res[0], res[1])
 
     @staticmethod
-    @always_inline("nodebug")
     fn forward[
         InputShape: TensorShape, Attributes: AttributeVector
     ](inout outputs: Tensor[dtype], inputs: Tensor[dtype]):
@@ -88,7 +86,6 @@ struct Maxpool_2D:
                         outputs[out_idx] = max_val
 
     @staticmethod
-    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape, InputShape: TensorShape, Attributes: AttributeVector
     ](ug: Tensor[dtype], inputs: Tensor[dtype]) -> Tensor[dtype]:

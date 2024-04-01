@@ -3,7 +3,6 @@ from random import rand, randn
 from algorithm import vectorize
 
 
-@always_inline
 fn rand_uniform[
     dtype: DType
 ](inout res: Tensor[dtype], low: SIMD[dtype, 1], high: SIMD[dtype, 1]):
@@ -18,7 +17,6 @@ fn rand_uniform[
     vectorize[vecscale, nelts](res.num_elements())
 
 
-@always_inline
 fn rand_normal[dtype: DType](inout res: Tensor[dtype], mean: Float64, std: Float64):
     randn[dtype](
         res.data(), res.num_elements(), mean, std**2

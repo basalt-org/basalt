@@ -7,15 +7,15 @@ from basalt import Graph, Tensor, TensorShape
 from basalt.utils.collection import Collection
 
 
-fn get_num_trainable_parameters[g: Graph]() -> Int:
+fn get_num_trainable_parameters[Graph: Graph]() -> Int:
     var count = 0
-    for i in range(len(g.params)):
-        if g.params.symbols[i].trainable:
+    for i in range(len(Graph.params)):
+        if Graph.params.symbols[i].trainable:
             count += 1
     return count
 
 
-struct Adam[g: Graph]:
+struct Adam[Graph: Graph]:
     var lr: SIMD[dtype, 1]
     var beta1: SIMD[dtype, 1]
     var beta2: SIMD[dtype, 1]
@@ -40,7 +40,7 @@ struct Adam[g: Graph]:
 
         # Capacity of the collections should be the n of trainable parameters
         # TODO: len(model.parameters.trainable_parameters) when model parameters are passed as reference.
-        var N = get_num_trainable_parameters[g]()
+        var N = get_num_trainable_parameters[Graph]()
         self.rms_grads = Collection(capacity=N)
         self.momentum_grads = Collection(capacity=N)
 

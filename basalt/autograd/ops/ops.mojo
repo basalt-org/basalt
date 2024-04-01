@@ -56,22 +56,18 @@ struct OP(Stringable):
     var name: bytes[16]
     var num_operands: UInt8
 
-    @always_inline("nodebug")
     fn __init__(inout self, id: UInt8, name: String, num_operands: UInt8):
         self.id = id
         self.name = bytes[16](name)
         self.num_operands = num_operands
 
-    @always_inline("nodebug")
     fn __eq__(self, other: OP) -> Bool:
         return self.id == other.id
 
-    @always_inline("nodebug")
     fn __str__(self) -> String:
         return str(self.name)
 
 
-@always_inline("nodebug")
 fn static_result_shape(
     op: OP, t1_shape: TensorShape, attributes: AttributeVector
 ) -> TensorShape:
@@ -107,7 +103,6 @@ fn static_result_shape(
         return TensorShape(-1)
 
 
-@always_inline("nodebug")
 fn static_result_shape(
     op: OP,
     t1_shape: TensorShape,
@@ -135,7 +130,6 @@ fn static_result_shape(
         return TensorShape(-1, -1)
 
 
-@always_inline("nodebug")
 fn static_result_shape(
     op: OP,
     t1_shape: TensorShape,
@@ -154,7 +148,6 @@ fn static_result_shape(
         return TensorShape(-1, -1)
 
 
-@always_inline("nodebug")
 fn forward_op[
     Operation: OP, FirstShape: TensorShape, Attributes: AttributeVector
 ](inout res: Tensor[dtype], t1: Tensor[dtype]):
@@ -191,7 +184,6 @@ fn forward_op[
         print("[ERROR] Operator not found.")
 
 
-@always_inline("nodebug")
 fn forward_op[
     Operation: OP,
     FirstShape: TensorShape,
@@ -219,7 +211,6 @@ fn forward_op[
         print("[ERROR] Operator not found.")
 
 
-@always_inline("nodebug")
 fn forward_op[
     Operation: OP,
     FirstShape: TensorShape,
@@ -240,7 +231,6 @@ fn forward_op[
         print("[ERROR] Operator not found.")
 
 
-@always_inline("nodebug")
 fn backward_op[
     TensorID: Int,
     Operation: OP,
@@ -290,7 +280,6 @@ fn backward_op[
     accumulate_grad[FirstShape, res_grad_shape](grad, res_grad)
 
 
-@always_inline("nodebug")
 fn backward_op[
     TensorID: Int,
     Operation: OP,
@@ -343,7 +332,6 @@ fn backward_op[
         accumulate_grad[SecondShape, res_grad_shape](grad, res_grad)
 
 
-@always_inline("nodebug")
 fn backward_op[
     TensorID: Int,
     Operation: OP,

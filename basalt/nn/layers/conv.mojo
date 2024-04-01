@@ -5,7 +5,8 @@ from basalt.autograd.params import Param
 
 
 # BUG: Mojo 24.1.0 does not support the comp time `sqrt` function
-@always_inline("nodebug")
+
+
 fn sqrt[Type: DType](value: SIMD[Type, 1]) -> SIMD[Type, 1]:
     """
     Returns the square root of the input simd vector.
@@ -23,7 +24,6 @@ fn sqrt[Type: DType](value: SIMD[Type, 1]) -> SIMD[Type, 1]:
     return a if value > 1 else 1 / a
 
 
-@always_inline("nodebug")
 fn Conv2d(
     inout g: Graph,
     inputs: Symbol,

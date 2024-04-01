@@ -8,22 +8,18 @@ from basalt import Tensor, TensorShape
 @register_passable("trivial")
 struct Sigmoid:
     @staticmethod
-    @always_inline("nodebug")
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
         return t1_shape
 
     @staticmethod
-    @always_inline("nodebug")
     fn sigmoid[Type: DType, Width: Int](x: SIMD[Type, Width]) -> SIMD[Type, Width]:
         return 1 / (1 + exp(-x))
 
     @staticmethod
-    @always_inline("nodebug")
     fn sidmoid_bw[Type: DType, Width: Int](x: SIMD[Type, Width]) -> SIMD[Type, Width]:
         return Self.sigmoid(x) * (1 - Self.sigmoid(x))
 
     @staticmethod
-    @always_inline("nodebug")
     fn forward[
         FirstShape: TensorShape,
     ](inout res: Tensor[dtype], t1: Tensor[dtype]):
@@ -33,7 +29,6 @@ struct Sigmoid:
         elwise_transform[Self.sigmoid](res, t1)
 
     @staticmethod
-    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape,
         FirstShape: TensorShape,
@@ -45,7 +40,6 @@ struct Sigmoid:
         var res_grad = Tensor[dtype](UGShape)
 
         @parameter
-        @always_inline("nodebug")
         fn vec_sigmoid_bw[nelts: Int](idx: Int):
             res_grad.store[nelts](
                 idx,
@@ -60,24 +54,20 @@ struct Sigmoid:
 @register_passable("trivial")
 struct Relu:
     @staticmethod
-    @always_inline("nodebug")
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
         return t1_shape
 
     @staticmethod
-    @always_inline("nodebug")
     fn relu[Type: DType, Width: Int](x: SIMD[Type, Width]) -> SIMD[Type, Width]:
         # x if x > 0 else 0
         return (x > 0).select(x, 0)
 
     @staticmethod
-    @always_inline("nodebug")
     fn relu_bw[Type: DType, Width: Int](x: SIMD[Type, Width]) -> SIMD[Type, Width]:
         # 1 if x > 0 else 0
         return (x > 0).select[Type](1, 0)
 
     @staticmethod
-    @always_inline("nodebug")
     fn forward[
         FirstShape: TensorShape,
     ](inout res: Tensor[dtype], t1: Tensor[dtype]):
@@ -87,7 +77,6 @@ struct Relu:
         elwise_transform[Self.relu](res, t1)
 
     @staticmethod
-    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape,
         FirstShape: TensorShape,
@@ -99,7 +88,6 @@ struct Relu:
         var res_grad = Tensor[dtype](UGShape)
 
         @parameter
-        @always_inline("nodebug")
         fn vec_relu_bw[nelts: Int](idx: Int):
             res_grad.store[nelts](
                 idx, Self.relu_bw(t1.load[nelts](idx)) * ug.load[nelts](idx)
@@ -113,22 +101,18 @@ struct Relu:
 @register_passable("trivial")
 struct Tanh:
     @staticmethod
-    @always_inline("nodebug")
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
         return t1_shape
 
     @staticmethod
-    @always_inline("nodebug")
     fn tanh[Type: DType, Width: Int](x: SIMD[Type, Width]) -> SIMD[Type, Width]:
         return (exp(x) - exp(-x)) / (exp(x) + exp(-x))
 
     @staticmethod
-    @always_inline("nodebug")
     fn tanh_bw[Type: DType, Width: Int](x: SIMD[Type, Width]) -> SIMD[Type, Width]:
         return 1 - pow(Self.tanh(x), 2)
 
     @staticmethod
-    @always_inline("nodebug")
     fn forward[
         FirstShape: TensorShape,
     ](inout res: Tensor[dtype], t1: Tensor[dtype]):
@@ -138,7 +122,6 @@ struct Tanh:
         elwise_transform[Self.tanh](res, t1)
 
     @staticmethod
-    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape,
         FirstShape: TensorShape,

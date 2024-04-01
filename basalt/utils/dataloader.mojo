@@ -79,7 +79,6 @@ struct DataLoader:
         self._data_batch_shape[0] = self.batch_size
         self._label_batch_shape[0] = self.batch_size
 
-    @always_inline
     fn __len__(self) -> Int:
         """
         Returns the number of the batches left in the dataset.

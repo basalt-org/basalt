@@ -1,7 +1,3 @@
-from math import sqrt
-
-from basalt import dtype
-from basalt import Tensor, TensorShape
 from basalt.utils.rand_utils import rand_normal, rand_uniform
 
 

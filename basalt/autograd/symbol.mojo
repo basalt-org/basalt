@@ -8,7 +8,6 @@ struct Symbol(CollectionElement, Stringable):
     var shape: TensorShape
     var trainable: Bool
 
-    @always_inline("nodebug")
     fn __init__(
         inout self, name: UInt32, dtype: DType, shape: TensorShape, trainable: Bool
     ):
@@ -17,15 +16,12 @@ struct Symbol(CollectionElement, Stringable):
         self.dtype = dtype
         self.trainable = trainable
 
-    @always_inline("nodebug")
     fn __eq__(self, other: Self) -> Bool:
         return self.name == other.name
 
-    @always_inline("nodebug")
     fn __str__(self) -> String:
         return self.json()
 
-    @always_inline("nodebug")
     fn json(self) -> String:
         return (
             '{"name": "'

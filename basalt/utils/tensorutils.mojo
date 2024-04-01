@@ -8,7 +8,6 @@ from basalt import Tensor, TensorShape
 from basalt.nn.tensor import max_rank
 
 
-@always_inline
 fn fill[dtype: DType](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
     @parameter
     fn fill_vec[nelts: Int](idx: Int):
@@ -18,7 +17,8 @@ fn fill[dtype: DType](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
 
 
 # ----- Functions to access positions in tensor data -----
-@always_inline
+
+
 fn get_real_index[
     size: Int, strides_shape: StaticIntTuple[size], broadcast_shape: TensorShape
 ](i: Int) -> Int:
@@ -43,7 +43,8 @@ fn get_real_index[
 
 
 # ----- Broadcast functions -----
-@always_inline
+
+
 fn broadcast_shapes(s1: TensorShape, s2: TensorShape) -> TensorShape:
     var ndim = max(s1.rank(), s2.rank())
     var diff = abs(s1.rank() - s2.rank())
@@ -80,7 +81,6 @@ fn broadcast_shapes(s1: TensorShape, s2: TensorShape) -> TensorShape:
     return TensorShape(rank=ndim, shape=res)
 
 
-@always_inline
 fn broadcast_shapes(*s: TensorShape) -> TensorShape:
     var result_shape = s[0]
 
@@ -90,7 +90,6 @@ fn broadcast_shapes(*s: TensorShape) -> TensorShape:
     return result_shape
 
 
-@always_inline
 fn broadcast_calculate_strides[
     size: Int, shape: TensorShape, broadcast_shape: TensorShape
 ]() -> StaticIntTuple[size]:
@@ -109,7 +108,8 @@ fn broadcast_calculate_strides[
 
 
 # ----- Dot functions -----
-@always_inline
+
+
 fn calculate_block[
     M: Int, N: Int, K: Int, BLOCK_M: Int, BLOCK_N: Int, nelts: Int
 ](
@@ -155,7 +155,6 @@ fn calculate_block[
 
 
 @parameter
-@always_inline
 fn dot[
     t1_shape: TensorShape, t2_shape: TensorShape
 ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
@@ -163,7 +162,6 @@ fn dot[
 
 
 @parameter
-@always_inline
 fn dot[
     t1_shape: TensorShape, t2_shape: TensorShape
 ](res: DTypePointer[dtype], t1: DTypePointer[dtype], t2: DTypePointer[dtype]):
@@ -283,7 +281,8 @@ fn dot_transpose_t1[
 
 
 # ----- Element-wise unary operations -----
-@always_inline
+
+
 fn elwise_transform[
     func: fn[dtype: DType, nelts: Int] (x: SIMD[dtype, nelts]) -> SIMD[dtype, nelts],
 ](inout res: Tensor[dtype], t: Tensor[dtype]):
@@ -295,7 +294,8 @@ fn elwise_transform[
 
 
 # ----- Element-wise binary operations -----
-@always_inline
+
+
 fn elwise_pow(inout res: Tensor[dtype], t: Tensor[dtype], x: Int):
     @parameter
     fn vecpow[nelts: Int](idx: Int):
@@ -304,7 +304,6 @@ fn elwise_pow(inout res: Tensor[dtype], t: Tensor[dtype], x: Int):
     vectorize[vecpow, nelts](t.num_elements())
 
 
-@always_inline
 fn elwise_op[
     t1_shape: TensorShape,
     t2_shape: TensorShape,
@@ -327,7 +326,6 @@ fn elwise_op[
         elwise_op[func](res, t1, t2)
 
 
-@always_inline
 fn elwise_op[
     func: fn[dtype: DType, nelts: Int] (
         x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]
@@ -344,7 +342,6 @@ fn elwise_op[
     vectorize[vecmath, nelts](t1.num_elements())
 
 
-@always_inline
 fn elwise_op[
     func: fn[dtype: DType, nelts: Int] (
         x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]
@@ -359,7 +356,6 @@ fn elwise_op[
     vectorize[vecmath, nelts](t1.num_elements())
 
 
-@always_inline
 fn elwise_op[
     func: fn[dtype: DType, nelts: Int] (
         x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]
@@ -400,7 +396,6 @@ fn broadcast_elwise_op[
     vectorize[vec_op, 1](res.num_elements())
 
 
-@always_inline
 fn accumulate_grad[
     grad_shape: TensorShape, res_grad_shape: TensorShape
 ](inout grad: Tensor[dtype], res_grad: Tensor[dtype]):
@@ -428,7 +423,8 @@ fn accumulate_grad[
 
 
 # ---- Transform functions -----
-@always_inline
+
+
 fn transpose_2D[t_shape: TensorShape](t: Tensor[dtype]) -> Tensor[dtype]:
     var t_new = Tensor[dtype](t_shape[1], t_shape[0])
 
@@ -449,7 +445,6 @@ fn transpose_2D[t_shape: TensorShape](t: Tensor[dtype]) -> Tensor[dtype]:
     return t_new ^
 
 
-@always_inline
 fn transpose_2D[t_shape: TensorShape](t: DTypePointer[dtype]) -> DTypePointer[dtype]:
     var t_new = DTypePointer[dtype].alloc(t_shape[1] * t_shape[0])
 
@@ -471,7 +466,8 @@ fn transpose_2D[t_shape: TensorShape](t: DTypePointer[dtype]) -> DTypePointer[dt
 
 
 # ----- Reduction functions -----
-@always_inline
+
+
 fn reduce[
     op: fn[type: DType, simd_width: Int] (
         x: SIMD[type, simd_width], y: SIMD[type, simd_width]
@@ -505,7 +501,6 @@ fn get_reduce_shape(t: TensorShape, axis: Int) -> TensorShape:
     return TensorShape(rank=rank, shape=new_shape)
 
 
-@always_inline
 fn reduce[
     op: fn[type: DType, simd_width: Int] (
         x: SIMD[type, simd_width], y: SIMD[type, simd_width]
@@ -551,25 +546,21 @@ fn reduce[
     _ = strides
 
 
-@always_inline
 fn _reduce_sum[
     type: DType, simd_width: Int
 ](x: SIMD[type, simd_width]) -> SIMD[type, 1]:
     return x.reduce_add()
 
 
-@always_inline
 fn tsum(t: Tensor[dtype]) -> SIMD[dtype, 1]:
     var starting_value = 0
     return reduce[add, _reduce_sum](t, starting_value)
 
 
-@always_inline
 fn tmean(t: Tensor[dtype]) -> SIMD[dtype, 1]:
     return tsum(t) / t.num_elements()
 
 
-@always_inline
 fn tstd(t: Tensor[dtype]) -> SIMD[dtype, 1]:
     var mu: SIMD[dtype, 1] = tmean(t)
     var variance: SIMD[dtype, 1] = 0
@@ -584,20 +575,17 @@ fn tstd(t: Tensor[dtype]) -> SIMD[dtype, 1]:
     return sqrt(variance / t.num_elements())
 
 
-@always_inline
 fn tsum(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
     var starting_value = 0
     reduce[add, _reduce_sum](res, t, axis, starting_value)
 
 
-@always_inline
 fn tmean(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
     var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)
     tsum(res, t, axis)
     elwise_op[div](res, res, num_elements_axis)
 
 
-@always_inline
 fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
     var mu = Tensor[dtype](get_reduce_shape(t.shape(), axis))
     tmean(mu, t, axis)
@@ -645,26 +633,23 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
     elwise_transform[sqrt](res, res)
 
 
-@always_inline
 fn _reduce_max[
     type: DType, simd_width: Int
 ](x: SIMD[type, simd_width]) -> SIMD[type, 1]:
     return x.reduce_max()
 
 
-@always_inline
 fn tmax(t: Tensor[dtype]) -> SIMD[dtype, 1]:
     var starting_value = math.limit.min_finite[dtype]()
     return reduce[max, _reduce_max](t, starting_value)
 
 
-@always_inline
 fn tmax(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
     var starting_value = math.limit.min_finite[dtype]()
     reduce[max, _reduce_max](res, t, axis, starting_value)
 
 
-# @always_inline
+#
 # fn transpose[
 #     dtype: DType, nelts: Int
 # ](t: Tensor[dtype], dim_0: Int, dim_1: Int) -> Tensor[dtype]:
@@ -684,7 +669,7 @@ fn tmax(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 #     return transpose[dtype, nelts](t, axes)
 
 
-# @always_inline
+#
 # fn transpose(inout res: Tensor[dtype], t: Tensor[dtype]):
 #     """
 #     Create a new transposed tensor of the given tensor t.
@@ -699,7 +684,7 @@ fn tmax(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 #     transpose(res, t, axes_shape)
 
 
-# @always_inline
+#
 # fn transpose(t: Tensor[dtype], axes: DynamicVector[Int]) -> Tensor[dtype]:
 #     var new_shape = DynamicVector[Int](capacity=t.rank())
 #     for i in range(t.rank()):
@@ -713,7 +698,6 @@ fn tmax(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 #     return t_new
 
 
-@always_inline
 fn get_transpose_shape(t: TensorShape, axes: TensorShape) -> TensorShape:
     var rank = t.rank()
     var new_shape = StaticIntTuple[max_rank]()
@@ -724,7 +708,6 @@ fn get_transpose_shape(t: TensorShape, axes: TensorShape) -> TensorShape:
     return TensorShape(rank=rank, shape=new_shape)
 
 
-@always_inline
 fn transpose(t: Tensor[dtype], axes: TensorShape) -> Tensor[dtype]:
     var t_new_shape = get_transpose_shape(t.shape(), axes)
     var t_new = Tensor[dtype](t_new_shape)
@@ -734,7 +717,6 @@ fn transpose(t: Tensor[dtype], axes: TensorShape) -> Tensor[dtype]:
     return t_new ^
 
 
-@always_inline
 fn transpose(inout res: Tensor[dtype], t: Tensor[dtype], axes: TensorShape):
     """
     Create a new transposed tensor of the given tensor t.
@@ -780,7 +762,7 @@ fn transpose(inout res: Tensor[dtype], t: Tensor[dtype], axes: TensorShape):
 
 # # NOTE: This function can be used for later for optimziation (Many operations in gpu is preferred to pad the tensors when using conv or matmul operations)
 # # TODO: Deprecate this function, as it is not used anymore
-# @always_inline
+#
 # fn pad_zeros[
 #     dtype: DType, nelts: Int
 # ](t: Tensor[dtype], pad_with: DynamicVector[Int]) -> Tensor[dtype]:

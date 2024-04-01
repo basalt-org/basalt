@@ -20,7 +20,6 @@ struct Graph:
     var loss_out: Optional[Symbol]
     var symbol_count: UInt32
 
-    @always_inline("nodebug")
     fn __init__(inout self):
         self.inputs = List[Symbol]()
         self.params = ParamDict()
@@ -29,14 +28,12 @@ struct Graph:
         self.loss_out = None
         self.symbol_count = 0
 
-    @always_inline("nodebug")
     fn input(inout self, shape: TensorShape) -> Symbol:
         var inp = Symbol(self.symbol_count, dtype, shape, False)
         self.inputs.append(inp)
         self.symbol_count += 1
         return inp
 
-    @always_inline("nodebug")
     fn param(
         inout self, shape: TensorShape, init: Param, trainable: Bool = True
     ) -> Symbol:
@@ -45,14 +42,12 @@ struct Graph:
         self.symbol_count += 1
         return param_id
 
-    @always_inline("nodebug")
     fn param(inout self, shape: TensorShape, trainable: Bool = True) -> Symbol:
         var param_id = Symbol(self.symbol_count, dtype, shape, trainable)
         self.params.put(param_id)
         self.symbol_count += 1
         return param_id
 
-    @always_inline("nodebug")
     fn scalar(inout self, value: SIMD[dtype, 1]) -> Symbol:
         var scal = Param(value)
         var scalar_id = Symbol(
@@ -62,7 +57,6 @@ struct Graph:
         self.symbol_count += 1
         return scalar_id
 
-    @always_inline("nodebug")
     fn constant(inout self, shape: TensorShape, data: List[SIMD[dtype, 1]]) -> Symbol:
         var cst = Param(data)
         var constant_id = Symbol(self.symbol_count, dtype, shape, trainable=False)
@@ -70,15 +64,12 @@ struct Graph:
         self.symbol_count += 1
         return constant_id
 
-    @always_inline("nodebug")
     fn out(inout self, symbol: Symbol):
         self.outputs.append(symbol)
 
-    @always_inline("nodebug")
     fn loss(inout self, symbol: Symbol):
         self.loss_out = symbol
 
-    @always_inline("nodebug")
     fn op(
         inout self,
         op: OP,
@@ -122,7 +113,6 @@ struct Graph:
         self.symbol_count += 1
         return res
 
-    @always_inline("nodebug")
     fn op(
         inout self,
         op: OP,
@@ -146,7 +136,6 @@ struct Graph:
         self.symbol_count += 1
         return res
 
-    @always_inline("nodebug")
     fn op(
         inout self,
         op: OP,
@@ -171,23 +160,19 @@ struct Graph:
         return res
 
     @staticmethod
-    @always_inline("nodebug")
     fn result_trainable(operand_1: Symbol) -> Bool:
         return operand_1.trainable
 
     @staticmethod
-    @always_inline("nodebug")
     fn result_trainable(operand_1: Symbol, operand_2: Symbol) -> Bool:
         return operand_1.trainable or operand_2.trainable
 
     @staticmethod
-    @always_inline("nodebug")
     fn result_trainable(
         operand_1: Symbol, operand_2: Symbol, operand_3: Symbol
     ) -> Bool:
         return operand_1.trainable or operand_2.trainable or operand_3.trainable
 
-    @always_inline("nodebug")
     fn json(self) -> String:
         var result: String = '{"graph_name": "basalt", "nodes": ['
         for i in range(len(self.nodes)):
@@ -215,14 +200,12 @@ struct Graph:
         result += "]}"
         return result
 
-    @always_inline("nodebug")
     fn render(self, render_type: String = "node") raises:
         Python.add_to_path("./basalt/utils")
         var renderer = Python.import_module("graph_render")
         var json = Python.import_module("json")
         _ = renderer.netron_render(json.loads(self.json()), render_type)
 
-    @always_inline("nodebug")
     fn compile(inout self):
         # 0. Sorting the graph
         # The staticlly defined graph has an implicit topological sorted order because,
