@@ -1,10 +1,10 @@
 from collections.optional import Optional
 from utils.variant import Variant
 
-from basalt.autograd import Symbol
-from basalt.autograd.ops import OP
-
 from .attributes import AttributeVector
+
+from basalt.autograd.ops import OP
+from basalt.autograd import Symbol
 
 
 @value
