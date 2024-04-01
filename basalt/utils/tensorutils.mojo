@@ -5,7 +5,7 @@ from math import sqrt, pow, equal, max, min, abs, add, div, divmod
 from random import rand
 
 from basalt import Tensor, TensorShape
-from basalt.nn.tensor import max_rank
+from basalt.nn.tensor import MAX_RANK
 
 
 fn fill[dtype: DType](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
@@ -58,7 +58,7 @@ fn broadcast_shapes(s1: TensorShape, s2: TensorShape) -> TensorShape:
         big = s2
         small = s1
 
-    var res = StaticIntTuple[max_rank](-1)
+    var res = StaticIntTuple[MAX_RANK](-1)
 
     for i in range(ndim - 1, diff - 1, -1):
         var a = big[i]
@@ -492,7 +492,7 @@ fn reduce[
 
 fn get_reduce_shape(t: TensorShape, axis: Int) -> TensorShape:
     var rank = t.rank()
-    var new_shape = StaticIntTuple[max_rank]()
+    var new_shape = StaticIntTuple[MAX_RANK]()
     for i in range(rank):
         if i == axis:
             new_shape[i] = 1
@@ -596,7 +596,7 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 
     @parameter
     fn get_t_index(
-        i: Int, j: Int, axis: Int, shape: TensorShape, strides: StaticIntTuple[max_rank]
+        i: Int, j: Int, axis: Int, shape: TensorShape, strides: StaticIntTuple[MAX_RANK]
     ) -> Int:
         var index_res = 0
         for k in range(shape.rank()):
@@ -608,7 +608,7 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 
     @parameter
     fn get_mu_index(
-        i: Int, axis: Int, shape: TensorShape, strides: StaticIntTuple[max_rank]
+        i: Int, axis: Int, shape: TensorShape, strides: StaticIntTuple[MAX_RANK]
     ) -> Int:
         var index_res = 0
         for k in range(shape.rank()):
@@ -700,7 +700,7 @@ fn tmax(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 
 fn get_transpose_shape(t: TensorShape, axes: TensorShape) -> TensorShape:
     var rank = t.rank()
-    var new_shape = StaticIntTuple[max_rank]()
+    var new_shape = StaticIntTuple[MAX_RANK]()
 
     for i in range(rank):
         new_shape[i] = t[axes[i]]
