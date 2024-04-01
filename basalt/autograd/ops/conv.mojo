@@ -167,6 +167,7 @@ struct CONV2D:
                                 + in_ch_kx_ky
                             )
 
+                            @parameter   
                             if _nelts == nelts:
                                 result += col_ptr.load[width=nelts](col_index) * kernel.load[nelts](kernel_index)
                             else:
