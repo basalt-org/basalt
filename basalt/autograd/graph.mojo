@@ -1,14 +1,14 @@
-from python.python import Python
 from collections.optional import Optional
+from python.python import Python
 
-from .node import Node
 from .attributes import AttributeVector, Attribute
-from .symbol import Symbol
 from .ops import OP, static_result_shape
 from .params import ParamDict, Param
+from .symbol import Symbol
+from .node import Node
 
-from basalt import seed, dtype
 from basalt import Tensor, TensorShape
+from basalt import seed, dtype
 
 
 @value
