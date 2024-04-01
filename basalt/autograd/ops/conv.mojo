@@ -9,8 +9,8 @@ from utils.loop import unroll
 
 @always_inline
 fn get_result_shape(
-    input_shape: TensorShape,
-    kernel_shape: TensorShape,
+    InputShape: TensorShape,
+    KernelShape: TensorShape,
     padding: StaticIntTuple[2],
     stride: StaticIntTuple[2],
     dilation: StaticIntTuple[2],
@@ -23,39 +23,40 @@ fn get_result_shape(
     """
 
     var result_x_dim = (
-        (input_shape[-2] + (2 * padding[0]) - dilation[0] * (kernel_shape[-2] - 1) - 1)
+        (InputShape[-2] + (2 * padding[0]) - dilation[0] * (KernelShape[-2] - 1) - 1)
         // stride[0]
     ) + 1
     var result_y_dim = (
-        (input_shape[-1] + (2 * padding[1]) - dilation[1] * (kernel_shape[-1] - 1) - 1)
+        (InputShape[-1] + (2 * padding[1]) - dilation[1] * (KernelShape[-1] - 1) - 1)
         // stride[1]
     ) + 1
 
     return StaticIntTuple[2](result_x_dim, result_y_dim)
 
+
 @register_passable("trivial")
 struct Conv_2D:
     @staticmethod
     fn result_shape(
-        input_shape: TensorShape,
-        kernel_shape: TensorShape,
-        bias_shape: TensorShape,
-        attributes: AttributeVector,
+        InputShape: TensorShape,
+        KernelShape: TensorShape,
+        BiasShape: TensorShape,
+        Attributes: AttributeVector,
     ) -> TensorShape:
         # Output shape = [batch, out_channels, oX, oY]
 
-        var padding = attributes["padding"].value().to_static[2]()
-        var stride = attributes["stride"].value().to_static[2]()
-        var dilation = attributes["dilation"].value().to_static[2]()
-        var res = get_result_shape(input_shape, kernel_shape, padding, stride, dilation)
+        var padding = Attributes["padding"].value().to_static[2]()
+        var stride = Attributes["stride"].value().to_static[2]()
+        var dilation = Attributes["dilation"].value().to_static[2]()
+        var res = get_result_shape(InputShape, KernelShape, padding, stride, dilation)
 
-        return TensorShape(input_shape[0], kernel_shape[0], res[0], res[1])
+        return TensorShape(InputShape[0], KernelShape[0], res[0], res[1])
 
     @staticmethod
     fn forward[
-        input_shape: TensorShape,
-        kernel_shape: TensorShape,
-        bias_shape: TensorShape,
+        InputShape: TensorShape,
+        KernelShape: TensorShape,
+        BiasShape: TensorShape,
         attributes: AttributeVector,
     ](
         inout outputs: Tensor[dtype],
@@ -81,13 +82,13 @@ struct Conv_2D:
         alias dilation_x = dilation[0]
         alias dilation_y = dilation[1]
 
-        alias batch_size = input_shape[0]
-        alias in_channels = input_shape[1]
-        alias in_x = input_shape[2]
-        alias in_y = input_shape[3]
-        alias out_channels = kernel_shape[0]
-        alias k_x = kernel_shape[2]
-        alias k_y = kernel_shape[3]
+        alias batch_size = InputShape[0]
+        alias in_channels = InputShape[1]
+        alias in_x = InputShape[2]
+        alias in_y = InputShape[3]
+        alias out_channels = KernelShape[0]
+        alias k_x = KernelShape[2]
+        alias k_y = KernelShape[3]
         alias out_x = output_shape[2]
         alias out_y = output_shape[3]
         alias col_x = out_x
@@ -97,12 +98,12 @@ struct Conv_2D:
             batch_size, col_x * col_y, in_channels * k_x * k_y
         )  # [batch, colX * colY, in_channels * kX * kY]
         alias output_shape = Self.result_shape(
-            input_shape, kernel_shape, bias_shape, attributes
+            InputShape, KernelShape, BiasShape, attributes
         )
         alias col_shape_stripped = TensorShape(in_channels * k_x * k_y, col_x, col_y)
 
-        alias inputs_strides = input_shape.strides()
-        alias kernel_strides = kernel_shape.strides()
+        alias inputs_strides = InputShape.strides()
+        alias kernel_strides = KernelShape.strides()
         alias outputs_strides = output_shape.strides()
         alias col_strides = col_shape.strides()
 
@@ -183,12 +184,12 @@ struct Conv_2D:
 
     @staticmethod
     fn backward[
-        tensor_id: Int,
-        ug_shape: TensorShape,
-        input_shape: TensorShape,
-        kernel_shape: TensorShape,
-        bias_shape: TensorShape,
-        attributes: AttributeVector,
+        TensorID: Int,
+        UGShape: TensorShape,
+        InputShape: TensorShape,
+        KernelShape: TensorShape,
+        BiasShape: TensorShape,
+        Attributes: AttributeVector,
     ](
         ug: Tensor[dtype],
         inputs: Tensor[dtype],
@@ -200,9 +201,9 @@ struct Conv_2D:
 
         Upper gradient of shape: [batch, out_channels, uX, uY].
         """
-        alias padding = attributes["padding"].value().to_static[2]()
-        alias stride = attributes["stride"].value().to_static[2]()
-        alias dilation = attributes["dilation"].value().to_static[2]()
+        alias padding = Attributes["padding"].value().to_static[2]()
+        alias stride = Attributes["stride"].value().to_static[2]()
+        alias dilation = Attributes["dilation"].value().to_static[2]()
         alias padding_0 = padding[0]
         alias padding_1 = padding[1]
         alias stride_0 = stride[0]
@@ -210,9 +211,9 @@ struct Conv_2D:
         alias dilation_0 = dilation[0]
         alias dilation_1 = dilation[1]
 
-        alias inputs_strides = input_shape.strides()
-        alias kernel_strides = kernel_shape.strides()
-        alias ug_strides = ug_shape.strides()
+        alias inputs_strides = InputShape.strides()
+        alias kernel_strides = KernelShape.strides()
+        alias ug_strides = UGShape.strides()
         alias inputs_strides_0 = inputs_strides[0]
         alias inputs_strides_1 = inputs_strides[1]
         alias inputs_strides_2 = inputs_strides[2]
@@ -223,42 +224,42 @@ struct Conv_2D:
         alias ug_strides_1 = ug_strides[1]
         alias ug_strides_2 = ug_strides[2]
 
-        alias input_shape_0 = input_shape[0]
-        alias input_shape_1 = input_shape[1]
-        alias input_shape_2 = input_shape[2]
-        alias input_shape_3 = input_shape[3]
-        alias kernel_shape_2 = kernel_shape[2]
-        alias kernel_shape_3 = kernel_shape[3]
-        alias ug_shape_0 = ug_shape[0]
-        alias ug_shape_1 = ug_shape[1]
-        alias ug_shape_2 = ug_shape[2]
-        alias ug_shape_3 = ug_shape[3]
+        alias InputShape_0 = InputShape[0]
+        alias InputShape_1 = InputShape[1]
+        alias InputShape_2 = InputShape[2]
+        alias InputShape_3 = InputShape[3]
+        alias KernelShape_2 = KernelShape[2]
+        alias KernelShape_3 = KernelShape[3]
+        alias UGShape_0 = UGShape[0]
+        alias UGShape_1 = UGShape[1]
+        alias UGShape_2 = UGShape[2]
+        alias UGShape_3 = UGShape[3]
 
         var res: Tensor[dtype]
 
         @parameter
-        if tensor_id == 0:
+        if TensorID == 0:
             # Inputs
-            res = Tensor[dtype](input_shape)
+            res = Tensor[dtype](InputShape)
 
             @parameter
             fn input_grad(batch: Int):
-                for out_ch in range(ug_shape_1):
-                    for ux in range(ug_shape_2):
-                        for uy in range(ug_shape_3):
+                for out_ch in range(UGShape_1):
+                    for ux in range(UGShape_2):
+                        for uy in range(UGShape_3):
                             var ix_base = ux * stride_0 - padding_0
                             var iy_base = uy * stride_1 - padding_1
-                            for in_ch in range(input_shape_1):
-                                for kx in range(kernel_shape_2):
-                                    for ky in range(kernel_shape_3):
+                            for in_ch in range(InputShape_1):
+                                for kx in range(KernelShape_2):
+                                    for ky in range(KernelShape_3):
                                         var ix = ix_base + kx * dilation_0
                                         var iy = iy_base + ky * dilation_1
 
                                         if (
                                             ix < 0
                                             or iy < 0
-                                            or ix >= input_shape_2
-                                            or iy >= input_shape_3
+                                            or ix >= InputShape_2
+                                            or iy >= InputShape_3
                                         ):
                                             continue
 
@@ -286,29 +287,29 @@ struct Conv_2D:
                                             kernel[kernel_index] * ug[ug_index]
                                         )
 
-            parallelize[input_grad](input_shape_0)
+            parallelize[input_grad](InputShape_0)
 
-        elif tensor_id == 1:
+        elif TensorID == 1:
             # Kernel
-            res = Tensor[dtype](kernel_shape)
+            res = Tensor[dtype](KernelShape)
 
             @parameter
             fn kernel_grad(in_ch: Int):
-                for out_ch in range(ug_shape_1):
-                    for kx in range(kernel_shape_2):
-                        for ky in range(kernel_shape_3):
+                for out_ch in range(UGShape_1):
+                    for kx in range(KernelShape_2):
+                        for ky in range(KernelShape_3):
                             var result: SIMD[dtype, 1] = 0
-                            for batch in range(input_shape_0):
-                                for ux in range(ug_shape_2):
-                                    for uy in range(ug_shape_3):
+                            for batch in range(InputShape_0):
+                                for ux in range(UGShape_2):
+                                    for uy in range(UGShape_3):
                                         var ix = ux * stride_0 - padding_0 + kx * dilation_0
                                         var iy = uy * stride_1 - padding_1 + ky * dilation_1
 
                                         if (
                                             ix < 0
                                             or iy < 0
-                                            or ix >= input_shape_2
-                                            or iy >= input_shape_3
+                                            or ix >= InputShape_2
+                                            or iy >= InputShape_3
                                         ):
                                             continue
 
@@ -336,20 +337,20 @@ struct Conv_2D:
                             )
                             res[kernel_index] = result
 
-            parallelize[kernel_grad](input_shape_1)
+            parallelize[kernel_grad](InputShape_1)
 
         else:
             # Bias
             # Sum of upper gradient over batch and X, Y dimensions
-            # out_channels == ug_shape[1] == bias_shape[0]
-            res = Tensor[dtype](bias_shape)
+            # out_channels == UGShape[1] == BiasShape[0]
+            res = Tensor[dtype](BiasShape)
 
             @parameter
             fn bias_grad(out_ch: Int):
                 var sum: SIMD[dtype, 1] = 0
-                for batch in range(ug_shape_0):
-                    for ux in range(ug_shape_2):
-                        for uy in range(ug_shape_3):
+                for batch in range(UGShape_0):
+                    for ux in range(UGShape_2):
+                        for uy in range(UGShape_3):
                             var ug_index = (
                                 batch * ug_strides_0
                                 + out_ch * ug_strides_1
@@ -360,6 +361,6 @@ struct Conv_2D:
 
                 res[out_ch] = sum
 
-            parallelize[bias_grad](ug_shape_1)
+            parallelize[bias_grad](UGShape_1)
 
         return res
