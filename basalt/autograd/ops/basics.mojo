@@ -27,10 +27,12 @@ from basalt.utils.tensorutils import (
 @register_passable("trivial")
 struct Add:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[
         FirstShape: TensorShape,
         SecondShape: TensorShape,
@@ -41,6 +43,7 @@ struct Add:
         elwise_op[FirstShape, SecondShape, add](res, t1, t2)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         TensorID: Int,
         UGShape: TensorShape,
@@ -57,10 +60,12 @@ struct Add:
 @register_passable("trivial")
 struct Sub:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[
         FirstShape: TensorShape,
         SecondShape: TensorShape,
@@ -71,6 +76,7 @@ struct Sub:
         elwise_op[FirstShape, SecondShape, sub](res, t1, t2)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         TensorID: Int,
         UGShape: TensorShape,
@@ -95,10 +101,12 @@ struct Sub:
 @register_passable("trivial")
 struct Mul:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[
         FirstShape: TensorShape,
         SecondShape: TensorShape,
@@ -109,6 +117,7 @@ struct Mul:
         elwise_op[FirstShape, SecondShape, mul](res, t1, t2)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         TensorID: Int,
         UGShape: TensorShape,
@@ -135,10 +144,12 @@ struct Mul:
 @register_passable("trivial")
 struct Div:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[
         FirstShape: TensorShape,
         SecondShape: TensorShape,
@@ -149,6 +160,7 @@ struct Div:
         elwise_op[FirstShape, SecondShape, div](res, t1, t2)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         TensorID: Int,
         UGShape: TensorShape,
@@ -176,6 +188,7 @@ struct Div:
                 var factor: SIMD[dtype, 1] = -1.0 / (t2[0] ** 2)
 
                 @parameter
+                @always_inline("nodebug")
                 fn vec_div_bw_scalar[nelts: Int](i: Int):
                     res_grad.store[nelts](
                         i, factor * t1.load[nelts](i) * ug.load[nelts](i)
@@ -193,6 +206,7 @@ struct Div:
                 ]()
 
                 @parameter
+                @always_inline("nodebug")
                 fn vec_div_bw_broadcast[netls: Int](i: Int):
                     var index1 = get_real_index[size, strides1, UGShape](i)
                     var index2 = get_real_index[size, strides2, UGShape](i)
@@ -208,6 +222,7 @@ struct Div:
             else:
 
                 @parameter
+                @always_inline("nodebug")
                 fn vec_div_bw[nelts: Int](i: Int):
                     res_grad.store[nelts](
                         i,
@@ -224,10 +239,12 @@ struct Div:
 @register_passable("trivial")
 struct Dot:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         return TensorShape(t1_shape[0], t2_shape[1])
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[
         FirstShape: TensorShape,
         SecondShape: TensorShape,
@@ -238,6 +255,7 @@ struct Dot:
         dot[FirstShape, SecondShape](res, t1, t2)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         TensorID: Int,
         UGShape: TensorShape,
@@ -264,10 +282,12 @@ struct Dot:
 @register_passable("trivial")
 struct Exp:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
         return t1_shape
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[
         FirstShape: TensorShape,
     ](inout res: Tensor[dtype], t1: Tensor[dtype]):
@@ -275,6 +295,7 @@ struct Exp:
         elwise_transform[exp](res, t1)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape,
         FirstShape: TensorShape,
@@ -286,6 +307,7 @@ struct Exp:
         var res_grad = Tensor[dtype](UGShape)
 
         @parameter
+        @always_inline("nodebug")
         fn vec_exp_bw[nelts: Int](i: Int):
             res_grad.store[nelts](i, exp(t1.load[nelts](i)) * ug.load[nelts](i))
 
@@ -296,10 +318,12 @@ struct Exp:
 @register_passable("trivial")
 struct Log:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
         return t1_shape
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[
         FirstShape: TensorShape,
     ](inout res: Tensor[dtype], t1: Tensor[dtype]):
@@ -309,6 +333,7 @@ struct Log:
         elwise_transform[log](res, t1)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape,
         FirstShape: TensorShape,
@@ -325,11 +350,13 @@ struct Log:
 @register_passable("trivial")
 struct Pow:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
         # t2_shape == TensorShape(1)
         return t1_shape
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[
         FirstShape: TensorShape,
         SecondShape: TensorShape,
@@ -341,6 +368,7 @@ struct Pow:
         elwise_pow(res, t1, t2[0].to_int())
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         TensorID: Int,
         UGShape: TensorShape,
@@ -360,6 +388,7 @@ struct Pow:
             res_grad = Tensor[dtype](FirstShape)
 
             @parameter
+            @always_inline("nodebug")
             fn vec_pow_bw_x[nelts: Int](i: Int):
                 res_grad.store[nelts](
                     i, a * (t1.load[nelts](i) ** (a - 1)) * ug.load[nelts](i)
@@ -371,6 +400,7 @@ struct Pow:
             res_grad = Tensor[dtype](SecondShape)  # t2_shape == TensorShape(1)
 
             @parameter
+            @always_inline("nodebug")
             fn vec_pow_bw_y[nelts: Int](i: Int):
                 res_grad[0] += (
                     (t1.load[nelts](i) ** a)
@@ -386,6 +416,7 @@ struct Pow:
 @register_passable("trivial")
 struct Sum:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axis = attributes["axis"]
 
@@ -395,6 +426,7 @@ struct Sum:
             return TensorShape(1)
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[
         ShapeT: TensorShape, Attributes: AttributeVector
     ](inout res: Tensor[dtype], t: Tensor[dtype]):
@@ -411,6 +443,7 @@ struct Sum:
             res[0] = tsum(t)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape, ShapeT: TensorShape, Attributes: AttributeVector
     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
@@ -420,6 +453,7 @@ struct Sum:
         return Self.backward[UGShape, ShapeT](ug, t)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape, ShapeT: TensorShape
     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
@@ -437,6 +471,7 @@ struct Sum:
 @register_passable("trivial")
 struct Mean:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axis = attributes["axis"]
 
@@ -446,6 +481,7 @@ struct Mean:
             return TensorShape(1)
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[
         ShapeT: TensorShape, Attributes: AttributeVector
     ](inout res: Tensor[dtype], t: Tensor[dtype]):
@@ -462,6 +498,7 @@ struct Mean:
             res[0] = tmean(t)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape, ShapeT: TensorShape, Attributes: AttributeVector
     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
@@ -478,6 +515,7 @@ struct Mean:
             return Self.backward[UGShape, ShapeT](ug, t)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape, ShapeT: TensorShape
     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
@@ -494,6 +532,7 @@ struct Mean:
         )  # because ug is a tensor of size 1 when mean is used without an axis
 
         @parameter
+        @always_inline("nodebug")
         fn v_mean_d[nelts: Int](i: Int):
             res_grad.store[nelts](i, grad)
 
@@ -502,6 +541,7 @@ struct Mean:
         return res_grad ^
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape, ShapeT: TensorShape
     ](ug: Tensor[dtype], t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
@@ -523,6 +563,7 @@ struct Mean:
 @register_passable("trivial")
 struct Max:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axis = attributes["axis"]
 
@@ -532,6 +573,7 @@ struct Max:
             return TensorShape(1)
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[
         ShapeT: TensorShape, Attributes: AttributeVector
     ](inout res: Tensor[dtype], t: Tensor[dtype]):
@@ -548,6 +590,7 @@ struct Max:
             res[0] = tmax(t)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape, ShapeT: TensorShape, Attributes: AttributeVector
     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
@@ -563,6 +606,7 @@ struct Max:
             return Self.backward[UGShape, ShapeT](ug, t)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape, ShapeT: TensorShape
     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
@@ -595,6 +639,7 @@ struct Max:
         return res_grad ^
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape, ShapeT: TensorShape
     ](ug: Tensor[dtype], t: Tensor[dtype], axis: Int) -> Tensor[dtype]:
@@ -637,6 +682,7 @@ struct Max:
 @register_passable("trivial")
 struct Transpose:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var axes = attributes["axes"]  # axes to be permuted
 
@@ -655,6 +701,7 @@ struct Transpose:
         return TensorShape(rank=rank, shape=shape)
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[
         ShapeT: TensorShape, Attributes: AttributeVector
     ](inout res: Tensor[dtype], t: Tensor[dtype]):
@@ -669,6 +716,8 @@ struct Transpose:
             transpose(res, t, axes_shape)
         else:
 
+            @parameter
+            @always_inline("nodebug")
             fn create_transpose_axes() -> TensorShape:
                 var rank = ShapeT.rank()
                 var axes = StaticIntTuple[max_rank]()
@@ -681,6 +730,7 @@ struct Transpose:
             transpose(res, t, axes_shape)
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape, ShapeT: TensorShape, Attributes: AttributeVector
     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
@@ -711,6 +761,8 @@ struct Transpose:
             transpose(res_grad, ug, axes_shape_inv)
         else:
 
+            @parameter
+            @always_inline("nodebug")
             fn create_transpose_axes() -> TensorShape:
                 var rank = ShapeT.rank()
                 var axes = StaticIntTuple[max_rank]()
@@ -728,10 +780,12 @@ struct Transpose:
 @register_passable("trivial")
 struct Flatten:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t_shape: TensorShape) -> TensorShape:
         return TensorShape(t_shape.num_elements())
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[ShapeT: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
         """
         Forward pass of the flatten operation.
@@ -739,6 +793,7 @@ struct Flatten:
         memcpy(res.data(), t.data(), ShapeT.num_elements())
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape, ShapeT: TensorShape
     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
@@ -754,11 +809,13 @@ struct Flatten:
 @register_passable("trivial")
 struct Reshape:
     @staticmethod
+    @always_inline("nodebug")
     fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var new_shape = attributes["shape"]
         return new_shape.value().to_shape()
 
     @staticmethod
+    @always_inline("nodebug")
     fn forward[ShapeT: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
         """
         Forward pass of the reshape operation.
@@ -766,6 +823,7 @@ struct Reshape:
         memcpy(res.data(), t.data(), ShapeT.num_elements())
 
     @staticmethod
+    @always_inline("nodebug")
     fn backward[
         UGShape: TensorShape, ShapeT: TensorShape
     ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
