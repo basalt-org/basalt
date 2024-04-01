@@ -2,6 +2,7 @@ from math import add, sub, mul, div, log, exp
 from algorithm import vectorize
 from memory import memcpy
 
+from basalt.autograd.attributes import Attribute, AttributeVector
 from basalt import Tensor, TensorShape
 from basalt.nn.tensor import max_rank
 from basalt.utils.tensorutils import (
@@ -21,7 +22,6 @@ from basalt.utils.tensorutils import (
     tmax,
     dot,
 )
-from basalt.autograd.attributes import Attribute, AttributeVector
 
 
 @register_passable("trivial")
