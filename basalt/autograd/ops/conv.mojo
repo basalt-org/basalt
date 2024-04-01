@@ -90,26 +90,21 @@ struct CONV2D:
         alias k_y = kernel_shape[3]
         alias out_x = output_shape[2]
         alias out_y = output_shape[3]
+        alias col_x = out_x
+        alias col_y = out_y
 
-        alias col_x = (
-            in_x + 2 * padding_x - dilation_x * (k_x - 1) - 1
-        ) // stride_x + 1
-        alias col_y = (
-            in_y + 2 * padding_y - dilation_y * (k_y - 1) - 1
-        ) // stride_y + 1
-
-        alias col_shape = TensorShape(batch_size, col_x * col_y, in_channels * k_x * k_y) # [batch, colX * colY, in_channels * kX * kY]
+        alias col_shape = TensorShape(
+            batch_size, col_x * col_y, in_channels * k_x * k_y
+        )  # [batch, colX * colY, in_channels * kX * kY]
         alias output_shape = Self.result_shape(
             input_shape, kernel_shape, bias_shape, attributes
         )
-        # alias col_kernel_shape = TensorShape(out_channels, in_channels * k_x * k_y)
         alias col_shape_stripped = TensorShape(in_channels * k_x * k_y, col_x, col_y)
 
         alias inputs_strides = input_shape.strides()
         alias kernel_strides = kernel_shape.strides()
         alias outputs_strides = output_shape.strides()
         alias col_strides = col_shape.strides()
-        # alias col_kernel_strides = col_kernel_shape.strides()
 
         var col_ptr = DTypePointer[dtype].alloc(col_shape.num_elements())
         memset_zero(col_ptr, col_shape.num_elements())
@@ -124,18 +119,13 @@ struct CONV2D:
                                 var ix = ux * stride_x - padding_x + kx * dilation_x
                                 var iy = uy * stride_y - padding_y + ky * dilation_y
 
-                                if (
-                                    ix < 0
-                                    or iy < 0
-                                    or ix >= in_x
-                                    or iy >= in_y
-                                ):
+                                if ix < 0 or iy < 0 or ix >= in_x or iy >= in_y:
                                     continue
 
                                 var col_index = (
                                     batch * col_strides[0]
                                     + (ux * col_y + uy) * col_strides[1]
-                                    +  (in_ch * k_x * k_y + kx * k_y + ky)
+                                    + (in_ch * k_x * k_y + kx * k_y + ky)
                                 )
 
                                 var input_index = (
@@ -148,12 +138,13 @@ struct CONV2D:
                                 col_ptr[col_index] = inputs[input_index]
 
         parallelize[im2col](batch_size)
-    
+
         for batch in range(batch_size):
             for out_ch in range(out_channels):
                 for ux in range(out_x):
                     for uy in range(out_y):
                         var result: SIMD[dtype, nelts] = 0
+
                         @parameter
                         fn v_im2col[_nelts: Int](in_ch_kx_ky: Int):
                             var col_index = (
@@ -163,18 +154,22 @@ struct CONV2D:
                             )
 
                             var kernel_index = (
-                                out_ch * kernel_strides[0]
-                                + in_ch_kx_ky
+                                out_ch * kernel_strides[0] + in_ch_kx_ky
                             )
 
-                            @parameter   
+                            @parameter
                             if _nelts == nelts:
-                                result += col_ptr.load[width=nelts](col_index) * kernel.load[nelts](kernel_index)
+                                result += col_ptr.load[width=nelts](
+                                    col_index
+                                ) * kernel.load[nelts](kernel_index)
                             else:
-                                result[0] += (col_ptr.load[width=_nelts](col_index) * kernel.load[_nelts](kernel_index)).reduce_add()
+                                result[0] += (
+                                    col_ptr.load[width=_nelts](col_index)
+                                    * kernel.load[_nelts](kernel_index)
+                                ).reduce_add()
 
                         vectorize[v_im2col, nelts](in_channels * k_x * k_y)
- 
+
                         var output_index = (
                             batch * outputs_strides[0]
                             + out_ch * outputs_strides[1]
@@ -246,7 +241,8 @@ struct CONV2D:
             # Inputs
             res = Tensor[dtype](input_shape)
 
-            for batch in range(input_shape_0):
+            @parameter
+            fn input_grad(batch: Int):
                 for out_ch in range(ug_shape_1):
                     for ux in range(ug_shape_2):
                         for uy in range(ug_shape_3):
@@ -290,11 +286,14 @@ struct CONV2D:
                                             kernel[kernel_index] * ug[ug_index]
                                         )
 
+            parallelize[input_grad](input_shape_0)
+
         elif tensor_id == 1:
             # Kernel
             res = Tensor[dtype](kernel_shape)
 
-            for in_ch in range(input_shape_1):
+            @parameter
+            fn kernel_grad(in_ch: Int):
                 for out_ch in range(ug_shape_1):
                     for kx in range(kernel_shape_2):
                         for ky in range(kernel_shape_3):
@@ -337,13 +336,16 @@ struct CONV2D:
                             )
                             res[kernel_index] = result
 
+            parallelize[kernel_grad](input_shape_1)
+
         else:
             # Bias
             # Sum of upper gradient over batch and X, Y dimensions
             # out_channels == ug_shape[1] == bias_shape[0]
             res = Tensor[dtype](bias_shape)
 
-            for out_ch in range(ug_shape_1):
+            @parameter
+            fn bias_grad(out_ch: Int):
                 var sum: SIMD[dtype, 1] = 0
                 for batch in range(ug_shape_0):
                     for ux in range(ug_shape_2):
@@ -357,5 +359,7 @@ struct CONV2D:
                             sum += ug[ug_index]
 
                 res[out_ch] = sum
+
+            parallelize[bias_grad](ug_shape_1)
 
         return res
