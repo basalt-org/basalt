@@ -7,7 +7,7 @@ import time
 class SimpleNN(nn.Module):
     def __init__(self, n_inputs, n_outputs):
         super(SimpleNN, self).__init__()
-        self.linear1= nn.Linear(in_features=n_inputs, out_features=128)
+        self.linear1 = nn.Linear(in_features=n_inputs, out_features=128)
         self.linear2 = nn.Linear(in_features=128, out_features=512)
         self.linear3 = nn.Linear(in_features=512, out_features=1024)
         self.linear4 = nn.Linear(in_features=1024, out_features=2048)
@@ -24,7 +24,7 @@ class SimpleNN(nn.Module):
         x4 = self.linear4(x3)
         x5 = self.linear5(x4)
         x6 = self.linear6(x5)
-        x7 = self.linear7(x6)  
+        x7 = self.linear7(x6)
         x8 = self.relu(x7)
         y_pred = self.linear8(x8)
         return y_pred
