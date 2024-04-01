@@ -5,8 +5,8 @@ from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_transform
 
 
-@value
-struct SIGMOID:
+@register_passable("trivial")
+struct Sigmoid:
     @staticmethod
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
         return t1_shape
@@ -52,8 +52,8 @@ struct SIGMOID:
 
         return res_grad ^
 
-
-struct RELU:
+@register_passable("trivial")
+struct Relu:
     @staticmethod
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
         return t1_shape
@@ -100,8 +100,8 @@ struct RELU:
 
         return res_grad ^
 
-
-struct TANH:
+@register_passable("trivial")
+struct Tanh:
     @staticmethod
     fn result_shape(t1_shape: TensorShape) -> TensorShape:
         return t1_shape

@@ -14,7 +14,7 @@ from .basics import (
     Reshape,
     Transpose,
 )
-from .mlops import SIGMOID, RELU, TANH
+from .mlops import Sigmoid, Relu, Tanh
 from .conv import Conv_2D
 from .pool import MAXPOOL2D
 
@@ -89,11 +89,11 @@ fn static_result_shape(
     elif op == OP.RESHAPE:
         return Reshape.result_shape(t1_shape, attributes)
     elif op == OP.SIGMOID:
-        return SIGMOID.result_shape(t1_shape)
+        return Sigmoid.result_shape(t1_shape)
     elif op == OP.RELU:
-        return RELU.result_shape(t1_shape)
+        return Relu.result_shape(t1_shape)
     elif op == OP.TANH:
-        return TANH.result_shape(t1_shape)
+        return Tanh.result_shape(t1_shape)
     elif op == OP.TRANSPOSE:
         return Transpose.result_shape(t1_shape, attributes)
     elif op == OP.MAXPOOL2D:
@@ -171,11 +171,11 @@ fn forward_op[
     elif op == OP.RESHAPE:
         Reshape.forward[t1_shape](res, t1)
     elif op == OP.SIGMOID:
-        SIGMOID.forward[t1_shape](res, t1)
+        Sigmoid.forward[t1_shape](res, t1)
     elif op == OP.RELU:
-        RELU.forward[t1_shape](res, t1)
+        Relu.forward[t1_shape](res, t1)
     elif op == OP.TANH:
-        TANH.forward[t1_shape](res, t1)
+        Tanh.forward[t1_shape](res, t1)
     elif op == OP.TRANSPOSE:
         Transpose.forward[t1_shape, attributes](res, t1)
     elif op == OP.MAXPOOL2D:
@@ -254,11 +254,11 @@ fn backward_op[
     elif op == OP.RESHAPE:
         res_grad = Reshape.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.SIGMOID:
-        res_grad = SIGMOID.backward[ug_shape, t1_shape](ug, t1)
+        res_grad = Sigmoid.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.RELU:
-        res_grad = RELU.backward[ug_shape, t1_shape](ug, t1)
+        res_grad = Relu.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.TANH:
-        res_grad = TANH.backward[ug_shape, t1_shape](ug, t1)
+        res_grad = Tanh.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.TRANSPOSE:
         res_grad = Transpose.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.MAXPOOL2D:
