@@ -8,19 +8,19 @@ from basalt.utils.dataloader import DataLoader
 from basalt.autograd.attributes import AttributeVector, Attribute
 
 
-# def plot_image(data: Tensor, num: Int):
-#     from python.python import Python, PythonObject
+def plot_image(data: Tensor, num: Int):
+    from python.python import Python, PythonObject
 
-#     np = Python.import_module("numpy")
-#     plt = Python.import_module("matplotlib.pyplot")
+    np = Python.import_module("numpy")
+    plt = Python.import_module("matplotlib.pyplot")
 
-#     var pyimage: PythonObject = np.empty((28, 28), np.float64)
-#     for m in range(28):
-#         for n in range(28):
-#             pyimage.itemset((m, n), data[num * 28 * 28 + m * 28 + n])
+    var pyimage: PythonObject = np.empty((28, 28), np.float64)
+    for m in range(28):
+        for n in range(28):
+            pyimage.itemset((m, n), data[num * 28 * 28 + m * 28 + n])
 
-#     plt.imshow(pyimage)
-#     plt.show()
+    plt.imshow(pyimage)
+    plt.show()
 
 
 fn create_CNN(batch_size: Int) -> Graph:
