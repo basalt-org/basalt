@@ -1,28 +1,29 @@
 from math import nan
-from basalt import Tensor, TensorShape
 
-from basalt import Graph, Symbol, OP
-from basalt.autograd.params import Param
 from basalt.autograd.attributes import AttributeVector, Attribute
+from basalt.autograd.params import Param
 
 
 # BUG: Mojo 24.1.0 does not support the comp time `sqrt` function
-@always_inline
-fn sqrt[type: DType](value: SIMD[type, 1]) -> SIMD[type, 1]:
-    """Returns the square root of the input simd vector."""
+@always_inline("nodebug")
+fn sqrt[Type: DType](value: SIMD[Type, 1]) -> SIMD[Type, 1]:
+    """
+    Returns the square root of the input simd vector.
+    """
     if value == 0:
         return 0
     elif value < 0:
-        return nan[type]()
+        return nan[Type]()
     var start = value if value > 1 else 1 / value
-    var a: SIMD[type, 1] = start
-    var b: SIMD[type, 1] = (a + 1) / 2
+    var a: SIMD[Type, 1] = start
+    var b: SIMD[Type, 1] = (a + 1) / 2
     while b < a:
         a = b
         b = (a + start / a) / 2
     return a if value > 1 else 1 / a
 
 
+@always_inline("nodebug")
 fn Conv2d(
     inout g: Graph,
     inputs: Symbol,

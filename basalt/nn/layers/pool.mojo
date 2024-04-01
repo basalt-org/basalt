@@ -1,10 +1,9 @@
-from basalt import Tensor, TensorShape
 from collections.optional import Optional
 
-from basalt import Graph, Symbol, OP
 from basalt.autograd.attributes import AttributeVector, Attribute
 
 
+@always_inline("nodebug")
 fn set_static_stride(
     kernel_size: StaticIntTuple[2], stride: Optional[Int] = None
 ) -> StaticIntTuple[2]:
@@ -14,6 +13,7 @@ fn set_static_stride(
         return kernel_size
 
 
+@always_inline("nodebug")
 fn MaxPool2d(
     inout g: Graph,
     inputs: Symbol,
@@ -36,6 +36,7 @@ fn MaxPool2d(
     return MaxPool2d(g, inputs, kernel_size, stride_temp, padding, dilation)
 
 
+@always_inline("nodebug")
 fn MaxPool2d(
     inout g: Graph,
     inputs: Symbol,
