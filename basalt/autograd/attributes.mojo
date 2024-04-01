@@ -2,7 +2,7 @@ from collections.optional import Optional
 from math import min
 
 from basalt import Tensor, TensorShape
-from basalt.utils.bytes import bytes
+from basalt.utils.bytes import Bytes
 
 
 alias MAX_ATTRIBUTES = 10
@@ -29,7 +29,7 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
 
     fn __getitem__(self, index: StringLiteral) -> Optional[AttributeValue]:
         for i in range(self._size):
-            if self._attrs[i].name == bytes[MAX_CHAR_SIZE](index):
+            if self._attrs[i].name == Bytes[MAX_CHAR_SIZE](index):
                 return self._attrs[i].value
         return None
 
@@ -44,25 +44,25 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
 
 @register_passable("trivial")
 struct Attribute(Stringable, CollectionElement):
-    var name: bytes[
+    var name: Bytes[
         MAX_CHAR_SIZE
     ]  # defines the maximum number of characters in the string
     var value: AttributeValue  # Variant doesn't seem to be register passable
 
     fn __init__(inout self, name: String, value: Int):
-        self.name = bytes[MAX_CHAR_SIZE](name)
+        self.name = Bytes[MAX_CHAR_SIZE](name)
         self.value = AttributeValue(value)
 
     fn __init__(inout self, name: String, value: String):
-        self.name = bytes[MAX_CHAR_SIZE](name)
+        self.name = Bytes[MAX_CHAR_SIZE](name)
         self.value = AttributeValue(value)
 
     fn __init__(inout self, name: String, value: TensorShape):
-        self.name = bytes[MAX_CHAR_SIZE](name)
+        self.name = Bytes[MAX_CHAR_SIZE](name)
         self.value = AttributeValue(value)
 
     fn __init__[Length: Int](inout self, name: String, value: StaticIntTuple[Length]):
-        self.name = bytes[MAX_CHAR_SIZE](name)
+        self.name = Bytes[MAX_CHAR_SIZE](name)
         self.value = AttributeValue(value)
 
     fn __str__(self) -> String:

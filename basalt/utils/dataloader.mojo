@@ -7,26 +7,26 @@ from basalt import Tensor, TensorShape
 
 
 @value
-struct Batch[dtype: DType](CollectionElement):
-    var data: Tensor[dtype]
-    var labels: Tensor[dtype]
+struct Batch[Type: DType](CollectionElement):
+    var data: Tensor[Type]
+    var labels: Tensor[Type]
 
-    fn __init__(inout self, batch_data: Tensor[dtype], batch_labels: Tensor[dtype]):
+    fn __init__(inout self, batch_data: Tensor[Type], batch_labels: Tensor[Type]):
         self.data = batch_data
         self.labels = batch_labels
 
     fn __init__(
         inout self,
-        df_data: Tensor[dtype],
-        df_labels: Tensor[dtype],
+        df_data: Tensor[Type],
+        df_labels: Tensor[Type],
         start: Int,
         batch_data_shape: TensorShape,
         batch_labels_shape: TensorShape,
     ):
         # TODO: find a better way to do this
         # Links to the copies of the input tensors in model.forward()
-        self.data = Tensor[dtype](batch_data_shape)
-        self.labels = Tensor[dtype](batch_labels_shape)
+        self.data = Tensor[Type](batch_data_shape)
+        self.labels = Tensor[Type](batch_labels_shape)
         memcpy(
             self.data.data(),
             df_data.data().offset(start * batch_data_shape.strides()[0]),
@@ -38,14 +38,14 @@ struct Batch[dtype: DType](CollectionElement):
             batch_labels_shape.num_elements(),
         )
 
-    fn __getitem__(self, index: Int) -> Tensor[dtype]:
+    fn __getitem__(self, index: Int) -> Tensor[Type]:
         if index == 0:
             return self.data
         elif index == 1:
             return self.labels
         else:
             print("[ERROR] Batch.__getitem__(): Index out of bounds")
-            return Tensor[dtype]()
+            return Tensor[Type]()
 
 
 @value

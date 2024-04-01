@@ -4,7 +4,7 @@ from algorithm import vectorize
 
 
 fn rand_uniform[
-    dtype: DType
+    Type: DType
 ](inout res: Tensor[dtype], low: SIMD[dtype, 1], high: SIMD[dtype, 1]):
     rand[dtype](
         res.data(), res.num_elements()
