@@ -122,3 +122,7 @@ fn main():
         print("Epoch time: ", (now() - epoch_start) / 1e9, "seconds")
 
     print("Training finished: ", (now() - start) / 1e9, "seconds")
+
+
+    model.perf_metrics.print_forward_perf_metrics("ms", True)
+    model.perf_metrics.print_backward_perf_metrics("ms", True)
