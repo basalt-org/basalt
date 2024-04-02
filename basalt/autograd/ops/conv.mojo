@@ -246,7 +246,7 @@ struct CONV2D:
             # Sum of upper gradient over batch, X, Y dimensions
             # In lament terms, for every element in the input tensor, add the sum of every element in the kernel times the corresponding element in the upper gradient.
             res = Tensor[dtype](input_shape)
-            
+
             @parameter
             fn input_grad(batch: Int):
                 var batch_offset = batch * inputs_strides_0
@@ -269,51 +269,27 @@ struct CONV2D:
         elif tensor_id == 1:
             # Kernel
             # Sum of upper gradient over batch and X, Y dimensions
+            # In laments terms, for every element in the kernel tensor, add the sum of every element in the input tensor times the corresponding element in the upper gradient.
             res = Tensor[dtype](kernel_shape)
 
             @parameter
             fn kernel_grad(in_ch: Int):
-                for out_ch in range(ug_shape_1):
-                    for kx in range(kernel_shape_2):
-                        for ky in range(kernel_shape_3):
-                            var result: SIMD[dtype, 1] = 0
-                            for batch in range(input_shape_0):
-                                for ux in range(ug_shape_2):
-                                    for uy in range(ug_shape_3):
-                                        var ix = ux * stride_0 - padding_0 + kx * dilation_0
-                                        var iy = uy * stride_1 - padding_1 + ky * dilation_1
+                var channel_offset = in_ch * kernel_strides_1
+                for i in range(kernel_shape_2 * kernel_shape_3):
+                    var kernel_index = channel_offset + i
+                    var sum: SIMD[dtype, 1] = 0
 
-                                        if (
-                                            ix < 0
-                                            or iy < 0
-                                            or ix >= input_shape_2
-                                            or iy >= input_shape_3
-                                        ):
-                                            continue
+                    @parameter
+                    fn vec_sum[Nelts: Int](index: Int):
+                        sum += (
+                            inputs.load[simd_width=nelts](index) * ug[i // kernel_shape_3]
+                        ).reduce_add()
 
-                                        var input_index = (
-                                            batch * inputs_strides_0
-                                            + in_ch * inputs_strides_1
-                                            + ix * inputs_strides_2
-                                            + iy
-                                        )
+                    vectorize[
+                        vec_sum, nelts, size = input_shape_1 * input_shape_2 * input_shape_3
+                    ]()
 
-                                        var ug_index = (
-                                            batch * ug_strides_0
-                                            + out_ch * ug_strides_1
-                                            + ux * ug_strides_2
-                                            + uy
-                                        )
-
-                                        result += inputs[input_index] * ug[ug_index]
-
-                            var kernel_index = (
-                                out_ch * kernel_strides_0
-                                + in_ch * kernel_strides_1
-                                + kx * kernel_strides_2
-                                + ky
-                            )
-                            res[kernel_index] = result
+                    res[kernel_index] = sum
 
             parallelize[kernel_grad](input_shape_1)
 
