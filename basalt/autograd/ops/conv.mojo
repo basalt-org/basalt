@@ -244,7 +244,10 @@ struct CONV2D:
         if tensor_id == 0:
             # Inputs
             # Sum of upper gradient over batch, X, Y dimensions
-            # In lament terms, for every element in the input tensor, add
+
+
+
+
             res = Tensor[dtype](input_shape)
 
             @parameter
@@ -300,9 +303,6 @@ struct CONV2D:
             # Sum of upper gradient over batch and X, Y dimensions
             res = Tensor[dtype](kernel_shape)
 
-            # Psuedocode:
-            # For every element in the kernel tensor, add the sum of the upper gradient
-
             @parameter
             fn kernel_grad(in_ch: Int):
                 for out_ch in range(ug_shape_1):
@@ -354,6 +354,12 @@ struct CONV2D:
             # Sum of upper gradient over batch and X, Y dimensions
             # out_channels == ug_shape[1] == bias_shape[0]
             res = Tensor[dtype](bias_shape)
+
+            # Psuedocode
+            # For every channel in the bias tensor,
+            # Iterate over the upper gradient across the batch
+            # For each batch, sum the upper gradient across X, Y dimensions
+            # Add the sum to the bias tensor
 
             @parameter
             fn bias_grad(out_ch: Int):
