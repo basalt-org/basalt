@@ -244,7 +244,7 @@ struct CONV2D:
         if tensor_id == 0:
             # Inputs
             # Sum of upper gradient over batch, X, Y dimensions
-            # In lament terms, for every element in the input tensor, add tge 
+            # In lament terms, for every element in the input tensor, add
             res = Tensor[dtype](input_shape)
 
             @parameter
@@ -300,6 +300,9 @@ struct CONV2D:
             # Sum of upper gradient over batch and X, Y dimensions
             res = Tensor[dtype](kernel_shape)
 
+            # Psuedocode:
+            # For every element in the kernel tensor, add the sum of the upper gradient
+
             @parameter
             fn kernel_grad(in_ch: Int):
                 for out_ch in range(ug_shape_1):
@@ -352,19 +355,21 @@ struct CONV2D:
             # out_channels == ug_shape[1] == bias_shape[0]
             res = Tensor[dtype](bias_shape)
 
+            # Psuedocode:
+            # For every element in the bias tensor, add the sum of the upper gradient
+
             @parameter
             fn bias_grad(out_ch: Int):
                 var sum: SIMD[dtype, 1] = 0
+                var channel_offset = out_ch * ug_strides_1
                 for batch in range(ug_shape_0):
-                    for ux in range(ug_shape_2):
-                        for uy in range(ug_shape_3):
-                            var ug_index = (
-                                batch * ug_strides_0
-                                + out_ch * ug_strides_1
-                                + ux * ug_strides_2
-                                + uy
-                            )
-                            sum += ug[ug_index]
+                    var batch_offset = batch * ug_strides_0 + channel_offset
+
+                    @parameter
+                    fn vec_sum[Nelts: Int](ux_uy: Int):
+                        sum += ug.load[Nelts](batch_offset + ux_uy).reduce_add()
+
+                    vectorize[vec_sum, nelts, size = ug_shape_2 * ug_shape_3]()
 
                 res[out_ch] = sum
 
