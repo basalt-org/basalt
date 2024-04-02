@@ -203,6 +203,7 @@ struct CONV2D:
 
         Upper gradient of shape: [batch, out_channels, uX, uY].
         """
+
         alias padding = attributes["padding"].value().to_static[2]()
         alias stride = attributes["stride"].value().to_static[2]()
         alias dilation = attributes["dilation"].value().to_static[2]()
@@ -242,57 +243,32 @@ struct CONV2D:
         @parameter
         if tensor_id == 0:
             # Inputs
+            # Sum of upper gradient over batch, X, Y dimensions
+            # In lament terms, for every element in the input tensor, add the sum of every element in the kernel times the corresponding element in the upper gradient.
             res = Tensor[dtype](input_shape)
-
+            
             @parameter
             fn input_grad(batch: Int):
-                for out_ch in range(ug_shape_1):
-                    for ux in range(ug_shape_2):
-                        for uy in range(ug_shape_3):
-                            var ix_base = ux * stride_0 - padding_0
-                            var iy_base = uy * stride_1 - padding_1
-                            for in_ch in range(input_shape_1):
-                                for kx in range(kernel_shape_2):
-                                    for ky in range(kernel_shape_3):
-                                        var ix = ix_base + kx * dilation_0
-                                        var iy = iy_base + ky * dilation_1
+                var batch_offset = batch * inputs_strides_0
+                for i in range(input_shape_1 * input_shape_2 * input_shape_3):
+                    var input_index = batch_offset + i
+                    var ug_val = ug[i // (kernel_shape_2 * kernel_shape_3)]
 
-                                        if (
-                                            ix < 0
-                                            or iy < 0
-                                            or ix >= input_shape_2
-                                            or iy >= input_shape_3
-                                        ):
-                                            continue
+                    @parameter
+                    fn vec_kernel[Nelts: Int](index: Int):
+                        res[input_index] += (
+                            kernel.load[simd_width=nelts](index) * ug_val
+                        ).reduce_add()
 
-                                        var kernel_index = (
-                                            out_ch * kernel_strides_0
-                                            + in_ch * kernel_strides_1
-                                            + kx * kernel_strides_2
-                                            + ky
-                                        )
-
-                                        var ug_index = (
-                                            batch * ug_strides_0
-                                            + out_ch * ug_strides_1
-                                            + ux * ug_strides_2
-                                            + uy
-                                        )
-
-                                        var input_index = (
-                                            batch * inputs_strides_0
-                                            + in_ch * inputs_strides_1
-                                            + ix * inputs_strides_2
-                                            + iy
-                                        )
-                                        res[input_index] += (
-                                            kernel[kernel_index] * ug[ug_index]
-                                        )
+                    vectorize[
+                        vec_kernel, nelts, size = kernel_shape_2 * kernel_shape_3
+                    ]()
 
             parallelize[input_grad](input_shape_0)
 
         elif tensor_id == 1:
             # Kernel
+            # Sum of upper gradient over batch and X, Y dimensions
             res = Tensor[dtype](kernel_shape)
 
             @parameter
