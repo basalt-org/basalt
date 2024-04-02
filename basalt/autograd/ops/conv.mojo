@@ -139,7 +139,8 @@ struct CONV2D:
 
         parallelize[im2col](batch_size)
 
-        for batch in range(batch_size):
+        @parameter
+        fn conv(batch: Int):
             for out_ch in range(out_channels):
                 for ux in range(out_x):
                     for uy in range(out_y):
@@ -178,6 +179,8 @@ struct CONV2D:
                         )
 
                         outputs[output_index] = result.reduce_add() + bias[out_ch]
+
+        parallelize[conv](batch_size)
 
         col_ptr.free()
 
