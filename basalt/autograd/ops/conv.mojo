@@ -2,7 +2,7 @@ from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
 from basalt.utils.tensorutils import dot, dot_transpose_t1, dot_transpose_t2
 
-from algorithm import parallelize, vectorize
+from algorithm import parallelize, vectorize, tile
 from math import divmod
 from utils.loop import unroll
 
@@ -245,16 +245,13 @@ struct CONV2D:
             # Inputs
             # Sum of upper gradient over batch, X, Y dimensions
 
-
-
-
             res = Tensor[dtype](input_shape)
 
             @parameter
             fn input_grad(batch: Int):
                 for out_ch in range(ug_shape_1):
                     for ux in range(ug_shape_2):
-                        for uy in range(ug_shape_3):
+                        for uy in range(ug_shape_3):  # For all the element of ug
                             var ix_base = ux * stride_0 - padding_0
                             var iy_base = uy * stride_1 - padding_1
 
@@ -304,50 +301,40 @@ struct CONV2D:
             res = Tensor[dtype](kernel_shape)
 
             @parameter
-            fn kernel_grad(in_ch: Int):
-                for out_ch in range(ug_shape_1):
-                    for kx in range(kernel_shape_2):
-                        for ky in range(kernel_shape_3):
-                            var result: SIMD[dtype, 1] = 0
-                            for batch in range(input_shape_0):
-                                for ux in range(ug_shape_2):
-                                    for uy in range(ug_shape_3):
-                                        var ix = ux * stride_0 - padding_0 + kx * dilation_0
-                                        var iy = uy * stride_1 - padding_1 + ky * dilation_1
+            fn kernel_grad(out_ch: Int):
+                var channel_offset = out_ch * kernel_strides_0
+                for k in range(input_shape_1 * kernel_shape_2 * kernel_shape_3):
+                    var in_ch_kx_ky = divmod(k, kernel_shape_3)
+                    var in_ch = k // (kernel_shape_2 * kernel_shape_3)
+                    var kx = in_ch_kx_ky[0] % kernel_shape_2
+                    var ky = in_ch_kx_ky[1]
 
-                                        if (
-                                            ix < 0
-                                            or iy < 0
-                                            or ix >= input_shape_2
-                                            or iy >= input_shape_3
-                                        ):
-                                            continue
+                    # TODO: Cant vectorize since you are going different directions across input and upper grad
+                    # But theoretically could transpose or split somehow
+                    var result: SIMD[dtype, 1] = 0
+                    for batch in range(input_shape_0):
+                        for ux in range(ug_shape_2):
+                            for uy in range(ug_shape_3):
+                                var ix = ux * stride_0 - padding_0 + kx * dilation_0
+                                var iy = uy * stride_1 - padding_1 + ky * dilation_1
 
-                                        var input_index = (
-                                            batch * inputs_strides_0
-                                            + in_ch * inputs_strides_1
-                                            + ix * inputs_strides_2
-                                            + iy
-                                        )
+                                if (
+                                    ix < 0
+                                    or iy < 0
+                                    or ix >= input_shape_2
+                                    or iy >= input_shape_3
+                                ):
+                                    continue
 
-                                        var ug_index = (
-                                            batch * ug_strides_0
-                                            + out_ch * ug_strides_1
-                                            + ux * ug_strides_2
-                                            + uy
-                                        )
+                                var input_index = batch * inputs_strides_0 + in_ch * inputs_strides_1 + ix * inputs_strides_2 + iy
+                                var ug_index = batch * ug_strides_0 + out_ch * ug_strides_1 + ux * ug_strides_2 + uy
 
-                                        result += inputs[input_index] * ug[ug_index]
+                                result += inputs[input_index] * ug[ug_index]
 
-                            var kernel_index = (
-                                out_ch * kernel_strides_0
-                                + in_ch * kernel_strides_1
-                                + kx * kernel_strides_2
-                                + ky
-                            )
-                            res[kernel_index] = result
+                    var kernel_index = channel_offset + k
+                    res[kernel_index] = result
 
-            parallelize[kernel_grad](input_shape_1)
+            parallelize[kernel_grad](ug_shape_1)
 
         else:
             # Bias
@@ -363,8 +350,8 @@ struct CONV2D:
 
             @parameter
             fn bias_grad(out_ch: Int):
-                var sum: SIMD[dtype, 1] = 0
                 var channel_offset = out_ch * ug_strides_1
+                var sum: SIMD[dtype, 1] = 0
                 for batch in range(ug_shape_0):
                     var batch_offset = batch * ug_strides_0 + channel_offset
 
