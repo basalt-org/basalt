@@ -355,9 +355,6 @@ struct CONV2D:
             # out_channels == ug_shape[1] == bias_shape[0]
             res = Tensor[dtype](bias_shape)
 
-            # Psuedocode:
-            # For every element in the bias tensor, add the sum of the upper gradient
-
             @parameter
             fn bias_grad(out_ch: Int):
                 var sum: SIMD[dtype, 1] = 0
