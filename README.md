@@ -21,10 +21,31 @@
 
 ...
 
+## Contributing
+
+Basalt is built by community efforts and relies on your expertise and enthousiasm!
+Small fixes and improvements are much appreciated. If you are considering larger contributions, feel free to contact us for a smoother communication channel on Discord.
+
+* If you find a bug or have an idea for a feature, please use our issue tracker. Before creating a new issue, please:
+* Check if the issue already exists. If an issue is already reported, you can contribute by commenting on the existing issue.
+* If not, create a new issue and include all the necessary details to understand/recreate the problem or feature request.
+
+### Creating A Pull Request
+
+1. Fork the Project
+2. Create your Feature Branch
+3. Commit your Changes
+4. Push to the Branch
+5. Open a Pull Request
+> Once your changes are pushed, navigate to your fork on GitHub. And create a pull request against the original basalt-org/basalt repository.
+> - Before creating a PR make sure it doesn't break any of the unit-tests. Introducing new big features require a test.
+> - In the pull request, provide a detailed description of the changes and why they're needed. Link any relevant issues.
+> - If there are any specific instructions for testing or validating your changes, include those as well.
+
 ## License
 
-Distributed under the Apache 2.0 License. See [LICENSE](https://github.com/Basalt-Org/Basalt/blob/main/LICENSE) for more information.
+Distributed under the Apache 2.0 License with LLVM Exceptions. See [LICENSE](https://github.com/Basalt-Org/Basalt/blob/main/LICENSE) and the LLVM [License](https://llvm.org/LICENSE.txt) for more information.
 
 ## Acknowledgements
 
-* [Modular](https://github.com/modularml)
+* Build with [Mojo](https://github.com/modularml/mojo) created by [Modular](https://github.com/modularml)
