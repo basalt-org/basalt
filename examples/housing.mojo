@@ -77,8 +77,6 @@ fn main():
 
     print("Training finished: ", (now() - start) / 1e9, "seconds")
 
-    model.print_perf_metrics("ms", True)
-
     # print("\n\nInferencing model...\n")
     # for batch in training_loader:
     #     var output = model.inference(batch.data)
