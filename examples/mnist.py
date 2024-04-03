@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -89,6 +90,7 @@ if __name__ == "__main__":
     # Train the model
     cnn.train()
     total_step = len(loaders["train"])
+    start = time.time()
     for epoch in range(num_epochs):
         for i, (images, labels) in enumerate(loaders["train"]):
             b_x = Variable(images)
@@ -106,3 +108,5 @@ if __name__ == "__main__":
                     epoch + 1, num_epochs, i + 1, total_step, loss.item()
                 )
             )
+
+    print(f"Training time: {time.time() - start:.2f} seconds")

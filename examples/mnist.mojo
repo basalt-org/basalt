@@ -61,10 +61,8 @@ fn main():
 
     alias graph = create_CNN(batch_size)
 
-    # try:
-    #     graph.render("operator")
-    # except:
-    #     print("Could not render graph")
+    # try: graph.render("operator")
+    # except: print("Could not render graph")
 
     var model = nn.Model[graph]()
     var optim = nn.optim.Adam[graph](lr=learning_rate)
@@ -74,7 +72,7 @@ fn main():
     var train_data: MNIST
     try:
         train_data = MNIST(file_path="./examples/data/mnist_test_small.csv")
-        # _ = plot_image(train_data.data, 1)
+        _ = plot_image(train_data.data, 1)
     except e:
         print("Could not load data")
         print(e)
@@ -108,18 +106,7 @@ fn main():
             epoch_loss += loss[0]
             num_batches += 1
 
-            print(
-                "Epoch [",
-                epoch + 1,
-                "/",
-                num_epochs,
-                "],\t Step [",
-                num_batches,
-                "/",
-                train_data.data.dim(0) // batch_size,
-                "],\t Loss:",
-                epoch_loss / num_batches,
-            )
+            print("Epoch [", epoch + 1, "/", num_epochs, "],\t Step [", num_batches, "/", train_data.data.dim(0) // batch_size, "],\t Loss:", epoch_loss / num_batches)
 
         print("Epoch time: ", (now() - epoch_start) / 1e9, "seconds")
 
