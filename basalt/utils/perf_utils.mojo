@@ -64,7 +64,7 @@ struct PerfMetrics:
 
     fn print_perf_metrics[
         type_part: String
-    ](inout self, time_format: String = "ns", print_shape: Bool = False):
+    ](self, time_format: String = "ns", print_shape: Bool = False):
         # Calculates the average time for each node operation.
 
         if type_part == "Forward" and len(self.forward_perf_metrics) == 0:
@@ -136,12 +136,12 @@ struct PerfMetrics:
             print(print_value)
 
     fn print_forward_perf_metrics(
-        inout self, time_format: String = "ns", print_shape: Bool = False
+        self, time_format: String = "ns", print_shape: Bool = False
     ):
         self.print_perf_metrics["Forward"](time_format, print_shape)
 
     fn print_backward_perf_metrics(
-        inout self, time_format: String = "ns", print_shape: Bool = False
+        self, time_format: String = "ns", print_shape: Bool = False
     ):
         self.print_perf_metrics["Backward"](time_format, print_shape)
 

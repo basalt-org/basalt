@@ -317,3 +317,7 @@ struct Model[
             var out = g.nodes[i].output
             if out.trainable:
                 self.parameters.grads.append(Tensor[dtype](out.shape), out)
+
+    fn print_perf_metrics(self, time_format: String = "ns", print_shape: Bool = False):
+        self.perf_metrics.print_forward_perf_metrics(time_format, print_shape)
+        self.perf_metrics.print_backward_perf_metrics(time_format, print_shape)
