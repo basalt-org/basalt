@@ -171,7 +171,7 @@ struct PerfMetrics:
             var print_value = fit_string[5](str(i)) + "| " + fit_string[15](
                 value.node.operator
             ) + "| " + fit_string[20](
-                truncate_decimals[3](time_converted)
+                truncate_decimals[4](time_converted)
             ) + "| " + fit_string[
                 20
             ](
