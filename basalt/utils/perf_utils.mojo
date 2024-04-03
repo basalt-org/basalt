@@ -1,6 +1,39 @@
 from time import now
+from math import min
+from memory import memset, memcpy
 
 from basalt.autograd.node import Node
+
+
+fn fit_string[num: Int](s: String) -> String:
+    var data = DTypePointer[DType.int8]().alloc(num + 1)
+
+    # Copy the the string up to the length of the buffer
+    # Fill the rest with spaces & Terminate with zero byte
+    memcpy(data, s._as_ptr(), min(num, len(s)))
+    if num - min(num, len(s)) > 0:
+        memset(data + min(num, len(s)), ord(" "), num - min(num, len(s)))
+    data[num] = 0
+
+    return String(data, num + 1)
+
+
+fn truncate_decimals[num: Int](s: String) -> String:
+    var truncated: String
+    try:
+        var p1 = s.split(delimiter=".")
+        truncated = p1[0]
+        if len(p1) > 1:
+            var p2 = p1[1].split(delimiter="e")
+            truncated += "." + fit_string[num](p2[0])
+            if len(p2) > 1:
+                truncated += "e" + p2[1]
+
+    except e:
+        print("[WARNING] could not truncate decimals: ", e)
+        truncated = s
+    return truncated
+
 
 @value
 struct PerfMetricsValues(CollectionElement):
@@ -94,6 +127,24 @@ struct PerfMetrics:
             elif type_part == "Backward":
                 total_time += self.backward_perf_metrics[i].time / self.epochs_backward
 
+        # 1. Header
+        var header = fit_string[5]("Node") + "| " + fit_string[15](
+            "Operator"
+        ) + "| " + fit_string[20]("Time [" + time_format + "]") + "| " + fit_string[20](
+            "Percentage [%]"
+        )
+        if print_shape:
+            header += "| " + fit_string[70]("Shape\t <out> = OP( <in1>, <in2>, <in3> )")
+        print(header)
+
+        # 2. Seperator
+        var sep = DTypePointer[DType.int8]().alloc(len(header) + 1)
+        memset(sep, ord("-"), len(header))
+        sep[len(header)] = 0
+        var seperator = String(sep, len(header) + 1)
+        print(seperator)
+
+        # 3. Perf Data
         for i in range(len(self.forward_perf_metrics)):
             var value: PerfMetricsValues
 
@@ -117,23 +168,33 @@ struct PerfMetrics:
             elif time_format == "s":
                 time_converted = time / 1e9
 
-            var print_value = "-Node: " + str(i) 
-                + " Operator: " + value.node.operator + "\n" + "    Time: " 
-                + time_converted + time_format + ", Percentage of time taken: " 
-                + (time / total_time) * 100 + "% "
+            var print_value = fit_string[5](str(i)) + "| " + fit_string[15](
+                value.node.operator
+            ) + "| " + fit_string[20](
+                truncate_decimals[3](time_converted)
+            ) + "| " + fit_string[
+                20
+            ](
+                truncate_decimals[3]((time / total_time) * 100) + " %"
+            ) + "| "
 
             if print_shape:
-                print_value += "\n" + "    Output shape: " + str(value.node.output.shape)
-                print_value += " - Input shape 1: " + str(value.node.input_1.shape)
+                var shape_str: String = ""
+                shape_str += fit_string[15]("<" + str(value.node.output.shape) + ">")
+                shape_str += fit_string[7](" = OP(")
+                shape_str += fit_string[15]("<" + str(value.node.input_1.shape) + ">")
                 if value.node.input_2:
-                    print_value += ", Input shape 2: " + str(
-                        value.node.input_2.value().shape
+                    shape_str += ", " + fit_string[15](
+                        "<" + str(value.node.input_2.value().shape) + ">"
                     )
                 if value.node.input_3:
-                    print_value += ", Input shape 3: " + str(
-                        value.node.input_3.value().shape
+                    shape_str += ", " + fit_string[15](
+                        "<" + str(value.node.input_3.value().shape) + ">"
                     )
-                
+                shape_str += ")"
+
+                print_value += shape_str
+
             print(print_value)
 
         var total_time_converted = total_time
@@ -141,7 +202,14 @@ struct PerfMetrics:
             total_time_converted = total_time / 1e6
         elif time_format == "s":
             total_time_converted = total_time / 1e9
-        print("\nTotal average " + type_part + " time: " + str(total_time_converted) + time_format)
+        print(
+            "\nTotal average "
+            + type_part
+            + " time: "
+            + str(total_time_converted)
+            + " "
+            + time_format
+        )
 
     fn print_forward_perf_metrics(
         self, time_format: String = "ns", print_shape: Bool = False
@@ -152,4 +220,3 @@ struct PerfMetrics:
         self, time_format: String = "ns", print_shape: Bool = False
     ):
         self.print_perf_metrics["Backward"](time_format, print_shape)
-
