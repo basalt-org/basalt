@@ -1,5 +1,6 @@
-from algorithm import vectorize, parallelize
-from memory import memset_zero, memset
+from sys.info import num_physical_cores
+from algorithm import vectorize, parallelize, swap
+from memory import memset_zero, memset, stack_allocation
 from math import sqrt, pow, equal, max, min, abs, add, div, divmod
 from random import rand
 
@@ -19,14 +20,12 @@ fn fill[dtype: DType](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
 # ----- Functions to access positions in tensor data -----
 @always_inline
 fn get_real_index[
-    size: Int,
-    strides_shape: StaticIntTuple[size],
-    broadcast_shape: TensorShape
+    size: Int, strides_shape: StaticIntTuple[size], broadcast_shape: TensorShape
 ](i: Int) -> Int:
     # broadcast_shape is of same rank as strides_shape (the not broadcasted shape), because of broadcast_calculate_strides
     var index_res = 0
     var linear_index = i
-    
+
     @parameter
     fn unroll_dims[dim: Int]():
         alias j = size - 1 - dim
@@ -37,7 +36,7 @@ fn get_real_index[
 
         index_res += divmod_index[1] * stride_value
         linear_index = divmod_index[0]
-        
+
     unroll[unroll_dims, size]()
 
     return index_res
@@ -93,13 +92,11 @@ fn broadcast_shapes(*s: TensorShape) -> TensorShape:
 
 @always_inline
 fn broadcast_calculate_strides[
-    size: Int,
-    shape: TensorShape, 
-    broadcast_shape: TensorShape
+    size: Int, shape: TensorShape, broadcast_shape: TensorShape
 ]() -> StaticIntTuple[size]:
     alias shape_rank = shape.rank()
     alias diff = size - shape_rank
-    
+
     var strides = StaticIntTuple[size](0)
 
     var stride = 1
@@ -113,29 +110,122 @@ fn broadcast_calculate_strides[
 
 # ----- Dot functions -----
 @always_inline
+fn calculate_block[
+    M: Int, N: Int, K: Int, BLOCK_M: Int, BLOCK_N: Int, nelts: Int
+](
+    res: DTypePointer[dtype],
+    t1: DTypePointer[dtype],
+    t2: DTypePointer[dtype],
+    bm: Int,
+    bn: Int,
+):
+    # Compute tile
+    var acc = stack_allocation[BLOCK_M * BLOCK_N, dtype]()
+    memset_zero[dtype](acc, BLOCK_M * BLOCK_N)
+
+    for k in range(K):
+
+        @unroll
+        for m in range(BLOCK_M):
+
+            @parameter
+            fn inner_n[nelts: Int](n: Int):
+                acc.store[width=nelts](
+                    m * BLOCK_N + n,
+                    SIMD[dtype, nelts]
+                    .splat(t1[(bm + m) * K + k])
+                    .fma(
+                        t2.load[width=nelts](k * N + (bn + n)),
+                        acc.load[width=nelts](m * BLOCK_N + n),
+                    ),
+                )
+
+            vectorize[inner_n, nelts](BLOCK_N)
+
+    # Store tile
+    for m in range(BLOCK_M):
+
+        @parameter
+        fn vec_store[nelts: Int](n: Int):
+            res.store[width=nelts](
+                (bm + m) * N + (bn + n), acc.load[width=nelts](m * BLOCK_N + n)
+            )
+
+        vectorize[vec_store, nelts](BLOCK_N)
+
+
+@parameter
+@always_inline
 fn dot[
     t1_shape: TensorShape, t2_shape: TensorShape
 ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
-    alias M = t1_shape[0]
-    alias K = t1_shape[1]
-    alias N = t2_shape[1]
-    memset_zero[dtype](res.data(), res.num_elements())
+    dot[t1_shape, t2_shape](res.data(), t1.data(), t2.data())
+
+
+@parameter
+@always_inline
+fn dot[
+    t1_shape: TensorShape, t2_shape: TensorShape
+](res: DTypePointer[dtype], t1: DTypePointer[dtype], t2: DTypePointer[dtype]):
+    alias M = t1_shape[0]  # t1[0]
+    alias K = t1_shape[1]  # t1[1], t2[0]
+    alias N = t2_shape[1]  # t2[1]
+
+    # simdwidthof[dtype]() = 8 for float32
+    alias nelts = simdwidthof[dtype]()
+    alias BLOCK_N = 8 * 2
+    alias BLOCK_M = 6
+    alias THREADS = 6  # num_logical_cores()
+
+    alias BLOCK_N_REMAINDER = N % BLOCK_N
+    alias BLOCK_M_REMAINDER = M % BLOCK_M
 
     @parameter
-    fn calc_row(m: Int):
-        for k in range(K):
+    fn bm_par(m_outer: Int):
+        var bm = m_outer * BLOCK_M
 
-            @parameter
-            fn vec_n[nelts: Int](n: Int):
-                res.store[nelts](
-                    m * N + n,
-                    res.load[nelts](m * N + n)
-                    + t1[m * K + k] * t2.load[nelts](k * N + n),
-                )
+        for n_outer in range(0, N // BLOCK_N):
+            var bn = n_outer * BLOCK_N
 
-            vectorize[vec_n, nelts](N)
+            calculate_block[M, N, K, BLOCK_M, BLOCK_N, nelts](res, t1, t2, bm, bn)
 
-    parallelize[calc_row](M)
+        # Handle the remainder of N
+        @parameter
+        if BLOCK_N_REMAINDER > 0:
+            var bn = N - BLOCK_N_REMAINDER
+
+            calculate_block[M, N, K, BLOCK_M, BLOCK_N_REMAINDER, nelts](
+                res, t1, t2, bm, bn
+            )
+
+    parallelize[bm_par](M // BLOCK_M, M // BLOCK_M)
+
+    # Handle the remainder of M
+    @parameter
+    if BLOCK_M_REMAINDER > 0:
+        var bm = M - BLOCK_M_REMAINDER
+
+        for n_outer in range(0, N // BLOCK_N):
+            var bn = n_outer * BLOCK_N
+
+            calculate_block[M, N, K, BLOCK_M_REMAINDER, BLOCK_N, nelts](
+                res, t1, t2, bm, bn
+            )
+
+        # Handle corner remainder
+        @parameter
+        if BLOCK_N_REMAINDER > 0:
+            var bn = N - BLOCK_N_REMAINDER
+
+            calculate_block[M, N, K, BLOCK_M_REMAINDER, BLOCK_N_REMAINDER, nelts](
+                res, t1, t2, bm, bn
+            )
+
+
+fn dot_transpose_t2[
+    A_shape: TensorShape, B_shape: TensorShape
+](inout C: DTypePointer[dtype], A: DTypePointer[dtype], B: DTypePointer[dtype]):
+    dot[A_shape, TensorShape(B_shape[1], B_shape[0])](C, A, transpose_2D[B_shape](B))
 
 
 fn dot_transpose_t2[
@@ -143,23 +233,25 @@ fn dot_transpose_t2[
 ](inout C: Tensor[dtype], A: Tensor[dtype], B: Tensor[dtype]):
     memset_zero[dtype](C.data(), C.num_elements())
 
-    @parameter
-    fn calc_row(i: Int):
-        for j in range(B_shape[0]):
+    dot[A_shape, TensorShape(B_shape[1], B_shape[0])](C, A, transpose_2D[B_shape](B))
 
-            @parameter
-            fn calc_row_A_B[nelts: Int](k: Int):
-                var A_pos = i * A.dim(1) + k
-                var B_pos = j * A.dim(1) + k
-                var t_new_pos = i * C.dim(1) + j
+    # @parameter
+    # fn calc_row(i: Int):
+    #     for j in range(B_shape[0]):
 
-                C[t_new_pos] += (
-                    A.load[nelts](A_pos) * B.load[nelts](B_pos)
-                ).reduce_add()
+    #         @parameter
+    #         fn calc_row_A_B[nelts: Int](k: Int):
+    #             var A_pos = i * A.dim(1) + k
+    #             var B_pos = j * A.dim(1) + k
+    #             var t_new_pos = i * C.dim(1) + j
 
-            vectorize[calc_row_A_B, nelts, size=A_shape[1]]()
+    #             C[t_new_pos] += (
+    #                 A.load[nelts](A_pos) * B.load[nelts](B_pos)
+    #             ).reduce_add()
 
-    parallelize[calc_row](A_shape[0], 1)
+    #         vectorize[calc_row_A_B, nelts, size=A_shape[1]]()
+
+    # parallelize[calc_row](A_shape[0], 1)
 
 
 fn dot_transpose_t1[
@@ -167,25 +259,27 @@ fn dot_transpose_t1[
 ](inout C: Tensor[dtype], A: Tensor[dtype], B: Tensor[dtype]):
     memset_zero[dtype](C.data(), C.num_elements())
 
-    @parameter
-    fn calc_row(i: Int):
-        for j in range(A_shape[0]):
+    dot[TensorShape(A_shape[1], A_shape[0]), B_shape](C, transpose_2D[A_shape](A), B)
 
-            @parameter
-            fn calc_row_t_new_B[nelts: Int](k: Int):
-                var A_pos = j * A.dim(1) + i
-                var B_pos = j * B.dim(1) + k
-                var t_new_pos = i * C.dim(1) + k
+    # @parameter
+    # fn calc_row(i: Int):
+    #     for j in range(A_shape[0]):
 
-                C.store[nelts](
-                    t_new_pos,
-                    C.load[nelts](t_new_pos)
-                    + A[A_pos] * B.load[nelts](B_pos),
-                )
+    #         @parameter
+    #         fn calc_row_t_new_B[nelts: Int](k: Int):
+    #             var A_pos = j * A.dim(1) + i
+    #             var B_pos = j * B.dim(1) + k
+    #             var t_new_pos = i * C.dim(1) + k
 
-            vectorize[calc_row_t_new_B, nelts, size=B_shape[1]]()
+    #             C.store[nelts](
+    #                 t_new_pos,
+    #                 C.load[nelts](t_new_pos)
+    #                 + A[A_pos] * B.load[nelts](B_pos),
+    #             )
 
-    parallelize[calc_row](A_shape[1], 1)
+    #         vectorize[calc_row_t_new_B, nelts, size=B_shape[1]]()
+
+    # parallelize[calc_row](A_shape[1], 1)
 
 
 # ----- Element-wise unary operations -----
@@ -299,9 +393,7 @@ fn broadcast_elwise_op[
 
         res.store[nelts](
             i,
-            func[dtype, nelts](
-                t1.load[nelts](index1), t2.load[nelts](index2)
-            ),
+            func[dtype, nelts](t1.load[nelts](index1), t2.load[nelts](index2)),
         )
 
     # TODO: Check how to vectorize this
@@ -322,7 +414,9 @@ fn accumulate_grad[
         # In order to accumulate res_grad to the gradient, the res_grad tensor needs to be unbroadcasted.
         # The following is equivalent to: Summing along the axes that were expanded during the broadcasting process.
         alias size = res_grad_shape.rank()
-        alias strides_grad = broadcast_calculate_strides[size, grad_shape, res_grad_shape]()
+        alias strides_grad = broadcast_calculate_strides[
+            size, grad_shape, res_grad_shape
+        ]()
 
         @parameter
         fn vec_op[nelts: Int](i: Int):
@@ -335,24 +429,45 @@ fn accumulate_grad[
 
 # ---- Transform functions -----
 @always_inline
-fn transpose_2D[dtype: DType, nelts: Int](t: Tensor[dtype]) -> Tensor[dtype]:
-    var t_new = Tensor[dtype](t.dim(1), t.dim(0))
+fn transpose_2D[t_shape: TensorShape](t: Tensor[dtype]) -> Tensor[dtype]:
+    var t_new = Tensor[dtype](t_shape[1], t_shape[0])
 
-    var stride = t.dim(0)
+    alias stride = t_shape[0]
 
     @parameter
     fn proc_row(i: Int):
         @parameter
         fn proc_column[nelts: Int](j: Int):
-            t_new.data().offset(j * t.dim(0) + i).simd_strided_store[nelts](
-                t.load[nelts](i * t.dim(1) + j), stride
+            t_new.data().offset(j * t_shape[0] + i).simd_strided_store[nelts](
+                t.load[nelts](i * t_shape[1] + j), stride
             )
 
         vectorize[proc_column, nelts](t.dim(1))
 
-    parallelize[proc_row](t.dim(0))
+    parallelize[proc_row](t_shape[0])
 
     return t_new ^
+
+
+@always_inline
+fn transpose_2D[t_shape: TensorShape](t: DTypePointer[dtype]) -> DTypePointer[dtype]:
+    var t_new = DTypePointer[dtype].alloc(t_shape[1] * t_shape[0])
+
+    alias stride = t_shape[0]
+
+    @parameter
+    fn proc_row(i: Int):
+        @parameter
+        fn proc_column[nelts: Int](j: Int):
+            t_new.offset(j * t_shape[0] + i).simd_strided_store[nelts](
+                t.load[width=nelts](i * t_shape[1] + j), stride
+            )
+
+        vectorize[proc_column, nelts](t_shape[1])
+
+    parallelize[proc_row](t_shape[0])
+
+    return t_new
 
 
 # ----- Reduction functions -----
@@ -418,9 +533,14 @@ fn reduce[
         fn axisreduce[_nelts: Int](j: Int):
             var index = index_base + j * strides[axis]
             if _nelts == 1:
-                m[0] = op(m[0], t.data().offset(index).simd_strided_load[_nelts](strides[axis])[0])
+                m[0] = op(
+                    m[0],
+                    t.data().offset(index).simd_strided_load[_nelts](strides[axis])[0],
+                )
             else:
-                m = op(m, t.data().offset(index).simd_strided_load[nelts](strides[axis]))
+                m = op(
+                    m, t.data().offset(index).simd_strided_load[nelts](strides[axis])
+                )
 
         vectorize[axisreduce, nelts](t.dim(axis))
 

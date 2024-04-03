@@ -61,10 +61,8 @@ fn main():
 
     alias graph = create_CNN(batch_size)
 
-    # try:
-    #     graph.render("operator")
-    # except:
-    #     print("Could not render graph")
+    # try: graph.render("operator")
+    # except: print("Could not render graph")
 
     var model = nn.Model[graph]()
     var optim = nn.optim.Adam[graph](lr=learning_rate)
@@ -75,8 +73,10 @@ fn main():
     try:
         train_data = MNIST(file_path="./examples/data/mnist_test_small.csv")
         _ = plot_image(train_data.data, 1)
-    except:
+    except e:
         print("Could not load data")
+        print(e)
+        return
 
     var training_loader = DataLoader(
         data=train_data.data, labels=train_data.labels, batch_size=batch_size

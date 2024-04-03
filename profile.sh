@@ -45,7 +45,7 @@ function runProfile() {
     mkdir -p "$temp_dir"
 
     echo "Building $mojo_file..."
-    mojo build -O0 -I . "$mojo_file"
+    mojo build -I . "$mojo_file"
 
     echo "Stripping debug symbols..."
     mv "$mojo_name" "$temp_dir/run.exe"

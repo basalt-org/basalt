@@ -48,11 +48,8 @@ fn main():
 
     alias graph = create_linear_graph(batch_size, n_inputs, n_outputs)
 
-    # try:
-    #     graph.render("operator")  # also try: "operator"
-    # except e:
-    #     print("Error rendering graph")
-    #     print(e)
+    # try: graph.render("operator")
+    # except: print("Could not render graph")
 
     var model = nn.Model[graph]()
     var optimizer = nn.optim.Adam[graph](lr=learning_rate)
