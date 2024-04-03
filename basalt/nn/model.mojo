@@ -1,10 +1,18 @@
 from collections.optional import Optional
 
+from sys import env_get_int
+
 from basalt import Graph, Symbol, Tensor, TensorShape
 from basalt.autograd.ops import forward_op, backward_op
 from basalt.utils.collection import Collection
 from basalt.utils.tensorutils import fill
 from .initializers import initialize_tensor
+from basalt.utils.perf_utils import PerfMetrics
+
+
+# When runing mojo -D DEBUG=1 -I . file, a crash happens at some point at runtime because of an error in linking it seems (because of using -I .)
+# For now it seems one has to change this variable manually to be able to run model with performance metrics.
+alias DEBUG = env_get_int["DEBUG", 0]()
 
 
 fn dv_contains(dv: List[Symbol], symbol: Symbol) -> Bool:
@@ -61,8 +69,15 @@ struct Model[
     n_inference_nodes: Optional[Int] = calc_n_inference_nodes(g),  # TODO: remove this
 ]():
     var parameters: Parameters[g]
+    var perf_metrics: PerfMetrics
 
     fn __init__(inout self, inference_only: Bool = False):
+        @parameter
+        if DEBUG == 1:
+            self.perf_metrics = PerfMetrics(g)
+        else:
+            self.perf_metrics = PerfMetrics()
+
         self.parameters = Parameters[g]()
         self.allocate_tensor_memory()
         self.allocate_grad_memory()
@@ -122,6 +137,11 @@ struct Model[
             alias out = g.nodes[i].output
             alias attrs = g.nodes[i].attributes
 
+            # Save start time for performance metrics
+            @parameter
+            if DEBUG == 1:
+                self.perf_metrics.start_forward_pass()
+
             @parameter
             if op.num_operands == 1:
                 # Unary operator
@@ -147,6 +167,11 @@ struct Model[
                     self.parameters.params[t3],
                 )
 
+            # Save end time for performance metrics
+            @parameter
+            if DEBUG == 1:
+                self.perf_metrics.end_forward_pass(i)
+
         unroll[fw_unroll, num_nodes]()
 
     fn backward(inout self):
@@ -165,6 +190,11 @@ struct Model[
             alias out = g.nodes[reverse_i].output  # or upper_grad symbol
             alias t1 = g.nodes[reverse_i].input_1
             alias attrs = g.nodes[reverse_i].attributes
+
+            # Save start time for performance metrics
+            @parameter
+            if DEBUG == 1:
+                self.perf_metrics.start_backward_pass()
 
             @parameter
             if op.num_operands == 1:
@@ -234,6 +264,11 @@ struct Model[
                         self.parameters.grads[t3],  # grad to be updated: input_3
                     )
 
+            # Save end time for performance metrics
+            @parameter
+            if DEBUG == 1:
+                self.perf_metrics.end_backward_pass(i)
+
         unroll[bw_unroll, g.nodes.size]()
 
     fn allocate_tensor_memory(inout self):
@@ -282,3 +317,7 @@ struct Model[
             var out = g.nodes[i].output
             if out.trainable:
                 self.parameters.grads.append(Tensor[dtype](out.shape), out)
+
+    fn print_perf_metrics(self, time_format: String = "ns", print_shape: Bool = False):
+        self.perf_metrics.print_forward_perf_metrics(time_format, print_shape)
+        self.perf_metrics.print_backward_perf_metrics(time_format, print_shape)
