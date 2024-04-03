@@ -97,13 +97,14 @@ struct DataLoader:
         # self._data_shape[0] = end - self._current_index
         # self._label_shape[0] = end - self._current_index
 
+        var temp_current_index = self._current_index
         self._current_index += self.batch_size
         self._num_batches -= 1
 
         return Batch[dtype](
             self.data,
             self.labels,
-            self._current_index,
+            temp_current_index,
             self._data_batch_shape,
             self._label_batch_shape,
         )

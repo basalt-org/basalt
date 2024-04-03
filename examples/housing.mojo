@@ -74,6 +74,9 @@ fn main():
 
     print("Training finished: ", (now() - start) / 1e9, "seconds")
 
+    model.perf_metrics.print_forward_perf_metrics("ms", True)
+    model.perf_metrics.print_backward_perf_metrics("ms", True)
+
     # try:
     #     graph.render("operator")
     # except:

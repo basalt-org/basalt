@@ -12,6 +12,7 @@ struct PerfMetricsValues(CollectionElement):
         self.time = time
 
 
+@value
 struct PerfMetrics:
     # values are in "ns"
     # using perf_metrics can reduce the speed of each epoch of the model a little bit
