@@ -136,7 +136,12 @@ struct PerfMetrics:
                 
             print(print_value)
 
-        print("\nTotal average " + type_part + " time: " + str(total_time) + time_format)
+        var total_time_converted = total_time
+        if time_format == "ms":
+            total_time_converted = total_time / 1e6
+        elif time_format == "s":
+            total_time_converted = total_time / 1e9
+        print("\nTotal average " + type_part + " time: " + str(total_time_converted) + time_format)
 
     fn print_forward_perf_metrics(
         self, time_format: String = "ns", print_shape: Bool = False
