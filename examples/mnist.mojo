@@ -106,7 +106,18 @@ fn main():
             epoch_loss += loss[0]
             num_batches += 1
 
-            print("Epoch [", epoch + 1, "/", num_epochs, "],\t Step [", num_batches, "/", train_data.data.dim(0) // batch_size, "],\t Loss:", epoch_loss / num_batches)
+            print(
+                "Epoch [",
+                epoch + 1,
+                "/",
+                num_epochs,
+                "],\t Step [",
+                num_batches,
+                "/",
+                train_data.data.dim(0) // batch_size,
+                "],\t Loss:",
+                epoch_loss / num_batches,
+            )
 
         print("Epoch time: ", (now() - epoch_start) / 1e9, "seconds")
 

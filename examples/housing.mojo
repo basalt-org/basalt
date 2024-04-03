@@ -66,7 +66,14 @@ fn main():
             epoch_loss += loss[0]
             num_batches += 1
 
-        print("Epoch: [", epoch + 1, "/", num_epochs, "] \t Avg loss per epoch:", epoch_loss / num_batches)
+        print(
+            "Epoch: [",
+            epoch + 1,
+            "/",
+            num_epochs,
+            "] \t Avg loss per epoch:",
+            epoch_loss / num_batches,
+        )
 
     print("Training finished: ", (now() - start) / 1e9, "seconds")
 
