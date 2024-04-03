@@ -117,23 +117,26 @@ struct PerfMetrics:
             elif time_format == "s":
                 time_converted = time / 1e9
 
-            var print_value = "Node: " + str(i) 
-                + " Operator: " + value.node.operator + " Time: " 
-                + time_converted + time_format + " Percentage of time taken: " 
-                + (time / total_time) * 100 + "%. "
+            var print_value = "-Node: " + str(i) 
+                + " Operator: " + value.node.operator + "\n" + "    Time: " 
+                + time_converted + time_format + ", Percentage of time taken: " 
+                + (time / total_time) * 100 + "% "
 
             if print_shape:
-                print_value += "Input shape 1: " + str(value.node.input_1.shape)
+                print_value += "\n" + "    Output shape: " + str(value.node.output.shape)
+                print_value += " - Input shape 1: " + str(value.node.input_1.shape)
                 if value.node.input_2:
-                    print_value += " Input shape 2: " + str(
+                    print_value += ", Input shape 2: " + str(
                         value.node.input_2.value().shape
                     )
                 if value.node.input_3:
-                    print_value += " Input shape 3: " + str(
+                    print_value += ", Input shape 3: " + str(
                         value.node.input_3.value().shape
                     )
-                print_value += " Output shape: " + str(value.node.output.shape)
+                
             print(print_value)
+
+        print("\nTotal average " + type_part + " time: " + str(total_time) + time_format)
 
     fn print_forward_perf_metrics(
         self, time_format: String = "ns", print_shape: Bool = False
