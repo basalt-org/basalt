@@ -57,9 +57,7 @@ struct Graph:
         self.symbol_count += 1
         return scalar_id
 
-    fn constant(
-        inout self, shape: TensorShape, data: List[SIMD[dtype, 1]]
-    ) -> Symbol:
+    fn constant(inout self, shape: TensorShape, data: List[SIMD[dtype, 1]]) -> Symbol:
         var cst = Param(data)
         var constant_id = Symbol(self.symbol_count, dtype, shape, trainable=False)
         self.params.put(constant_id, cst)
@@ -111,9 +109,7 @@ struct Graph:
                 self.result_trainable(operand_1),
             )
 
-        self.nodes.append(
-            Node(op, res, operand_1, operand_2, operand_3, attributes)
-        )
+        self.nodes.append(Node(op, res, operand_1, operand_2, operand_3, attributes))
         self.symbol_count += 1
         return res
 

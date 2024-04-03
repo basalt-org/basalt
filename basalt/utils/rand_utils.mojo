@@ -48,7 +48,10 @@ struct MersenneTwister:
         alias D: Int32 = 0xFFFFFFFF
 
         self.index = Self.N
-        self.state = StaticTuple[Int32, Self.N, ]()
+        self.state = StaticTuple[
+            Int32,
+            Self.N,
+        ]()
         self.state[0] = seed & D
 
         for i in range(1, Self.N):

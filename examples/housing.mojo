@@ -30,6 +30,9 @@ fn main():
 
     alias graph = linear_regression(batch_size, 13, 1)
 
+    # try: graph.render("operator")
+    # except: print("Could not render graph")
+
     var model = nn.Model[graph]()
     var optim = nn.optim.Adam[graph](lr=learning_rate)
     optim.allocate_rms_and_momentum(model.parameters)
@@ -73,11 +76,6 @@ fn main():
         )
 
     print("Training finished: ", (now() - start) / 1e9, "seconds")
-
-    # try:
-    #     graph.render("operator")
-    # except:
-    #     print("Could not render graph")
 
     # print("\n\nInferencing model...\n")
     # for batch in training_loader:
