@@ -21,12 +21,33 @@
 
 ...
 
+## Quick Start
+
+Tryout the benchmarks yourself:
+
+```
+mojo -I . examples/housing.mojo
+```
+```
+mojo -I . examples/sin_estimate.mojo
+```
+```
+mojo -I . examples/mnist.mojo
+```
+
+Compare to an alternative PyTorch implementation:  
+Make sure to install the requirements in `python-requirements.txt` in your python environment.
+
+```
+python examples/housing.py
+python examples/sin_estimate.py
+python examples/mnist.py
+```
+
 ## Contributing
 
-Basalt is built by community efforts and relies on your expertise and enthousiasm!
-Small fixes and improvements are much appreciated. If you are considering larger contributions, feel free to contact us for a smoother communication channel on Discord.
-
-* If you find a bug or have an idea for a feature, please use our issue tracker. Before creating a new issue, please:
+Basalt is built by community efforts and relies on your expertise and enthousiasm!  
+Small fixes and improvements are much appreciated. If you are considering larger contributions, feel free to contact us for a smoother communication channel on Discord. If you find a bug or have an idea for a feature, please use our issue tracker. Before creating a new issue, please:
 * Check if the issue already exists. If an issue is already reported, you can contribute by commenting on the existing issue.
 * If not, create a new issue and include all the necessary details to understand/recreate the problem or feature request.
 
