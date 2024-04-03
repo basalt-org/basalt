@@ -177,6 +177,7 @@ struct DIV:
                         / (t2.load[nelts](index2) ** 2)
                         * ug.load[nelts](i),
                     )
+
                 vectorize[vec_div_bw_broadcast, 1](ug_shape.num_elements())
 
             else:
@@ -257,9 +258,7 @@ struct EXP:
 
         @parameter
         fn vec_exp_bw[nelts: Int](i: Int):
-            res_grad.store[nelts](
-                i, exp(t1.load[nelts](i)) * ug.load[nelts](i)
-            )
+            res_grad.store[nelts](i, exp(t1.load[nelts](i)) * ug.load[nelts](i))
 
         vectorize[vec_exp_bw, nelts](ug_shape.num_elements())
         return res_grad ^

@@ -40,11 +40,8 @@ fn main():
 
     alias graph = create_simple_nn(batch_size, n_inputs, n_outputs)
 
-    # try:
-    #     graph.render("operator")
-    # except e:
-    #     print("Failed to render graph")
-    #     print(e)
+    # try: graph.render("operator")
+    # except: print("Could not render graph")
 
     var model = nn.Model[graph]()
     var optimizer = nn.optim.Adam[graph](lr=learning_rate)
@@ -55,7 +52,6 @@ fn main():
 
     print("Training started")
     var start = now()
-
     for i in range(epochs):
         rand[dtype](x_data.data(), x_data.num_elements())
 
