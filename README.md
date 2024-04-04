@@ -1,7 +1,7 @@
 <br/>
 <p align="center">
   <a href="https://github.com/Basalt-Org/Basalt">
-    <img src="https://github.com/basalt-org/basalt/assets/46826967/4873806c-ff61-4903-bf3d-874d6acba3e8" alt="Logo" width="250" height="250">
+    <img src="https://github.com/basalt-org/basalt/assets/46826967/4873806c-ff61-4903-bf3d-874d6acba3e8" alt="Logo" width="200" height="200">
   </a>
 
   <h1 align="center">Basalt</h1>
@@ -91,7 +91,7 @@ Small fixes and improvements are much appreciated. If you are considering larger
 5. Open a Pull Request
 > Once your changes are pushed, navigate to your fork on GitHub. And create a pull request against the original basalt-org/basalt repository.
 > - Before creating a PR make sure it doesn't break any of the unit-tests. (e.g. `mojo run -I . test/test_ops.mojo`)
-> - Introducing new big features require a new test!
+> - Introducing new big features requires a new test!
 > - In the pull request, provide a detailed description of the changes and why they're needed. Link any relevant issues.
 > - If there are any specific instructions for testing or validating your changes, include those as well.
 
