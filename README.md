@@ -20,14 +20,16 @@
 
 ## About The Project
 
-...
+Basalt is a young machine learning framework that leverages the power of Mojo. As [discussed](https://docs.modular.com/mojo/why-mojo) by Modular, Mojo is a language for the future of AI development. Built on top of MLIR technology, rather than existing GCC and LLVM approaches, Mojo looks and feels like Python code, yet performs much closer to languages like Rust or C++. Parametric functions and compile time parameters allow for the graph to statically compiled. Having the static graph allows for much harder performance optimizations.
+
+Basalt, while still in its infancy, is able to achieve speeds comparable to well established frameworks like Pytorch. Note that the project right now is mainly limited to models using Linear and Convolutional layers. Below a benchmark of the current status. But keep posted, there is much more room for improvement and we are upgrading the project on a daily basis.
 
 ![basalt_benchmark](https://github.com/basalt-org/basalt/assets/46826967/83037770-a9e3-440d-bdca-f51af0aebee0)
 
 
 ## Quick Start
 
-Tryout the benchmarks yourself:
+Try out the benchmarks yourself:
 
 ```
 mojo -I . examples/housing.mojo
@@ -39,7 +41,7 @@ mojo -I . examples/sin_estimate.mojo
 mojo -I . examples/mnist.mojo
 ```
 
-Compare to an alternative PyTorch implementation:  
+Compare to the alternative PyTorch implementation:  
 Make sure to install the requirements in `python-requirements.txt` in your python environment.
 
 ```
@@ -63,7 +65,8 @@ Small fixes and improvements are much appreciated. If you are considering larger
 4. Push to the Branch
 5. Open a Pull Request
 > Once your changes are pushed, navigate to your fork on GitHub. And create a pull request against the original basalt-org/basalt repository.
-> - Before creating a PR make sure it doesn't break any of the unit-tests. Introducing new big features require a test.
+> - Before creating a PR make sure it doesn't break any of the unit-tests. (e.g. `mojo run -I . test/test_ops.mojo`)
+> - Introducing new big features require a new test!
 > - In the pull request, provide a detailed description of the changes and why they're needed. Link any relevant issues.
 > - If there are any specific instructions for testing or validating your changes, include those as well.
 
@@ -73,4 +76,4 @@ Distributed under the Apache 2.0 License with LLVM Exceptions. See [LICENSE](htt
 
 ## Acknowledgements
 
-* Build with [Mojo](https://github.com/modularml/mojo) created by [Modular](https://github.com/modularml)
+* Built with [Mojo](https://github.com/modularml/mojo) created by [Modular](https://github.com/modularml)
