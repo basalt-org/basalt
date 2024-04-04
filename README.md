@@ -1,7 +1,7 @@
 <br/>
 <p align="center">
   <a href="https://github.com/Basalt-Org/Basalt">
-    <img src="https://github.com/basalt-org/basalt/assets/112336374/594a078b-1ec1-4cba-91ec-c7c7f3e4fe47" alt="Logo" width="250" height="250">
+    <img src="https://github.com/basalt-org/basalt/assets/46826967/4873806c-ff61-4903-bf3d-874d6acba3e8" alt="Logo" width="250" height="250">
   </a>
 
   <h1 align="center">Basalt</h1>
@@ -17,9 +17,13 @@
   <img src="https://img.shields.io/github/license/Basalt-Org/Basalt?color=dark-green" />
 </div>
 
+
 ## About The Project
 
 ...
+
+![basalt_benchmark](https://github.com/basalt-org/basalt/assets/46826967/83037770-a9e3-440d-bdca-f51af0aebee0)
+
 
 ## Quick Start
 
