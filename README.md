@@ -24,7 +24,7 @@ Basalt is a stand-alone machine learning framework that leverages the power of M
 
 As [discussed](https://docs.modular.com/mojo/why-mojo) by Modular, Mojo is a language for the future of AI development. Built on top of MLIR technology, rather than existing GCC and LLVM approaches, Mojo looks and feels like Python code, yet performs much closer to languages like Rust or C++. Parametric functions and compile time parameters allow for the graph to statically compiled. Having the static graph allows for much harder performance optimizations.
 
-Basalt, while still in its infancy, is able to achieve speeds comparable to well established frameworks like Pytorch. Note that the project right now is mainly limited to models using Linear and Convolutional layers. Below a benchmark of the current status. But keep posted, there is much more room for improvement and we are upgrading the project on a daily basis.
+Basalt, while still in its infancy, is able to achieve speeds comparable to well established frameworks like Pytorch. Below a snapshot of the current benchmarks. But keep posted, there is much more room for improvement and we are upgrading the project on a daily basis.
 
 ![basalt_benchmark](https://github.com/basalt-org/basalt/assets/46826967/83037770-a9e3-440d-bdca-f51af0aebee0)
 
