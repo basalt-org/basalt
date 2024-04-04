@@ -54,7 +54,7 @@ python examples/mnist.py
 
 ## Roadmap
 
-### v0.1.0 [x]
+### v0.1.0 ✅
 - [x] Improve matrix multiplication and convolution kernels
 - [x] Switch to custom Tensor and TensorShape implementations
 - [x] Improve benchmarks and overall model execution performance
