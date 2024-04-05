@@ -51,6 +51,7 @@ fn test_FMA() raises:
 
     test_ternary_op[OP.FMA, t1_shape, t2_shape, t3_shape](t1, t2, t3, expected)
 
+
 # ------ Test Binary Ops ------
 fn test_binary_op[
     op: OP, t1_shape: TensorShape, t2_shape: TensorShape
@@ -484,6 +485,7 @@ fn main():
         test_TRANSPOSE()
         test_FLATTEN()
         test_RESHAPE()
+        test_FMA()
     except e:
         print("[ERROR] Error in ops")
         print(e)
