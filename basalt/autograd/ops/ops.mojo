@@ -13,6 +13,7 @@ from .basics import (
     FLATTEN,
     RESHAPE,
     TRANSPOSE,
+    FMA,
 )
 from .mlops import SIGMOID, RELU, TANH
 from .conv import CONV2D
@@ -51,6 +52,7 @@ struct OP(Stringable):
     alias CONV2D = OP(16, "CONV2D", num_operands=3)
     alias TRANSPOSE = OP(17, "TRANSPOSE", num_operands=1)
     alias MAXPOOL2D = OP(18, "MAXPOOL2D", num_operands=1)
+    alias FMA = OP(19, "FMA", num_operands=3)
 
     var id: UInt8
     var name: bytes[16]
@@ -143,6 +145,8 @@ fn static_result_shape(
 
     if op == OP.CONV2D:
         return CONV2D.result_shape(t1_shape, t2_shape, t3_shape, attributes)
+    elif op == OP.FMA:
+        return FMA.result_shape(t1_shape, t2_shape, t3_shape)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1, -1)
@@ -222,6 +226,8 @@ fn forward_op[
     @parameter
     if op == OP.CONV2D:
         CONV2D.forward[t1_shape, t2_shape, t3_shape, attributes](res, t1, t2, t3)
+    elif op == OP.FMA:
+        FMA.forward[t1_shape, t2_shape, t3_shape](res, t1, t2, t3)
     else:
         print("[ERROR] Operator not found.")
 
@@ -351,6 +357,10 @@ fn backward_op[
     if op == OP.CONV2D:
         res_grad = CONV2D.backward[
             tensor_id, ug_shape, t1_shape, t2_shape, t3_shape, attributes
+        ](ug, t1, t2, t3)
+    elif op == OP.FMA:
+        res_grad = FMA.backward[
+            tensor_id, ug_shape, t1_shape, t2_shape, t3_shape
         ](ug, t1, t2, t3)
     else:
         print("[ERROR] Operator not found.")
