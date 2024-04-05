@@ -12,6 +12,44 @@ from basalt.utils.tensorutils import fill
 alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
 
+fn test_ternary_op[
+    op: OP, t1_shape: TensorShape, t2_shape: TensorShape, t3_shape: TensorShape
+](
+    t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype], expected: Tensor[dtype]
+) raises:
+    fn create_graph() -> Graph:
+        var g = Graph()
+        var t1 = g.input(t1_shape)
+        var t2 = g.input(t2_shape)
+        var t3 = g.input(t3_shape)
+
+        var res = g.op(op, t1, t2, t3)
+        g.out(res)
+
+        return g ^
+
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+
+    var model = nn.Model[graph](inference_only=True)
+    var res = model.inference(t1, t2, t3)[0]
+    assert_tensors_equal(res, expected)
+
+fn test_FMA() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias t2_shape = TensorShape(2, 3)
+    alias t3_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var t2: Tensor[dtype] = Tensor[dtype](t2_shape)
+    var t3: Tensor[dtype] = Tensor[dtype](t3_shape)
+    fill(t1, 1.0)
+    fill(t2, 2.0)
+    fill(t3, 3.0)
+
+    var expected = Tensor[dtype](2, 3)
+    fill(expected, 1.0 * 2.0 + 3.0)
+
+    test_ternary_op[OP.FMA, t1_shape, t2_shape, t3_shape](t1, t2, t3, expected)
 
 # ------ Test Binary Ops ------
 fn test_binary_op[
