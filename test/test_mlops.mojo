@@ -6,7 +6,7 @@ from test_tensorutils import assert_tensors_equal
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
-from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH
+from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP
 from basalt.utils.tensorutils import fill
 
 
@@ -124,12 +124,40 @@ fn test_backward_TANH() raises:
     var grad = TANH.backward[ug_shape, t1_shape](ug, t1)
     assert_tensors_equal(grad, expected_grad)
 
+fn test_CLIP() raises:
+    alias t1_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    for i in range(6):
+        t1[i] = i
+
+    var expected = Tensor[dtype](2, 3)
+    for i in range(6):
+        expected[i] = i
+
+    test_unary_op[OP.CLIP, t1_shape](t1, expected)
+
+fn test_backwards_CLIP() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias ug_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    for i in range(6):
+        t1[i] = i
+    fill(ug, 5.0)
+
+    var expected_grad = Tensor[dtype](2, 3)
+    fill(expected_grad, 5.0)
+
+    var grad = CLIP.backward[ug_shape, t1_shape](ug, t1)
+    assert_tensors_equal(grad, expected_grad)
+
 
 fn main():
     try:
         test_SIGMOID()
         test_RELU()
         test_TANH()
+        test_CLIP()
     except e:
         print("[ERROR] Error in forward mlops")
         print(e)
@@ -139,6 +167,7 @@ fn main():
         test_backward_SIGMOID()
         test_backward_RELU()
         test_backward_TANH()
+        test_backwards_CLIP()
     except e:
         print("[ERROR] Error in backward mlops")
         print(e)

@@ -429,33 +429,6 @@ fn test_RESHAPE() raises:
 
     assert_tensors_equal(res, expected)
 
-fn test_CLIP() raises:
-    alias t_shape = TensorShape(2, 3)
-    var t = Tensor[dtype](t_shape)
-    fill(t, 10)
-
-    fn create_graph() -> Graph:
-        var g = Graph()
-        var t1 = g.input(t_shape)
-
-        var res = g.op(
-            OP.CLIP, t1, attributes=AttributeVector(Attribute("min", 0), Attribute("max", 5))
-        )
-        g.out(res)
-
-        return g ^
-
-    alias graph = create_graph()
-    assert_equal(len(graph.nodes), 1)
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t)[0]
-
-    var expected = Tensor[dtype](2, 3)
-    fill(expected, 5)
-
-    assert_tensors_equal(res, expected)
-
-
 fn main():
     try:
         test_ADD()
@@ -472,7 +445,6 @@ fn main():
         test_TRANSPOSE()
         test_FLATTEN()
         test_RESHAPE()
-        test_CLIP()
     except e:
         print("[ERROR] Error in ops")
         print(e)

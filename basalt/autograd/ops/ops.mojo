@@ -13,9 +13,8 @@ from .basics import (
     FLATTEN,
     RESHAPE,
     TRANSPOSE,
-    CLIP,
 )
-from .mlops import SIGMOID, RELU, TANH
+from .mlops import SIGMOID, RELU, TANH, CLIP
 from .conv import CONV2D
 from .pool import MAXPOOL2D
 
