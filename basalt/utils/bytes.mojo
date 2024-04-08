@@ -8,16 +8,13 @@ struct bytes[capacity: Int](Stringable, CollectionElement):
     Static sequence of bytes.
     """
 
-    var _vector: StaticTuple[UInt8, capacity]
+    var _vector: SIMD[DType.uint8, capacity]
 
     fn __init__(inout self):
-        var _vector = StaticTuple[UInt8, capacity]()
-        for i in range(capacity):
-            _vector[i] = 0
-        self._vector = _vector
+        self._vector = SIMD[DType.uint8, capacity]()
 
     fn __init__(inout self, s: String):
-        var _vector = StaticTuple[UInt8, capacity]()
+        var _vector = SIMD[DType.uint8, capacity]()
         for i in range(min(len(s), capacity)):
             _vector[i] = ord(s[i])
         self._vector = _vector
