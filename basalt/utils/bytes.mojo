@@ -11,10 +11,10 @@ struct Bytes[capacity: Int](Stringable, CollectionElement):
     var _vector: StaticTuple[UInt8, capacity]
 
     fn __init__(inout self):
-        self._vector = StaticTuple[UInt8, capacity]()
+        self._vector = StaticTuple[UInt8, capacity](0)
 
     fn __init__(inout self, s: String):
-        var _vector = StaticTuple[UInt8, capacity]()
+        var _vector = StaticTuple[UInt8, capacity](0)
         for i in range(min(len(s), capacity)):
             _vector[i] = ord(s[i])
         self._vector = _vector
