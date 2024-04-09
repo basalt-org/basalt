@@ -3,7 +3,7 @@ from math import min
 
 @value
 @register_passable("trivial")
-struct bytes[capacity: Int](Stringable, CollectionElement):
+struct Bytes[capacity: Int](Stringable, CollectionElement):
     """
     Static sequence of bytes.
     """

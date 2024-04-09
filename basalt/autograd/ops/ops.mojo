@@ -20,7 +20,7 @@ from .conv import CONV2D
 from .pool import MAXPOOL2D
 
 from basalt import Tensor, TensorShape
-from basalt.utils.bytes import bytes
+from basalt.utils.bytes import Bytes
 from basalt.utils.tensorutils import broadcast_shapes, accumulate_grad
 from ..attributes import AttributeVector
 
@@ -55,12 +55,12 @@ struct OP(Stringable):
     alias FMA = OP(19, "FMA", num_operands=3)
 
     var id: UInt8
-    var name: bytes[16]
+    var name: Bytes[16]
     var num_operands: UInt8
 
     fn __init__(inout self, id: UInt8, name: String, num_operands: UInt8):
         self.id = id
-        self.name = bytes[16](name)
+        self.name = Bytes[16](name)
         self.num_operands = num_operands
 
     fn __eq__(self, other: OP) -> Bool:
