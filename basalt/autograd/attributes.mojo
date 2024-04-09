@@ -86,37 +86,37 @@ struct Attribute(Stringable, CollectionElement):
 
 @register_passable("trivial")
 struct AttributeVector(Sized, Stringable, CollectionElement):
-    var _attrs: StaticTuple[Attribute, MAX_ATTRS]
-    var _size: Int
+    var attributes: StaticTuple[Attribute, MAX_ATTRS]
+    var size: Int
 
     @always_inline("nodebug")
     fn __init__(inout self, *attributes: Attribute):
-        self._attrs = StaticTuple[Attribute, MAX_ATTRS]()
-        self._size = len(attributes)
-        for i in range(self._size):
-            self._attrs[i] = attributes[i]
+        self.attributes = StaticTuple[Attribute, MAX_ATTRS]()
+        self.size = len(attributes)
+        for i in range(self.size):
+            self.attributes[i] = attributes[i]
 
     @always_inline("nodebug")
     fn __len__(self) -> Int:
-        return self._size
+        return self.size
 
     @always_inline("nodebug")
     fn __getitem__(self, index: Int) -> Attribute:
-        return self._attrs[index]
+        return self.attributes[index]
 
     @always_inline("nodebug")
     fn __getitem__(self, index: StringLiteral) -> Optional[Attribute]:
-        for i in range(self._size):
-            if self._attrs[i].name == Bytes[MAX_NAME_CHARS](index):
-                return self._attrs[i]
+        for i in range(self.size):
+            if self.attributes[i].name == Bytes[MAX_NAME_CHARS](index):
+                return self.attributes[i]
         return None
 
     @always_inline("nodebug")
     fn __str__(self) -> String:
         var s: String = "["
-        for i in range(self._size):
-            s += str(self._attrs[i])
-            if i < self._size - 1:
+        for i in range(self.size):
+            s += str(self.attributes[i])
+            if i < self.size - 1:
                 s += ", "
         return s + "]"
 
