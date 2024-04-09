@@ -8,7 +8,6 @@ struct Bytes[capacity: Int](Stringable, CollectionElement):
     Static sequence of bytes.
     """
 
-    # var _vector: SIMD[DType.uint8, capacity]
     var _vector: StaticTuple[UInt8, capacity]
 
     fn __init__(inout self):
