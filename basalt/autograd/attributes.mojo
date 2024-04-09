@@ -1,6 +1,4 @@
 from collections import Optional
-from utils import Variant
-from math import min
 
 from basalt import Tensor, TensorShape
 from basalt.nn.tensor import MAX_RANK
@@ -14,11 +12,9 @@ alias MAX_DATA_BYTES = 32
 
 @register_passable("trivial")
 struct Attribute(Stringable, CollectionElement):
-    var name: Bytes[MAX_NAME_CHARS]  # maximum number of chars in the string
-    var data: Bytes[MAX_DATA_BYTES]  # maximum number of bytes in the value
-    var data_shape: StaticIntTuple[
-        MAX_RANK
-    ]  # maximum number of dimensions in the value
+    var name: Bytes[MAX_NAME_CHARS]
+    var data: Bytes[MAX_DATA_BYTES]
+    var data_shape: StaticIntTuple[MAX_RANK]
 
     fn __init__(inout self, name: String, value: Int):
         self.name = Bytes[MAX_NAME_CHARS](name)
@@ -108,91 +104,26 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
                 s += ", "
         return s + "]"
 
-# BELOW CODE COULD BE DRASTICALLY IMPROVED
 
 fn to_bytes[Type: DType](value: Scalar[Type]) -> Bytes[MAX_DATA_BYTES]:
+    alias TypeSize = Type.sizeof()
+    alias Bits = 1 << (TypeSize + 3)
     var result = Bytes[MAX_DATA_BYTES]()
 
-    @parameter
-    if Type == DType.bool:
-        result[0] = value.cast[DType.uint8]()
-    elif Type == DType.uint8 or Type == DType.int8:
+    @unroll
+    for i in range(Bits):
+        result[i] = (value >> (i * 8)).cast[DType.uint8]()
 
-        @unroll
-        for i in range(8):
-            result[i] = value.cast[DType.uint8]()[i]
-    elif Type == DType.uint16 or Type == DType.int16 or Type == DType.float16:
-
-        @unroll
-        for i in range(8):
-            @unroll
-            for j in range(2):
-                result[i * 2 + j] = value.cast[DType.uint8]()[i * 2 + j]
-    elif Type == DType.uint32 or Type == DType.int32 or Type == DType.float32:
-
-        @unroll
-        for i in range(8):
-            @unroll
-            for j in range(4):
-                result[i * 4 + j] = value.cast[DType.uint8]()[i * 4 + j]
-    elif Type == DType.uint64 or Type == DType.int64 or Type == DType.float64:
-
-        @unroll
-        for i in range(8):
-            @unroll
-            for j in range(8):
-                result[i * 8 + j] = value.cast[DType.uint8]()[i * 8 + j]
-    else:
-        constrained[False, "Invalid DType"]()
     return result
 
 
 fn from_bytes[Type: DType](value: Bytes[MAX_DATA_BYTES]) -> Scalar[Type]:
-    if Type == DType.bool:
-        return Scalar[Type](value[0].cast[Type]())
-    elif Type == DType.uint8 or Type == DType.int8:
-        var result: Scalar[Type] = 0
+    alias TypeSize = Type.sizeof()
+    alias Bits = 1 << (TypeSize + 3)
+    var result: Scalar[Type] = 0
 
-        @unroll
-        for i in range(8):
-            result |= value[i].cast[Type]() << i
-        return Scalar[Type](result)
-    elif Type == DType.uint16 or Type == DType.int16 or Type == DType.float16:
-        var result: Scalar[Type] = 0
+    @unroll
+    for i in range(Bits):
+        result |= (value[i].cast[Type]()) << (i * 8)
 
-        @unroll
-        for i in range(8):
-            result |= value[i * 2].cast[Type]() << (i * 2)
-            result |= value[i * 2 + 1].cast[Type]() << (i * 2 + 1)
-        return Scalar[Type](result)
-    elif Type == DType.uint32 or Type == DType.int32 or Type == DType.float32:
-        var result: Scalar[Type] = 0
-
-        @unroll
-        for i in range(8):
-            result |= value[i * 4].cast[Type]() << (i * 4)
-            result |= value[i * 4 + 1].cast[Type]() << (i * 4 + 1)
-            result |= value[i * 4 + 2].cast[Type]() << (i * 4 + 2)
-            result |= value[i * 4 + 3].cast[Type]() << (i * 4 + 3)
-        return Scalar[Type](result)
-    elif Type == DType.uint64 or Type == DType.int64 or Type == DType.float64:
-        var result: Scalar[Type] = 0
-
-        @unroll
-        for i in range(8):
-            result |= value[i * 8].cast[Type]() << (i * 8)
-            result |= value[i * 8 + 1].cast[Type]() << (i * 8 + 1)
-            result |= value[i * 8 + 2].cast[Type]() << (i * 8 + 2)
-            result |= value[i * 8 + 3].cast[Type]() << (i * 8 + 3)
-
-            result |= value[i * 8 + 4].cast[Type]() << (i * 8 + 4)
-            result |= value[i * 8 + 5].cast[Type]() << (i * 8 + 5)
-            result |= value[i * 8 + 6].cast[Type]() << (i * 8 + 6)
-            result |= value[i * 8 + 7].cast[Type]() << (i * 8 + 7)
-
-        return Scalar[Type](result)
-        
-    else:
-        constrained[False, "Invalid DType"]()
-
-    return Scalar[Type](0)
+    return result
