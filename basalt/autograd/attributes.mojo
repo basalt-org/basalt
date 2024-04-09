@@ -11,6 +11,43 @@ alias MAX_DATA_BYTES = 32
 
 
 @register_passable("trivial")
+struct AttributeVector(Sized, Stringable, CollectionElement):
+    var attributes: StaticTuple[Attribute, MAX_ATTRS]
+    var size: Int
+
+    @always_inline("nodebug")
+    fn __init__(inout self, *attributes: Attribute):
+        self.attributes = StaticTuple[Attribute, MAX_ATTRS]()
+        self.size = len(attributes)
+        for i in range(self.size):
+            self.attributes[i] = attributes[i]
+
+    @always_inline("nodebug")
+    fn __len__(self) -> Int:
+        return self.size
+
+    @always_inline("nodebug")
+    fn __getitem__(self, index: Int) -> Attribute:
+        return self.attributes[index]
+
+    @always_inline("nodebug")
+    fn __getitem__(self, index: StringLiteral) -> Optional[Attribute]:
+        for i in range(self.size):
+            if self.attributes[i].name == Bytes[MAX_NAME_CHARS](index):
+                return self.attributes[i]
+        return None
+
+    @always_inline("nodebug")
+    fn __str__(self) -> String:
+        var s: String = "["
+        for i in range(self.size):
+            s += str(self.attributes[i])
+            if i < self.size - 1:
+                s += ", "
+        return s + "]"
+
+
+@register_passable("trivial")
 struct Attribute(Stringable, CollectionElement):
     var name: Bytes[MAX_NAME_CHARS]
     var data: Bytes[MAX_DATA_BYTES]
@@ -84,43 +121,6 @@ struct Attribute(Stringable, CollectionElement):
         return from_bytes[Type](self.data)
 
 
-@register_passable("trivial")
-struct AttributeVector(Sized, Stringable, CollectionElement):
-    var attributes: StaticTuple[Attribute, MAX_ATTRS]
-    var size: Int
-
-    @always_inline("nodebug")
-    fn __init__(inout self, *attributes: Attribute):
-        self.attributes = StaticTuple[Attribute, MAX_ATTRS]()
-        self.size = len(attributes)
-        for i in range(self.size):
-            self.attributes[i] = attributes[i]
-
-    @always_inline("nodebug")
-    fn __len__(self) -> Int:
-        return self.size
-
-    @always_inline("nodebug")
-    fn __getitem__(self, index: Int) -> Attribute:
-        return self.attributes[index]
-
-    @always_inline("nodebug")
-    fn __getitem__(self, index: StringLiteral) -> Optional[Attribute]:
-        for i in range(self.size):
-            if self.attributes[i].name == Bytes[MAX_NAME_CHARS](index):
-                return self.attributes[i]
-        return None
-
-    @always_inline("nodebug")
-    fn __str__(self) -> String:
-        var s: String = "["
-        for i in range(self.size):
-            s += str(self.attributes[i])
-            if i < self.size - 1:
-                s += ", "
-        return s + "]"
-
-
 @always_inline("nodebug")
 fn to_bytes[Type: DType](value: Scalar[Type]) -> Bytes[MAX_DATA_BYTES]:
     alias TypeSize = Type.sizeof()
@@ -151,7 +151,7 @@ fn from_bytes[Type: DType](value: Bytes[MAX_DATA_BYTES]) -> Scalar[Type]:
     fn get_bytes[i: Int]():
         alias Shift = i * 8
         result |= (value[i].cast[Type]()) << Shift
-    
+
     unroll[get_bytes, Bits]()
 
     return result
