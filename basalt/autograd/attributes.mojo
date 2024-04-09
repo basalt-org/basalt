@@ -2,7 +2,7 @@ from collections import Optional
 
 from basalt import Tensor, TensorShape
 from basalt.nn.tensor import MAX_RANK
-from basalt.utils.bytes import Bytes
+from basalt.utils.bytes import Bytes, float_to_bytes, bytes_to_float
 
 
 alias MAX_ATTRS = 10
@@ -86,12 +86,21 @@ struct Attribute(Stringable, CollectionElement):
             self.data_shape[i] = value[i]
 
     @always_inline("nodebug")
-    fn __init__(inout self, name: String, value: Scalar):
+    fn __init__[dtype: DType](inout self, name: String, value: Scalar[dtype]):
         alias Type = value.element_type
 
         self.name = Bytes[MAX_NAME_CHARS](name)
-        self.data = to_bytes(value)
+        self.data = Bytes[MAX_DATA_BYTES]()
         self.data_shape = StaticIntTuple[MAX_RANK]()
+
+        @parameter
+        if dtype == DType.float16 or dtype == DType.float32 or dtype == DType.float64:
+            var fbytes = float_to_bytes(value)
+            for i in range(dtype.sizeof()):
+                self.data[i] = fbytes[i]
+        # elif dtype == DType.int8 or dtype == DType.int16 or dtype == DType.int32 or dtype == DType.int64:
+        # elif dtype == DType.uint8 or dtype == DType.uint16 or dtype == DType.uint32 or dtype == DType.uint64:
+        # TODO
 
     @always_inline("nodebug")
     fn __str__(self) -> String:
@@ -117,41 +126,15 @@ struct Attribute(Stringable, CollectionElement):
         return result
 
     @always_inline("nodebug")
-    fn to_scalar[Type: DType](self) -> Scalar[Type]:
-        return from_bytes[Type](self.data)
-
-
-@always_inline("nodebug")
-fn to_bytes[Type: DType](value: Scalar[Type]) -> Bytes[MAX_DATA_BYTES]:
-    alias TypeSize = Type.sizeof()
-    alias Bits = 1 << (TypeSize + 3)
-
-    var result = Bytes[MAX_DATA_BYTES]()
-
-    @parameter
-    @always_inline("nodebug")
-    fn set_bytes[i: Int]():
-        alias Shift = i * 8
-        result[i] = (value >> Shift).cast[DType.uint8]()
-
-    unroll[set_bytes, Bits]()
-
-    return result
-
-
-@always_inline("nodebug")
-fn from_bytes[Type: DType](value: Bytes[MAX_DATA_BYTES]) -> Scalar[Type]:
-    alias TypeSize = Type.sizeof()
-    alias Bits = 1 << (TypeSize + 3)
-
-    var result: Scalar[Type] = 0
-
-    @parameter
-    @always_inline("nodebug")
-    fn get_bytes[i: Int]():
-        alias Shift = i * 8
-        result |= (value[i].cast[Type]()) << Shift
-
-    unroll[get_bytes, Bits]()
-
-    return result
+    fn to_scalar[dtype: DType](self) -> Scalar[dtype]:
+        @parameter
+        if dtype == DType.float16 or dtype == DType.float32 or dtype == DType.float64:
+            alias size = dtype.sizeof()
+            var fbytes = Bytes[size]()
+            for i in range(size):
+                fbytes[i] = self.data[i]
+            return bytes_to_float[dtype](fbytes)
+        # elif dtype == DType.int8 or dtype == DType.int16 or dtype == DType.int32 or dtype == DType.int64:
+        # elif dtype == DType.uint8 or dtype == DType.uint16 or dtype == DType.uint32 or dtype == DType.uint64:
+        # TODO
+        return Scalar[dtype](-1)

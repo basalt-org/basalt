@@ -43,17 +43,17 @@ fn test_attribute_static_int_tuple() raises:
     
     
 fn test_attribute_scalar() raises:
-    alias value_a: Scalar[DType.float32] = Scalar[DType.float32](1.23456)
-    alias a = Attribute(name="test", value=value_a)
-    assert_true(a.to_scalar[DType.float32]() == value_a)
+    var value_a: Scalar[DType.float32] = Scalar[DType.float32](1.23456)
+    var a = Attribute(name="test", value=value_a)
+    assert_true(a.to_scalar[DType.float32]() == value_a, "Float32 scalar attribute failed")
     
-    alias value_b: Scalar[DType.float64] = Scalar[DType.float64](1.23456)
-    alias b = Attribute(name="test", value=value_b)
-    assert_true(b.to_scalar[DType.float64]() == value_b)
+    var value_b: Scalar[DType.float64] = Scalar[DType.float64](1.23456)
+    var b = Attribute(name="test", value=value_b)
+    assert_true(b.to_scalar[DType.float64]() == value_b, "Float64 scalar attribute failed")
 
-    alias value_c: Scalar[DType.int32] = Scalar[DType.int32](666)
-    alias c = Attribute(name="test", value=value_c)
-    assert_true(c.to_scalar[DType.int32]() == value_c)
+    var value_c: Scalar[DType.int32] = Scalar[DType.int32](666)
+    var c = Attribute(name="test", value=value_c)
+    assert_true(c.to_scalar[DType.int32]() == value_c, "Int32 scalar attribute failed")
 
 
 fn main():
@@ -63,6 +63,6 @@ fn main():
         test_attribute_string()
         test_attribute_tensor_shape()
         test_attribute_static_int_tuple()
-        test_attribute_scalar() # SEGFAULT
+        test_attribute_scalar()
     except e:
         print(e)
