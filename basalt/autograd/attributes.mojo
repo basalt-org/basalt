@@ -98,9 +98,13 @@ struct Attribute(Stringable, CollectionElement):
             var fbytes = float_to_bytes(value)
             for i in range(dtype.sizeof()):
                 self.data[i] = fbytes[i]
-        # elif dtype == DType.int8 or dtype == DType.int16 or dtype == DType.int32 or dtype == DType.int64:
-        # elif dtype == DType.uint8 or dtype == DType.uint16 or dtype == DType.uint32 or dtype == DType.uint64:
-        # TODO
+        else:
+            var fbytes = float_to_bytes(value.cast[DType.float64]())
+            for i in range(DType.float64.sizeof()):
+                self.data[i] = fbytes[i]
+            # elif dtype == DType.int8 or dtype == DType.int16 or dtype == DType.int32 or dtype == DType.int64:
+            # elif dtype == DType.uint8 or dtype == DType.uint16 or dtype == DType.uint32 or dtype == DType.uint64:
+            # TODO
 
     @always_inline("nodebug")
     fn __str__(self) -> String:
@@ -134,7 +138,13 @@ struct Attribute(Stringable, CollectionElement):
             for i in range(size):
                 fbytes[i] = self.data[i]
             return bytes_to_float[dtype](fbytes)
-        # elif dtype == DType.int8 or dtype == DType.int16 or dtype == DType.int32 or dtype == DType.int64:
-        # elif dtype == DType.uint8 or dtype == DType.uint16 or dtype == DType.uint32 or dtype == DType.uint64:
-        # TODO
-        return Scalar[dtype](-1)
+        else:
+            alias size = DType.float64.sizeof()
+            var fbytes = Bytes[size]()
+            for i in range(size):
+                fbytes[i] = self.data[i]
+            return bytes_to_float[DType.float64](fbytes).cast[dtype]()
+            # elif dtype == DType.int8 or dtype == DType.int16 or dtype == DType.int32 or dtype == DType.int64:
+            # elif dtype == DType.uint8 or dtype == DType.uint16 or dtype == DType.uint32 or dtype == DType.uint64:
+            # TODO
+        return -1
