@@ -5,44 +5,44 @@ from tensor import Tensor as _Tensor
 from tensor import TensorShape as _TensorShape
 
 
-alias max_rank = 8
+alias MAX_RANK = 8
 
 
 @register_passable("trivial")
 struct TensorShape(Stringable):
     var _rank: Int
-    var _shape: StaticIntTuple[max_rank]
+    var _shape: StaticIntTuple[MAX_RANK]
 
     @always_inline("nodebug")
     fn __init__(inout self, *shape: Int):
         self._rank = len(shape)
-        self._shape = StaticIntTuple[max_rank]()
-        for i in range(min(self._rank, max_rank)):
+        self._shape = StaticIntTuple[MAX_RANK]()
+        for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shape[i]
 
     @always_inline("nodebug")
     fn __init__(inout self, shapes: VariadicList[Int]):
         self._rank = len(shapes)
-        self._shape = StaticIntTuple[max_rank]()
-        for i in range(min(self._rank, max_rank)):
+        self._shape = StaticIntTuple[MAX_RANK]()
+        for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shapes[i]
 
     @always_inline("nodebug")
     fn __init__(inout self, shape: List[Int]):
         self._rank = len(shape)
-        self._shape = StaticIntTuple[max_rank]()
-        for i in range(min(self._rank, max_rank)):
+        self._shape = StaticIntTuple[MAX_RANK]()
+        for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shape[i]
 
     @always_inline("nodebug")
     fn __init__[num: Int](inout self, shape: StaticIntTuple[num]):
         self._rank = num
-        self._shape = StaticIntTuple[max_rank]()
-        for i in range(min(self._rank, max_rank)):
+        self._shape = StaticIntTuple[MAX_RANK]()
+        for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shape[i]
 
     @always_inline("nodebug")
-    fn __init__(inout self, rank: Int, shape: StaticIntTuple[max_rank]):
+    fn __init__(inout self, rank: Int, shape: StaticIntTuple[MAX_RANK]):
         self._rank = rank
         self._shape = shape
 
@@ -66,8 +66,8 @@ struct TensorShape(Stringable):
         return result
 
     @always_inline("nodebug")
-    fn strides(self) -> StaticIntTuple[max_rank]:
-        var result = StaticIntTuple[max_rank](0)
+    fn strides(self) -> StaticIntTuple[MAX_RANK]:
+        var result = StaticIntTuple[MAX_RANK](0)
         result[self._rank - 1] = 1
         for i in range(self._rank - 2, -1, -1):
             result[i] = result[i + 1] * self._shape[i + 1]
@@ -156,7 +156,7 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
         self._data.store[width=simd_width](index, value)
 
     @always_inline("nodebug")
-    fn strides(self) -> StaticIntTuple[max_rank]:
+    fn strides(self) -> StaticIntTuple[MAX_RANK]:
         return self._shape.strides()
 
     @always_inline("nodebug")
