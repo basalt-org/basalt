@@ -62,11 +62,11 @@ fn f64_to_bytes[size: Int = DType.float64.sizeof()](value: Scalar[DType.float64]
     alias mantissa_bits = 52
     alias exponent_bias = 1023
 
-    var sign = 0 if value >= 0 else 1
-    var abs = value if value >= 0 else -value
+    var sign: Int64 = 0 if value >= 0 else 1
+    var abs: Float64 = value if value >= 0 else -value
 
-    var mantissa = 0.0
-    var exponent = exponent_bias
+    var mantissa: Float64 = 0.0
+    var exponent: Int64 = exponent_bias
 
     if value == 0.0:
         exponent = 0
@@ -81,16 +81,18 @@ fn f64_to_bytes[size: Int = DType.float64.sizeof()](value: Scalar[DType.float64]
 
         mantissa = (abs - 1.0) * (1 << mantissa_bits)
 
-    var binary_rep = (sign << (exponent_bits + mantissa_bits)) | (
-        exponent << mantissa_bits
-    ) | int(mantissa)
+    var binary_rep: Int64 = 0
+
+    binary_rep |= sign << (exponent_bits + mantissa_bits)
+    binary_rep |= exponent << mantissa_bits
+    binary_rep |= mantissa
 
     var result = Bytes[size]()
 
     @parameter
     fn fill_bytes[Index: Int]():
-        alias Offest = Index * 8
-        result[Index] = (binary_rep >> Offest) & 0xFF
+        alias Offest: Int64 = Index * 8
+        result[Index] = (binary_rep >> Offest).to_int() & 0xFF
 
     unroll[fill_bytes, size]()
 

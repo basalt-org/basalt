@@ -43,16 +43,16 @@ fn test_attribute_static_int_tuple() raises:
     
     
 fn test_attribute_scalar() raises:
-    var value_a: Scalar[DType.float32] = Scalar[DType.float32](1.23456)
-    var a = Attribute(name="test", value=value_a)
+    alias value_a: Float32 = 1.23456
+    alias a = Attribute(name="test", value=value_a)
     assert_true(a.to_scalar[DType.float32]() == value_a, "Float32 scalar attribute failed")
     
-    var value_b: Scalar[DType.float64] = Scalar[DType.float64](-1.23456)
-    var b = Attribute(name="test", value=value_b)
+    alias value_b: Float64 = -1.23456
+    alias b = Attribute(name="test", value=value_b)
     assert_true(b.to_scalar[DType.float64]() == value_b, "Float64 scalar attribute failed")
 
-    var value_c: Scalar[DType.int32] = Scalar[DType.int32](666)
-    var c = Attribute(name="test", value=value_c)
+    alias value_c: Int32 = 666
+    alias c = Attribute(name="test", value=value_c)
     assert_true(c.to_scalar[DType.int32]() == value_c, "Int32 scalar attribute failed")
 
 
