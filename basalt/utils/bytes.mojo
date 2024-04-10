@@ -1,9 +1,10 @@
-from math import min
+from math import min, nan
+from math.limit import inf
 
 
 @value
 @register_passable("trivial")
-struct bytes[capacity: Int](Stringable, CollectionElement):
+struct Bytes[capacity: Int](Stringable, CollectionElement):
     """
     Static sequence of bytes.
     """
@@ -11,13 +12,10 @@ struct bytes[capacity: Int](Stringable, CollectionElement):
     var _vector: StaticTuple[UInt8, capacity]
 
     fn __init__(inout self):
-        var _vector = StaticTuple[UInt8, capacity]()
-        for i in range(capacity):
-            _vector[i] = 0
-        self._vector = _vector
+        self._vector = StaticTuple[UInt8, capacity](0)
 
     fn __init__(inout self, s: String):
-        var _vector = StaticTuple[UInt8, capacity]()
+        var _vector = StaticTuple[UInt8, capacity](0)
         for i in range(min(len(s), capacity)):
             _vector[i] = ord(s[i])
         self._vector = _vector
@@ -53,3 +51,83 @@ struct bytes[capacity: Int](Stringable, CollectionElement):
                 + hex_table[(self[i] & 0xF).to_int()]
             )
         return result
+
+
+@always_inline("nodebug")
+fn f64_to_bytes[size: Int = DType.float64.sizeof()](value: Scalar[DType.float64]) -> Bytes[size]:
+    """
+    Convert a f64 number to a sequence of bytes in IEEE 754 format.
+    """
+    alias exponent_bits = 11
+    alias mantissa_bits = 52
+    alias exponent_bias = 1023
+
+    var sign: Int64 = 0 if value >= 0 else 1
+    var abs: Float64 = value if value >= 0 else -value
+
+    var mantissa: Float64 = 0.0
+    var exponent: Int64 = exponent_bias
+
+    if value == 0.0:
+        exponent = 0
+        mantissa = 0
+    else:
+        while abs >= 2.0:
+            abs /= 2.0
+            exponent += 1
+        while abs < 1.0:
+            abs *= 2.0
+            exponent -= 1
+
+        mantissa = (abs - 1.0) * (1 << mantissa_bits)
+
+    var binary_rep: Int64 = 0
+
+    binary_rep |= sign << (exponent_bits + mantissa_bits)
+    binary_rep |= exponent << mantissa_bits
+    binary_rep |= mantissa
+
+    var result = Bytes[size]()
+
+    @parameter
+    fn fill_bytes[Index: Int]():
+        alias Offest: Int64 = Index * 8
+        result[Index] = (binary_rep >> Offest).to_int() & 0xFF
+
+    unroll[fill_bytes, size]()
+
+    return result
+
+
+fn bytes_to_f64[size: Int = DType.float64.sizeof()](bytes: Bytes[size]) -> Scalar[DType.float64]:
+    """
+    Convert a sequence of bytes in IEEE 754 format to a floating point number.
+    """
+
+    alias exponent_bits = 11
+    alias mantissa_bits = 52
+    alias exponent_bias = 1023
+
+    var binary_rep = 0
+
+    @parameter
+    fn to_bin[Index: Int]():
+        alias Offest = Index * 8
+        binary_rep |= bytes[Index].to_int() << Offest
+
+    unroll[to_bin, size]()
+
+    var sign = (-1) ** ((binary_rep >> (exponent_bits + mantissa_bits)) & 1)
+    var exponent = (
+        (binary_rep >> mantissa_bits) & ((1 << exponent_bits) - 1)
+    ) - exponent_bias
+    var mantissa = (binary_rep & ((1 << mantissa_bits) - 1)) / (
+        1 << mantissa_bits
+    ) + (exponent != -exponent_bias)
+
+    if exponent == exponent_bias + 1:
+        return inf[DType.float64]() if mantissa == 0 else nan[DType.float64]()
+    elif exponent == -exponent_bias and mantissa == 0:
+        return 0.0
+    else:
+        return sign * (2**exponent) * mantissa

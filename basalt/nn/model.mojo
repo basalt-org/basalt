@@ -285,7 +285,7 @@ struct Model[
                 var initializer_attr = p_init.initializer.value()
                 par = initialize_tensor(
                     shape=p.shape,
-                    type=initializer_attr.value.to_string(),
+                    type=initializer_attr.to_string(),
                     data=p_init.data.value(),
                 )
             elif p_init.data:
