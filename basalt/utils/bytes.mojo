@@ -102,7 +102,6 @@ fn f64_to_bytes[size: Int = DType.float64.sizeof()](value: Scalar[DType.float64]
 fn bytes_to_f64[size: Int = DType.float64.sizeof()](bytes: Bytes[size]) -> Scalar[DType.float64]:
     """
     Convert a sequence of bytes in IEEE 754 format to a floating point number.
-    Supported byte sizes are 2 (f16), 4 (f32) and 8 (f64) bytes.
     """
 
     alias exponent_bits = 11
