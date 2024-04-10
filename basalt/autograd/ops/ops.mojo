@@ -13,9 +13,8 @@ from .basics import (
     FLATTEN,
     RESHAPE,
     TRANSPOSE,
-    FMA,
 )
-from .mlops import SIGMOID, RELU, TANH
+from .mlops import SIGMOID, RELU, TANH, CLIP
 from .conv import CONV2D
 from .pool import MAXPOOL2D
 
@@ -52,7 +51,7 @@ struct OP(Stringable):
     alias CONV2D = OP(16, "CONV2D", num_operands=3)
     alias TRANSPOSE = OP(17, "TRANSPOSE", num_operands=1)
     alias MAXPOOL2D = OP(18, "MAXPOOL2D", num_operands=1)
-    alias FMA = OP(19, "FMA", num_operands=3)
+    alias CLIP = OP(19, "CLIP", num_operands=1)
 
     var id: UInt8
     var name: Bytes[16]
@@ -100,6 +99,8 @@ fn static_result_shape(
         return TRANSPOSE.result_shape(t1_shape, attributes)
     elif op == OP.MAXPOOL2D:
         return MAXPOOL2D.result_shape(t1_shape, attributes)
+    elif op == OP.CLIP:
+        return CLIP.result_shape(t1_shape)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1)
@@ -145,8 +146,6 @@ fn static_result_shape(
 
     if op == OP.CONV2D:
         return CONV2D.result_shape(t1_shape, t2_shape, t3_shape, attributes)
-    elif op == OP.FMA:
-        return FMA.result_shape(t1_shape, t2_shape, t3_shape)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1, -1)
@@ -184,6 +183,8 @@ fn forward_op[
         TRANSPOSE.forward[t1_shape, attributes](res, t1)
     elif op == OP.MAXPOOL2D:
         MAXPOOL2D.forward[t1_shape, attributes](res, t1)
+    elif op == OP.CLIP:
+        CLIP.forward[t1_shape, attributes](res, t1)
     else:
         print("[ERROR] Operator not found.")
 
@@ -226,8 +227,6 @@ fn forward_op[
     @parameter
     if op == OP.CONV2D:
         CONV2D.forward[t1_shape, t2_shape, t3_shape, attributes](res, t1, t2, t3)
-    elif op == OP.FMA:
-        FMA.forward[t1_shape, t2_shape, t3_shape](res, t1, t2, t3)
     else:
         print("[ERROR] Operator not found.")
 
@@ -269,6 +268,8 @@ fn backward_op[
         res_grad = TRANSPOSE.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.MAXPOOL2D:
         res_grad = MAXPOOL2D.backward[ug_shape, t1_shape, attributes](ug, t1)
+    elif op == OP.CLIP:
+        res_grad = CLIP.backward[ug_shape, t1_shape, attributes](ug, t1)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1)
@@ -357,10 +358,6 @@ fn backward_op[
     if op == OP.CONV2D:
         res_grad = CONV2D.backward[
             tensor_id, ug_shape, t1_shape, t2_shape, t3_shape, attributes
-        ](ug, t1, t2, t3)
-    elif op == OP.FMA:
-        res_grad = FMA.backward[
-            tensor_id, ug_shape, t1_shape, t2_shape, t3_shape
         ](ug, t1, t2, t3)
     else:
         print("[ERROR] Operator not found.")

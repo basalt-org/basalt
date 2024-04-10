@@ -6,7 +6,7 @@ from test_tensorutils import assert_tensors_equal
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
-from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH
+from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP
 from basalt.utils.tensorutils import fill
 
 
@@ -134,7 +134,6 @@ fn main():
         print("[ERROR] Error in forward mlops")
         print(e)
         return
-
     try:
         test_backward_SIGMOID()
         test_backward_RELU()

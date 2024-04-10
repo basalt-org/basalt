@@ -38,6 +38,8 @@ fn torch_unary_op(op: OP, input_1: Tensor, upper_grad: Tensor) -> torch_output_u
             expected = torch.relu(input_1)
         elif op == OP.TANH:
             expected = torch.tanh(input_1)
+        elif op == OP.CLIP:
+            expected = torch.clamp(input_1, 0, 1)
         else:
             print("Error: op not supported (returning the value input_1): ", op)
             expected = input_1
@@ -121,6 +123,17 @@ fn test_TANH() raises:
 
     var expected_and_grad = torch_unary_op(OP.TANH, t1, ug)
 
+fn test_CLIP() raises:
+    alias t1_shape = TensorShape(37, 63, 107)
+    alias ug_shape = TensorShape(37, 63, 107)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    rand(t1.data(), t1.num_elements())
+
+    var ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    var expected_and_grad = torch_unary_op(OP.CLIP, t1, ug)
+
 
 fn main():
     print("Running mlops (compare with torch) tests")
@@ -128,6 +141,7 @@ fn main():
         test_SIGMOID()
         test_RELU()
         test_TANH()
+        test_CLIP()
     except e:
         print("[ERROR] Error in mlops (compare with torch)")
         print(e)
