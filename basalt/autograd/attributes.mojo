@@ -94,7 +94,7 @@ struct Attribute(Stringable, CollectionElement):
         self.data_shape = StaticIntTuple[MAX_RANK]()
 
         @parameter
-        if dtype == DType.float16 or dtype == DType.float32 or dtype == DType.float64:
+        if dtype.is_floating_point():
             var fbytes = float_to_bytes(value)
             for i in range(dtype.sizeof()):
                 self.data[i] = fbytes[i]
@@ -128,7 +128,7 @@ struct Attribute(Stringable, CollectionElement):
     @always_inline("nodebug")
     fn to_scalar[dtype: DType](self) -> Scalar[dtype]:
         @parameter
-        if dtype == DType.float16 or dtype == DType.float32 or dtype == DType.float64:
+        if dtype.is_floating_point():
             alias size = dtype.sizeof()
             var fbytes = Bytes[size]()
             for i in range(size):
