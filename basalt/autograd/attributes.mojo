@@ -2,7 +2,7 @@ from collections import Optional
 
 from basalt import Tensor, TensorShape
 from basalt.nn.tensor import MAX_RANK
-from basalt.utils.bytes import Bytes, float_to_bytes, bytes_to_float
+from basalt.utils.bytes import Bytes, f64_to_bytes, bytes_to_f64
 
 
 alias MAX_ATTRS = 10
@@ -86,25 +86,20 @@ struct Attribute(Stringable, CollectionElement):
             self.data_shape[i] = value[i]
 
     @always_inline("nodebug")
-    fn __init__[dtype: DType](inout self, name: String, value: Scalar[dtype]):
-        alias Type = value.element_type
+    fn __init__(inout self, name: String, value: Scalar):
+        alias f64_size = DType.float64.sizeof()
 
         self.name = Bytes[MAX_NAME_CHARS](name)
         self.data = Bytes[MAX_DATA_BYTES]()
         self.data_shape = StaticIntTuple[MAX_RANK]()
 
+        var fbytes = f64_to_bytes(value.cast[DType.float64]())
+
         @parameter
-        if dtype.is_floating_point():
-            var fbytes = float_to_bytes(value)
-            for i in range(dtype.sizeof()):
-                self.data[i] = fbytes[i]
-        else:
-            var fbytes = float_to_bytes(value.cast[DType.float64]())
-            for i in range(DType.float64.sizeof()):
-                self.data[i] = fbytes[i]
-            # elif dtype == DType.int8 or dtype == DType.int16 or dtype == DType.int32 or dtype == DType.int64:
-            # elif dtype == DType.uint8 or dtype == DType.uint16 or dtype == DType.uint32 or dtype == DType.uint64:
-            # TODO
+        fn copy[Index: Int]():
+            self.data[Index] = fbytes[Index]
+
+        unroll[copy, f64_size]()
 
     @always_inline("nodebug")
     fn __str__(self) -> String:
@@ -131,20 +126,14 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn to_scalar[dtype: DType](self) -> Scalar[dtype]:
+        alias size = DType.float64.sizeof()
+
+        var fbytes = Bytes[size]()
+        
         @parameter
-        if dtype.is_floating_point():
-            alias size = dtype.sizeof()
-            var fbytes = Bytes[size]()
-            for i in range(size):
-                fbytes[i] = self.data[i]
-            return bytes_to_float[dtype](fbytes)
-        else:
-            alias size = DType.float64.sizeof()
-            var fbytes = Bytes[size]()
-            for i in range(size):
-                fbytes[i] = self.data[i]
-            return bytes_to_float[DType.float64](fbytes).cast[dtype]()
-            # elif dtype == DType.int8 or dtype == DType.int16 or dtype == DType.int32 or dtype == DType.int64:
-            # elif dtype == DType.uint8 or dtype == DType.uint16 or dtype == DType.uint32 or dtype == DType.uint64:
-            # TODO
-        return -1
+        fn copy[Index: Int]():
+            fbytes[Index] = self.data[Index]
+
+        unroll[copy, size]()
+
+        return bytes_to_f64(fbytes).cast[dtype]()
