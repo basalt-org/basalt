@@ -3,6 +3,7 @@ from math import exp, pow
 
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_transform
+from basalt.autograd.attributes import AttributeVector, Attribute
 
 
 @value
@@ -146,6 +147,57 @@ struct TANH:
 
         return res_grad ^
 
+struct SQUEEZE:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        var dim = attributes["dims"]
+        var dims = attributes["dims"]
+        
+        if not dim and not dims:
+            var new_rank = 0
+            for i in range(t1_shape.rank()):
+                if t1_shape[i] != 1:
+                    new_rank += 1
+            var new_shape = List[Int](capacity=new_rank)
+            for i in range(t1_shape.rank()):
+                if t1_shape[i] != 1:
+                    new_shape.append(t1_shape[i])
+            return TensorShape(new_shape)
+        elif dim:
+            var to_remove = dim.value().to_int()
+            var new_rank = t1_shape.rank() - 1
+            var new_shape = List[Int](capacity=new_rank)
+            for i in range(t1_shape.rank()):
+                if i != to_remove:
+                    new_shape.append(t1_shape[i])
+            return TensorShape(new_shape)
+        else:
+            var to_remove = dims.value().to_shape()
+            var new_rank = t1_shape.rank() - to_remove.rank()
+            var new_shape = List[Int](capacity=new_rank)
+            var j = 0
+            for i in range(t1_shape.rank()):
+                if j < to_remove.rank() and i == to_remove[j]:
+                    j += 1
+                else:
+                    new_shape.append(t1_shape[i])
+            return TensorShape(new_shape)
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        memcpy(res.data(), t1.data(), t1.num_elements())
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        var res_grad = Tensor[dtype](t1_shape)
+        memcpy(res_grad.data(), ug.data(), ug.num_elements())
+        return res_grad ^
 
 # struct SOFTMAX:
 #     @staticmethod

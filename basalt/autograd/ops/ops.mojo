@@ -15,7 +15,7 @@ from .basics import (
     TRANSPOSE,
     FMA,
 )
-from .mlops import SIGMOID, RELU, TANH
+from .mlops import SIGMOID, RELU, TANH, SQUEEZE
 from .conv import CONV2D
 from .pool import MAXPOOL2D
 
@@ -53,6 +53,7 @@ struct OP(Stringable):
     alias TRANSPOSE = OP(17, "TRANSPOSE", num_operands=1)
     alias MAXPOOL2D = OP(18, "MAXPOOL2D", num_operands=1)
     alias FMA = OP(19, "FMA", num_operands=3)
+    alias SQUEEZE = OP(21, "SQUEEZE", num_operands=1)
 
     var id: UInt8
     var name: Bytes[16]
@@ -100,6 +101,8 @@ fn static_result_shape(
         return TRANSPOSE.result_shape(t1_shape, attributes)
     elif op == OP.MAXPOOL2D:
         return MAXPOOL2D.result_shape(t1_shape, attributes)
+    elif op == OP.SQUEEZE:
+        return SQUEEZE.result_shape(t1_shape, attributes)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1)
@@ -184,6 +187,8 @@ fn forward_op[
         TRANSPOSE.forward[t1_shape, attributes](res, t1)
     elif op == OP.MAXPOOL2D:
         MAXPOOL2D.forward[t1_shape, attributes](res, t1)
+    elif op == OP.SQUEEZE:
+        SQUEEZE.forward[t1_shape, attributes](res, t1)
     else:
         print("[ERROR] Operator not found.")
 
@@ -269,6 +274,8 @@ fn backward_op[
         res_grad = TRANSPOSE.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.MAXPOOL2D:
         res_grad = MAXPOOL2D.backward[ug_shape, t1_shape, attributes](ug, t1)
+    elif op == OP.SQUEEZE:
+        res_grad = SQUEEZE.backward[ug_shape, t1_shape](ug, t1)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1)
