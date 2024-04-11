@@ -84,7 +84,7 @@ struct Attribute(Stringable, CollectionElement):
         self.data_shape = StaticIntTuple[MAX_RANK]()
         for i in range(N):
             self.data_shape[i] = value[i]
-
+    
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Scalar):
         alias f64_size = DType.float64.sizeof()
@@ -100,6 +100,10 @@ struct Attribute(Stringable, CollectionElement):
             self.data[Index] = fbytes[Index]
 
         unroll[copy, f64_size]()
+
+    @always_inline("nodebug")
+    fn __init__(inout self, name: String, value: FloatLiteral):
+        self.__init__(name, Scalar[DType.float64](value))
 
     @always_inline("nodebug")
     fn __str__(self) -> String:
