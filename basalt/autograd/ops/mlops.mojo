@@ -199,6 +199,58 @@ struct SQUEEZE:
         memcpy(res_grad.data(), ug.data(), ug.num_elements())
         return res_grad ^
 
+struct UNSQUEEZE:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        var dim = attributes["dim"]
+        var dims = attributes["dims"]
+        
+        if not dim and not dims:
+            var new_rank = t1_shape.rank() + 1
+            var new_shape = List[Int](capacity=new_rank)
+            new_shape.append(1)
+            for i in range(t1_shape.rank()):
+                new_shape.append(t1_shape[i])
+            return TensorShape(new_shape)
+        elif dim:
+            var to_add = dim.value().to_int()
+            var new_rank = t1_shape.rank() + 1
+            var new_shape = List[Int](capacity=new_rank)
+            for i in range(new_rank):
+                if i == to_add:
+                    new_shape.append(1)
+                else:
+                    new_shape.append(t1_shape[i - 1])
+            return TensorShape(new_shape)
+        else:
+            var to_add = dims.value().to_shape()
+            var new_rank = t1_shape.rank() + to_add.rank()
+            var new_shape = List[Int](capacity=new_rank)
+            var j = 0
+            for i in range(new_rank):
+                if j < to_add.rank() and i == to_add[j]:
+                    new_shape.append(1)
+                    j += 1
+                else:
+                    new_shape.append(t1_shape[i - j])
+            return TensorShape(new_shape)
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        memcpy(res.data(), t1.data(), t1.num_elements())
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        var res_grad = Tensor[dtype](t1_shape)
+        memcpy(res_grad.data(), ug.data(), ug.num_elements())
+        return res_grad ^
+
 # struct SOFTMAX:
 #     @staticmethod
 #     fn softmax[axis: Int](n: Tensor[dtype]) -> Tensor[dtype]:
