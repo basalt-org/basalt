@@ -15,7 +15,7 @@ from .basics import (
     TRANSPOSE,
     FMA,
 )
-from .mlops import SIGMOID, RELU, TANH, SQUEEZE
+from .mlops import SIGMOID, RELU, TANH, SQUEEZE, UNSQUEEZE
 from .conv import CONV2D
 from .pool import MAXPOOL2D
 
@@ -54,6 +54,7 @@ struct OP(Stringable):
     alias MAXPOOL2D = OP(18, "MAXPOOL2D", num_operands=1)
     alias FMA = OP(19, "FMA", num_operands=3)
     alias SQUEEZE = OP(21, "SQUEEZE", num_operands=1)
+    alias UNSQUEEZE = OP(22, "UNSQUEEZE", num_operands=1)
 
     var id: UInt8
     var name: Bytes[16]
@@ -103,6 +104,8 @@ fn static_result_shape(
         return MAXPOOL2D.result_shape(t1_shape, attributes)
     elif op == OP.SQUEEZE:
         return SQUEEZE.result_shape(t1_shape, attributes)
+    elif op == OP.UNSQUEEZE:
+        return UNSQUEEZE.result_shape(t1_shape, attributes)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1)
@@ -189,6 +192,8 @@ fn forward_op[
         MAXPOOL2D.forward[t1_shape, attributes](res, t1)
     elif op == OP.SQUEEZE:
         SQUEEZE.forward[t1_shape, attributes](res, t1)
+    elif op == OP.UNSQUEEZE:
+        UNSQUEEZE.forward[t1_shape, attributes](res, t1)
     else:
         print("[ERROR] Operator not found.")
 
