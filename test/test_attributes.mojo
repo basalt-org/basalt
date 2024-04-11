@@ -47,15 +47,28 @@ fn test_attribute_scalar() raises:
         a.to_scalar[DType.float32]() == value_a, "Float32 scalar attribute failed"
     )
 
+    alias a2 = Attribute(name="test", value=65151)
+    assert_true(
+        a2.to_scalar[DType.float32]() == 65151, "Float32 scalar attribute failed"
+    )
+
     alias value_b: Float64 = -1.23456
     alias b = Attribute(name="test", value=value_b)
     assert_true(
         b.to_scalar[DType.float64]() == value_b, "Float64 scalar attribute failed"
     )
 
+    alias b2 = Attribute(name="test", value=123456)
+    assert_true(
+        b2.to_scalar[DType.float64]() == 123456, "Float64 scalar attribute failed"
+    )
+
     alias value_c: Int32 = 666
     alias c = Attribute(name="test", value=value_c)
     assert_true(c.to_scalar[DType.int32]() == value_c, "Int32 scalar attribute failed")
+
+    alias c2 = Attribute(name="test", value=-666)
+    assert_true(c2.to_scalar[DType.int32]() == -666, "Int32 scalar attribute failed")
 
 
 fn main():
