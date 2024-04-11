@@ -84,7 +84,7 @@ struct Attribute(Stringable, CollectionElement):
         self.data_shape = StaticIntTuple[MAX_RANK]()
         for i in range(N):
             self.data_shape[i] = value[i]
-    
+
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Scalar):
         alias f64_size = DType.float64.sizeof()
@@ -133,7 +133,7 @@ struct Attribute(Stringable, CollectionElement):
         alias size = DType.float64.sizeof()
 
         var fbytes = Bytes[size]()
-        
+
         @parameter
         fn copy[Index: Int]():
             fbytes[Index] = self.data[Index]

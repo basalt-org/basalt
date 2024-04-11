@@ -712,9 +712,12 @@ struct RESHAPE:
 
         return res_grad ^
 
+
 struct FMA:
     @staticmethod
-    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape, t3_shape: TensorShape) -> TensorShape:
+    fn result_shape(
+        t1_shape: TensorShape, t2_shape: TensorShape, t3_shape: TensorShape
+    ) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape, t3_shape)
 
     @staticmethod
@@ -722,19 +725,23 @@ struct FMA:
         t1_shape: TensorShape,
         t2_shape: TensorShape,
         t3_shape: TensorShape,
-    ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype]):
+    ](
+        inout res: Tensor[dtype],
+        t1: Tensor[dtype],
+        t2: Tensor[dtype],
+        t3: Tensor[dtype],
+    ):
         """
         Forward pass of the fma operation.
         """
-        
+
         @parameter
         fn vec_fma[Nelts: Int](i: Int):
             res.store[Nelts](
-                i,
-                t1.load[Nelts](i).fma(t2.load[Nelts](i), t3.load[Nelts](i))
+                i, t1.load[Nelts](i).fma(t2.load[Nelts](i), t3.load[Nelts](i))
             )
 
-        vectorize[vec_fma, nelts, size=t1_shape.num_elements()]()
+        vectorize[vec_fma, nelts, size = t1_shape.num_elements()]()
 
     @staticmethod
     fn backward[
@@ -743,7 +750,9 @@ struct FMA:
         t1_shape: TensorShape,
         t2_shape: TensorShape,
         t3_shape: TensorShape,
-    ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype]) -> Tensor[dtype]:
+    ](
+        ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype]
+    ) -> Tensor[dtype]:
         """Backward operation of fma."""
         # d(x * y + z) / dx = y
         # d(x * y + z) / dy = x

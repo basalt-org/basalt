@@ -12,6 +12,7 @@ from basalt.utils.tensorutils import fill
 alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
 
+
 fn test_ternary_op[
     op: OP, t1_shape: TensorShape, t2_shape: TensorShape, t3_shape: TensorShape
 ](
@@ -34,6 +35,7 @@ fn test_ternary_op[
     var model = nn.Model[graph](inference_only=True)
     var res = model.inference(t1, t2, t3)[0]
     assert_tensors_equal(res, expected)
+
 
 fn test_FMA() raises:
     alias t1_shape = TensorShape(2, 3)

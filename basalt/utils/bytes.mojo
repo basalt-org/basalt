@@ -54,7 +54,9 @@ struct Bytes[capacity: Int](Stringable, CollectionElement):
 
 
 @always_inline("nodebug")
-fn f64_to_bytes[size: Int = DType.float64.sizeof()](value: Scalar[DType.float64]) -> Bytes[size]:
+fn f64_to_bytes[
+    size: Int = DType.float64.sizeof()
+](value: Scalar[DType.float64]) -> Bytes[size]:
     """
     Convert a f64 number to a sequence of bytes in IEEE 754 format.
     """
@@ -99,7 +101,9 @@ fn f64_to_bytes[size: Int = DType.float64.sizeof()](value: Scalar[DType.float64]
     return result
 
 
-fn bytes_to_f64[size: Int = DType.float64.sizeof()](bytes: Bytes[size]) -> Scalar[DType.float64]:
+fn bytes_to_f64[
+    size: Int = DType.float64.sizeof()
+](bytes: Bytes[size]) -> Scalar[DType.float64]:
     """
     Convert a sequence of bytes in IEEE 754 format to a floating point number.
     """
@@ -121,9 +125,9 @@ fn bytes_to_f64[size: Int = DType.float64.sizeof()](bytes: Bytes[size]) -> Scala
     var exponent = (
         (binary_rep >> mantissa_bits) & ((1 << exponent_bits) - 1)
     ) - exponent_bias
-    var mantissa = (binary_rep & ((1 << mantissa_bits) - 1)) / (
-        1 << mantissa_bits
-    ) + (exponent != -exponent_bias)
+    var mantissa = (binary_rep & ((1 << mantissa_bits) - 1)) / (1 << mantissa_bits) + (
+        exponent != -exponent_bias
+    )
 
     if exponent == exponent_bias + 1:
         return inf[DType.float64]() if mantissa == 0 else nan[DType.float64]()

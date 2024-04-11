@@ -147,6 +147,7 @@ struct TANH:
 
         return res_grad ^
 
+
 struct CLIP:
     @staticmethod
     fn result_shape(t_shape: TensorShape) -> TensorShape:
@@ -170,8 +171,8 @@ struct CLIP:
         ).to_int()
 
         @parameter
-        fn vec_clip[Nelts: Int](i: Int):
-            res.store[Nelts](i, t.load[Nelts](i).min(max_val).max(min_val))
+        fn vec_clip[nelts: Int](i: Int):
+            res.store[nelts](i, t.load[nelts](i).min(max_val).max(min_val))
 
         vectorize[vec_clip, nelts, size = t_shape.num_elements()]()
 
@@ -179,10 +180,8 @@ struct CLIP:
     fn backward[
         ug_shape: TensorShape,
         t_shape: TensorShape,
-        attributes: AttributeVector = AttributeVector()
-    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[
-        dtype
-    ]:
+        attributes: AttributeVector = AttributeVector(),
+    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of clip."""
         alias min_attr = attributes["min"]
         alias max_attr = attributes["max"]
@@ -197,17 +196,16 @@ struct CLIP:
         var res_grad = Tensor[dtype](t_shape)
 
         @parameter
-        fn vec_clip_bw[Nelts: Int](i: Int):
-            var val = t.load[Nelts](i)
-            res_grad.store[Nelts](
+        fn vec_clip_bw[nelts: Int](i: Int):
+            var val = t.load[nelts](i)
+            res_grad.store[nelts](
                 i,
-                (val >= min_val and val <= max_val).select(ug.load[Nelts](i), 0),
+                (val >= min_val and val <= max_val).select(ug.load[nelts](i), 0),
             )
 
         vectorize[vec_clip_bw, nelts, size = t_shape.num_elements()]()
 
         return res_grad ^
-
 
 
 # struct SOFTMAX:
