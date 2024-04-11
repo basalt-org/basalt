@@ -1,3 +1,5 @@
+from math.limit import inf, neginf, max_finite, min_finite
+
 from basalt import TensorShape
 from basalt.autograd.attributes import Attribute
 
@@ -71,6 +73,22 @@ fn test_attribute_scalar() raises:
     assert_true(c2.to_scalar[DType.int32]() == -666, "Int32 scalar attribute failed")
 
 
+fn test_attribute_big_scalar() raises:
+    alias value_a: Float32 = 1e20
+    alias a = Attribute(name="test", value=value_a)
+    assert_true(a.to_scalar[DType.float32]() == value_a, "BIG scalar attribute failed")
+
+    alias value_b: Float32 = max_finite[DType.float32]()
+    alias b = Attribute(name="test", value=value_a)
+    assert_true(
+        b.to_scalar[DType.float32]() == value_b, "MAX FINITE scalar attribute failed"
+    )
+
+    alias value_c: Float32 = inf[DType.float32]()
+    alias c = Attribute(name="test", value=value_a)
+    assert_true(c.to_scalar[DType.float32]() == value_c, "INF scalar attribute failed")
+
+
 fn main():
     try:
         test_attribute_key()
@@ -79,5 +97,6 @@ fn main():
         test_attribute_tensor_shape()
         test_attribute_static_int_tuple()
         test_attribute_scalar()
+        test_attribute_big_scalar()  # BUG
     except e:
         print(e)

@@ -1,5 +1,6 @@
 from algorithm import vectorize
 from math import exp, pow
+from math.limit import min_finite, max_finite
 
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_transform
@@ -162,13 +163,9 @@ struct CLIP:
         """
         alias min_attr = attributes["min"]
         alias max_attr = attributes["max"]
-
-        var min_val = min_attr.or_else(
-            Attribute("min", -SIMD[dtype].MAX_FINITE)
-        ).to_int()
-        var max_val = max_attr.or_else(
-            Attribute("max", SIMD[dtype].MAX_FINITE)
-        ).to_int()
+        
+        var min_val = min_attr.value().to_scalar[dtype]() if min_attr else min_finite[dtype]()
+        var max_val = max_attr.value().to_scalar[dtype]() if max_attr else max_finite[dtype]()
 
         @parameter
         fn vec_clip[nelts: Int](i: Int):
@@ -186,12 +183,8 @@ struct CLIP:
         alias min_attr = attributes["min"]
         alias max_attr = attributes["max"]
 
-        var min_val = min_attr.or_else(
-            Attribute("min", -SIMD[dtype].MAX_FINITE)
-        ).to_int()
-        var max_val = max_attr.or_else(
-            Attribute("max", SIMD[dtype].MAX_FINITE)
-        ).to_int()
+        var min_val = min_attr.value().to_scalar[dtype]() if min_attr else min_finite[dtype]()
+        var max_val = max_attr.value().to_scalar[dtype]() if max_attr else max_finite[dtype]()
 
         var res_grad = Tensor[dtype](t_shape)
 
