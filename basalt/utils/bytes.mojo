@@ -62,37 +62,38 @@ fn f64_to_bytes[size: Int = DType.float64.sizeof()](value: Scalar[DType.float64]
     alias mantissa_bits = 52
     alias exponent_bias = 1023
 
-    var sign: Int64 = 0 if value >= 0 else 1
-    var abs: Float64 = value if value >= 0 else -value
+    if value == 0:
+        return Bytes[size]()
 
-    var mantissa: Float64 = 0.0
+    var sign: Int64
+    var abs: Float64
+
+    if value > 0:
+        sign = 0
+        abs = value
+    else:
+        sign = 1
+        abs = -value
+
     var exponent: Int64 = exponent_bias
 
-    if value == 0.0:
-        exponent = 0
-        mantissa = 0
-    else:
-        while abs >= 2.0:
-            abs /= 2.0
-            exponent += 1
-        while abs < 1.0:
-            abs *= 2.0
-            exponent -= 1
+    while abs >= 2.0:
+        abs /= 2.0
+        exponent += 1
+    while abs < 1.0:
+        abs *= 2.0
+        exponent -= 1
 
-        mantissa = (abs - 1.0) * (1 << mantissa_bits)
 
-    var binary_rep: Int64 = 0
-
-    binary_rep |= sign << (exponent_bits + mantissa_bits)
-    binary_rep |= exponent << mantissa_bits
-    binary_rep |= mantissa
+    var mantissa = (abs - 1.0) * (1 << mantissa_bits)
+    var binary_rep: Int64 = (sign << (exponent_bits + mantissa_bits)) | (exponent << mantissa_bits) | mantissa
 
     var result = Bytes[size]()
 
     @parameter
     fn fill_bytes[Index: Int]():
         alias Offest: Int64 = Index * 8
-        result[Index] = (binary_rep >> Offest).to_int() & 0xFF
+        result[Index] = (binary_rep >> Offest & 0xFF).cast[DType.uint8]()
 
     unroll[fill_bytes, size]()
 
@@ -117,7 +118,6 @@ fn bytes_to_f64[size: Int = DType.float64.sizeof()](bytes: Bytes[size]) -> Scala
 
     unroll[to_bin, size]()
 
-    var sign = (-1) ** ((binary_rep >> (exponent_bits + mantissa_bits)) & 1)
     var exponent = (
         (binary_rep >> mantissa_bits) & ((1 << exponent_bits) - 1)
     ) - exponent_bias
@@ -125,9 +125,11 @@ fn bytes_to_f64[size: Int = DType.float64.sizeof()](bytes: Bytes[size]) -> Scala
         1 << mantissa_bits
     ) + (exponent != -exponent_bias)
 
+
     if exponent == exponent_bias + 1:
         return inf[DType.float64]() if mantissa == 0 else nan[DType.float64]()
     elif exponent == -exponent_bias and mantissa == 0:
         return 0.0
-    else:
-        return sign * (2**exponent) * mantissa
+    
+    var sign = (-1) ** ((binary_rep >> (exponent_bits + mantissa_bits)) & 1)
+    return sign * (2**exponent) * mantissa
