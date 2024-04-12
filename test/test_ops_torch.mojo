@@ -567,7 +567,7 @@ struct torch_output_reduction_op:
 
 
 fn torch_reduction_op(
-    op: OP, input_1: Tensor, axis: Optional[Int], upper_grad: Tensor
+    op: OP, input_1: Tensor, upper_grad: Tensor, axis: Optional[Int] = None
 ) -> torch_output_reduction_op:
     try:
         var torch = Python.import_module("torch")
@@ -622,23 +622,36 @@ fn torch_reduction_op(
 
 
 fn test_reduction_op[
-    op: OP, t1_shape: TensorShape, axis: Optional[Int]
+    op: OP, t1_shape: TensorShape
 ](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
+
     @parameter
     fn create_graph() -> Graph:
         var g = Graph()
         var t1 = g.input(t1_shape)
-
-        var res: Symbol
-
-        if axis:
-            res = g.op(
-                op, t1, attributes=AttributeVector(Attribute("axis", axis.value()))
-            )
-        else:
-            res = g.op(op, t1)
+        var res = g.op(op, t1)
         g.out(res)
+        return g ^
 
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+
+    var model = nn.Model[graph](inference_only=True)
+    var res = model.inference(t1)[0]
+
+    assert_tensors_equal(res, expected, "almost")
+
+
+fn test_reduction_op[
+    op: OP, t1_shape: TensorShape, axis: Int
+](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
+
+    @parameter
+    fn create_graph() -> Graph:
+        var g = Graph()
+        var t1 = g.input(t1_shape)
+        var res = g.op(op, t1, attributes=AttributeVector(Attribute("axis", axis)))
+        g.out(res)
         return g ^
 
     alias graph = create_graph()
@@ -651,16 +664,20 @@ fn test_reduction_op[
 
 
 fn test_reduction_op_backward[
-    op: OP, t1_shape: TensorShape, axis: Optional[Int], ug_shape: TensorShape
+    op: OP, t1_shape: TensorShape, ug_shape: TensorShape
 ](t1: Tensor[dtype], ug: Tensor[dtype], grad_1_expected: Tensor[dtype],) raises:
     var grad_1 = Tensor[dtype](t1_shape)
+    backward_op[0, op, ug_shape, t1_shape, AttributeVector()](ug, t1, grad_1)
+    assert_tensors_equal(grad_1, grad_1_expected, "almost")
 
-    if axis:
-        backward_op[
-            0, op, ug_shape, t1_shape, AttributeVector(Attribute("axis", axis.value()))
-        ](ug, t1, grad_1)
-    else:
-        backward_op[0, op, ug_shape, t1_shape, AttributeVector()](ug, t1, grad_1)
+
+fn test_reduction_op_backward[
+    op: OP, t1_shape: TensorShape, ug_shape: TensorShape, axis: Int
+](t1: Tensor[dtype], ug: Tensor[dtype], grad_1_expected: Tensor[dtype],) raises:
+    var grad_1 = Tensor[dtype](t1_shape)
+    backward_op[
+        0, op, ug_shape, t1_shape, AttributeVector(Attribute("axis", axis))
+    ](ug, t1, grad_1)
     assert_tensors_equal(grad_1, grad_1_expected, "almost")
 
 
@@ -676,10 +693,10 @@ fn test_SUM() raises:
     # 1 axis
     alias axis = 1
 
-    var expected_and_grad = torch_reduction_op(OP.SUM, t1, axis, ug)
+    var expected_and_grad = torch_reduction_op(OP.SUM, t1, ug, axis)
 
     test_reduction_op[OP.SUM, t1_shape, axis](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.SUM, t1_shape, axis, ug_shape](
+    test_reduction_op_backward[OP.SUM, t1_shape, ug_shape, axis](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -690,10 +707,10 @@ fn test_SUM() raises:
 
     alias axis_2 = 2
 
-    expected_and_grad = torch_reduction_op(OP.SUM, t1, axis_2, ug)
+    expected_and_grad = torch_reduction_op(OP.SUM, t1, ug, axis_2)
 
     test_reduction_op[OP.SUM, t1_shape, axis_2](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.SUM, t1_shape, axis_2, ug_shape_2](
+    test_reduction_op_backward[OP.SUM, t1_shape, ug_shape_2, axis_2](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -704,10 +721,10 @@ fn test_SUM() raises:
 
     alias axis_3 = 0
 
-    expected_and_grad = torch_reduction_op(OP.SUM, t1, axis_3, ug)
+    expected_and_grad = torch_reduction_op(OP.SUM, t1, ug, axis_3)
 
     test_reduction_op[OP.SUM, t1_shape, axis_3](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.SUM, t1_shape, axis_3, ug_shape_3](
+    test_reduction_op_backward[OP.SUM, t1_shape, ug_shape_3, axis_3](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -716,12 +733,10 @@ fn test_SUM() raises:
     ug = Tensor[dtype](ug_shape_4)
     rand(ug.data(), ug.num_elements())
 
-    alias axis_4 = None
+    expected_and_grad = torch_reduction_op(OP.SUM, t1, ug)
 
-    expected_and_grad = torch_reduction_op(OP.SUM, t1, axis_4, ug)
-
-    test_reduction_op[OP.SUM, t1_shape, axis_4](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.SUM, t1_shape, axis_4, ug_shape_4](
+    test_reduction_op[OP.SUM, t1_shape](t1, expected_and_grad.expected)
+    test_reduction_op_backward[OP.SUM, t1_shape, ug_shape_4](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -738,10 +753,10 @@ fn test_MAX() raises:
     # 1 axis
     alias axis = 1
 
-    var expected_and_grad = torch_reduction_op(OP.MAX, t1, axis, ug)
+    var expected_and_grad = torch_reduction_op(OP.MAX, t1, ug, axis)
 
     test_reduction_op[OP.MAX, t1_shape, axis](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MAX, t1_shape, axis, ug_shape](
+    test_reduction_op_backward[OP.MAX, t1_shape, ug_shape, axis](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -752,10 +767,10 @@ fn test_MAX() raises:
 
     alias axis_2 = 2
 
-    expected_and_grad = torch_reduction_op(OP.MAX, t1, axis_2, ug)
+    expected_and_grad = torch_reduction_op(OP.MAX, t1, ug, axis_2)
 
     test_reduction_op[OP.MAX, t1_shape, axis_2](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MAX, t1_shape, axis_2, ug_shape_2](
+    test_reduction_op_backward[OP.MAX, t1_shape, ug_shape_2, axis_2](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -766,10 +781,10 @@ fn test_MAX() raises:
 
     alias axis_3 = 0
 
-    expected_and_grad = torch_reduction_op(OP.MAX, t1, axis_3, ug)
+    expected_and_grad = torch_reduction_op(OP.MAX, t1, ug, axis_3)
 
     test_reduction_op[OP.MAX, t1_shape, axis_3](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MAX, t1_shape, axis_3, ug_shape_3](
+    test_reduction_op_backward[OP.MAX, t1_shape, ug_shape_3, axis_3](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -778,12 +793,10 @@ fn test_MAX() raises:
     ug = Tensor[dtype](ug_shape_4)
     rand(ug.data(), ug.num_elements())
 
-    alias axis_4 = None
+    expected_and_grad = torch_reduction_op(OP.MAX, t1, ug)
 
-    expected_and_grad = torch_reduction_op(OP.MAX, t1, axis_4, ug)
-
-    test_reduction_op[OP.MAX, t1_shape, axis_4](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MAX, t1_shape, axis_4, ug_shape_4](
+    test_reduction_op[OP.MAX, t1_shape](t1, expected_and_grad.expected)
+    test_reduction_op_backward[OP.MAX, t1_shape, ug_shape_4](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -800,10 +813,10 @@ fn test_MEAN() raises:
     # 1 axis
     alias axis = 1
 
-    var expected_and_grad = torch_reduction_op(OP.MEAN, t1, axis, ug)
+    var expected_and_grad = torch_reduction_op(OP.MEAN, t1, ug, axis)
 
     test_reduction_op[OP.MEAN, t1_shape, axis](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MEAN, t1_shape, axis, ug_shape](
+    test_reduction_op_backward[OP.MEAN, t1_shape, ug_shape, axis](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -814,10 +827,10 @@ fn test_MEAN() raises:
 
     alias axis_2 = 2
 
-    expected_and_grad = torch_reduction_op(OP.MEAN, t1, axis_2, ug)
+    expected_and_grad = torch_reduction_op(OP.MEAN, t1, ug, axis_2)
 
     test_reduction_op[OP.MEAN, t1_shape, axis_2](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MEAN, t1_shape, axis_2, ug_shape_2](
+    test_reduction_op_backward[OP.MEAN, t1_shape, ug_shape_2, axis_2](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -828,10 +841,10 @@ fn test_MEAN() raises:
 
     alias axis_3 = 0
 
-    expected_and_grad = torch_reduction_op(OP.MEAN, t1, axis_3, ug)
+    expected_and_grad = torch_reduction_op(OP.MEAN, t1, ug, axis_3)
 
     test_reduction_op[OP.MEAN, t1_shape, axis_3](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MEAN, t1_shape, axis_3, ug_shape_3](
+    test_reduction_op_backward[OP.MEAN, t1_shape, ug_shape_3, axis_3](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -841,12 +854,10 @@ fn test_MEAN() raises:
     ug = Tensor[dtype](ug_shape_4)
     rand(ug.data(), ug.num_elements())
 
-    alias axis_4 = None
+    expected_and_grad = torch_reduction_op(OP.MEAN, t1, ug)
 
-    expected_and_grad = torch_reduction_op(OP.MEAN, t1, axis_4, ug)
-
-    test_reduction_op[OP.MEAN, t1_shape, axis_4](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MEAN, t1_shape, axis_4, ug_shape_4](
+    test_reduction_op[OP.MEAN, t1_shape](t1, expected_and_grad.expected)
+    test_reduction_op_backward[OP.MEAN, t1_shape, ug_shape_4](
         t1, ug, expected_and_grad.grad_1
     )
 
