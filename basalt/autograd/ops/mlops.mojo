@@ -201,7 +201,7 @@ struct CLIP:
             var val = t.load[nelts](i)
             res_grad.store[nelts](
                 i,
-                (val >= min_val and val <= max_val).select(ug.load[nelts](i), 0),
+                ((val >= min_val) * (val <= max_val)).select(ug.load[nelts](i), 0),
             )
 
         vectorize[vec_clip_bw, nelts, size = t_shape.num_elements()]()
