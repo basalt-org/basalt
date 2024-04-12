@@ -134,4 +134,4 @@ fn bytes_to_f64[
     elif exponent == -exponent_bias and mantissa == 0:
         return 0.0
     else:
-        return sign * (2**exponent) * mantissa
+        return sign * (2.0**exponent) * mantissa
