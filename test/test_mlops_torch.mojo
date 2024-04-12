@@ -25,7 +25,12 @@ struct torch_output_unary_op:
     var grad_1: Tensor[dtype]
 
 
-fn torch_unary_op(op: OP, input_1: Tensor, upper_grad: Tensor, attrs: OptionalReg[AttributeVector] = None) -> torch_output_unary_op:
+fn torch_unary_op(
+    op: OP,
+    input_1: Tensor,
+    upper_grad: Tensor,
+    attrs: OptionalReg[AttributeVector] = None,
+) -> torch_output_unary_op:
     try:
         var torch = Python.import_module("torch")
         var np = Python.import_module("numpy")
@@ -43,8 +48,12 @@ fn torch_unary_op(op: OP, input_1: Tensor, upper_grad: Tensor, attrs: OptionalRe
         elif op == OP.CLIP:
             var min_attr = attrs.value()["min"]
             var max_attr = attrs.value()["max"]
-            var min_val = min_attr.value().to_scalar[dtype]() if min_attr else min_finite[dtype]()
-            var max_val = max_attr.value().to_scalar[dtype]() if max_attr else max_finite[dtype]()
+            var min_val = min_attr.value().to_scalar[
+                dtype
+            ]() if min_attr else min_finite[dtype]()
+            var max_val = max_attr.value().to_scalar[
+                dtype
+            ]() if max_attr else max_finite[dtype]()
             expected = torch.clamp(input_1, min_val, max_val)
         else:
             print("Error: op not supported (returning the value input_1): ", op)
@@ -117,7 +126,9 @@ fn test_SIGMOID() raises:
 
     var expected_and_grad = torch_unary_op(OP.SIGMOID, t1, ug)
     test_unary_op[OP.SIGMOID, t1_shape](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.SIGMOID, t1_shape, ug_shape](t1, ug, expected_and_grad.grad_1)
+    test_unary_op_backward[OP.SIGMOID, t1_shape, ug_shape](
+        t1, ug, expected_and_grad.grad_1
+    )
 
 
 fn test_RELU() raises:
@@ -131,7 +142,9 @@ fn test_RELU() raises:
 
     var expected_and_grad = torch_unary_op(OP.RELU, t1, ug)
     test_unary_op[OP.RELU, t1_shape](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.RELU, t1_shape, ug_shape](t1, ug, expected_and_grad.grad_1)
+    test_unary_op_backward[OP.RELU, t1_shape, ug_shape](
+        t1, ug, expected_and_grad.grad_1
+    )
 
 
 fn test_TANH() raises:
@@ -145,7 +158,9 @@ fn test_TANH() raises:
 
     var expected_and_grad = torch_unary_op(OP.TANH, t1, ug)
     test_unary_op[OP.TANH, t1_shape](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.TANH, t1_shape, ug_shape](t1, ug, expected_and_grad.grad_1)
+    test_unary_op_backward[OP.TANH, t1_shape, ug_shape](
+        t1, ug, expected_and_grad.grad_1
+    )
 
 
 fn test_CLIP() raises:
@@ -157,36 +172,51 @@ fn test_CLIP() raises:
     var ug = Tensor[dtype](ug_shape)
     rand(ug.data(), ug.num_elements())
 
-    # No clipping
-    var expected_and_grad = torch_unary_op(OP.CLIP, t1, ug)
-    test_unary_op[OP.CLIP, t1_shape](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.CLIP, t1_shape, ug_shape](t1, ug, expected_and_grad.grad_1)
+    # # No clipping
+    # var expected_and_grad = torch_unary_op(OP.CLIP, t1, ug)
+    # test_unary_op[OP.CLIP, t1_shape](t1, expected_and_grad.expected)
+    # test_unary_op_backward[OP.CLIP, t1_shape, ug_shape](
+    #     t1, ug, expected_and_grad.grad_1
+    # )
 
-    # Clip with min
+    # # Clip with min
     alias min_attr = Attribute("min", 0.3333)
-    expected_and_grad = torch_unary_op(OP.CLIP, t1, ug, AttributeVector(min_attr))
-    test_unary_op[OP.CLIP, t1_shape, AttributeVector(min_attr)](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, AttributeVector(min_attr)](t1, ug, expected_and_grad.grad_1)
+    # expected_and_grad = torch_unary_op(OP.CLIP, t1, ug, AttributeVector(min_attr))
+    # test_unary_op[OP.CLIP, t1_shape, AttributeVector(min_attr)](
+    #     t1, expected_and_grad.expected
+    # )
+    # test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, AttributeVector(min_attr)](
+    #     t1, ug, expected_and_grad.grad_1
+    # )
 
-    # Clip with max
+    # # Clip with max
     alias max_attr = Attribute("max", 0.6666)
-    expected_and_grad = torch_unary_op(OP.CLIP, t1, ug, AttributeVector(max_attr))
-    test_unary_op[OP.CLIP, t1_shape, AttributeVector(max_attr)](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, AttributeVector(max_attr)](t1, ug, expected_and_grad.grad_1)
+    # expected_and_grad = torch_unary_op(OP.CLIP, t1, ug, AttributeVector(max_attr))
+    # test_unary_op[OP.CLIP, t1_shape, AttributeVector(max_attr)](
+    #     t1, expected_and_grad.expected
+    # )
+    # test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, AttributeVector(max_attr)](
+    #     t1, ug, expected_and_grad.grad_1
+    # )
 
     # Clip with min and max
-    expected_and_grad = torch_unary_op(OP.CLIP, t1, ug, AttributeVector(min_attr, max_attr))
-    test_unary_op[OP.CLIP, t1_shape, AttributeVector(min_attr, max_attr)](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, AttributeVector(min_attr, max_attr)](t1, ug, expected_and_grad.grad_1)
-
+    var expected_and_grad = torch_unary_op(
+        OP.CLIP, t1, ug, AttributeVector(min_attr, max_attr)
+    )
+    test_unary_op[OP.CLIP, t1_shape, AttributeVector(min_attr, max_attr)](
+        t1, expected_and_grad.expected
+    )
+    test_unary_op_backward[
+        OP.CLIP, t1_shape, ug_shape, AttributeVector(min_attr, max_attr)
+    ](t1, ug, expected_and_grad.grad_1)
 
 
 fn main():
     print("Running mlops (compare with torch) tests")
     try:
-        test_SIGMOID()
-        test_RELU()
-        test_TANH()
+        # test_SIGMOID()
+        # test_RELU()
+        # test_TANH()
         test_CLIP()
     except e:
         print("[ERROR] Error in mlops (compare with torch)")

@@ -79,7 +79,7 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Scalar):
-        # BUG: Known bug for big attributes (>1e11, max_finite, inf)
+        # BUG: Known bug for big attributes (>1e16, max_finite, inf)
         alias f64_size = DType.float64.sizeof()
 
         self.name = Bytes[MAX_NAME_CHARS](name)
@@ -96,11 +96,11 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Int):
-        self.__init__(name, Scalar[DType.float64](value))
+        self.__init__(name, Float64(value))
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: FloatLiteral):
-        self.__init__(name, Scalar[DType.float64](value))
+        self.__init__(name, Float64(value))
 
     @always_inline("nodebug")
     fn __str__(self) -> String:

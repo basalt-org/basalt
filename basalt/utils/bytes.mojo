@@ -112,26 +112,28 @@ fn bytes_to_f64[
     alias mantissa_bits = 52
     alias exponent_bias = 1023
 
-    var binary_rep = 0
+    var binary_rep: Int64 = 0
 
     @parameter
     fn to_bin[Index: Int]():
-        alias Offest = Index * 8
-        binary_rep |= bytes[Index].to_int() << Offest
+        alias Offest: Int64 = Index * 8
+        binary_rep |= bytes[Index].cast[DType.int64]() << Offest
 
     unroll[to_bin, size]()
 
-    var sign = (-1) ** ((binary_rep >> (exponent_bits + mantissa_bits)) & 1)
-    var exponent = (
+    var sign = (-1) ** ((binary_rep >> (exponent_bits + mantissa_bits)) & 1).to_int()
+    var exponent: Int = (
         (binary_rep >> mantissa_bits) & ((1 << exponent_bits) - 1)
-    ) - exponent_bias
-    var mantissa = (binary_rep & ((1 << mantissa_bits) - 1)) / (1 << mantissa_bits) + (
-        exponent != -exponent_bias
-    )
+    ).to_int() - exponent_bias
+    var mantissa: Float64 = (binary_rep & ((1 << mantissa_bits) - 1)).cast[
+        DType.float64
+    ]() / (1 << mantissa_bits) + Float64(exponent != -exponent_bias)
 
     if exponent == exponent_bias + 1:
         return inf[DType.float64]() if mantissa == 0 else nan[DType.float64]()
     elif exponent == -exponent_bias and mantissa == 0:
         return 0.0
+    elif exponent < 0:
+        return sign * 1.0 / Float64(2**-exponent) * mantissa
     else:
-        return sign * (2.0**exponent) * mantissa
+        return sign * Float64(2**exponent) * mantissa

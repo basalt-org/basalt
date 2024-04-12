@@ -163,9 +163,13 @@ struct CLIP:
         """
         alias min_attr = attributes["min"]
         alias max_attr = attributes["max"]
-        
-        var min_val = min_attr.value().to_scalar[dtype]() if min_attr else min_finite[dtype]()
-        var max_val = max_attr.value().to_scalar[dtype]() if max_attr else max_finite[dtype]()
+
+        var min_val = min_attr.value().to_scalar[dtype]() if min_attr else min_finite[
+            dtype
+        ]()
+        var max_val = max_attr.value().to_scalar[dtype]() if max_attr else max_finite[
+            dtype
+        ]()
 
         @parameter
         fn vec_clip[nelts: Int](i: Int):
@@ -183,8 +187,12 @@ struct CLIP:
         alias min_attr = attributes["min"]
         alias max_attr = attributes["max"]
 
-        var min_val = min_attr.value().to_scalar[dtype]() if min_attr else min_finite[dtype]()
-        var max_val = max_attr.value().to_scalar[dtype]() if max_attr else max_finite[dtype]()
+        var min_val = min_attr.value().to_scalar[dtype]() if min_attr else min_finite[
+            dtype
+        ]()
+        var max_val = max_attr.value().to_scalar[dtype]() if max_attr else max_finite[
+            dtype
+        ]()
 
         var res_grad = Tensor[dtype](t_shape)
 

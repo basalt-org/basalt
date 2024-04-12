@@ -13,7 +13,7 @@ from .basics import (
     FLATTEN,
     RESHAPE,
     TRANSPOSE,
-    FMA
+    FMA,
 )
 from .mlops import SIGMOID, RELU, TANH, CLIP
 from .conv import CONV2D
@@ -366,9 +366,9 @@ fn backward_op[
             tensor_id, ug_shape, t1_shape, t2_shape, t3_shape, attributes
         ](ug, t1, t2, t3)
     elif op == OP.FMA:
-        res_grad = FMA.backward[
-            tensor_id, ug_shape, t1_shape, t2_shape, t3_shape
-        ](ug, t1, t2, t3)
+        res_grad = FMA.backward[tensor_id, ug_shape, t1_shape, t2_shape, t3_shape](
+            ug, t1, t2, t3
+        )
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)

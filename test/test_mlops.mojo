@@ -210,7 +210,9 @@ fn test_backward_CLIP() raises:
             expected[i] = 0.0
         else:
             expected[i] = 5.0
-    var grad = CLIP.backward[ug_shape, t1_shape, AttributeVector(min_attr, max_attr)](ug, t1)
+    var grad = CLIP.backward[ug_shape, t1_shape, AttributeVector(min_attr, max_attr)](
+        ug, t1
+    )
     assert_tensors_equal(grad, expected)
 
 
