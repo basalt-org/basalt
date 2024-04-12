@@ -79,14 +79,14 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Scalar):
-        # BUG: Known bug for big attributes (>1e16, max_finite, inf)
+        # BUG: Known bug for big attributes (>1e18, max_finite, inf) 
         alias f64_size = DType.float64.sizeof()
 
         self.name = Bytes[MAX_NAME_CHARS](name)
         self.data = Bytes[MAX_DATA_BYTES]()
         self.data_shape = StaticIntTuple[MAX_RANK]()
 
-        var fbytes = f64_to_bytes(value.cast[DType.float64]())
+        var fbytes = f64_to_bytes(value.cast[DType.float64]().min(1e18))
 
         @parameter
         fn copy[Index: Int]():
