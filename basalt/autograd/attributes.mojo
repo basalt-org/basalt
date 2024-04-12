@@ -137,4 +137,4 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn to_int(self) -> Int:
-        return self.to_scalar[DType.int64]().to_int()
+        return self.to_scalar[DType.float64]().to_int()

@@ -88,6 +88,10 @@ fn test_attribute_big_scalar() raises:
     alias c = Attribute(name="test", value=value_a)
     assert_true(c.to_scalar[DType.float32]() == value_c, "INF scalar attribute failed")
 
+    alias value_d: Float32 = 0.3333
+    alias d = Attribute(name="test", value=value_d)
+    assert_true(d.to_scalar[DType.float32]() == value_d, "SMALL scalar attribute failed")
+
 
 fn main():
     try:
@@ -97,6 +101,6 @@ fn main():
         test_attribute_tensor_shape()
         test_attribute_static_int_tuple()
         test_attribute_scalar()
-        test_attribute_big_scalar()  # BUG
+        test_attribute_big_scalar()  # BUG'S
     except e:
         print(e)
