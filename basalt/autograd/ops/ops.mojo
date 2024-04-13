@@ -15,7 +15,7 @@ from .basics import (
     TRANSPOSE,
     FMA,
 )
-from .mlops import SIGMOID, RELU, TANH
+from .mlops import SIGMOID, RELU, TANH, CONCAT
 from .conv import CONV2D
 from .pool import MAXPOOL2D
 
@@ -53,6 +53,7 @@ struct OP(Stringable):
     alias TRANSPOSE = OP(17, "TRANSPOSE", num_operands=1)
     alias MAXPOOL2D = OP(18, "MAXPOOL2D", num_operands=1)
     alias FMA = OP(19, "FMA", num_operands=3)
+    alias CONCAT = OP(22, "CONCAT", num_operands=2)
 
     var id: UInt8
     var name: Bytes[16]
@@ -126,6 +127,8 @@ fn static_result_shape(
         return POW.result_shape(t1_shape, t2_shape)
     elif op == OP.DOT:
         return DOT.result_shape(t1_shape, t2_shape)
+    elif op == OP.CONCAT:
+        return CONCAT.result_shape(t1_shape, t2_shape, attributes)
     else:
         # We can't print at compile time (at least for now it crashes at comp time with an error)
         print("[ERROR] Operator not found.")
@@ -307,6 +310,10 @@ fn backward_op[
         res_grad = POW.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
     elif op == OP.DOT:
         res_grad = DOT.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+    elif op == OP.CONCAT:
+        res_grad = CONCAT.backward[ug_shape, t1_shape, t2_shape, attributes](
+            ug, t1, t2
+        )
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)
