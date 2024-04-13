@@ -1,4 +1,4 @@
-from math import min, nan
+from math import nan
 from math.limit import inf
 
 
