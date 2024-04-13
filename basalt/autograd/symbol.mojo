@@ -16,6 +16,9 @@ struct Symbol(CollectionElement, Stringable, EqualityComparable):
         return self.name != other.name
 
     fn __str__(self) -> String:
+        return self.json()
+
+    fn json(self) -> String:
         return (
             '{"name": "'
             + str(self.name)
@@ -25,6 +28,3 @@ struct Symbol(CollectionElement, Stringable, EqualityComparable):
             + str(self.shape)
             + '"}'
         )
-
-    fn json(self) -> String:
-        return str(self)

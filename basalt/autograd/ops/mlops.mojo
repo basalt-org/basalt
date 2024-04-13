@@ -1,8 +1,10 @@
 from algorithm import vectorize
 from math import exp, pow
+from math.limit import min_finite, max_finite
 
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_transform
+from basalt.autograd.attributes import Attribute, AttributeVector
 
 
 @value
@@ -143,6 +145,66 @@ struct TANH:
             )
 
         vectorize[vec_tanh_bw, nelts](ug_shape.num_elements())
+
+        return res_grad ^
+
+
+struct CLIP:
+    @staticmethod
+    fn result_shape(t_shape: TensorShape) -> TensorShape:
+        return t_shape
+
+    @staticmethod
+    fn forward[
+        t_shape: TensorShape, attributes: AttributeVector
+    ](inout res: Tensor[dtype], t: Tensor[dtype]):
+        """
+        Forward pass of the clip operation.
+        """
+        alias min_attr = attributes["min"]
+        alias max_attr = attributes["max"]
+
+        var min_val = min_attr.value().to_scalar[dtype]() if min_attr else min_finite[
+            dtype
+        ]()
+        var max_val = max_attr.value().to_scalar[dtype]() if max_attr else max_finite[
+            dtype
+        ]()
+
+        @parameter
+        fn vec_clip[nelts: Int](i: Int):
+            res.store[nelts](i, t.load[nelts](i).min(max_val).max(min_val))
+
+        vectorize[vec_clip, nelts, size = t_shape.num_elements()]()
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t_shape: TensorShape,
+        attributes: AttributeVector = AttributeVector(),
+    ](ug: Tensor[dtype], t: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of clip."""
+        alias min_attr = attributes["min"]
+        alias max_attr = attributes["max"]
+
+        var min_val = min_attr.value().to_scalar[dtype]() if min_attr else min_finite[
+            dtype
+        ]()
+        var max_val = max_attr.value().to_scalar[dtype]() if max_attr else max_finite[
+            dtype
+        ]()
+
+        var res_grad = Tensor[dtype](t_shape)
+
+        @parameter
+        fn vec_clip_bw[nelts: Int](i: Int):
+            var val = t.load[nelts](i)
+            res_grad.store[nelts](
+                i,
+                ((val >= min_val) * (val <= max_val)).select(ug.load[nelts](i), 0),
+            )
+
+        vectorize[vec_clip_bw, nelts, size = t_shape.num_elements()]()
 
         return res_grad ^
 

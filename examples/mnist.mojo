@@ -123,5 +123,4 @@ fn main():
 
     print("Training finished: ", (now() - start) / 1e9, "seconds")
 
-
     model.print_perf_metrics("ms", True)

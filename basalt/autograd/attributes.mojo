@@ -54,14 +54,6 @@ struct Attribute(Stringable, CollectionElement):
     var data_shape: StaticIntTuple[MAX_RANK]
 
     @always_inline("nodebug")
-    fn __init__(inout self, name: String, value: Int):
-        self.name = Bytes[MAX_NAME_CHARS](name)
-        self.data = Bytes[MAX_DATA_BYTES]()
-        self.data_shape = StaticIntTuple[MAX_RANK]()
-        self.data[0] = value
-        self.data_shape[0] = 1
-
-    @always_inline("nodebug")
     fn __init__(inout self, name: String, value: String):
         self.name = Bytes[MAX_NAME_CHARS](name)
         self.data = Bytes[MAX_DATA_BYTES](value)
@@ -87,13 +79,14 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Scalar):
+        # BUG: Known bug for big attributes (>1e18, max_finite, inf)
         alias f64_size = DType.float64.sizeof()
 
         self.name = Bytes[MAX_NAME_CHARS](name)
         self.data = Bytes[MAX_DATA_BYTES]()
         self.data_shape = StaticIntTuple[MAX_RANK]()
 
-        var fbytes = f64_to_bytes(value.cast[DType.float64]())
+        var fbytes = f64_to_bytes(value.cast[DType.float64]().min(1e18))
 
         @parameter
         fn copy[Index: Int]():
@@ -102,12 +95,16 @@ struct Attribute(Stringable, CollectionElement):
         unroll[copy, f64_size]()
 
     @always_inline("nodebug")
-    fn __str__(self) -> String:
-        return "Attribute(" + str(self.name) + ", " + "..." + ")"
+    fn __init__(inout self, name: String, value: Int):
+        self.__init__(name, Float64(value))
 
     @always_inline("nodebug")
-    fn to_int(self) -> Int:
-        return self.data[0].to_int()
+    fn __init__(inout self, name: String, value: FloatLiteral):
+        self.__init__(name, Float64(value))
+
+    @always_inline("nodebug")
+    fn __str__(self) -> String:
+        return "Attribute(" + str(self.name) + ", " + "..." + ")"
 
     @always_inline("nodebug")
     fn to_string(self) -> String:
@@ -129,7 +126,7 @@ struct Attribute(Stringable, CollectionElement):
         alias size = DType.float64.sizeof()
 
         var fbytes = Bytes[size]()
-        
+
         @parameter
         fn copy[Index: Int]():
             fbytes[Index] = self.data[Index]
@@ -137,3 +134,7 @@ struct Attribute(Stringable, CollectionElement):
         unroll[copy, size]()
 
         return bytes_to_f64(fbytes).cast[dtype]()
+
+    @always_inline("nodebug")
+    fn to_int(self) -> Int:
+        return self.to_scalar[DType.float64]().to_int()
