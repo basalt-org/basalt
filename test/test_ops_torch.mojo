@@ -624,7 +624,6 @@ fn torch_reduction_op(
 fn test_reduction_op[
     op: OP, t1_shape: TensorShape
 ](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
-
     @parameter
     fn create_graph() -> Graph:
         var g = Graph()
@@ -645,7 +644,6 @@ fn test_reduction_op[
 fn test_reduction_op[
     op: OP, t1_shape: TensorShape, axis: Int
 ](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
-
     @parameter
     fn create_graph() -> Graph:
         var g = Graph()
@@ -675,9 +673,9 @@ fn test_reduction_op_backward[
     op: OP, t1_shape: TensorShape, ug_shape: TensorShape, axis: Int
 ](t1: Tensor[dtype], ug: Tensor[dtype], grad_1_expected: Tensor[dtype],) raises:
     var grad_1 = Tensor[dtype](t1_shape)
-    backward_op[
-        0, op, ug_shape, t1_shape, AttributeVector(Attribute("axis", axis))
-    ](ug, t1, grad_1)
+    backward_op[0, op, ug_shape, t1_shape, AttributeVector(Attribute("axis", axis))](
+        ug, t1, grad_1
+    )
     assert_tensors_equal(grad_1, grad_1_expected, "almost")
 
 

@@ -1,55 +1,74 @@
-from math import min, nan
+from math import nan
 from math.limit import inf
 
 
-@value
 @register_passable("trivial")
-struct Bytes[capacity: Int](Stringable, CollectionElement):
+struct Bytes[capacity: Int](Stringable, CollectionElement, EqualityComparable):
     """
     Static sequence of bytes.
     """
 
-    var _vector: StaticTuple[UInt8, capacity]
+    var data: StaticTuple[UInt8, capacity]
 
+    @always_inline("nodebug")
     fn __init__(inout self):
-        self._vector = StaticTuple[UInt8, capacity](0)
+        var data = StaticTuple[UInt8, capacity]()
 
+        @unroll
+        for i in range(capacity):
+            data[i] = 0
+
+        self.data = data
+
+    @always_inline("nodebug")
     fn __init__(inout self, s: String):
-        var _vector = StaticTuple[UInt8, capacity](0)
-        for i in range(min(len(s), capacity)):
-            _vector[i] = ord(s[i])
-        self._vector = _vector
+        var data = StaticTuple[UInt8, capacity]()
+        var length = len(s)
 
+        @unroll
+        for i in range(capacity):
+            data[i] = ord(s[i]) if i < length else 0
+
+        self.data = data
+
+    @always_inline("nodebug")
     fn __len__(self) -> Int:
-        return len(self._vector)
+        return capacity
 
+    @always_inline("nodebug")
     fn __setitem__(inout self, index: Int, value: UInt8):
-        self._vector[index] = value
+        self.data[index] = value
 
+    @always_inline("nodebug")
     fn __getitem__(self, index: Int) -> UInt8:
-        return self._vector[index]
+        return self.data[index]
 
-    fn __str__(self) -> String:
-        var result: String = ""
-        for i in range(self.__len__()):
-            if self[i].to_int() != 0:
-                result += chr(self[i].to_int())
-        return result
-
+    @always_inline("nodebug")
     fn __eq__(self, other: Self) -> Bool:
-        for i in range(self.__len__()):
+        @unroll
+        for i in range(capacity):
             if self[i] != other[i]:
                 return False
         return True
 
-    fn hex(self) -> String:
+    @always_inline("nodebug")
+    fn __ne__(self, other: Self) -> Bool:
+        @unroll
+        for i in range(capacity):
+            if self[i] != other[i]:
+                return True
+        return False
+
+    @always_inline("nodebug")
+    fn __str__(self) -> String:
         var result: String = ""
-        alias hex_table: String = "0123456789abcdef"
-        for i in range(self.__len__()):
-            result += (
-                hex_table[((self[i] >> 4) & 0xF).to_int()]
-                + hex_table[(self[i] & 0xF).to_int()]
-            )
+
+        @unroll
+        for i in range(capacity):
+            var val = self[i]
+            if val != 0:
+                result += chr(val.to_int())
+
         return result
 
 
@@ -64,37 +83,39 @@ fn f64_to_bytes[
     alias mantissa_bits = 52
     alias exponent_bias = 1023
 
-    var sign: Int64 = 0 if value >= 0 else 1
-    var abs: Float64 = value if value >= 0 else -value
+    if value == 0:
+        return Bytes[size]()
 
-    var mantissa: Float64 = 0.0
+    var sign: Int64
+    var abs: Float64
+
+    if value > 0:
+        sign = 0
+        abs = value
+    else:
+        sign = 1
+        abs = -value
+
     var exponent: Int64 = exponent_bias
 
-    if value == 0.0:
-        exponent = 0
-        mantissa = 0
-    else:
-        while abs >= 2.0:
-            abs /= 2.0
-            exponent += 1
-        while abs < 1.0:
-            abs *= 2.0
-            exponent -= 1
+    while abs >= 2.0:
+        abs /= 2.0
+        exponent += 1
+    while abs < 1.0:
+        abs *= 2.0
+        exponent -= 1
 
-        mantissa = (abs - 1.0) * (1 << mantissa_bits)
-
-    var binary_rep: Int64 = 0
-
-    binary_rep |= sign << (exponent_bits + mantissa_bits)
-    binary_rep |= exponent << mantissa_bits
-    binary_rep |= mantissa
+    var mantissa = (abs - 1.0) * (1 << mantissa_bits)
+    var binary_rep: Int64 = (sign << (exponent_bits + mantissa_bits)) | (
+        exponent << mantissa_bits
+    ) | mantissa
 
     var result = Bytes[size]()
 
     @parameter
     fn fill_bytes[Index: Int]():
         alias Offest: Int64 = Index * 8
-        result[Index] = (binary_rep >> Offest).to_int() & 0xFF
+        result[Index] = (binary_rep >> Offest & 0xFF).cast[DType.uint8]()
 
     unroll[fill_bytes, size]()
 

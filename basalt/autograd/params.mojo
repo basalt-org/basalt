@@ -65,14 +65,9 @@ struct ParamDict(Sized):
         self.symbols = List[Symbol]()
         self.values = List[Param]()
 
-    fn put(inout self, param_id: Symbol, value: Optional[Param] = None):
+    fn put(inout self, param_id: Symbol, value: Param = Param()):
         self.symbols.append(param_id)
-        if value:
-            # Initialized parameter
-            self.values.append(value.value())
-        else:
-            # Uninitialized parameter
-            self.values.append(Param())
+        self.values.append(value)
 
     fn get_tensor(self, idx: Int) -> Tensor[dtype]:
         # May only be called at runtime
