@@ -1,43 +1,79 @@
+from math import max
 from memory.anypointer import AnyPointer
 
 from basalt import Tensor, TensorShape, Symbol
 
 
-struct Collection(Sized):
+struct Collection(CollectionElement, Sized):
     var size: Int
     var capacity: Int
     var data: AnyPointer[Tensor[dtype]]
     var symbols: DTypePointer[DType.uint32]
 
-    @always_inline("nodebug")
-    fn __init__(inout self, capacity: Int = 1):
+    fn __init__(inout self, *, capacity: Int):
         self.size = 0
         self.capacity = capacity
         self.data = AnyPointer[Tensor[dtype]].alloc(capacity)
         self.symbols = DTypePointer[DType.uint32].alloc(capacity)
 
-    @always_inline("nodebug")
+    fn __moveinit__(inout self, owned existing: Self):
+        self.size = existing.size
+        self.capacity = existing.capacity
+        self.data = existing.data
+        self.symbols = existing.symbols
+
+    fn __copyinit__(inout self, existing: Self):
+        self = Self(capacity=existing.capacity)
+        for i in range(len(existing)):
+            self.append((existing.data + i)[], existing.symbols[i])
+
+    @always_inline
     fn __del__(owned self):
         for i in range(self.size):
             _ = (self.data + i).take_value()
-        self.data.free()
-        self.symbols.free()
+        if self.data:
+            self.data.free()
+        if self.symbols:
+            self.symbols.free()
 
-    @always_inline("nodebug")
-    fn __moveinit__(inout self, owned other: Self):
-        self.size = other.size
-        self.capacity = other.capacity
-        self.data = other.data
-        self.symbols = other.symbols
+    fn __len__(self) -> Int:
+        return self.size
 
-    @always_inline("nodebug")
+    @always_inline
+    fn _realloc(inout self, new_capacity: Int):
+        var new_data = AnyPointer[Tensor[dtype]].alloc(new_capacity)
+        var new_symbols = DTypePointer[DType.uint32].alloc(new_capacity)
+
+        for i in range(self.size):
+            (new_data + i).emplace_value((self.data + i).take_value())
+            new_symbols[i] = self.symbols[i]
+
+        if self.data:
+            self.data.free()
+        if self.symbols:
+            self.symbols.free()
+        
+        self.data = new_data
+        self.symbols = new_symbols
+        self.capacity = new_capacity
+
+    @always_inline
     fn append(inout self, owned value: Tensor[dtype], symbol: Symbol):
-        # Assumption: Symbol.name contains a unique identifier for the tensor.
-        if self.size == self.capacity:
-            self.reserve(self.capacity * 2)
-        self.data[self.size] = value ^
-        self.symbols[self.size] = symbol.name
+        self.append(value^, symbol.name)
+
+    @always_inline
+    fn append(inout self, owned value: Tensor[dtype], symbol_name: UInt32):
+        if self.size >= self.capacity:
+            self._realloc(max(1, self.capacity * 2))
+        (self.data + self.size).emplace_value(value^)
+        self.symbols[self.size] = symbol_name
         self.size += 1
+
+    fn clear(inout self):
+        for i in range(self.size):
+            _ = (self.data + i).take_value()
+            self.symbol[i] = 0
+        self.size = 0
 
     @always_inline("nodebug")
     fn get_index(self, symbol_name: UInt32) -> Int:
@@ -46,8 +82,6 @@ struct Collection(Sized):
                 return i
         return -1
 
-    # TODO: Check if this can be simplified after #1921 was fixed.
-    # Mojo #1921: https://github.com/modularml/mojo/issues/1921#event-12066222345
     @always_inline("nodebug")
     fn __refitem__[
         mutability: __mlir_type.i1,
@@ -65,33 +99,12 @@ struct Collection(Sized):
         )
 
     @always_inline("nodebug")
-    fn reserve(inout self, new_capacity: Int):
-        if new_capacity <= self.capacity:
-            return
-
-        var new_data = AnyPointer[Tensor[dtype]].alloc(new_capacity)
-        var new_symbols = DTypePointer[DType.uint32].alloc(new_capacity)
-        for i in range(self.size):
-            (self.data + i).move_into(new_data + i)
-            new_symbols[i] = self.symbols[i]
-
-        self.data.free()
-        self.symbols.free()
-        self.data = new_data
-        self.symbols = new_symbols
-        self.capacity = new_capacity
-
-    @always_inline("nodebug")
     fn clear(inout self):
         for i in range(self.size):
             _ = (self.data + i).take_value()
         self.symbols.free()
         self.symbols = DTypePointer[DType.uint32].alloc(self.capacity)
         self.size = 0
-
-    @always_inline("nodebug")
-    fn __len__(self) -> Int:
-        return self.size
 
     @always_inline("nodebug")
     fn set_zero(self):
