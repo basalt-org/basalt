@@ -10,7 +10,7 @@ struct Collection(Sized):
     var symbols: DTypePointer[DType.uint32]
 
     @always_inline("nodebug")
-    fn __init__(inout self, *, capacity: Int):
+    fn __init__(inout self, capacity: Int = 1):
         self.size = 0
         self.capacity = capacity
         self.data = AnyPointer[Tensor[dtype]].alloc(capacity)

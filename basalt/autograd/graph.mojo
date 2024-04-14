@@ -17,7 +17,6 @@ struct Graph:
     var params: ParamDict
     var nodes: List[Node]
     var outputs: List[Symbol]
-    var loss_out: Optional[Symbol]
     var symbol_count: UInt32
 
     fn __init__(inout self):
@@ -25,7 +24,6 @@ struct Graph:
         self.params = ParamDict()
         self.nodes = List[Node]()
         self.outputs = List[Symbol]()
-        self.loss_out = None
         self.symbol_count = 0
 
     fn input(inout self, shape: TensorShape) -> Symbol:
@@ -33,6 +31,10 @@ struct Graph:
         self.inputs.append(inp)
         self.symbol_count += 1
         return inp
+
+    fn input(inout self, inp: Symbol):
+        self.inputs.append(inp)
+        self.symbol_count += 1
 
     fn param(
         inout self, shape: TensorShape, init: Param, trainable: Bool = True
@@ -66,9 +68,6 @@ struct Graph:
 
     fn out(inout self, symbol: Symbol):
         self.outputs.append(symbol)
-
-    fn loss(inout self, symbol: Symbol):
-        self.loss_out = symbol
 
     fn op(
         inout self,
@@ -189,10 +188,6 @@ struct Graph:
             result += self.outputs[i].json()
             if i < len(self.outputs) - 1:
                 result += ", "
-        if self.loss_out:
-            result += '], "loss": ['
-            result += self.loss_out.value().json()
-        result += '], "params": ['
         for i in range(len(self.params)):
             result += self.params.symbols[i].json()
             if i < len(self.params) - 1:

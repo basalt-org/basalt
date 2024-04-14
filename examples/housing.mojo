@@ -1,7 +1,7 @@
 from time.time import now
 
 import basalt.nn as nn
-from basalt import Tensor, TensorShape
+from basalt import Tensor, TensorShape, dtype
 from basalt import Graph, Symbol, OP
 from basalt.utils.datasets import BostonHousing
 from basalt.utils.dataloader import DataLoader
@@ -11,14 +11,10 @@ fn linear_regression(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
     var g = Graph()
 
     var x = g.input(TensorShape(batch_size, n_inputs))
-    var y_true = g.input(TensorShape(batch_size, n_outputs))
 
     var y_pred = nn.Linear(g, x, n_outputs)
+
     g.out(y_pred)
-
-    var loss = nn.MSELoss(g, y_pred, y_true)
-    g.loss(loss)
-
     return g ^
 
 
@@ -34,8 +30,8 @@ fn main():
     # except: print("Could not render graph")
 
     var model = nn.Model[graph]()
-    var optim = nn.optim.Adam[graph](lr=learning_rate)
-    optim.allocate_rms_and_momentum(model.parameters)
+    var loss_func = nn.MSELoss[graph.outputs[0]]()
+    var optim = nn.optim.Adam(Reference(model), lr=learning_rate)
 
     # Batchwise data loader
     print("Loading data...")
@@ -56,12 +52,12 @@ fn main():
         var epoch_loss: Float32 = 0.0
         for batch in training_loader:
             # Forward pass
-            var loss = model.forward(batch.data, batch.labels)
+            var y_pred = model.forward(batch.data)[0]
+            var loss = loss_func(y_pred, batch.labels)
 
             # Backward pass
-            optim.zero_grad(model.parameters)
-            model.backward()
-            optim.step(model.parameters)
+            model.backward(Reference(loss_func))
+            optim.step()
 
             epoch_loss += loss[0]
             num_batches += 1
