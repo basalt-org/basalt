@@ -69,12 +69,6 @@ struct Collection(CollectionElement, Sized):
         self.symbols[self.size] = symbol_name
         self.size += 1
 
-    fn clear(inout self):
-        for i in range(self.size):
-            _ = (self.data + i).take_value()
-            self.symbol[i] = 0
-        self.size = 0
-
     @always_inline("nodebug")
     fn get_index(self, symbol_name: UInt32) -> Int:
         for i in range(self.size):
