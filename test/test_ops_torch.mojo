@@ -84,8 +84,8 @@ fn test_binary_op[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1, t2)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1, t2)[0]
     assert_tensors_equal(res, expected, "almost")
 
 
@@ -423,8 +423,8 @@ fn test_unary_op[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)[0]
 
     assert_tensors_equal(res, expected, "almost")
 
@@ -522,8 +522,8 @@ fn test_pow_op[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)[0]
     assert_tensors_equal(res, expected, "almost")
 
 
@@ -635,8 +635,8 @@ fn test_reduction_op[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)[0]
 
     assert_tensors_equal(res, expected, "almost")
 
@@ -655,8 +655,8 @@ fn test_reduction_op[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)[0]
 
     assert_tensors_equal(res, expected, "almost")
 
@@ -929,8 +929,8 @@ fn test_transform_op[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)[0]
 
     assert_tensors_equal(res, expected, "almost")
 
@@ -1122,8 +1122,8 @@ fn test_ternary_op[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1, t2, t3)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1, t2, t3)[0]
 
     assert_tensors_equal(res, expected, "almost")
 

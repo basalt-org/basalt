@@ -32,8 +32,8 @@ fn test_ternary_op[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1, t2, t3)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1, t2, t3)[0]
     assert_tensors_equal(res, expected)
 
 
@@ -71,8 +71,8 @@ fn test_binary_op[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1, t2)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1, t2)[0]
     assert_tensors_equal(res, expected)
 
 
@@ -162,8 +162,8 @@ fn test_unary_op[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)[0]
 
     assert_tensors_equal(res, expected)
 
@@ -207,8 +207,8 @@ fn test_POW() raises:
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)[0]
 
     var expected = Tensor[dtype](2, 3)
     fill(expected, 4.0)
@@ -233,8 +233,8 @@ fn test_SUM() raises:
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)[0]
 
     var expected = Tensor[dtype](1)
     fill(expected, 24.0)
@@ -242,8 +242,8 @@ fn test_SUM() raises:
 
     # Test axis 1
     alias graph_axis_1 = create_graph(AttributeVector(Attribute("axis", 1)))
-    var model_2 = nn.Model[graph_axis_1](inference_only=True)
-    res = model_2.inference(t1)[0]
+    var model_2 = nn.Model[graph_axis_1]()
+    res = model_2.forward(t1)[0]
 
     expected = Tensor[dtype](2, 1, 4)
     fill(expected, 3.0)
@@ -270,8 +270,8 @@ fn test_MAX() raises:
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)[0]
 
     var expected = Tensor[dtype](1)
     fill(expected, t1_shape.num_elements())
@@ -287,8 +287,8 @@ fn test_MAX() raises:
 
     # Test axis 0
     alias graph_axis_1 = create_graph(AttributeVector(Attribute("axis", 0)))
-    var model_2 = nn.Model[graph_axis_1](inference_only=True)
-    res = model_2.inference(t1)[0]
+    var model_2 = nn.Model[graph_axis_1]()
+    res = model_2.forward(t1)[0]
 
     var expected_max_axis_0_temp = StaticIntTuple[6](7, 8, 9, 10, 11, 12)
     expected = Tensor[dtype](1, 3, 2)
@@ -297,8 +297,8 @@ fn test_MAX() raises:
 
     # Test axis 1
     alias graph_axis_2 = create_graph(AttributeVector(Attribute("axis", 1)))
-    var model_3 = nn.Model[graph_axis_2](inference_only=True)
-    res = model_3.inference(t1)[0]
+    var model_3 = nn.Model[graph_axis_2]()
+    res = model_3.forward(t1)[0]
 
     var expected_max_axis_1_temp = StaticIntTuple[4](5, 6, 11, 12)
     expected = Tensor[dtype](2, 1, 2)
@@ -307,8 +307,8 @@ fn test_MAX() raises:
 
     # Test axis 2
     alias graph_axis_3 = create_graph(AttributeVector(Attribute("axis", 2)))
-    var model_4 = nn.Model[graph_axis_3](inference_only=True)
-    res = model_4.inference(t1)[0]
+    var model_4 = nn.Model[graph_axis_3]()
+    res = model_4.forward(t1)[0]
 
     var expected_max_axis_2_temp = StaticIntTuple[6](2, 4, 6, 8, 10, 12)
     expected = Tensor[dtype](2, 3, 1)
@@ -333,8 +333,8 @@ fn test_MEAN() raises:
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)[0]
 
     var expected = Tensor[dtype](1)
     fill(expected, 5.0)
@@ -342,8 +342,8 @@ fn test_MEAN() raises:
 
     # Test axis 0
     alias graph_axis_1 = create_graph(AttributeVector(Attribute("axis", 0)))
-    var model_2 = nn.Model[graph_axis_1](inference_only=True)
-    res = model_2.inference(t1)[0]
+    var model_2 = nn.Model[graph_axis_1]()
+    res = model_2.forward(t1)[0]
 
     expected = Tensor[dtype](1, 3)
     fill(expected, 5.0)
@@ -351,8 +351,8 @@ fn test_MEAN() raises:
 
     # Test axis 1
     alias graph_axis_2 = create_graph(AttributeVector(Attribute("axis", 1)))
-    var model_3 = nn.Model[graph_axis_2](inference_only=True)
-    res = model_3.inference(t1)[0]
+    var model_3 = nn.Model[graph_axis_2]()
+    res = model_3.forward(t1)[0]
 
     expected = Tensor[dtype](2, 1)
     fill(expected, 5.0)
@@ -379,8 +379,8 @@ fn test_TRANSPOSE() raises:
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)[0]
 
     var expected = Tensor[dtype](4, 3, 2)
     var expected_strides = expected.strides()
@@ -399,9 +399,9 @@ fn test_TRANSPOSE() raises:
         AttributeVector(Attribute("axes", TensorShape(1, 2, 0)))
     )
 
-    var model_2 = nn.Model[graph_axis_1](inference_only=True)
+    var model_2 = nn.Model[graph_axis_1]()
 
-    res = model_2.inference(t1)[0]
+    res = model_2.forward(t1)[0]
 
     var expected_axis_1 = Tensor[dtype](3, 4, 2)
     var expected_axis_1_strides = expected_axis_1.strides()
@@ -433,8 +433,8 @@ fn test_FLATTEN() raises:
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t1)[0]
 
     var expected = Tensor[dtype](24)
     fill(expected, 1.0)
@@ -465,8 +465,8 @@ fn test_RESHAPE() raises:
 
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(t)[0]
 
     assert_tensors_equal(res, expected)
 

@@ -32,8 +32,8 @@ fn test_SOFTMAX() raises:
     # Test axis 0
     alias graph = create_graph(0)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(x)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(x)[0]
 
     var expected = Tensor[dtype](x_shape)
 
@@ -48,8 +48,8 @@ fn test_SOFTMAX() raises:
     # Test axis 1
     alias graph_2 = create_graph(1)
 
-    var model_2 = nn.Model[graph_2](inference_only=True)
-    res = model_2.inference(x)[0]
+    var model_2 = nn.Model[graph_2]()
+    res = model_2.forward(x)[0]
 
     expected = Tensor[dtype](x_shape)
 
@@ -60,8 +60,8 @@ fn test_SOFTMAX() raises:
     # Test axis 2
     alias graph_3 = create_graph(2)
 
-    var model_3 = nn.Model[graph_3](inference_only=True)
-    res = model_3.inference(x)[0]
+    var model_3 = nn.Model[graph_3]()
+    res = model_3.forward(x)[0]
 
     expected = Tensor[dtype](x_shape)
 
@@ -91,8 +91,8 @@ fn test_LOGSOFTMAX() raises:
     # Test axis 0
     alias graph = create_graph(0)
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(x)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(x)[0]
 
     var expected = Tensor[dtype](x_shape)
 
@@ -107,8 +107,8 @@ fn test_LOGSOFTMAX() raises:
     # Test axis 1
     alias graph_2 = create_graph(1)
 
-    var model_2 = nn.Model[graph_2](inference_only=True)
-    res = model_2.inference(x)[0]
+    var model_2 = nn.Model[graph_2]()
+    res = model_2.forward(x)[0]
 
     expected = Tensor[dtype](x_shape)
 
@@ -119,8 +119,8 @@ fn test_LOGSOFTMAX() raises:
     # Test axis 2
     alias graph_3 = create_graph(2)
 
-    var model_3 = nn.Model[graph_3](inference_only=True)
-    res = model_3.inference(x)[0]
+    var model_3 = nn.Model[graph_3]()
+    res = model_3.forward(x)[0]
 
     expected = Tensor[dtype](x_shape)
 
@@ -151,8 +151,8 @@ fn test_RELU() raises:
 
     alias graph = create_graph()
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(x)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(x)[0]
 
     var expected = Tensor[dtype](x_shape)
     for i in range(3):
@@ -183,8 +183,8 @@ fn test_SIGMOID() raises:
 
     alias graph = create_graph()
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(x)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(x)[0]
 
     var expected = Tensor[dtype](x_shape)
     fill(expected, 0.5)
@@ -212,8 +212,8 @@ fn test_TANH() raises:
 
     alias graph = create_graph()
 
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(x)[0]
+    var model = nn.Model[graph]()
+    var res = model.forward(x)[0]
 
     var expected = Tensor[dtype](x_shape)
     fill(expected, 0.0)
