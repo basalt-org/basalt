@@ -3,6 +3,7 @@ from algorithm import vectorize, parallelize
 
 from .module import Parameters
 
+from basalt import TENSORS, GRADS
 from basalt import Graph, Tensor, TensorShape
 from basalt.utils.collection import Collection
 
@@ -23,11 +24,8 @@ fn get_trainable_parameters(g: Graph) -> List[Symbol]:
 
 struct Adam[
     g: Graph,
-    mutability: __mlir_type.i1,
-    lifetime: AnyLifetime[mutability].type,
     trainable_parameters: List[Symbol] = get_trainable_parameters(g),
 ]:
-    var model_ref: Reference[nn.Model[g], mutability, lifetime]
 
     var lr: SIMD[dtype, 1]
     var beta1: SIMD[dtype, 1]
@@ -40,15 +38,12 @@ struct Adam[
 
     fn __init__(
         inout self,
-        model_ref: Reference[nn.Model[g], mutability, lifetime],
         lr: SIMD[dtype, 1] = 0.001,
         beta1: SIMD[dtype, 1] = 0.9,
         beta2: SIMD[dtype, 1] = 0.999,
         epsilon: SIMD[dtype, 1] = 1e-8,
     ):
         
-        self.model_ref = model_ref
-
         self.lr = lr
         self.beta1 = beta1
         self.beta2 = beta2
@@ -74,8 +69,8 @@ struct Adam[
             fn v_step[nelts: Int](j: Int):
                 var momentum_grads = self.momentum_grads[param].load[nelts](j)
                 var rms_grads = self.rms_grads[param].load[nelts](j)
-                var grads = self.model_ref[].module.grads[param].load[nelts](j)
-                var params = self.model_ref[].module.tensors[param].load[nelts](j)
+                var grads = GRADS[param].load[nelts](j)
+                var params = TENSORS[param].load[nelts](j)
 
                 # Momentum beta 1
                 # f1 = beta1 * momentum + (1 - beta1) * grad
@@ -99,7 +94,7 @@ struct Adam[
                 params = params - self.lr * (
                     momentum_grads / (sqrt(rms_grads) + self.epsilon)
                 )
-                self.model_ref[].module.tensors[param].store[nelts](j, params)
+                TENSORS[param].store[nelts](j, params)
 
             vectorize[v_step, 1](param.shape.num_elements())
 

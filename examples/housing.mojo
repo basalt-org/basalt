@@ -29,9 +29,10 @@ fn main():
     # try: graph.render("operator")
     # except: print("Could not render graph")
 
-    var model = nn.Model[graph]()
-    var loss_func = nn.MSELoss[graph.outputs[0]]()
-    var optim = nn.optim.Adam(Reference(model), lr=learning_rate)
+    var loss_func = nn.MSELoss[graph]()
+
+    var model = nn.Model[graph](Reference(loss_func))
+    var optim = nn.optim.Adam[graph](lr=learning_rate)
 
     # Batchwise data loader
     print("Loading data...")
@@ -56,7 +57,7 @@ fn main():
             var loss = loss_func(y_pred, batch.labels)
 
             # Backward pass
-            model.backward(Reference(loss_func))
+            model.backward()
             optim.step()
 
             epoch_loss += loss[0]

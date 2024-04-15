@@ -10,7 +10,7 @@ struct Collection(CollectionElement, Sized):
     var data: AnyPointer[Tensor[dtype]]
     var symbols: DTypePointer[DType.uint32]
 
-    fn __init__(inout self, *, capacity: Int):
+    fn __init__(inout self, *, capacity: Int = 0):
         self.size = 0
         self.capacity = capacity
         self.data = AnyPointer[Tensor[dtype]].alloc(capacity)

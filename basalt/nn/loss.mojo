@@ -13,27 +13,21 @@ struct Loss[g: Graph]:
     fn __call__(inout self, input: Tensor[dtype], target: Tensor[dtype]) -> Tensor[dtype]:
         return self.module.forward(input, target)[0]
 
-    fn backward(inout self):
-
-        # Initiate upper gradient with 1
-        var upper_grad = Tensor[dtype](g.outputs[0].shape)
-        fill(upper_grad, 1)
-
-        # Execute backward pass
-        self.module.backward(upper_grad ^)
-
 
 
 fn MSELoss[
-    input: Symbol,
-    g: Graph = mse_loss(input),
+    graph: Graph,
+    g: Graph = mse_loss(
+        graph.outputs[0],
+        graph.symbol_count
+    )
 ]() -> Loss[g]:
     return Loss[g]()
 
 
-fn mse_loss(input: Symbol) -> Graph:
+fn mse_loss(input: Symbol, count_start: UInt32) -> Graph:
     # 1/N * sum( (input - targets)^2 )
-    var g = Graph()
+    var g = Graph(count_start)
     g.input(input)
     var target = g.input(input.shape)
 
@@ -47,13 +41,16 @@ fn mse_loss(input: Symbol) -> Graph:
 
 
 fn CrossEntropyLoss[
-    input: Symbol,
-    g: Graph = cross_entropy_loss(input),
+    graph: Graph,
+    g: Graph = cross_entropy_loss(
+        graph.outputs[0],
+        graph.symbol_count
+    )
 ]() -> Loss[g]:
     return Loss[g]()
 
 
-fn cross_entropy_loss(input: Symbol) -> Graph:
+fn cross_entropy_loss(input: Symbol, count_start: UInt32) -> Graph:
     # -1/N * sum( targets * log_softmax(outputs) )
     var g = Graph()
     g.input(input)
