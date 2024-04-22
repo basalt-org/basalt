@@ -6,17 +6,17 @@ export default async function Module({
   params: { module_name: string };
 }) {
   const docs = await loadDocs();
-  const module = docs.decl.packages
+  const module_info = docs.decl.packages
     .flatMap((p) => p.modules)
     .find((m) => m.name === params.module_name.toLowerCase())!;
 
   return (
     <div>
-      <h1>{module.name}</h1>
-      <p>{module.description}</p>
+      <h1>{module_info.name}</h1>
+      <p>{module_info.description}</p>
 
       <h2>Structs</h2>
-      {module.structs.map((s) => (
+      {module_info.structs.map((s) => (
         <div key={s.name}>
           <h3>{s.name}</h3>
           <p>{s.summary}</p>
@@ -41,7 +41,7 @@ export default async function Module({
       ))}
 
       <h2>Functions</h2>
-      {module.functions.map((f) => (
+      {module_info.functions.map((f) => (
         <div key={f.name}>
           <h3>{f.name}</h3>
           <ul>
