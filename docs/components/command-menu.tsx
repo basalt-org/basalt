@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { DialogProps } from "@radix-ui/react-dialog"
 import { useTheme } from "next-themes"
 
-import { docsConfig } from "@/config/docs"
+import { DocsConfig, generateDocsConfig } from "@/config/docs"
 import { cn } from "@/lib/utils"
 import { Button } from "./ui/button"
 import {
@@ -23,6 +23,16 @@ export function CommandMenu({ ...props }: DialogProps) {
   const router = useRouter()
   const [open, setOpen] = React.useState(false)
   const { setTheme } = useTheme()
+  const [docs, setDocs] = React.useState<DocsConfig>({mainNav: [], sidebarNav: []})
+
+  React.useEffect(() => {
+    const fetchDocs = async () => {
+      const docs = await generateDocsConfig()
+      setDocs(docs)
+    }
+
+    fetchDocs()
+  });
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -71,7 +81,7 @@ export function CommandMenu({ ...props }: DialogProps) {
         <CommandList>
           <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup heading="Links">
-            {docsConfig.mainNav
+            {docs.mainNav
               .filter((navitem) => !navitem.external)
               .map((navItem) => (
                 <CommandItem
@@ -86,7 +96,7 @@ export function CommandMenu({ ...props }: DialogProps) {
                 </CommandItem>
               ))}
           </CommandGroup>
-          {docsConfig.sidebarNav.map((group) => (
+          {docs.sidebarNav.map((group) => (
             <CommandGroup key={group.title} heading={group.title}>
               {group.items.map((navItem) => (
                 <CommandItem

@@ -1,41 +1,26 @@
+import { BASE_URL } from "@/utils/constants";
 import { Documentation } from "@/types/mojo";
-import { exec } from "child_process";
-import { del, list, put } from '@vercel/blob';
 
 export async function getDocs(): Promise<Documentation> {
-    return new Promise((resolve, reject) => {
-        exec("mojo doc ../basalt", (error, stdout, stderr) => {
-            if (error) {
-                reject(error);
-            }
-            resolve(JSON.parse(stdout));
-        });
-    });
+  const response = await fetch(`${BASE_URL}/api/docs?action=get`, { cache: "no-store" });
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.error);
+  }
+  return data;
 }
 
 export async function loadDocs(): Promise<Documentation> {
-    const url = await getDocsUrl();
-    const response = await fetch(url);
-    return await response.json();
+  const response = await fetch(`${BASE_URL}/api/docs?action=url`);
+  const { url } = await response.json();
+  const docsResponse = await fetch(url);
+  return await docsResponse.json();
 }
 
-export async function saveDocs(docs?: Documentation) {
-    await deleteDocs();
-    const blob = new Blob([JSON.stringify(await getDocs())], { type: 'application/json' });
-    await put('docs', blob, { access: 'public' })
-}
-
-export async function getDocsUrl() {
-    const blobs = await list();
-
-    if (blobs.blobs.length === 0) {
-        await saveDocs();
-        return getDocsUrl();
-    }
-
-    return blobs.blobs[0].downloadUrl;
+export async function saveDocs() {
+  await fetch(`${BASE_URL}/api/docs`, { method: 'POST' });
 }
 
 export async function deleteDocs() {
-    del((await list()).blobs.map(blob => blob.url));
+  await fetch(`${BASE_URL}/api/docs`, { method: 'DELETE' });
 }
