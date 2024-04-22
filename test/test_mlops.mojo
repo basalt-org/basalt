@@ -218,7 +218,7 @@ fn test_backward_CLIP() raises:
 
 
 fn test_SQUEEZE() raises:
-    alias t1_shape = TensorShape(2, 1, 3, 1)
+    alias t1_shape = TensorShape(1, 2, 1, 3, 1)
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     fill(t1, 5.0)
 
@@ -228,18 +228,18 @@ fn test_SQUEEZE() raises:
     test_unary_op[OP.SQUEEZE, t1_shape](t1, expected)
 
     # Test with one dim
-    expected = Tensor[dtype](2, 1, 3)
+    expected = Tensor[dtype](1, 2, 1, 3)
     fill(expected, 5.0)
-    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dim", TensorShape(3)))](t1, expected)
+    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(4)))](t1, expected)
 
-    expected = Tensor[dtype](2, 3, 1)
+    expected = Tensor[dtype](1, 2, 3, 1)
     fill(expected, 5.0)
-    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dim", TensorShape(1)))](t1, expected)
+    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(2)))](t1, expected)
 
     # Test with multiple dims
-    expected = Tensor[dtype](2, 3)
+    expected = Tensor[dtype](1, 2, 3)
     fill(expected, 5.0)
-    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dim", TensorShape(1, 2, 3)))](t1, expected)
+    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(2, 4)))](t1, expected)
 
 
 fn test_backward_SQUEEZE() raises:
@@ -276,7 +276,7 @@ fn test_UNSQUEEZE() raises:
 
 fn test_backward_UNSQUEEZE() raises:
     alias t1_shape = TensorShape(2, 3)
-    alias ug_shape = TensorShape(2, 1, 3, 1)
+    alias ug_shape = TensorShape(2, 1, 3)
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     fill(t1, 5.0)
     var ug: Tensor[dtype] = Tensor[dtype](ug_shape)

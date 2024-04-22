@@ -59,10 +59,10 @@ fn torch_unary_op(
         elif op == OP.SQUEEZE:
             if attrs:
                 var attrs = attrs.value()
-                var dim = attrs["dim"]
+                var dim = attrs["dims"]
 
                 if dim:
-                    expected = torch.squeeze(input_1, dim=dim.value().to_int())
+                    expected = torch.squeeze(input_1, dim=dim.value().to_shape()[0])
                 elif attrs_tuple:
                     expected = torch.squeeze(input_1, dim=attrs_tuple.value())
                 else:
@@ -245,7 +245,7 @@ fn test_SQUEEZE() raises:
     ug = Tensor[dtype](ug_shape_1)
     rand(ug.data(), ug.num_elements())
 
-    alias dim = Attribute("dim", 3)
+    alias dim = Attribute("dims", TensorShape(3))
 
     expected_and_grad = torch_unary_op(OP.SQUEEZE, t1, ug, AttributeVector(dim))
     test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(dim)](
@@ -259,7 +259,7 @@ fn test_SQUEEZE() raises:
     ug = Tensor[dtype](ug_shape_2)
     rand(ug.data(), ug.num_elements())
 
-    alias dim_2 = Attribute("dim", 1)
+    alias dim_2 = Attribute("dims", TensorShape(1))
 
     expected_and_grad = torch_unary_op(OP.SQUEEZE, t1, ug, AttributeVector(dim_2))
     test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(dim_2)](
