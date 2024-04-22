@@ -1,10 +1,10 @@
-import { loadDocs } from "@/lib/docs"
+import { loadDocs } from "@/lib/docs";
 import { Documentation } from "@/types/mojo";
-import { MainNavItem, SidebarNavItem } from "@/types/nav"
+import { MainNavItem, SidebarNavItem } from "@/types/nav";
 
 export interface DocsConfig {
-  mainNav: MainNavItem[]
-  sidebarNav: SidebarNavItem[]
+  mainNav: MainNavItem[];
+  sidebarNav: SidebarNavItem[];
 }
 
 export async function generateDocsConfig(): Promise<DocsConfig> {
