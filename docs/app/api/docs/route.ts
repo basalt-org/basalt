@@ -2,7 +2,7 @@ import { exec } from "child_process";
 import { NextResponse } from "next/server";
 import { del, list, put } from "@vercel/blob";
 
-export async function GET(request: Request) {
+export async function GET(request: Request): Promise<NextResponse> {
   const { searchParams } = new URL(request.url);
   const action = searchParams.get("action");
 
@@ -28,12 +28,12 @@ export async function GET(request: Request) {
   }
 }
 
-export async function POST() {
+export async function POST(): Promise<NextResponse> {
   await saveDocs();
   return NextResponse.json({ message: "Docs saved successfully" });
 }
 
-export async function DELETE() {
+export async function DELETE(): Promise<NextResponse> {
   await deleteDocs();
   return NextResponse.json({ message: "Docs deleted successfully" });
 }
