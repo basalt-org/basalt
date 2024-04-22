@@ -1,8 +1,6 @@
 from math import add, mul, div, sqrt, sub
 from algorithm import vectorize, parallelize
 
-from .module import Parameters
-
 from basalt import TENSORS, GRADS
 from basalt import Graph, Tensor, TensorShape
 from basalt.utils.collection import Collection
