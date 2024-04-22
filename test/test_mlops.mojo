@@ -7,7 +7,7 @@ from collections.optional import OptionalReg
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
-from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP
+from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE
 from basalt.utils.tensorutils import fill
 from basalt.autograd.attributes import AttributeVector, Attribute
 
@@ -39,6 +39,7 @@ fn test_unary_op[
 
     var model = nn.Model[graph](inference_only=True)
     var res = model.inference(t1)[0]
+
     assert_tensors_equal(res, expected)
 
 
@@ -216,12 +217,93 @@ fn test_backward_CLIP() raises:
     assert_tensors_equal(grad, expected)
 
 
+fn test_SQUEEZE() raises:
+    alias t1_shape = TensorShape(1, 2, 1, 3, 1)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    fill(t1, 5.0)
+
+    # Test with no dims
+    var expected = Tensor[dtype](2, 3)
+    fill(expected, 5.0)
+    test_unary_op[OP.SQUEEZE, t1_shape](t1, expected)
+
+    # Test with one dim
+    expected = Tensor[dtype](1, 2, 1, 3)
+    fill(expected, 5.0)
+    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(4)))](t1, expected)
+
+    expected = Tensor[dtype](1, 2, 3, 1)
+    fill(expected, 5.0)
+    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(2)))](t1, expected)
+
+    # Test with multiple dims
+    expected = Tensor[dtype](1, 2, 3)
+    fill(expected, 5.0)
+    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(2, 4)))](t1, expected)
+
+
+fn test_backward_SQUEEZE() raises:
+    alias t1_shape = TensorShape(2, 1, 3, 1)
+    alias ug_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    fill(t1, 5.0)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    fill(ug, 5.0)
+
+    var expected_grad = Tensor[dtype](2, 1, 3, 1)
+    fill(expected_grad, 5.0)
+
+    var grad = SQUEEZE.backward[ug_shape, t1_shape](ug, t1)
+    assert_tensors_equal(grad, expected_grad)
+
+
+fn test_UNSQUEEZE() raises:
+    # UNSQUEEZE here is more similar to jax expand_dims
+    alias t1_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    fill(t1, 5.0)
+
+    var expected = Tensor[dtype](2, 1, 3, 1)
+    fill(expected, 5.0)
+    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(1, 3)))](t1, expected)
+
+    expected = Tensor[dtype](2, 1, 3)
+    fill(expected, 5.0)
+
+    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(1)))](t1, expected)
+
+    expected = Tensor[dtype](1, 2, 3)
+    fill(expected, 5.0)
+    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(-3)))](t1, expected)
+
+    expected = Tensor[dtype](2, 1, 3, 1)
+    fill(expected, 5.0)
+    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(-1, -3)))](t1, expected)
+
+
+fn test_backward_UNSQUEEZE() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias ug_shape = TensorShape(2, 1, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    fill(t1, 5.0)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    fill(ug, 5.0)
+
+    var expected_grad = Tensor[dtype](2, 3)
+    fill(expected_grad, 5.0)
+
+    var grad = UNSQUEEZE.backward[ug_shape, t1_shape](ug, t1)
+    assert_tensors_equal(grad, expected_grad)
+
+
 fn main():
     try:
         test_SIGMOID()
         test_RELU()
         test_TANH()
         test_CLIP()
+        test_SQUEEZE()
+        test_UNSQUEEZE()
     except e:
         print("[ERROR] Error in forward mlops")
         print(e)
@@ -232,6 +314,8 @@ fn main():
         test_backward_RELU()
         test_backward_TANH()
         test_backward_CLIP()
+        test_backward_SQUEEZE()
+        test_backward_UNSQUEEZE()
     except e:
         print("[ERROR] Error in backward mlops")
         print(e)

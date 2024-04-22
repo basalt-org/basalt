@@ -97,6 +97,13 @@ struct TensorShape(Stringable):
     fn __ne__(self, other: TensorShape) -> Bool:
         return not self.__eq__(other)
 
+    @always_inline("nodebug")
+    fn __contains__(self, value: Int) -> Bool:
+        for i in range(self.rank()):
+            if self[i] == value:
+                return True
+        return False
+
 
 struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
     var _data: DTypePointer[dtype]

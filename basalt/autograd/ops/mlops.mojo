@@ -209,6 +209,74 @@ struct CLIP:
         return res_grad ^
 
 
+struct SQUEEZE:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        var dim = attributes["dims"]
+        var dims_to_squeeze = dim.value().to_shape() if dim else TensorShape()
+
+        var new_shape = List[Int]()
+        for i in range(t1_shape.rank()):
+            if (not dim and t1_shape[i] == 1) or (i in dims_to_squeeze and t1_shape[i] == 1): 
+                continue
+            new_shape.append(t1_shape[i])
+
+        return TensorShape(new_shape)
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        memcpy(res.data(), t1.data(), t1.num_elements())
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        var res_grad = Tensor[dtype](t1_shape)
+        memcpy(res_grad.data(), ug.data(), ug.num_elements())
+        return res_grad ^
+
+
+struct UNSQUEEZE:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        var dim = attributes["dims"]
+        var dims_to_squeeze = dim.value().to_shape() if dim else TensorShape()
+
+        # Position in the expanded dims where the new dim (or dims) is placed.
+        var new_rank = t1_shape.rank() + dims_to_squeeze.rank()
+
+        var new_shape = List[Int]()
+        var j = 0
+        for i in range(new_rank):
+            if i in dims_to_squeeze or i - new_rank in dims_to_squeeze:
+                new_shape.append(1)
+            else:
+                new_shape.append(t1_shape[j])
+                j += 1
+
+        return TensorShape(new_shape)
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        memcpy(res.data(), t1.data(), t1.num_elements())
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        var res_grad = Tensor[dtype](t1_shape)
+        memcpy(res_grad.data(), ug.data(), ug.num_elements())
+        return res_grad ^
+
+
 # struct SOFTMAX:
 #     @staticmethod
 #     fn softmax[axis: Int](n: Tensor[dtype]) -> Tensor[dtype]:
