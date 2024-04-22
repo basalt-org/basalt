@@ -246,6 +246,7 @@ struct UNSQUEEZE:
         var dim = attributes["dims"]
         var dims_to_squeeze = dim.value().to_shape() if dim else TensorShape()
 
+        # Position in the expanded dims where the new dim (or dims) is placed.
         var new_rank = t1_shape.rank() + dims_to_squeeze.rank()
 
         var new_shape = List[Int]()
