@@ -30,6 +30,7 @@ fn torch_unary_op(
     input_1: Tensor,
     upper_grad: Tensor,
     attrs: OptionalReg[AttributeVector] = None,
+    attrs_tuple: OptionalReg[PythonObject] = None,
 ) -> torch_output_unary_op:
     try:
         var torch = Python.import_module("torch")
@@ -55,6 +56,19 @@ fn torch_unary_op(
                 dtype
             ]() if max_attr else max_finite[dtype]()
             expected = torch.clamp(input_1, min_val, max_val)
+        elif op == OP.SQUEEZE:
+            if attrs:
+                var attrs = attrs.value()
+                var dim = attrs["dim"]
+
+                if dim:
+                    expected = torch.squeeze(input_1, dim=dim.value().to_int())
+                elif attrs_tuple:
+                    expected = torch.squeeze(input_1, dim=attrs_tuple.value())
+                else:
+                    expected = torch.squeeze(input_1)
+            else:
+                expected = torch.squeeze(input_1)
         else:
             print("Error: op not supported (returning the value input_1): ", op)
             expected = input_1
@@ -211,6 +225,68 @@ fn test_CLIP() raises:
     ](t1, ug, expected_and_grad.grad_1)
 
 
+fn test_SQUEEZE() raises:
+    alias t1_shape = TensorShape(20, 1, 28, 1)
+    alias ug_shape = TensorShape(20, 28)
+    var t1 = Tensor[dtype](t1_shape)
+    rand(t1.data(), t1.num_elements())
+
+    var ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    var expected_and_grad = torch_unary_op(OP.SQUEEZE, t1, ug)
+    test_unary_op[OP.SQUEEZE, t1_shape](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.SQUEEZE, t1_shape, ug_shape](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+    # Squeeze with one dim
+    alias ug_shape_1 = TensorShape(20, 1, 28)
+    ug = Tensor[dtype](ug_shape_1)
+    rand(ug.data(), ug.num_elements())
+
+    alias dim = Attribute("dim", 3)
+
+    expected_and_grad = torch_unary_op(OP.SQUEEZE, t1, ug, AttributeVector(dim))
+    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(dim)](
+        t1, expected_and_grad.expected
+    )
+    test_unary_op_backward[OP.SQUEEZE, t1_shape, ug_shape_1, AttributeVector(dim)](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+    alias ug_shape_2 = TensorShape(20, 28, 1)
+    ug = Tensor[dtype](ug_shape_2)
+    rand(ug.data(), ug.num_elements())
+
+    alias dim_2 = Attribute("dim", 1)
+
+    expected_and_grad = torch_unary_op(OP.SQUEEZE, t1, ug, AttributeVector(dim_2))
+    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(dim_2)](
+        t1, expected_and_grad.expected
+    )
+    test_unary_op_backward[OP.SQUEEZE, t1_shape, ug_shape_2, AttributeVector(dim_2)](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+    # Squeeze with multiple dims
+    ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    alias dims_shape = TensorShape(1, 3)
+    alias dims_tuple = (dims_shape[0], dims_shape[1])
+
+    alias dims = Attribute("dims", dims_shape)
+
+    expected_and_grad = torch_unary_op(OP.SQUEEZE, t1, ug, attrs_tuple=OptionalReg[PythonObject](dims_tuple))
+    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(dims)](
+        t1, expected_and_grad.expected
+    )
+    test_unary_op_backward[OP.SQUEEZE, t1_shape, ug_shape, AttributeVector(dims)](
+        t1, ug, expected_and_grad.grad_1
+    )
+
+
 fn main():
     print("Running mlops (compare with torch) tests")
     try:
@@ -218,6 +294,7 @@ fn main():
         test_RELU()
         test_TANH()
         test_CLIP()
+        test_SQUEEZE()
     except e:
         print("[ERROR] Error in mlops (compare with torch)")
         print(e)
