@@ -26,7 +26,7 @@ export function MobileNav() {
     };
 
     fetchDocs();
-  });
+  }, []);
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>

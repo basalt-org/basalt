@@ -35,7 +35,7 @@ export function CommandMenu({ ...props }: DialogProps) {
     };
 
     fetchDocs();
-  });
+  }, []);
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
