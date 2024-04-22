@@ -243,15 +243,19 @@ struct SQUEEZE:
 struct UNSQUEEZE:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
-        var dim = attributes["dim"].value().to_int()
-        if dim < 0:
-            dim += t1_shape.rank()
+        var dim = attributes["dims"]
+        var dims_to_squeeze = dim.value().to_shape() if dim else TensorShape()
+
+        var new_rank = t1_shape.rank() + dims_to_squeeze.rank()
 
         var new_shape = List[Int]()
-        for i in range(t1_shape.rank()):
-            if i == dim:
+        var j = 0
+        for i in range(new_rank):
+            if i in dims_to_squeeze or i - new_rank in dims_to_squeeze:
                 new_shape.append(1)
-            new_shape.append(t1_shape[i])
+            else:
+                new_shape.append(t1_shape[j])
+                j += 1
 
         return TensorShape(new_shape)
 

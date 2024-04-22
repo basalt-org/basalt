@@ -263,15 +263,22 @@ fn test_UNSQUEEZE() raises:
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     fill(t1, 5.0)
 
-    # TODO: unsqueeze with multiple dims
-    # var expected = Tensor[dtype](2, 1, 3, 1)
-    # fill(expected, 5.0)
-    # test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dim", TensorShape(1, 3)))](t1, expected)
+    var expected = Tensor[dtype](2, 1, 3, 1)
+    fill(expected, 5.0)
+    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(1, 3)))](t1, expected)
 
-    var expected = Tensor[dtype](2, 1, 3)
+    expected = Tensor[dtype](2, 1, 3)
     fill(expected, 5.0)
 
-    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dim", 1))](t1, expected)
+    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(1)))](t1, expected)
+
+    expected = Tensor[dtype](1, 2, 3)
+    fill(expected, 5.0)
+    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(-3)))](t1, expected)
+
+    expected = Tensor[dtype](2, 1, 3, 1)
+    fill(expected, 5.0)
+    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(-1, -3)))](t1, expected)
 
 
 fn test_backward_UNSQUEEZE() raises:
