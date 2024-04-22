@@ -6,21 +6,10 @@ from basalt.autograd.params import Param
 from basalt.autograd.attributes import AttributeVector, Attribute
 
 
-# BUG: Mojo 24.1.0 does not support the comp time `sqrt` function
-@always_inline
-fn sqrt[type: DType](value: SIMD[type, 1]) -> SIMD[type, 1]:
-    """Returns the square root of the input simd vector."""
-    if value == 0:
-        return 0
-    elif value < 0:
-        return nan[type]()
-    var start = value if value > 1 else 1 / value
-    var a: SIMD[type, 1] = start
-    var b: SIMD[type, 1] = (a + 1) / 2
-    while b < a:
-        a = b
-        b = (a + start / a) / 2
-    return a if value > 1 else 1 / a
+@always_inline("nodebug")
+fn q_sqrt(value: Float32) -> Float32:
+    var y = bitcast[DType.float32](0x5f3759df - (bitcast[DType.uint32](value) >> 1))
+    return y * (1.5 - 0.5 * value * y * y)
 
 
 fn Conv2d(
@@ -44,7 +33,7 @@ fn Conv2d(
 
     var in_channels: Int = inputs.shape[1]
     var fan_in: SIMD[dtype, 1] = in_channels * kernel_size[0] * kernel_size[1]
-    var bound = 1 / sqrt(fan_in)
+    var bound = q_sqrt(fan_in)
     var weights = g.param(
         TensorShape(out_channels, in_channels, kernel_size[0], kernel_size[1]),
         init=Param("random_uniform", -bound, bound)
