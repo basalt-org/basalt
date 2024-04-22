@@ -213,37 +213,15 @@ struct SQUEEZE:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var dim = attributes["dim"]
-        var dims = attributes["dims"]
+        var dims_to_squeeze = dim.value().to_shape() if dim else TensorShape()
 
-        if not dim and not dims:
-            var new_rank = 0
-            for i in range(t1_shape.rank()):
-                if t1_shape[i] != 1:
-                    new_rank += 1
-            var new_shape = List[Int](capacity=new_rank)
-            for i in range(t1_shape.rank()):
-                if t1_shape[i] != 1:
-                    new_shape.append(t1_shape[i])
-            return TensorShape(new_shape)
-        elif dim:
-            var to_remove = dim.value().to_int()
-            var new_rank = t1_shape.rank() - 1
-            var new_shape = List[Int](capacity=new_rank)
-            for i in range(t1_shape.rank()):
-                if i != to_remove:
-                    new_shape.append(t1_shape[i])
-            return TensorShape(new_shape)
-        else:
-            var to_remove = dims.value().to_shape()
-            var new_rank = t1_shape.rank() - to_remove.rank()
-            var new_shape = List[Int](capacity=new_rank)
-            var j = 0
-            for i in range(t1_shape.rank()):
-                if j < to_remove.rank() and i == to_remove[j]:
-                    j += 1
-                else:
-                    new_shape.append(t1_shape[i])
-            return TensorShape(new_shape)
+        var new_shape = List[Int]()
+        for i in range(t1_shape.rank()):
+            if (not dim and t1_shape[i] == 1) or (i in dims_to_squeeze and t1_shape[i] == 1): 
+                continue
+            new_shape.append(t1_shape[i])
+
+        return TensorShape(new_shape)
 
     @staticmethod
     fn forward[
@@ -265,40 +243,17 @@ struct SQUEEZE:
 struct UNSQUEEZE:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
-        var dim = attributes["dim"]
-        var dims = attributes["dims"]
+        var dim = attributes["dim"].value().to_int()
+        if dim < 0:
+            dim += t1_shape.rank()
 
-        if not dim and not dims:
-            var new_rank = t1_shape.rank() + 1
-            var new_shape = List[Int](capacity=new_rank)
-            new_shape.append(1)
-            for i in range(t1_shape.rank()):
-                new_shape.append(t1_shape[i])
-            return TensorShape(new_shape)
-        elif dim:
-            var to_add = dim.value().to_int()
-            var new_rank = t1_shape.rank() + 1
-            var new_shape = List[Int](capacity=new_rank)
-            var j = 0
-            for i in range(new_rank):
-                if i == to_add:
-                    new_shape.append(1)
-                else:
-                    new_shape.append(t1_shape[j])
-                    j += 1
-            return TensorShape(new_shape)
-        else:
-            var to_add = dims.value().to_shape()
-            var new_rank = t1_shape.rank() + to_add.rank()
-            var new_shape = List[Int](capacity=new_rank)
-            var j = 0
-            for i in range(new_rank):
-                if j < to_add.rank() and i == to_add[j]:
-                    new_shape.append(1)
-                    j += 1
-                else:
-                    new_shape.append(t1_shape[i - j])
-            return TensorShape(new_shape)
+        var new_shape = List[Int]()
+        for i in range(t1_shape.rank()):
+            if i == dim:
+                new_shape.append(1)
+            new_shape.append(t1_shape[i])
+
+        return TensorShape(new_shape)
 
     @staticmethod
     fn forward[
