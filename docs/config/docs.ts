@@ -25,7 +25,9 @@ export async function generateDocsConfig(): Promise<DocsConfig> {
   const sidebarNav: SidebarNavItem[] = [];
 
   for (const main_directory of main_directories) {
-    const main_directory_name = capitalizeFirstLetter(main_directory.description);
+    const main_directory_name = capitalizeFirstLetter(
+      main_directory.description,
+    );
     const main_directory_modules = main_directory.modules;
 
     const main_directory_nav: SidebarNavItem = {

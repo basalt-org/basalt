@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { SidebarNavItem } from "@/types/nav"
-import { DocsConfig, generateDocsConfig } from "@/config/docs"
-import React from "react"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { SidebarNavItem } from "@/types/nav";
+import { DocsConfig, generateDocsConfig } from "@/config/docs";
+import React from "react";
 
 export interface DocsSidebarNavProps {
-  items: SidebarNavItem[]
+  items: SidebarNavItem[];
 }
 
 export default function DocsSidebarNav() {
-  const pathname = usePathname()
+  const pathname = usePathname();
   const [docs, setDocs] = React.useState<DocsConfig>({
     mainNav: [],
     sidebarNav: [],
@@ -26,8 +26,8 @@ export default function DocsSidebarNav() {
 
     fetchDocs();
   }, []);
-  
-  const items = docs.sidebarNav
+
+  const items = docs.sidebarNav;
 
   return items.length ? (
     <div className="w-full">
@@ -42,18 +42,15 @@ export default function DocsSidebarNav() {
         </div>
       ))}
     </div>
-  ) : null
+  ) : null;
 }
 
 interface DocsSidebarNavItemsProps {
-  items: SidebarNavItem[]
-  pathname: string | null
+  items: SidebarNavItem[];
+  pathname: string | null;
 }
 
-function DocsSidebarNavItems({
-  items,
-  pathname,
-}: DocsSidebarNavItemsProps) {
+function DocsSidebarNavItems({ items, pathname }: DocsSidebarNavItemsProps) {
   return items?.length ? (
     <div className="grid grid-flow-row auto-rows-max text-sm">
       {items.map((item, index) =>
@@ -66,7 +63,7 @@ function DocsSidebarNavItems({
               item.disabled && "cursor-not-allowed opacity-60",
               pathname === item.href
                 ? "font-medium text-foreground"
-                : "text-muted-foreground"
+                : "text-muted-foreground",
             )}
             target={item.external ? "_blank" : ""}
             rel={item.external ? "noreferrer" : ""}
@@ -83,7 +80,7 @@ function DocsSidebarNavItems({
             key={index}
             className={cn(
               "flex w-full cursor-not-allowed items-center rounded-md p-2 text-muted-foreground hover:underline",
-              item.disabled && "cursor-not-allowed opacity-60"
+              item.disabled && "cursor-not-allowed opacity-60",
             )}
           >
             {item.title}
@@ -93,8 +90,8 @@ function DocsSidebarNavItems({
               </span>
             )}
           </span>
-        )
+        ),
       )}
     </div>
-  ) : null
+  ) : null;
 }

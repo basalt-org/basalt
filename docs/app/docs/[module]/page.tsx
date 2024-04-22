@@ -1,71 +1,59 @@
 import { loadDocs } from "@/lib/docs";
 
-export default async function Module({ params }: { params: { module: string } }) {
-    const docs = await loadDocs();
-    // The module is nxted in a package, find the package that has the module in its list of modules, that is the correct route
-    const module = docs.decl.packages.find((p) => p.modules.some((m) => m.name === params.module.toLowerCase()))!.modules.find((m) => m.name === params.module.toLowerCase())!;
+export default async function Module({
+  params,
+}: {
+  params: { module: string };
+}) {
+  const docs = await loadDocs();
+  const module = docs.decl.packages
+    .flatMap((p) => p.modules)
+    .find((m) => m.name === params.module.toLowerCase())!;
 
-    /*
-    example module
-    {
-  aliases: [],
-  description: '',
-  functions: [
-    { kind: 'function', name: 'f64_to_bytes', overloads: [Array] },
-    { kind: 'function', name: 'bytes_to_f64', overloads: [Array] }
-  ],
-  kind: 'module',
-  name: 'bytes',
-  structs: [
-    {
-      aliases: [],
-      constraints: '',
-      description: '',
-      fields: [Array],
-      functions: [Array],
-      kind: 'struct',
-      name: 'Bytes',
-      parameters: [Array],
-      parentTraits: [Array],
-      summary: 'Static sequence of bytes.'
-    }
-  ],
-  summary: '',
-  traits: []
-}
-    */
+  return (
+    <div>
+      <h1>{module.name}</h1>
+      <p>{module.description}</p>
 
-    // Render info with shadcn cards / code
+      <h2>Structs</h2>
+      {module.structs.map((s) => (
+        <div key={s.name}>
+          <h3>{s.name}</h3>
+          <p>{s.summary}</p>
 
-    return (
-        <div>
-            <h1>{module.name}</h1>
-            <p>{module.description}</p>
-            <h2>Structs</h2>
-            {module.structs.map((s) => (
-                <div key={s.name}>
-                    <h3>{s.name}</h3>
-                    <p>{s.summary}</p>
-                    <h4>Fields</h4>
-                    <ul>
-                        {s.fields.map((f) => (
-                            <li key={f.name}>
-                                <h5>{f.name}</h5>
-                                <p>{f.summary}</p>
-                            </li>
-                        ))}
-                    </ul>
-                    <h4>Functions</h4>
-                    <ul>
-                        {s.functions.map((f) => (
-                            <li key={f.name}>
-                                <h5>{f.name}</h5>
-                            </li>
-                        ))}
-                    </ul>
-                </div>
+          <h4>Fields</h4>
+          <ul>
+            {s.fields.map((f) => (
+              <li key={f.name}>
+                <h5>{f.name}</h5>
+                <p>{f.summary}</p>
+              </li>
             ))}
+          </ul>
+
+          <h4>Functions</h4>
+          <ul>
+            {s.functions.map((f) => (
+              <li key={f.name}>{f.name}</li>
+            ))}
+          </ul>
         </div>
-    );
+      ))}
+
+      <h2>Functions</h2>
+      {module.functions.map((f) => (
+        <div key={f.name}>
+          <h3>{f.name}</h3>
+          <ul>
+            {f.overloads.map((o) => (
+              <li key={o.name}>
+                <h4>{o.name}</h4>
+                <p>{o.summary}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+  );
 }
-  
