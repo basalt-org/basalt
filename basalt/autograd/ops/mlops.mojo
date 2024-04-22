@@ -212,7 +212,7 @@ struct CLIP:
 struct SQUEEZE:
     @staticmethod
     fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
-        var dim = attributes["dims"]
+        var dim = attributes["dim"]
         var dims = attributes["dims"]
 
         if not dim and not dims:
