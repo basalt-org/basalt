@@ -279,11 +279,13 @@ struct UNSQUEEZE:
             var to_add = dim.value().to_int()
             var new_rank = t1_shape.rank() + 1
             var new_shape = List[Int](capacity=new_rank)
+            var j = 0
             for i in range(new_rank):
                 if i == to_add:
                     new_shape.append(1)
                 else:
-                    new_shape.append(t1_shape[i - 1])
+                    new_shape.append(t1_shape[j])
+                    j += 1
             return TensorShape(new_shape)
         else:
             var to_add = dims.value().to_shape()
