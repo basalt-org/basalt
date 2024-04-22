@@ -3,12 +3,12 @@ import { loadDocs } from "@/lib/docs";
 export default async function Module({
   params,
 }: {
-  params: { module: string };
+  params: { module_name: string };
 }) {
   const docs = await loadDocs();
   const module = docs.decl.packages
     .flatMap((p) => p.modules)
-    .find((m) => m.name === params.module.toLowerCase())!;
+    .find((m) => m.name === params.module_name.toLowerCase())!;
 
   return (
     <div>
