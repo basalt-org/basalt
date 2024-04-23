@@ -121,20 +121,7 @@ struct Graph:
         attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
         var operand_2_symbol = self.scalar(operand_2)
-        var res = Symbol(
-            self.symbol_count,
-            dtype,
-            static_result_shape(
-                op, operand_1.shape, operand_2_symbol.shape, attributes
-            ),
-            self.result_trainable(operand_1),
-        )
-
-        self.nodes.append(
-            Node(op, res, operand_1, operand_2_symbol, attributes=attributes)
-        )
-        self.symbol_count += 1
-        return res
+        return self.op(op, operand_1, operand_2_symbol, attributes=attributes)
 
     fn op(
         inout self,
@@ -144,34 +131,14 @@ struct Graph:
         attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
         var operand_1_symbol = self.scalar(operand_1)
-        var res = Symbol(
-            self.symbol_count,
-            dtype,
-            static_result_shape(
-                op, operand_1_symbol.shape, operand_2.shape, attributes
-            ),
-            self.result_trainable(operand_2),
-        )
-
-        self.nodes.append(
-            Node(op, res, operand_1_symbol, operand_2, attributes=attributes)
-        )
-        self.symbol_count += 1
-        return res
+        return self.op(op, operand_1_symbol, operand_2, attributes=attributes)
 
     @staticmethod
-    fn result_trainable(operand_1: Symbol) -> Bool:
-        return operand_1.trainable
-
-    @staticmethod
-    fn result_trainable(operand_1: Symbol, operand_2: Symbol) -> Bool:
-        return operand_1.trainable or operand_2.trainable
-
-    @staticmethod
-    fn result_trainable(
-        operand_1: Symbol, operand_2: Symbol, operand_3: Symbol
-    ) -> Bool:
-        return operand_1.trainable or operand_2.trainable or operand_3.trainable
+    fn result_trainable(*operands: Symbol) -> Bool:
+        for operand in operands:
+            if operand.trainable:
+                return True
+        return False
 
     fn json(self) -> String:
         var result: String = '{"graph_name": "basalt", "nodes": ['
