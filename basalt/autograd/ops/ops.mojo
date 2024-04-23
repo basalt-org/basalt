@@ -347,9 +347,18 @@ fn backward_op[
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)
 
+    fn broadcastable(op: OP) -> Bool:
+        return (
+            op == OP.ADD or
+            op == OP.SUB or 
+            op == OP.MUL or
+            op == OP.DIV or
+            op == OP.FMA
+        )    
+    
     @parameter
     if tensor_id == 0:
-        alias res_grad_shape = t1_shape if op == OP.DOT else broadcast_shapes(
+        alias res_grad_shape = t1_shape if not broadcastable(op) else broadcast_shapes(
             t1_shape, t2_shape
         )
         # grad_shape = t1_shape
@@ -359,7 +368,7 @@ fn backward_op[
         accumulate_grad[t1_shape, res_grad_shape](grad, res_grad)
 
     elif tensor_id == 1:
-        alias res_grad_shape = t2_shape if op == OP.DOT else broadcast_shapes(
+        alias res_grad_shape = t2_shape if not broadcastable(op) else broadcast_shapes(
             t1_shape, t2_shape
         )
         # grad_shape = t2_shape
