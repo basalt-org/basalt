@@ -352,8 +352,7 @@ fn backward_op[
             op == OP.ADD or
             op == OP.SUB or 
             op == OP.MUL or
-            op == OP.DIV or
-            op == OP.FMA
+            op == OP.DIV
         )    
     
     @parameter

@@ -718,7 +718,8 @@ struct FMA:
     fn result_shape(
         t1_shape: TensorShape, t2_shape: TensorShape, t3_shape: TensorShape
     ) -> TensorShape:
-        return broadcast_shapes(t1_shape, t2_shape, t3_shape)
+        # FMA assumes: t1_shape == t2_shape == t3_shape
+        return t1_shape
 
     @staticmethod
     fn forward[
@@ -736,9 +737,9 @@ struct FMA:
         """
 
         @parameter
-        fn vec_fma[Nelts: Int](i: Int):
-            res.store[Nelts](
-                i, t1.load[Nelts](i).fma(t2.load[Nelts](i), t3.load[Nelts](i))
+        fn vec_fma[nelts: Int](i: Int):
+            res.store[nelts](
+                i, t1.load[nelts](i).fma(t2.load[nelts](i), t3.load[nelts](i))
             )
 
         vectorize[vec_fma, nelts, size = t1_shape.num_elements()]()
