@@ -1,3 +1,5 @@
-export default async function Home() {
+import Image from "next/image";
+
+export default function Home() {
   return <main></main>;
 }
