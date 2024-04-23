@@ -13,7 +13,7 @@ struct Node(CollectionElement, Stringable):
     var inputs: List[Symbol]
     var outputs: List[Symbol]
     var attributes: AttributeVector
-    
+
     fn __init__(
         inout self,
         operator: OP,

@@ -73,50 +73,28 @@ struct Graph:
     fn op(
         inout self,
         op: OP,
-        operand_1: Symbol,
-        operand_2: Optional[Symbol] = None,
-        operand_3: Optional[Symbol] = None,
+        *operands: Symbol,
         attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
-        # TODO: Check if this can be *operands: Symbol
-        var res: Symbol
-        var inputs: List[Symbol]
-        if operand_3:
-            inputs = List[Symbol](operand_1, operand_2.value(), operand_3.value())
-            res = Symbol(
-                self.symbol_count,
-                dtype,
-                static_result_shape(
-                    op,
-                    operand_1.shape,
-                    operand_2.value().shape,
-                    operand_3.value().shape,
-                    attributes,
-                ),
-                self.result_trainable(operand_1, operand_2.value(), operand_3.value()),
-            )
-        elif operand_2:
-            inputs = List[Symbol](operand_1, operand_2.value())
-            res = Symbol(
-                self.symbol_count,
-                dtype,
-                static_result_shape(
-                    op, operand_1.shape, operand_2.value().shape, attributes
-                ),
-                self.result_trainable(operand_1, operand_2.value()),
-            )
+        var res_shape: TensorShape
+        if len(operands) == 1:
+            res_shape = static_result_shape(op, operands[0].shape, attributes)
+        elif len(operands) == 2:
+            res_shape = static_result_shape(op, operands[0].shape, operands[1].shape, attributes)
+        elif len(operands) == 3:
+            res_shape = static_result_shape(op, operands[0].shape, operands[1].shape, operands[2].shape, attributes)
         else:
-            inputs = List[Symbol](operand_1)
-            res = Symbol(
-                self.symbol_count,
-                dtype,
-                static_result_shape(op, operand_1.shape, attributes),
-                self.result_trainable(operand_1),
-            )
+            res_shape = TensorShape()
+            print("Error: Invalid number of operands")
 
+        var res = Symbol(self.symbol_count, dtype, res_shape, self.result_trainable(operands))
+        self.symbol_count += 1
+
+        var inputs = List[Symbol]()
+        for operand in operands:
+            inputs.append(operand)
         var outputs = List[Symbol](res)
         self.nodes.append(Node(op, inputs, outputs, attributes))
-        self.symbol_count += 1
         return res
 
     fn op(
@@ -140,7 +118,7 @@ struct Graph:
         return self.op(op, operand_1_symbol, operand_2, attributes=attributes)
 
     @staticmethod
-    fn result_trainable(*operands: Symbol) -> Bool:
+    fn result_trainable(operands: VariadicList[Symbol]) -> Bool:
         for operand in operands:
             if operand.trainable:
                 return True

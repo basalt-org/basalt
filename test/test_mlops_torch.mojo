@@ -292,7 +292,9 @@ fn test_SQUEEZE() raises:
 
     alias dims = Attribute("dims", dims_shape)
 
-    expected_and_grad = torch_unary_op(OP.SQUEEZE, t1, ug, attrs_tuple=PythonObject(dims_tuple))
+    expected_and_grad = torch_unary_op(
+        OP.SQUEEZE, t1, ug, attrs_tuple=PythonObject(dims_tuple)
+    )
     test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(dims)](
         t1, expected_and_grad.expected
     )
@@ -313,7 +315,9 @@ fn test_UNSQUEEZE() raises:
     alias dim = Attribute("dims", TensorShape(1))
 
     var expected_and_grad = torch_unary_op(OP.UNSQUEEZE, t1, ug, AttributeVector(dim))
-    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(dim)](t1, expected_and_grad.expected)
+    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(dim)](
+        t1, expected_and_grad.expected
+    )
     test_unary_op_backward[OP.UNSQUEEZE, t1_shape, ug_shape, AttributeVector(dim)](
         t1, ug, expected_and_grad.grad_1
     )
@@ -327,13 +331,16 @@ fn test_UNSQUEEZE() raises:
 
     alias dims = Attribute("dims", dims_shape)
 
-    expected_and_grad = torch_unary_op(OP.UNSQUEEZE, t1, ug, attrs_tuple=PythonObject(dims_tuple))
+    expected_and_grad = torch_unary_op(
+        OP.UNSQUEEZE, t1, ug, attrs_tuple=PythonObject(dims_tuple)
+    )
     test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(dims)](
         t1, expected_and_grad.expected
     )
     test_unary_op_backward[OP.UNSQUEEZE, t1_shape, ug_shape_2, AttributeVector(dims)](
         t1, ug, expected_and_grad.grad_1
     )
+
 
 fn main():
     print("Running mlops (compare with torch) tests")
