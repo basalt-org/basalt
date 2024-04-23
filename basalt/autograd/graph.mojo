@@ -78,8 +78,11 @@ struct Graph:
         operand_3: Optional[Symbol] = None,
         attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
+        # TODO: Check if this can be *operands: Symbol
         var res: Symbol
+        var inputs: List[Symbol]
         if operand_3:
+            inputs = List[Symbol](operand_1, operand_2.value(), operand_3.value())
             res = Symbol(
                 self.symbol_count,
                 dtype,
@@ -93,6 +96,7 @@ struct Graph:
                 self.result_trainable(operand_1, operand_2.value(), operand_3.value()),
             )
         elif operand_2:
+            inputs = List[Symbol](operand_1, operand_2.value())
             res = Symbol(
                 self.symbol_count,
                 dtype,
@@ -102,6 +106,7 @@ struct Graph:
                 self.result_trainable(operand_1, operand_2.value()),
             )
         else:
+            inputs = List[Symbol](operand_1)
             res = Symbol(
                 self.symbol_count,
                 dtype,
@@ -109,7 +114,8 @@ struct Graph:
                 self.result_trainable(operand_1),
             )
 
-        self.nodes.append(Node(op, res, operand_1, operand_2, operand_3, attributes))
+        var outputs = List[Symbol](res)
+        self.nodes.append(Node(op, inputs, outputs, attributes))
         self.symbol_count += 1
         return res
 
