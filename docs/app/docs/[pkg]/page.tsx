@@ -27,7 +27,7 @@ export default function Package({ params }: { params: { pkg: string } }) {
 
     return (
         <main className="flex items-center justify-center pt-32">
-            <aside className="w-80 h-screen fixed left-0 top-16 border-r border-gray-900 dark:border-gray-700 overflow-y-auto dark:text-white text-gray-900">
+            <aside className="hidden md:block w-80 h-screen fixed left-0 top-16 border-r border-primary/20 overflow-y-auto dark:text-white text-gray-900">
                 {CurrentPackage?.modules.map((mod) => (
                     <div key={mod.name} className="border-y border-gray-300 dark:border-gray-800">
                         <a href={`#${mod.name}`} className="block p-2 text-primary/90 hover:text-primary capitalize">{mod.name}</a>
