@@ -277,6 +277,62 @@ struct UNSQUEEZE:
         return res_grad ^
 
 
+struct CONCAT2:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        # Assumptions: all tensors have the same shape, except for the dimension specified, or are empty
+        var dim = attributes["dims"].value().to_int() if attributes["dims"] else 0
+
+        var res_shape = List[Int]()
+
+        for i in range(t1_shape.rank()):
+            if i == dim:
+                res_shape.append(t1_shape[i] + t2_shape[i])
+            else:
+                res_shape.append(t1_shape[i])
+
+        return TensorShape(res_shape)
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+        attributes: AttributeVector,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
+        """Forward operation of concat."""
+        alias res_shape = Self.result_shape(t1_shape, t2_shape, attributes)
+        var dim = attributes["dims"].value().to_int() if attributes["dims"] else 0
+
+        var t1_size = t1_shape[dim]
+        var t2_size = t2_shape[dim]
+
+        memcpy(res.data(), t1.data(), t1.num_elements())
+        memcpy(res.data() + t1.num_elements(), t2.data(), t2.num_elements())
+
+    @staticmethod
+    fn backward[
+        tensor_id: Int,
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        t2_shape: TensorShape,
+        attributes: AttributeVector,
+    ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of concat."""
+        var dim = attributes["dims"].value().to_int() if attributes["dims"] else 0
+
+        @parameter
+        if tensor_id == 0:
+            var t1_size = t1_shape[dim]
+            var t1_grad = Tensor[dtype](t1_shape)
+            memcpy(t1_grad.data(), ug.data(), t1.num_elements())
+            return t1_grad ^
+        else:
+            var t2_size = t2_shape[dim]
+            var t2_grad = Tensor[dtype](t2_shape)
+            memcpy(t2_grad.data(), ug.data() + t1.num_elements(), t2.num_elements())
+            return t2_grad ^
+
+
 # struct SOFTMAX:
 #     @staticmethod
 #     fn softmax[axis: Int](n: Tensor[dtype]) -> Tensor[dtype]:

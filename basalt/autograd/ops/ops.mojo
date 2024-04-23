@@ -15,7 +15,15 @@ from .basics import (
     TRANSPOSE,
     FMA,
 )
-from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE
+from .mlops import (
+    SIGMOID,
+    RELU,
+    TANH,
+    CLIP,
+    SQUEEZE,
+    UNSQUEEZE,
+    CONCAT2,
+)
 from .conv import CONV2D
 from .pool import MAXPOOL2D
 
@@ -56,6 +64,7 @@ struct OP(Stringable):
     alias CLIP = OP(20, "CLIP", num_operands=1)
     alias SQUEEZE = OP(21, "SQUEEZE", num_operands=1)
     alias UNSQUEEZE = OP(22, "UNSQUEEZE", num_operands=1)
+    alias CONCAT2 = OP(23, "CONCAT2", num_operands=2)
 
     var id: UInt8
     var name: Bytes[16]
@@ -135,6 +144,8 @@ fn static_result_shape(
         return POW.result_shape(t1_shape, t2_shape)
     elif op == OP.DOT:
         return DOT.result_shape(t1_shape, t2_shape)
+    elif op == OP.CONCAT2:
+        return CONCAT2.result_shape(t1_shape, t2_shape, attributes)
     else:
         # We can't print at compile time (at least for now it crashes at comp time with an error)
         print("[ERROR] Operator not found.")
@@ -223,6 +234,8 @@ fn forward_op[
         POW.forward[t1_shape, t2_shape](res, t1, t2)
     elif op == OP.DOT:
         DOT.forward[t1_shape, t2_shape](res, t1, t2)
+    elif op == OP.CONCAT2:
+        CONCAT2.forward[t1_shape, t2_shape, attributes](res, t1, t2)
     else:
         print("[ERROR] Operator not found.")
 
@@ -328,6 +341,8 @@ fn backward_op[
         res_grad = POW.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
     elif op == OP.DOT:
         res_grad = DOT.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+    elif op == OP.CONCAT2:
+        res_grad = CONCAT2.backward[tensor_id, ug_shape, t1_shape, t2_shape, attributes](ug, t1, t2)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)
