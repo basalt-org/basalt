@@ -11,38 +11,13 @@ from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUE
 from basalt.utils.tensorutils import fill
 from basalt.autograd.attributes import AttributeVector, Attribute
 
+from test_utils_extras import test_unary_op, test_binary_op
 
 alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
 
 
 # ------ Test Unary Ops ------
-fn test_unary_op[
-    op: OP, t1_shape: TensorShape, attrs: OptionalReg[AttributeVector] = None
-](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
-    fn create_graph() -> Graph:
-        var g = Graph()
-        var t1 = g.input(t1_shape)
-
-        var res: Symbol
-        if attrs:
-            res = g.op(op, t1, attributes=attrs.value())
-        else:
-            res = g.op(op, t1)
-
-        g.out(res)
-
-        return g ^
-
-    alias graph = create_graph()
-    assert_equal(len(graph.nodes), 1)
-
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
-
-    assert_tensors_equal(res, expected)
-
-
 fn test_SIGMOID() raises:
     alias t1_shape = TensorShape(2, 3)
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)  # filled with zeroes
@@ -311,33 +286,22 @@ fn test_backward_UNSQUEEZE() raises:
 
 
 # ------ Test Binary Ops ------
-fn test_binary_op[
-    op: OP, t1_shape: TensorShape, t2_shape: TensorShape, attrs: OptionalReg[AttributeVector] = None
-](t1: Tensor[dtype], t2: Tensor[dtype], expected: Tensor[dtype]) raises:
-    fn create_graph() -> Graph:
-        var g = Graph()
-        var t1 = g.input(t1_shape)
-        var t2 = g.input(t2_shape)
-
-        var res: Symbol
-        if attrs:
-            res = g.op(op, t1, t2, attributes=attrs.value())
-        else:
-            res = g.op(op, t1, t2)
-        g.out(res)
-
-        return g ^
-
-    alias graph = create_graph()
-    assert_equal(len(graph.nodes), 1)
-
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1, t2)[0]
-
-    assert_tensors_equal(res, expected)
-
-
 fn test_CONCAT2() raises:
+    # default: dim = 0
+    alias t1_shape0 = TensorShape(1, 2, 3)
+    alias t2_shape0 = TensorShape(1, 2, 3)
+    var t10: Tensor[dtype] = Tensor[dtype](t1_shape0)
+    var t20: Tensor[dtype] = Tensor[dtype](t2_shape0)
+    fill(t10, 5.0)
+    fill(t20, 10.0)
+
+    var expected0 = Tensor[dtype](2, 2, 3)
+    for i in range(expected0.num_elements()):
+        expected0[i] = 5.0 if i < 1*2*3 else 10.0
+
+    test_binary_op[OP.CONCAT2, t1_shape0, t2_shape0](t10, t20, expected0)
+    
+    # dim = 1
     alias t1_shape = TensorShape(2, 2, 5)
     alias t2_shape = TensorShape(2, 4, 5)
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)

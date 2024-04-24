@@ -13,7 +13,7 @@ from basalt.autograd.attributes import Attribute, AttributeVector
 from basalt.utils.tensorutils import fill
 from basalt.autograd.ops.ops import backward_op
 
-from test_utils_extras import to_numpy, to_tensor
+from test_utils_extras import to_numpy, to_tensor, test_unary_op, test_unary_op_backward
 
 alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
@@ -100,47 +100,6 @@ fn torch_unary_op(
         print("Error importing torch")
         var d = Tensor[dtype](1)
         return torch_output_unary_op(d, d)
-
-
-fn test_unary_op[
-    op: OP, t1_shape: TensorShape, attrs: OptionalReg[AttributeVector] = None
-](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
-    fn create_graph() -> Graph:
-        var g = Graph()
-        var t1 = g.input(t1_shape)
-
-        var res: Symbol
-        if attrs:
-            res = g.op(op, t1, attributes=attrs.value())
-        else:
-            res = g.op(op, t1)
-        g.out(res)
-
-        return g ^
-
-    alias graph = create_graph()
-    assert_equal(len(graph.nodes), 1)
-
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
-
-    assert_tensors_equal(res, expected, "almost")
-
-
-fn test_unary_op_backward[
-    op: OP, t1_shape: TensorShape, ug_shape: TensorShape
-](t1: Tensor[dtype], ug: Tensor[dtype], grad_1_expected: Tensor[dtype],) raises:
-    var grad_1 = Tensor[dtype](t1_shape)
-    backward_op[0, op, ug_shape, t1_shape, AttributeVector()](ug, t1, grad_1)
-    assert_tensors_equal(grad_1, grad_1_expected, "almost")
-
-
-fn test_unary_op_backward[
-    op: OP, t1_shape: TensorShape, ug_shape: TensorShape, attrs: AttributeVector
-](t1: Tensor[dtype], ug: Tensor[dtype], grad_1_expected: Tensor[dtype],) raises:
-    var grad_1 = Tensor[dtype](t1_shape)
-    backward_op[0, op, ug_shape, t1_shape, attrs](ug, t1, grad_1)
-    assert_tensors_equal(grad_1, grad_1_expected, "almost")
 
 
 fn test_SIGMOID() raises:
@@ -340,6 +299,22 @@ fn test_UNSQUEEZE() raises:
     test_unary_op_backward[OP.UNSQUEEZE, t1_shape, ug_shape_2, AttributeVector(dims)](
         t1, ug, expected_and_grad.grad_1
     )
+
+
+# fn test_CONCAT2() raises:
+#     alias t1_shape = TensorShape(20, 28)
+#     alias t2_shape = TensorShape(20, 28)
+#     var t1 = Tensor[dtype](t1_shape)
+#     var t2 = Tensor[dtype](t2_shape)
+#     rand(t1.data(), t1.num_elements())
+#     rand(t2.data(), t2.num_elements())
+
+#     # default: dim = 0
+#     alias ug_shape = TensorShape(40, 28) 
+#     var ug = Tensor[dtype](ug_shape)
+#     rand(ug.data(), ug.num_elements())
+
+#     var expected_and_grad = torch_op(OP.CONCAT2, ug, t1, t2)
 
 
 fn main():
