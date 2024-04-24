@@ -334,7 +334,6 @@ fn test_binary_op[
     var model = nn.Model[graph](inference_only=True)
     var res = model.inference(t1, t2)[0]
 
-    print(res)
     assert_tensors_equal(res, expected)
 
 
@@ -350,13 +349,42 @@ fn test_CONCAT2() raises:
     for i in range(2):
         for j in range(6):
             for k in range(5):
-                if j < 2: expected[i*6*5 + j*5 + k] = 5.0
-                else: expected[i*6*5 + j*5 + k] = 10.0
+                # j < t1_shape[1] because dim=1
+                expected[i*6*5 + j*5 + k] = 5.0 if j < t1_shape[1] else 10.0
     
     test_binary_op[
         OP.CONCAT2, t1_shape, t2_shape, AttributeVector(Attribute("dim", 1))
     ](t1, t2, expected)
 
+
+fn test_backward_CONCAT2() raises:
+    alias t1_shape = TensorShape(2, 3, 4)
+    alias t2_shape = TensorShape(2, 3, 5)
+    alias ug_shape = TensorShape(2, 3, 9)
+    var t1 = Tensor[dtype](t1_shape)
+    var t2 = Tensor[dtype](t2_shape)
+    fill(t1, 5.0)
+    fill(t2, 10.0)
+
+    var ug = Tensor[dtype](ug_shape)
+    for i in range(2):
+        for j in range(3):
+            for k in range(9):
+                # k < t1_shape[2] because dim=2
+                ug[i*3*9 + j*9 + k] = 2.0 if k < t1_shape[2] else 4.0
+
+    var grad1_expeted = Tensor[dtype](t1_shape)
+    var grad2_expeted = Tensor[dtype](t2_shape)
+    fill(grad1_expeted, 2.0)
+    fill(grad2_expeted, 4.0)
+
+    alias attrs = AttributeVector(Attribute("dim", 2))
+    var grad1 = CONCAT2.backward[0, ug_shape, t1_shape, t2_shape, attrs](ug, t1, t2)
+    var grad2 = CONCAT2.backward[1, ug_shape, t1_shape, t2_shape, attrs](ug, t1, t2)
+
+    assert_tensors_equal(grad1, grad1_expeted)
+    assert_tensors_equal(grad2, grad2_expeted)
+    
 
 
 fn main():
@@ -380,6 +408,7 @@ fn main():
         test_backward_CLIP()
         test_backward_SQUEEZE()
         test_backward_UNSQUEEZE()
+        test_backward_CONCAT2()
     except e:
         print("[ERROR] Error in backward mlops")
         print(e)
