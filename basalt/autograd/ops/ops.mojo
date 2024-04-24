@@ -15,15 +15,7 @@ from .basics import (
     TRANSPOSE,
     FMA,
 )
-from .mlops import (
-    SIGMOID,
-    RELU,
-    TANH,
-    CLIP,
-    SQUEEZE,
-    UNSQUEEZE,
-    CONCAT2,
-)
+from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE, CONCAT2
 from .conv import CONV2D
 from .pool import MAXPOOL2D
 
@@ -348,13 +340,8 @@ fn backward_op[
         res_grad = Tensor[dtype](-1, -1)
 
     fn broadcastable(op: OP) -> Bool:
-        return (
-            op == OP.ADD or
-            op == OP.SUB or 
-            op == OP.MUL or
-            op == OP.DIV
-        )    
-    
+        return op == OP.ADD or op == OP.SUB or op == OP.MUL or op == OP.DIV
+
     @parameter
     if tensor_id == 0:
         alias res_grad_shape = t1_shape if not broadcastable(op) else broadcast_shapes(

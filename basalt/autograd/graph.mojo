@@ -93,8 +93,7 @@ struct Graph:
         var inputs = List[Symbol]()
         for operand in operands:
             inputs.append(operand)
-        var outputs = List[Symbol](res)
-        self.nodes.append(Node(op, inputs, outputs, attributes))
+        self.nodes.append(Node(op, inputs, res, attributes))
         return res
 
     fn op(

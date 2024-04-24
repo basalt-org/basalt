@@ -11,19 +11,19 @@ from .attributes import AttributeVector
 struct Node(CollectionElement, Stringable):
     var operator: OP
     var inputs: List[Symbol]
-    var outputs: List[Symbol]
+    var output: Symbol
     var attributes: AttributeVector
 
     fn __init__(
         inout self,
         operator: OP,
         inputs: List[Symbol],
-        outputs: List[Symbol],
+        output: Symbol,
         attributes: AttributeVector = AttributeVector(),
     ):
         self.operator = operator
         self.inputs = inputs
-        self.outputs = outputs
+        self.output = output
         self.attributes = attributes
 
     fn __str__(self) -> String:
@@ -36,9 +36,5 @@ struct Node(CollectionElement, Stringable):
             if i < len(self.inputs) - 1:
                 s += ", "
         s += '], "outputs": ['
-        for i in range(len(self.outputs)):
-            s += self.outputs[i].json()
-            if i < len(self.outputs) - 1:
-                s += ", "
-        s += "]}"
+        s += self.output.json() + "]}"
         return s

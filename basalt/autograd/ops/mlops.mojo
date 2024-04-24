@@ -217,7 +217,9 @@ struct SQUEEZE:
 
         var new_shape = List[Int]()
         for i in range(t1_shape.rank()):
-            if (not dim and t1_shape[i] == 1) or (i in dims_to_squeeze and t1_shape[i] == 1): 
+            if (not dim and t1_shape[i] == 1) or (
+                i in dims_to_squeeze and t1_shape[i] == 1
+            ):
                 continue
             new_shape.append(t1_shape[i])
 
@@ -279,7 +281,9 @@ struct UNSQUEEZE:
 
 struct CONCAT2:
     @staticmethod
-    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+    fn result_shape(
+        t1_shape: TensorShape, t2_shape: TensorShape, attributes: AttributeVector
+    ) -> TensorShape:
         # Assumptions: all tensors have the same shape, except for the dimension specified, or are empty
         var dim = attributes["dims"].value().to_int() if attributes["dims"] else 0
 
