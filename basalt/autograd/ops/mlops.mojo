@@ -284,8 +284,8 @@ struct CONCAT2:
     fn result_shape(
         t1_shape: TensorShape, t2_shape: TensorShape, attributes: AttributeVector
     ) -> TensorShape:
-        # Assumptions: all tensors have the same shape, except for the dimension specified, or are empty
-        var dim = attributes["dims"].value().to_int() if attributes["dims"] else 0
+        # Assumptions: all tensors have the same shape, except for the dimension specified
+        var dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
 
         var res_shape = List[Int]()
 
@@ -304,14 +304,32 @@ struct CONCAT2:
         attributes: AttributeVector,
     ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
         """Forward operation of concat."""
-        alias res_shape = Self.result_shape(t1_shape, t2_shape, attributes)
-        var dim = attributes["dims"].value().to_int() if attributes["dims"] else 0
+        alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
+        
+        # Number of chunks up to the concatenating dimension
+        # Assuming tensor of equal shape, except for the concatenating dimension
+        fn calc_chunks() -> Int:
+            var chunks = 1
+            for i in range(dim):
+                chunks *= t1_shape[i]
+            return chunks
+        
+        alias chunks = calc_chunks()
+        alias chunk_1 = t1_shape.num_elements() // chunks
+        alias chunk_2 = t2_shape.num_elements() // chunks
 
-        var t1_size = t1_shape[dim]
-        var t2_size = t2_shape[dim]
-
-        memcpy(res.data(), t1.data(), t1.num_elements())
-        memcpy(res.data() + t1.num_elements(), t2.data(), t2.num_elements())
+        @unroll
+        for i in range(chunks):
+            memcpy(
+                res.data() + i * (chunk_1 + chunk_2),
+                t1.data() + i * chunk_1,
+                chunk_1,
+            )
+            memcpy(
+                res.data() + i * (chunk_1 + chunk_2) + chunk_1,
+                t2.data() + i * chunk_2,
+                chunk_2,
+            )
 
     @staticmethod
     fn backward[
@@ -322,7 +340,7 @@ struct CONCAT2:
         attributes: AttributeVector,
     ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of concat."""
-        var dim = attributes["dims"].value().to_int() if attributes["dims"] else 0
+        var dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
 
         @parameter
         if tensor_id == 0:

@@ -7,7 +7,7 @@ from collections.optional import OptionalReg
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
-from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE
+from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE, CONCAT2
 from basalt.utils.tensorutils import fill
 from basalt.autograd.attributes import AttributeVector, Attribute
 
@@ -310,6 +310,55 @@ fn test_backward_UNSQUEEZE() raises:
     assert_tensors_equal(grad, expected_grad)
 
 
+# ------ Test Binary Ops ------
+fn test_binary_op[
+    op: OP, t1_shape: TensorShape, t2_shape: TensorShape, attrs: OptionalReg[AttributeVector] = None
+](t1: Tensor[dtype], t2: Tensor[dtype], expected: Tensor[dtype]) raises:
+    fn create_graph() -> Graph:
+        var g = Graph()
+        var t1 = g.input(t1_shape)
+        var t2 = g.input(t2_shape)
+
+        var res: Symbol
+        if attrs:
+            res = g.op(op, t1, t2, attributes=attrs.value())
+        else:
+            res = g.op(op, t1, t2)
+        g.out(res)
+
+        return g ^
+
+    alias graph = create_graph()
+    assert_equal(len(graph.nodes), 1)
+
+    var model = nn.Model[graph](inference_only=True)
+    var res = model.inference(t1, t2)[0]
+
+    print(res)
+    assert_tensors_equal(res, expected)
+
+
+fn test_CONCAT2() raises:
+    alias t1_shape = TensorShape(2, 2, 5)
+    alias t2_shape = TensorShape(2, 4, 5)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var t2: Tensor[dtype] = Tensor[dtype](t2_shape)
+    fill(t1, 5.0)
+    fill(t2, 10.0)
+
+    var expected = Tensor[dtype](2, 6, 5)
+    for i in range(2):
+        for j in range(6):
+            for k in range(5):
+                if j < 2: expected[i*6*5 + j*5 + k] = 5.0
+                else: expected[i*6*5 + j*5 + k] = 10.0
+    
+    test_binary_op[
+        OP.CONCAT2, t1_shape, t2_shape, AttributeVector(Attribute("dim", 1))
+    ](t1, t2, expected)
+
+
+
 fn main():
     try:
         test_SIGMOID()
@@ -318,6 +367,7 @@ fn main():
         test_CLIP()
         test_SQUEEZE()
         test_UNSQUEEZE()
+        test_CONCAT2()
     except e:
         print("[ERROR] Error in forward mlops")
         print(e)
