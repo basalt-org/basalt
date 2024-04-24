@@ -21,7 +21,7 @@ export default function Package({ params }: { params: { pkg: string[] } }) {
   const hasModules =
     CurrentPackage.modules && CurrentPackage.modules.length > 0;
   const hasSubPackages =
-    CurrentPackage.packages && CurrentPackage.packages.length > 0;
+    CurrentPackage.packages && CurrentPackage.packages.length > 0; 
 
   return (
     <main className="flex items-center justify-center pt-8">
