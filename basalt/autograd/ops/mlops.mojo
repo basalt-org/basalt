@@ -298,6 +298,15 @@ struct CONCAT2:
         return TensorShape(res_shape)
 
     @staticmethod
+    fn calc_chunks(shape: TensorShape, dim: Int) -> Int:
+        # Number of chunks up to the concatenating dimension
+        # Assuming tensor of equal shape, except for the concatenating dimension
+        var chunks = 1
+        for i in range(dim):
+            chunks *= shape[i]
+        return chunks
+
+    @staticmethod
     fn forward[
         t1_shape: TensorShape,
         t2_shape: TensorShape,
@@ -306,15 +315,7 @@ struct CONCAT2:
         """Forward operation of concat."""
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         
-        # Number of chunks up to the concatenating dimension
-        # Assuming tensor of equal shape, except for the concatenating dimension
-        fn calc_chunks() -> Int:
-            var chunks = 1
-            for i in range(dim):
-                chunks *= t1_shape[i]
-            return chunks
-        
-        alias chunks = calc_chunks()
+        alias chunks = Self.calc_chunks(t1_shape, dim)
         alias chunk_1 = t1_shape.num_elements() // chunks
         alias chunk_2 = t2_shape.num_elements() // chunks
 
@@ -340,16 +341,36 @@ struct CONCAT2:
         attributes: AttributeVector,
     ](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]) -> Tensor[dtype]:
         """Backward operation of concat."""
-        var dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
+        alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
+
+        alias chunks = Self.calc_chunks(t1_shape, dim)
+        alias chunk_1 = t1_shape.num_elements() // chunks
+        alias chunk_2 = t2_shape.num_elements() // chunks
 
         @parameter
         if tensor_id == 0:
             var t1_size = t1_shape[dim]
             var t1_grad = Tensor[dtype](t1_shape)
-            memcpy(t1_grad.data(), ug.data(), t1.num_elements())
+            
+            @unroll
+            for i in range(chunks):
+                memcpy(
+                    t1_grad.data() + i * chunk_1,
+                    ug.data() + i * (chunk_1 + chunk_2),
+                    chunk_1,
+                )
+
             return t1_grad ^
         else:
             var t2_size = t2_shape[dim]
             var t2_grad = Tensor[dtype](t2_shape)
-            memcpy(t2_grad.data(), ug.data() + t1.num_elements(), t2.num_elements())
+            
+            @unroll
+            for i in range(chunks):
+                memcpy(
+                    t2_grad.data() + i * chunk_2,
+                    ug.data() + i * (chunk_1 + chunk_2) + chunk_1,
+                    chunk_2,
+                )
+
             return t2_grad ^
