@@ -16,6 +16,7 @@ from basalt.utils.perf_utils import PerfMetrics
 alias DEBUG = env_get_int["DEBUG", 0]()
 
 
+# TODO: remove when ability to concatenate graphs (modules)
 fn dv_contains(dv: List[Symbol], symbol: Symbol) -> Bool:
     for i in range(len(dv)):
         if dv[i] == symbol:
@@ -23,7 +24,7 @@ fn dv_contains(dv: List[Symbol], symbol: Symbol) -> Bool:
     return False
 
 
-# TODO: remove when ability to concatenate graphs
+# TODO: remove when ability to concatenate graphs (modules)
 fn calc_n_inference_nodes(g: Graph) -> Optional[Int]:
     """
     Calculate the index of the node up to wich the forward pass should be executed for a model inference.
@@ -37,24 +38,9 @@ fn calc_n_inference_nodes(g: Graph) -> Optional[Int]:
     return None
 
 
-fn collect_trainable_parameters(g: Graph) -> List[Symbol]:
-    """
-    Collect all symbols of trainable parameters.
-    """
-
-    var trainable_parameters = List[Symbol]()
-
-    for i in range(len(g.params)):
-        if g.params.symbols[i].trainable:
-            trainable_parameters.append(g.params.symbols[i])
-
-    return trainable_parameters ^
-
-
-
 struct Model[
     g: Graph,
-    n_inference_nodes: Optional[Int] = calc_n_inference_nodes(g),  # TODO: remove this
+    n_inference_nodes: Optional[Int] = calc_n_inference_nodes(g),  # TODO: remove when modules
 ]():
     var perf_metrics: PerfMetrics
 
@@ -68,7 +54,7 @@ struct Model[
         self.allocate_tensor_memory()
         self.allocate_grad_memory()
 
-        # TODO: ability to concatenate graphs
+        # TODO: remove this when ability to concatenate graphs (modules)
         # NOTE: inference_only only used for surpressing the warning.
         if not inference_only and not g.loss_out:
             print("\n\n[WARNING]: No loss defined, model.forward() unavailable!\n\n")
@@ -78,7 +64,7 @@ struct Model[
                 " unavailable!\n\n"
             )
 
-    # TODO: ability to concatenate graphs
+    # TODO: remove when ability to concatenate graphs (modules)
     # Removes the need for splitting in forward and inference mode
     fn forward(inout self, *t_inputs: Tensor[dtype]) -> Tensor[dtype]:
         # NOTE: Important detail here is that the order of the inputs must be the same as the order the inputs were defined in the graph.
