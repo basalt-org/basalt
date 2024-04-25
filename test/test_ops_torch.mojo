@@ -409,21 +409,23 @@ fn test_LOG() raises:
 struct torch_output_pow_op:
     var expected: Tensor[dtype]
     var grad_1: Tensor[dtype]
+    var grad_2: Tensor[dtype]
 
 
 fn torch_pow_op(
-    op: OP, input_1: Tensor, exponent: Int, upper_grad: Tensor
+    op: OP, input_1: Tensor, input_2: Tensor, upper_grad: Tensor
 ) -> torch_output_pow_op:
     try:
         var torch = Python.import_module("torch")
         var np = Python.import_module("numpy")
 
         var input_1 = torch.from_numpy(to_numpy(input_1)).requires_grad_(True)
+        var input_2 = torch.from_numpy(to_numpy(input_2)).requires_grad_(True)
 
         var expected: PythonObject
 
         if op == OP.POW:
-            expected = torch.pow(input_1, exponent)
+            expected = torch.pow(input_1, input_2)
         else:
             print("Error: op not supported (returning input 1 value): ", op)
             expected = input_1
@@ -435,50 +437,18 @@ fn torch_pow_op(
         return torch_output_pow_op(
             to_tensor(expected.detach().numpy()),
             to_tensor(input_1.grad.numpy()),
+            to_tensor(input_2.grad.numpy()),
         )
 
     except:
         print("Error importing torch")
         var d = Tensor[dtype](1)
-        return torch_output_pow_op(d, d)
-
-
-fn test_pow_op[
-    op: OP, t1_shape: TensorShape, exponent: Int
-](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
-    @parameter
-    fn create_graph() -> Graph:
-        var g = Graph()
-        var t1 = g.input(t1_shape)
-
-        var res = g.op(op, t1, exponent)
-        g.out(res)
-
-        return g ^
-
-    alias graph = create_graph()
-    assert_equal(len(graph.nodes), 1)
-
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
-    assert_tensors_equal(res, expected, "almost")
-
-
-fn test_pow_op_backward[
-    op: OP, t1_shape: TensorShape, exponent: Int, ug_shape: TensorShape
-](t1: Tensor[dtype], ug: Tensor[dtype], grad_1_expected: Tensor[dtype],) raises:
-    alias exponent_shape = TensorShape(1)
-    var exponent_tensor = Tensor[dtype](exponent_shape)
-    exponent_tensor[0] = exponent
-    var grad_1 = Tensor[dtype](t1_shape)
-    backward_op[0, op, ug_shape, t1_shape, exponent_shape, AttributeVector()](
-        ug, t1, exponent_tensor, grad_1
-    )
-    assert_tensors_equal(grad_1, grad_1_expected, "almost")
+        return torch_output_pow_op(d, d, d)
 
 
 fn test_POW() raises:
     alias t1_shape = TensorShape(37, 63, 107)
+    alias t2_shape = TensorShape(1)
     alias ug_shape = TensorShape(37, 63, 107)
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     rand(t1.data(), t1.num_elements())
@@ -487,12 +457,13 @@ fn test_POW() raises:
     rand(ug.data(), ug.num_elements())
 
     alias exponent = 3
+    var t2 = Tensor[dtype](1)
+    t2[0] = exponent
 
-    var expected_and_grad = torch_pow_op(OP.POW, t1, exponent, ug)
-
-    test_pow_op[OP.POW, t1_shape, exponent](t1, expected_and_grad.expected)
-    test_pow_op_backward[OP.POW, t1_shape, exponent, ug_shape](
-        t1, ug, expected_and_grad.grad_1
+    var expected_and_grad = torch_pow_op(OP.POW, t1, t2, ug)
+    test_binary_op[OP.POW, t1_shape, t2_shape](t1, t2, expected_and_grad.expected)
+    test_binary_op_backward[OP.POW, t1_shape, t2_shape, ug_shape](
+        t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
 
 
@@ -558,64 +529,6 @@ fn torch_reduction_op(
         return torch_output_reduction_op(d, d)
 
 
-fn test_reduction_op[
-    op: OP, t1_shape: TensorShape
-](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
-    @parameter
-    fn create_graph() -> Graph:
-        var g = Graph()
-        var t1 = g.input(t1_shape)
-        var res = g.op(op, t1)
-        g.out(res)
-        return g ^
-
-    alias graph = create_graph()
-    assert_equal(len(graph.nodes), 1)
-
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
-
-    assert_tensors_equal(res, expected, "almost")
-
-
-fn test_reduction_op[
-    op: OP, t1_shape: TensorShape, axis: Int
-](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
-    @parameter
-    fn create_graph() -> Graph:
-        var g = Graph()
-        var t1 = g.input(t1_shape)
-        var res = g.op(op, t1, attributes=AttributeVector(Attribute("axis", axis)))
-        g.out(res)
-        return g ^
-
-    alias graph = create_graph()
-    assert_equal(len(graph.nodes), 1)
-
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
-
-    assert_tensors_equal(res, expected, "almost")
-
-
-fn test_reduction_op_backward[
-    op: OP, t1_shape: TensorShape, ug_shape: TensorShape
-](t1: Tensor[dtype], ug: Tensor[dtype], grad_1_expected: Tensor[dtype],) raises:
-    var grad_1 = Tensor[dtype](t1_shape)
-    backward_op[0, op, ug_shape, t1_shape, AttributeVector()](ug, t1, grad_1)
-    assert_tensors_equal(grad_1, grad_1_expected, "almost")
-
-
-fn test_reduction_op_backward[
-    op: OP, t1_shape: TensorShape, ug_shape: TensorShape, axis: Int
-](t1: Tensor[dtype], ug: Tensor[dtype], grad_1_expected: Tensor[dtype],) raises:
-    var grad_1 = Tensor[dtype](t1_shape)
-    backward_op[0, op, ug_shape, t1_shape, AttributeVector(Attribute("axis", axis))](
-        ug, t1, grad_1
-    )
-    assert_tensors_equal(grad_1, grad_1_expected, "almost")
-
-
 fn test_SUM() raises:
     alias t1_shape = TensorShape(87, 73, 107)
     alias ug_shape = TensorShape(87, 1, 107)
@@ -627,11 +540,11 @@ fn test_SUM() raises:
 
     # 1 axis
     alias axis = 1
+    alias attrs = AttributeVector(Attribute("axis", axis))
 
     var expected_and_grad = torch_reduction_op(OP.SUM, t1, ug, axis)
-
-    test_reduction_op[OP.SUM, t1_shape, axis](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.SUM, t1_shape, ug_shape, axis](
+    test_unary_op[OP.SUM, t1_shape, attrs](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.SUM, t1_shape, ug_shape, attrs](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -641,11 +554,11 @@ fn test_SUM() raises:
     rand(ug.data(), ug.num_elements())
 
     alias axis_2 = 2
+    alias attrs_2 = AttributeVector(Attribute("axis", axis_2))
 
     expected_and_grad = torch_reduction_op(OP.SUM, t1, ug, axis_2)
-
-    test_reduction_op[OP.SUM, t1_shape, axis_2](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.SUM, t1_shape, ug_shape_2, axis_2](
+    test_unary_op[OP.SUM, t1_shape, attrs_2](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.SUM, t1_shape, ug_shape_2, attrs_2](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -655,11 +568,11 @@ fn test_SUM() raises:
     rand(ug.data(), ug.num_elements())
 
     alias axis_3 = 0
+    alias attrs_3 = AttributeVector(Attribute("axis", axis_3))
 
     expected_and_grad = torch_reduction_op(OP.SUM, t1, ug, axis_3)
-
-    test_reduction_op[OP.SUM, t1_shape, axis_3](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.SUM, t1_shape, ug_shape_3, axis_3](
+    test_unary_op[OP.SUM, t1_shape, attrs_3](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.SUM, t1_shape, ug_shape_3, attrs_3](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -670,8 +583,8 @@ fn test_SUM() raises:
 
     expected_and_grad = torch_reduction_op(OP.SUM, t1, ug)
 
-    test_reduction_op[OP.SUM, t1_shape](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.SUM, t1_shape, ug_shape_4](
+    test_unary_op[OP.SUM, t1_shape](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.SUM, t1_shape, ug_shape_4](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -687,11 +600,11 @@ fn test_MAX() raises:
 
     # 1 axis
     alias axis = 1
+    alias attrs = AttributeVector(Attribute("axis", axis))
 
     var expected_and_grad = torch_reduction_op(OP.MAX, t1, ug, axis)
-
-    test_reduction_op[OP.MAX, t1_shape, axis](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MAX, t1_shape, ug_shape, axis](
+    test_unary_op[OP.MAX, t1_shape, attrs](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.MAX, t1_shape, ug_shape, attrs](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -701,11 +614,11 @@ fn test_MAX() raises:
     rand(ug.data(), ug.num_elements())
 
     alias axis_2 = 2
+    alias attrs_2 = AttributeVector(Attribute("axis", axis_2))
 
     expected_and_grad = torch_reduction_op(OP.MAX, t1, ug, axis_2)
-
-    test_reduction_op[OP.MAX, t1_shape, axis_2](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MAX, t1_shape, ug_shape_2, axis_2](
+    test_unary_op[OP.MAX, t1_shape, attrs_2](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.MAX, t1_shape, ug_shape_2, attrs_2](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -715,11 +628,11 @@ fn test_MAX() raises:
     rand(ug.data(), ug.num_elements())
 
     alias axis_3 = 0
+    alias attrs_3 = AttributeVector(Attribute("axis", axis_3))
 
     expected_and_grad = torch_reduction_op(OP.MAX, t1, ug, axis_3)
-
-    test_reduction_op[OP.MAX, t1_shape, axis_3](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MAX, t1_shape, ug_shape_3, axis_3](
+    test_unary_op[OP.MAX, t1_shape, attrs_3](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.MAX, t1_shape, ug_shape_3, attrs_3](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -729,9 +642,8 @@ fn test_MAX() raises:
     rand(ug.data(), ug.num_elements())
 
     expected_and_grad = torch_reduction_op(OP.MAX, t1, ug)
-
-    test_reduction_op[OP.MAX, t1_shape](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MAX, t1_shape, ug_shape_4](
+    test_unary_op[OP.MAX, t1_shape](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.MAX, t1_shape, ug_shape_4](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -747,11 +659,11 @@ fn test_MEAN() raises:
 
     # 1 axis
     alias axis = 1
+    alias attrs = AttributeVector(Attribute("axis", axis))
 
     var expected_and_grad = torch_reduction_op(OP.MEAN, t1, ug, axis)
-
-    test_reduction_op[OP.MEAN, t1_shape, axis](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MEAN, t1_shape, ug_shape, axis](
+    test_unary_op[OP.MEAN, t1_shape, attrs](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.MEAN, t1_shape, ug_shape, attrs](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -761,11 +673,11 @@ fn test_MEAN() raises:
     rand(ug.data(), ug.num_elements())
 
     alias axis_2 = 2
+    alias attrs_2 = AttributeVector(Attribute("axis", axis_2))
 
     expected_and_grad = torch_reduction_op(OP.MEAN, t1, ug, axis_2)
-
-    test_reduction_op[OP.MEAN, t1_shape, axis_2](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MEAN, t1_shape, ug_shape_2, axis_2](
+    test_unary_op[OP.MEAN, t1_shape, attrs_2](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.MEAN, t1_shape, ug_shape_2, attrs_2](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -775,24 +687,22 @@ fn test_MEAN() raises:
     rand(ug.data(), ug.num_elements())
 
     alias axis_3 = 0
+    alias attrs_3 = AttributeVector(Attribute("axis", axis_3))
 
     expected_and_grad = torch_reduction_op(OP.MEAN, t1, ug, axis_3)
-
-    test_reduction_op[OP.MEAN, t1_shape, axis_3](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MEAN, t1_shape, ug_shape_3, axis_3](
+    test_unary_op[OP.MEAN, t1_shape, attrs_3](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.MEAN, t1_shape, ug_shape_3, attrs_3](
         t1, ug, expected_and_grad.grad_1
     )
 
     # all dims
-
     alias ug_shape_4 = TensorShape(1)
     ug = Tensor[dtype](ug_shape_4)
     rand(ug.data(), ug.num_elements())
 
     expected_and_grad = torch_reduction_op(OP.MEAN, t1, ug)
-
-    test_reduction_op[OP.MEAN, t1_shape](t1, expected_and_grad.expected)
-    test_reduction_op_backward[OP.MEAN, t1_shape, ug_shape_4](
+    test_unary_op[OP.MEAN, t1_shape](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.MEAN, t1_shape, ug_shape_4](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -840,69 +750,6 @@ fn torch_transform_op(
         return torch_output_transform_op(d, d)
 
 
-fn test_transform_op[
-    op: OP, t1_shape: TensorShape, new_shape: TensorShape = TensorShape(0)
-](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
-    @parameter
-    fn create_graph() -> Graph:
-        var g = Graph()
-        var t1 = g.input(t1_shape)
-
-        var res: Symbol
-
-        @parameter
-        if op == OP.RESHAPE:
-            res = g.op(
-                op, t1, attributes=AttributeVector(Attribute("shape", new_shape))
-            )
-        elif op == OP.TRANSPOSE:
-            res = g.op(op, t1, attributes=AttributeVector(Attribute("axes", new_shape)))
-        else:
-            res = g.op(op, t1)
-        g.out(res)
-
-        return g ^
-
-    alias graph = create_graph()
-    assert_equal(len(graph.nodes), 1)
-
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
-
-    assert_tensors_equal(res, expected, "almost")
-
-
-fn test_transform_op_backward[
-    op: OP,
-    t1_shape: TensorShape,
-    ug_shape: TensorShape,
-    new_shape: TensorShape = TensorShape(0),
-](t1: Tensor[dtype], ug: Tensor[dtype], grad_1_expected: Tensor[dtype],) raises:
-    var grad_1 = Tensor[dtype](t1_shape)
-
-    @parameter
-    if op == OP.RESHAPE:
-        backward_op[
-            0,
-            op,
-            ug_shape,
-            t1_shape,
-            AttributeVector(Attribute("shape", new_shape)),
-        ](ug, t1, grad_1)
-    elif op == OP.TRANSPOSE:
-        backward_op[
-            0,
-            op,
-            ug_shape,
-            t1_shape,
-            AttributeVector(Attribute("axes", new_shape)),
-        ](ug, t1, grad_1)
-    else:
-        backward_op[0, op, ug_shape, t1_shape, AttributeVector()](ug, t1, grad_1)
-
-    assert_tensors_equal(grad_1, grad_1_expected, "almost")
-
-
 fn test_FLATTEN() raises:
     alias t1_shape = TensorShape(87, 73, 84)
     alias ug_shape = TensorShape(t1_shape.num_elements())
@@ -913,9 +760,8 @@ fn test_FLATTEN() raises:
     rand(ug.data(), ug.num_elements())
 
     var expected_and_grad = torch_transform_op(OP.FLATTEN, t1, ug, None)
-
-    test_transform_op[OP.FLATTEN, t1_shape](t1, expected_and_grad.expected)
-    test_transform_op_backward[OP.FLATTEN, t1_shape, ug_shape](
+    test_unary_op[OP.FLATTEN, t1_shape](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.FLATTEN, t1_shape, ug_shape](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -931,11 +777,11 @@ fn test_RESHAPE() raises:
 
     alias new_shape = TensorShape(87, 73 * 84)
     alias new_shape_tuple = (new_shape[0], new_shape[1])
+    alias attrs = AttributeVector(Attribute("shape", new_shape))
 
     var expected_and_grad = torch_transform_op(OP.RESHAPE, t1, ug, new_shape_tuple)
-
-    test_transform_op[OP.RESHAPE, t1_shape, new_shape](t1, expected_and_grad.expected)
-    test_transform_op_backward[OP.RESHAPE, t1_shape, ug_shape, new_shape](
+    test_unary_op[OP.RESHAPE, t1_shape, attrs](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.RESHAPE, t1_shape, ug_shape, attrs](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -951,11 +797,11 @@ fn test_TRANSPOSE() raises:
 
     alias axes = TensorShape(1, 2, 0)
     alias axes_tuple = (axes[0], axes[1], axes[2])
+    alias attrs = AttributeVector(Attribute("axes", axes))
 
     var expected_and_grad = torch_transform_op(OP.TRANSPOSE, t1, ug, axes_tuple)
-
-    test_transform_op[OP.TRANSPOSE, t1_shape, axes](t1, expected_and_grad.expected)
-    test_transform_op_backward[OP.TRANSPOSE, t1_shape, ug_shape, axes](
+    test_unary_op[OP.TRANSPOSE, t1_shape, attrs](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.TRANSPOSE, t1_shape, ug_shape, attrs](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -966,11 +812,11 @@ fn test_TRANSPOSE() raises:
 
     alias axes_2 = TensorShape(2, 1, 0)
     alias axes_tuple_2 = (axes_2[0], axes_2[1], axes_2[2])
+    alias attrs_2 = AttributeVector(Attribute("axes", axes_2))
 
     expected_and_grad = torch_transform_op(OP.TRANSPOSE, t1, ug, axes_tuple_2)
-
-    test_transform_op[OP.TRANSPOSE, t1_shape, axes_2](t1, expected_and_grad.expected)
-    test_transform_op_backward[OP.TRANSPOSE, t1_shape, ug_shape_2, axes_2](
+    test_unary_op[OP.TRANSPOSE, t1_shape, attrs_2](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.TRANSPOSE, t1_shape, ug_shape_2, attrs_2](
         t1, ug, expected_and_grad.grad_1
     )
 
@@ -985,11 +831,11 @@ fn test_TRANSPOSE() raises:
 
     alias axes_3 = TensorShape(1, 0)
     alias axes_tuple_3 = (axes_3[0], axes_3[1])
+    alias attrs_3 = AttributeVector(Attribute("axes", axes_3))
 
     expected_and_grad = torch_transform_op(OP.TRANSPOSE, t1, ug, axes_tuple_3)
-
-    test_transform_op[OP.TRANSPOSE, t1_shape_3, axes_3](t1, expected_and_grad.expected)
-    test_transform_op_backward[OP.TRANSPOSE, t1_shape_3, ug_shape_3, axes_3](
+    test_unary_op[OP.TRANSPOSE, t1_shape_3, attrs_3](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.TRANSPOSE, t1_shape_3, ug_shape_3, attrs_3](
         t1, ug, expected_and_grad.grad_1
     )
 

@@ -1,6 +1,7 @@
 from testing import assert_equal, assert_almost_equal
 from test_tensorutils import assert_tensors_equal
 
+import basalt
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
@@ -44,6 +45,7 @@ fn test_SOFTMAX() raises:
     assert_equal(
         len(graph.nodes), 5
     )  # max_values, exp_values, sum_values, diff_max_values, result_div
+    basalt.reset()
 
     # Test axis 1
     alias graph_2 = create_graph(1)
@@ -56,6 +58,7 @@ fn test_SOFTMAX() raises:
     fill(expected, 1.0 / 3.0)
 
     assert_tensors_equal(res, expected, "almost")
+    basalt.reset()
 
     # Test axis 2
     alias graph_3 = create_graph(2)
@@ -68,6 +71,7 @@ fn test_SOFTMAX() raises:
     fill(expected, 0.5)
 
     assert_tensors_equal(res, expected, "almost")
+    basalt.reset()
 
 
 fn test_LOGSOFTMAX() raises:
@@ -103,6 +107,7 @@ fn test_LOGSOFTMAX() raises:
     assert_equal(
         len(graph.nodes), 6
     )  # max_values, exp_values, sum_values, diff_max_values, log_values, result_sub
+    basalt.reset()
 
     # Test axis 1
     alias graph_2 = create_graph(1)
@@ -115,6 +120,7 @@ fn test_LOGSOFTMAX() raises:
     fill(expected, -1.09861231)
 
     assert_tensors_equal(res, expected, "almost")
+    basalt.reset()
 
     # Test axis 2
     alias graph_3 = create_graph(2)
@@ -127,6 +133,7 @@ fn test_LOGSOFTMAX() raises:
     fill(expected, -0.69314718)
 
     assert_tensors_equal(res, expected, "almost")
+    basalt.reset()
 
 
 fn test_RELU() raises:
@@ -162,6 +169,7 @@ fn test_RELU() raises:
 
     assert_tensors_equal(res, expected, "almost")
     assert_equal(len(graph.nodes), 1)
+    basalt.reset()
 
 
 fn test_SIGMOID() raises:
@@ -191,6 +199,7 @@ fn test_SIGMOID() raises:
 
     assert_tensors_equal(res, expected, "almost")
     assert_equal(len(graph.nodes), 1)
+    basalt.reset()
 
 
 fn test_TANH() raises:
@@ -220,6 +229,7 @@ fn test_TANH() raises:
 
     assert_tensors_equal(res, expected, "almost")
     assert_equal(len(graph.nodes), 1)
+    basalt.reset()
 
 
 fn main():

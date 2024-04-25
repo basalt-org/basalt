@@ -8,3 +8,7 @@ alias seed = 42
 
 var TENSORS = Collection()
 var GRADS = Collection()
+
+fn reset():
+    TENSORS.clear()
+    GRADS.clear()

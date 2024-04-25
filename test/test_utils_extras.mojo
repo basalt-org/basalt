@@ -3,6 +3,7 @@ from collections.optional import OptionalReg
 from testing import assert_equal
 from test_tensorutils import assert_tensors_equal
 
+import basalt
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
@@ -76,6 +77,7 @@ fn test_unary_op[
     var res = model.inference(t1)[0]
 
     assert_tensors_equal(res, expected, "almost")
+    basalt.reset()
 
 
 fn test_binary_op[
@@ -102,6 +104,7 @@ fn test_binary_op[
     var res = model.inference(t1, t2)[0]
 
     assert_tensors_equal(res, expected, "almost")
+    basalt.reset()
 
 
 fn test_ternary_op[
@@ -128,6 +131,7 @@ fn test_ternary_op[
     var res = model.inference(t1, t2, t3)[0]
 
     assert_tensors_equal(res, expected, "almost")
+    basalt.reset()
 
 
 # ------- Test backward ops -------
