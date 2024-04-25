@@ -96,6 +96,42 @@ export type Field = {
 
 const Docs: Documentation = JSONDocs;
 
+function findModules(
+  pkg: Package,
+  modules: Module[] = [],
+): Module[] {
+  if (pkg.modules) {
+    modules.push(...pkg.modules);
+  }
+
+  if (pkg.packages) {
+    for (const p of pkg.packages) {
+      findModules(p, modules);
+    }
+  }
+
+  return modules;
+}
+
+function findPackages(
+  pkg: Package,
+  packages: Package[] = [],
+): Package[] {
+  packages.push(pkg);
+
+  if (pkg.packages) {
+    for (const p of pkg.packages) {
+      findPackages(p, packages);
+    }
+  }
+
+  return packages;
+}
+
+
+export const allModules = findModules(Docs.decl);
+export const allPackages = findPackages(Docs.decl);
+
 export function findPackage(
   pkg: string[],
   currentPackage: Package = Docs.decl,
