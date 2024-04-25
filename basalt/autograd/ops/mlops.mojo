@@ -374,3 +374,46 @@ struct CONCAT2:
                 )
 
             return t2_grad ^
+
+
+struct SPLIT:
+    @staticmethod
+    fn result_shape(
+        t1_shape: TensorShape, attributes: AttributeVector
+    ) -> List[TensorShape]:
+        # Assuming the sum of the sections is equal to the total size in the axis dimension.
+        # E.g. sections = [5, 5, 2] -> shape (., 12, ., .) for axis = 1
+        var axis = attributes["axis"].value().to_int() if attributes["axis"] else 0
+        var sections = attributes["sections"].value().to_shape()
+
+        var res_shapes = List[TensorShape]()
+        for i in range(sections.rank()):
+            var new_shape = t1_shape
+            new_shape[axis] = sections[i]
+            res_shapes.append(new_shape)
+
+        return res_shapes
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](res: List[Tensor[dtype]], t1: Tensor[dtype]):
+        var axis = attributes["axis"].value().to_int() if attributes["axis"] else 0
+        var sections = attributes["sections"].value().to_shape()
+        # TODO
+        pass
+
+    @staticmethod
+    fn backward[
+        tensor_id: Int,
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        var axis = attributes["axis"].value().to_int() if attributes["axis"] else 0
+        var sections = attributes["sections"].value().to_shape()
+        # TODO
+
+        var res_grad = Tensor[dtype](t1_shape)
+        return res_grad ^

@@ -45,7 +45,6 @@ fn main():
 
     var model = nn.Model[graph]()
     var optimizer = nn.optim.Adam[graph](lr=learning_rate)
-    optimizer.allocate_rms_and_momentum(model.parameters)
 
     var x_data = Tensor[dtype](batch_size, n_inputs)
     var y_data = Tensor[dtype](batch_size, n_outputs)
@@ -64,8 +63,8 @@ fn main():
         if (i + 1) % 1000 == 0:
             print("[", i + 1, "/", epochs, "] \tLoss: ", out[0])
 
-        optimizer.zero_grad(model.parameters)
+        optimizer.zero_grad()
         model.backward()
-        optimizer.step(model.parameters)
+        optimizer.step()
 
     print("Training finished: ", (now() - start) / 1e9, "seconds")

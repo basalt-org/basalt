@@ -35,7 +35,6 @@ fn main():
 
     var model = nn.Model[graph]()
     var optim = nn.optim.Adam[graph](lr=learning_rate)
-    optim.allocate_rms_and_momentum(model.parameters)
 
     # Batchwise data loader
     print("Loading data...")
@@ -59,9 +58,9 @@ fn main():
             var loss = model.forward(batch.data, batch.labels)
 
             # Backward pass
-            optim.zero_grad(model.parameters)
+            optim.zero_grad()
             model.backward()
-            optim.step(model.parameters)
+            optim.step()
 
             epoch_loss += loss[0]
             num_batches += 1
