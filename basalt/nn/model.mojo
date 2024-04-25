@@ -4,7 +4,7 @@ from sys import env_get_int
 
 from basalt import TENSORS, GRADS
 from basalt import Graph, Symbol, Tensor, TensorShape
-from basalt.autograd.ops import forward_op, backward_op
+from basalt.autograd.ops import forward_op, backward_op, dynamic_forward_op, dynamic_backward_op
 from basalt.utils.collection import Collection
 from basalt.utils.tensorutils import fill
 from .initializers import initialize_tensor
@@ -119,9 +119,6 @@ struct Model[
         @parameter
         fn fw_unroll[i: Int]():
             alias op = g.nodes[i].operator
-            alias t1 = g.nodes[i].inputs[0]
-            alias out = g.nodes[i].outputs[0]
-            alias attrs = g.nodes[i].attributes
 
             # Save start time for performance metrics
             @parameter
@@ -129,29 +126,42 @@ struct Model[
                 self.perf_metrics.start_forward_pass()
 
             @parameter
-            if op.num_operands == 1:
-                # Unary operator
-                forward_op[op, t1.shape, attrs](
-                    TENSORS[out], TENSORS[t1]
+            if op.dynamic:
+                dynamic_forward_op(
+                    inputs = g.nodes[i].inputs,
+                    outputs = g.nodes[i].outputs,
                 )
-            elif op.num_operands == 2:
-                # Binary operator
-                alias t2 = g.nodes[i].inputs[1]
-                forward_op[op, t1.shape, t2.shape, attrs](
-                    TENSORS[out],
-                    TENSORS[t1],
-                    TENSORS[t2],
-                )
-            elif op.num_operands == 3:
-                # Ternary operator
-                alias t2 = g.nodes[i].inputs[1]
-                alias t3 = g.nodes[i].inputs[2]
-                forward_op[op, t1.shape, t2.shape, t3.shape, attrs](
-                    TENSORS[out],
-                    TENSORS[t1],
-                    TENSORS[t2],
-                    TENSORS[t3],
-                )
+            else:
+                # Statically known shapes and number of operands
+                alias num_operands = len(g.nodes[i].inputs)
+                alias t1 = g.nodes[i].inputs[0]
+                alias out = g.nodes[i].outputs[0]
+                alias attrs = g.nodes[i].attributes
+
+                @parameter
+                if num_operands == 1:
+                    # Unary operator
+                    forward_op[op, t1.shape, attrs](
+                        TENSORS[out], TENSORS[t1]
+                    )
+                elif num_operands == 2:
+                    # Binary operator
+                    alias t2 = g.nodes[i].inputs[1]
+                    forward_op[op, t1.shape, t2.shape, attrs](
+                        TENSORS[out],
+                        TENSORS[t1],
+                        TENSORS[t2],
+                    )
+                elif num_operands == 3:
+                    # Ternary operator
+                    alias t2 = g.nodes[i].inputs[1]
+                    alias t3 = g.nodes[i].inputs[2]
+                    forward_op[op, t1.shape, t2.shape, t3.shape, attrs](
+                        TENSORS[out],
+                        TENSORS[t1],
+                        TENSORS[t2],
+                        TENSORS[t3],
+                    )
 
             # Save end time for performance metrics
             @parameter
@@ -173,9 +183,6 @@ struct Model[
         fn bw_unroll[i: Int]():
             alias reverse_i = g.nodes.size - i - 1
             alias op = g.nodes[reverse_i].operator
-            alias out = g.nodes[reverse_i].outputs[0]  # or upper_grad symbol
-            alias t1 = g.nodes[reverse_i].inputs[0]
-            alias attrs = g.nodes[reverse_i].attributes
 
             # Save start time for performance metrics
             @parameter
@@ -183,72 +190,85 @@ struct Model[
                 self.perf_metrics.start_backward_pass()
 
             @parameter
-            if op.num_operands == 1:
-                # Unary operator
+            if op.dynamic:
+                dynamic_backward_op(
+                    inputs = g.nodes[reverse_i].inputs,
+                    outputs = g.nodes[reverse_i].outputs,
+                )
+            else:
+                # Statically known shapes and number of operands
+                alias num_operands = len(g.nodes[reverse_i].inputs)
+                alias out = g.nodes[reverse_i].outputs[0]  # or upper_grad symbol
+                alias t1 = g.nodes[reverse_i].inputs[0]
+                alias attrs = g.nodes[reverse_i].attributes
+                
                 @parameter
-                if t1.trainable:
-                    backward_op[0, op, out.shape, t1.shape, attrs](
-                        GRADS[out],
-                        TENSORS[t1],
-                        GRADS[t1],  # grad to be updated: inputs[0]
-                    )
+                if num_operands == 1:
+                    # Unary operator
+                    @parameter
+                    if t1.trainable:
+                        backward_op[0, op, out.shape, t1.shape, attrs](
+                            GRADS[out],
+                            TENSORS[t1],
+                            GRADS[t1],  # grad to be updated: inputs[0]
+                        )
 
-            elif op.num_operands == 2:
-                # Binary operator
-                alias t2 = g.nodes[reverse_i].inputs[1]
+                elif num_operands == 2:
+                    # Binary operator
+                    alias t2 = g.nodes[reverse_i].inputs[1]
 
-                @parameter
-                if t1.trainable:
-                    backward_op[0, op, out.shape, t1.shape, t2.shape, attrs](
-                        GRADS[out],
-                        TENSORS[t1],
-                        TENSORS[t2],
-                        GRADS[t1],  # grad to be updated: inputs[0]
-                    )
+                    @parameter
+                    if t1.trainable:
+                        backward_op[0, op, out.shape, t1.shape, t2.shape, attrs](
+                            GRADS[out],
+                            TENSORS[t1],
+                            TENSORS[t2],
+                            GRADS[t1],  # grad to be updated: inputs[0]
+                        )
 
-                @parameter
-                if t2.trainable:
-                    backward_op[1, op, out.shape, t1.shape, t2.shape, attrs](
-                        GRADS[out],
-                        TENSORS[t1],
-                        TENSORS[t2],
-                        GRADS[t2],  # grad to be updated: inputs[1]
-                    )
+                    @parameter
+                    if t2.trainable:
+                        backward_op[1, op, out.shape, t1.shape, t2.shape, attrs](
+                            GRADS[out],
+                            TENSORS[t1],
+                            TENSORS[t2],
+                            GRADS[t2],  # grad to be updated: inputs[1]
+                        )
 
-            elif op.num_operands == 3:
-                # Ternary operator
-                alias t2 = g.nodes[reverse_i].inputs[1]
-                alias t3 = g.nodes[reverse_i].inputs[2]
+                elif num_operands == 3:
+                    # Ternary operator
+                    alias t2 = g.nodes[reverse_i].inputs[1]
+                    alias t3 = g.nodes[reverse_i].inputs[2]
 
-                @parameter
-                if t1.trainable:
-                    backward_op[0, op, out.shape, t1.shape, t2.shape, t3.shape, attrs](
-                        GRADS[out],
-                        TENSORS[t1],
-                        TENSORS[t2],
-                        TENSORS[t3],
-                        GRADS[t1],  # grad to be updated: inputs[0]
-                    )
+                    @parameter
+                    if t1.trainable:
+                        backward_op[0, op, out.shape, t1.shape, t2.shape, t3.shape, attrs](
+                            GRADS[out],
+                            TENSORS[t1],
+                            TENSORS[t2],
+                            TENSORS[t3],
+                            GRADS[t1],  # grad to be updated: inputs[0]
+                        )
 
-                @parameter
-                if t2.trainable:
-                    backward_op[1, op, out.shape, t1.shape, t2.shape, t3.shape, attrs](
-                        GRADS[out],
-                        TENSORS[t1],
-                        TENSORS[t2],
-                        TENSORS[t3],
-                        GRADS[t2],  # grad to be updated: inputs[1]
-                    )
+                    @parameter
+                    if t2.trainable:
+                        backward_op[1, op, out.shape, t1.shape, t2.shape, t3.shape, attrs](
+                            GRADS[out],
+                            TENSORS[t1],
+                            TENSORS[t2],
+                            TENSORS[t3],
+                            GRADS[t2],  # grad to be updated: inputs[1]
+                        )
 
-                @parameter
-                if t3.trainable:
-                    backward_op[2, op, out.shape, t1.shape, t2.shape, t3.shape, attrs](
-                        GRADS[out],
-                        TENSORS[t1],
-                        TENSORS[t2],
-                        TENSORS[t3],
-                        GRADS[t3],  # grad to be updated: inputs[2]
-                    )
+                    @parameter
+                    if t3.trainable:
+                        backward_op[2, op, out.shape, t1.shape, t2.shape, t3.shape, attrs](
+                            GRADS[out],
+                            TENSORS[t1],
+                            TENSORS[t2],
+                            TENSORS[t3],
+                            GRADS[t3],  # grad to be updated: inputs[2]
+                        )
 
             # Save end time for performance metrics
             @parameter

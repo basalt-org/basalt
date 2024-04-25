@@ -33,39 +33,39 @@ struct OP(Stringable):
     Compile time Operators list.
     """
 
-    alias ADD = OP(0, "ADD", num_operands=2)
-    alias SUB = OP(1, "SUB", num_operands=2)
-    alias MUL = OP(2, "MUL", num_operands=2)
-    alias DIV = OP(3, "DIV", num_operands=2)
-    alias EXP = OP(4, "EXP", num_operands=1)
-    alias LOG = OP(5, "LOG", num_operands=1)
-    alias POW = OP(6, "POW", num_operands=2)
-    alias DOT = OP(7, "DOT", num_operands=2)
-    alias SUM = OP(8, "SUM", num_operands=1)
-    alias MEAN = OP(9, "MEAN", num_operands=1)
-    alias MAX = OP(10, "MAX", num_operands=1)
-    alias FLATTEN = OP(11, "FLATTEN", num_operands=1)
-    alias RESHAPE = OP(12, "RESHAPE", num_operands=1)
-    alias SIGMOID = OP(13, "SIGMOID", num_operands=1)
-    alias RELU = OP(14, "RELU", num_operands=1)
-    alias TANH = OP(15, "TANH", num_operands=1)
-    alias CONV2D = OP(16, "CONV2D", num_operands=3)
-    alias TRANSPOSE = OP(17, "TRANSPOSE", num_operands=1)
-    alias MAXPOOL2D = OP(18, "MAXPOOL2D", num_operands=1)
-    alias FMA = OP(19, "FMA", num_operands=3)
-    alias CLIP = OP(20, "CLIP", num_operands=1)
-    alias SQUEEZE = OP(21, "SQUEEZE", num_operands=1)
-    alias UNSQUEEZE = OP(22, "UNSQUEEZE", num_operands=1)
-    alias CONCAT2 = OP(23, "CONCAT2", num_operands=2)
+    alias ADD = OP(0, "ADD")
+    alias SUB = OP(1, "SUB")
+    alias MUL = OP(2, "MUL")
+    alias DIV = OP(3, "DIV")
+    alias EXP = OP(4, "EXP")
+    alias LOG = OP(5, "LOG")
+    alias POW = OP(6, "POW")
+    alias DOT = OP(7, "DOT")
+    alias SUM = OP(8, "SUM")
+    alias MEAN = OP(9, "MEAN")
+    alias MAX = OP(10, "MAX")
+    alias FLATTEN = OP(11, "FLATTEN")
+    alias RESHAPE = OP(12, "RESHAPE")
+    alias SIGMOID = OP(13, "SIGMOID")
+    alias RELU = OP(14, "RELU")
+    alias TANH = OP(15, "TANH")
+    alias CONV2D = OP(16, "CONV2D")
+    alias TRANSPOSE = OP(17, "TRANSPOSE")
+    alias MAXPOOL2D = OP(18, "MAXPOOL2D")
+    alias FMA = OP(19, "FMA")
+    alias CLIP = OP(20, "CLIP")
+    alias SQUEEZE = OP(21, "SQUEEZE")
+    alias UNSQUEEZE = OP(22, "UNSQUEEZE")
+    alias CONCAT2 = OP(23, "CONCAT2")
 
     var id: UInt8
     var name: Bytes[16]
-    var num_operands: UInt8
+    var dynamic: Bool
 
-    fn __init__(inout self, id: UInt8, name: String, num_operands: UInt8):
+    fn __init__(inout self, id: UInt8, name: String, dynamic: Bool = False):
         self.id = id
         self.name = Bytes[16](name)
-        self.num_operands = num_operands
+        self.dynamic = dynamic
 
     fn __eq__(self, other: OP) -> Bool:
         return self.id == other.id
