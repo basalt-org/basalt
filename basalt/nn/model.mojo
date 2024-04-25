@@ -30,8 +30,9 @@ fn calc_n_inference_nodes(g: Graph) -> Optional[Int]:
     The number of inference nodes is that index + 1.
     """
     for i in range(len(g.nodes) - 1, -1, -1):
-        if dv_contains(g.outputs, g.nodes[i].output):
-            return i + 1
+        for j in range(len(g.nodes[i].outputs)):
+            if dv_contains(g.outputs, g.nodes[i].outputs[j]):
+                return i + 1
     return None
 
 
@@ -134,7 +135,7 @@ struct Model[
         fn fw_unroll[i: Int]():
             alias op = g.nodes[i].operator
             alias t1 = g.nodes[i].inputs[0]
-            alias out = g.nodes[i].output
+            alias out = g.nodes[i].outputs[0]
             alias attrs = g.nodes[i].attributes
 
             # Save start time for performance metrics
@@ -187,7 +188,7 @@ struct Model[
         fn bw_unroll[i: Int]():
             alias reverse_i = g.nodes.size - i - 1
             alias op = g.nodes[reverse_i].operator
-            alias out = g.nodes[reverse_i].output  # or upper_grad symbol
+            alias out = g.nodes[reverse_i].outputs[0]  # or upper_grad symbol
             alias t1 = g.nodes[reverse_i].inputs[0]
             alias attrs = g.nodes[reverse_i].attributes
 
@@ -299,11 +300,11 @@ struct Model[
             self.parameters.params.append(par^, p)
 
         for i in range(len(g.nodes)):
-            # Assumption: There is only one output tensor per node
             # Assumption: An input or a param cannot be an output of a node
-            self.parameters.params.append(
-                Tensor[dtype](g.nodes[i].output.shape), g.nodes[i].output
-            )
+            for j in range(len(g.nodes[i].outputs)):
+                self.parameters.params.append(
+                    Tensor[dtype](g.nodes[i].outputs[j].shape), g.nodes[i].outputs[j]
+                )
 
     fn allocate_grad_memory(inout self):
         # Inputs don't have gradients.
@@ -314,9 +315,10 @@ struct Model[
                 self.parameters.grads.append(Tensor[dtype](grad.shape), grad)
 
         for i in range(len(g.nodes)):
-            var out = g.nodes[i].output
-            if out.trainable:
-                self.parameters.grads.append(Tensor[dtype](out.shape), out)
+            for j in range(len(g.nodes[i].outputs)):
+                var out = g.nodes[i].outputs[j]
+                if out.trainable:
+                    self.parameters.grads.append(Tensor[dtype](out.shape), out)
 
     fn print_perf_metrics(self, time_format: String = "ns", print_shape: Bool = False):
         self.perf_metrics.print_forward_perf_metrics(time_format, print_shape)

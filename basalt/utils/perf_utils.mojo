@@ -180,9 +180,11 @@ struct PerfMetrics:
 
             if print_shape:
                 var shape_str: String = ""
-                shape_str += fit_string[15](
-                    "<" + str(value.node.output.shape) + ">"
-                )
+                shape_str += fit_string[15]("<" + str(value.node.outputs[0].shape) + ">")
+                for j in range(1, len(value.node.outputs)):
+                    shape_str += ", " + fit_string[15](
+                        "<" + str(value.node.outputs[j].shape) + ">"
+                    )
                 shape_str += fit_string[7](" = OP(")
                 shape_str += fit_string[15]("<" + str(value.node.inputs[0].shape) + ">")
                 for j in range(1, len(value.node.inputs)):
