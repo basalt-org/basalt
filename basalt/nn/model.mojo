@@ -170,6 +170,7 @@ struct Model[
             alias reverse_i = g.nodes.size - i - 1
             alias op = g.nodes[reverse_i].operator
             alias attrs = g.nodes[reverse_i].attributes
+            alias num_operands = len(g.nodes[reverse_i].inputs)
 
             # Save start time for performance metrics
             @parameter
@@ -178,13 +179,21 @@ struct Model[
 
             @parameter
             if op.dynamic:
-                backward_op[op, attrs](
-                    inputs = g.nodes[reverse_i].inputs,
-                    outputs = g.nodes[reverse_i].outputs,
-                )
+                
+                @parameter
+                fn unroll_dynamic[j: Int]():
+                    @parameter
+                    if g.nodes[reverse_i].inputs[j].trainable:
+                        backward_op[j, op, attrs](
+                            g.nodes[reverse_i].inputs,
+                            g.nodes[reverse_i].outputs,
+                            GRADS[g.nodes[reverse_i].inputs[j]], # grads to be updated: inputs[j]
+                        )
+                
+                unroll[unroll_dynamic, num_operands]()
+            
             else:
                 # Statically known shapes and number of operands
-                alias num_operands = len(g.nodes[reverse_i].inputs)
                 alias out = g.nodes[reverse_i].outputs[0]  # or upper_grad symbol
                 alias t1 = g.nodes[reverse_i].inputs[0]
                 

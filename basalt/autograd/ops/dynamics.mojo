@@ -52,13 +52,13 @@ struct CONCAT:
                 )
 
     @staticmethod
-    fn backward[attributes: AttributeVector](
+    fn backward[input_id: Int, attributes: AttributeVector](
         inputs: List[Symbol],
         outputs: List[Symbol]
-    ):
+    ) -> Tensor[dtype]:
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         # TODO
-        pass
+        return Tensor[dtype]()
         
         # alias n_chunks = Self.calc_chunks(t1_shape, dim)
         # alias chunk_1 = t1_shape.num_elements() // n_chunks
@@ -122,11 +122,11 @@ struct SPLIT:
         pass
 
     @staticmethod
-    fn backward[attributes: AttributeVector](
+    fn backward[input_id: Int, attributes: AttributeVector](
         inputs: List[Symbol],
         outputs: List[Symbol]
-    ):
+    ) -> Tensor[dtype]:
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         alias sections = attributes["sections"].value().to_shape()
         # TODO
-        pass
+        return Tensor[dtype]()
