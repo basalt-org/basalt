@@ -96,41 +96,55 @@ export type Field = {
 
 const Docs: Documentation = JSONDocs;
 
-function findModules(
-  pkg: Package,
-  modules: Module[] = [],
-): Module[] {
-  if (pkg.modules) {
-    modules.push(...pkg.modules);
-  }
+export type IndexedPackage = {
+  package: Package;
+  path: string;
+};
 
-  if (pkg.packages) {
-    for (const p of pkg.packages) {
-      findModules(p, modules);
+export type IndexedModule = {
+  module: Module;
+  path: string;
+};
+
+export function getAllPackages(): IndexedPackage[] {
+  const packages: IndexedPackage[] = [];
+
+  function walk(pkg: Package, path: string) {
+    packages.push({ package: pkg, path });
+
+    if (pkg.packages) {
+      pkg.packages.forEach((p) => {
+        walk(p, `${path}/${p.name}`);
+      });
     }
   }
 
-  return modules;
-}
-
-function findPackages(
-  pkg: Package,
-  packages: Package[] = [],
-): Package[] {
-  packages.push(pkg);
-
-  if (pkg.packages) {
-    for (const p of pkg.packages) {
-      findPackages(p, packages);
-    }
-  }
+  walk(Docs.decl, "");
 
   return packages;
 }
 
+export function getAllModules(): IndexedModule[] {
+  const modules: IndexedModule[] = [];
 
-export const allModules = findModules(Docs.decl);
-export const allPackages = findPackages(Docs.decl);
+  function walk(pkg: Package, path: string) {
+    if (pkg.modules) {
+      pkg.modules.forEach((m) => {
+        modules.push({ module: m, path: `${path}#${m.name}` });
+      });
+    }
+
+    if (pkg.packages) {
+      pkg.packages.forEach((p) => {
+        walk(p, `${path}/${p.name}`);
+      });
+    }
+  }
+
+  walk(Docs.decl, "");
+
+  return modules;
+}
 
 export function findPackage(
   pkg: string[],
