@@ -76,6 +76,21 @@ struct OP(Stringable):
         return str(self.name)
 
 
+fn static_result_shape(op: OP, operands: VariadicList[Symbol], attributes: AttributeVector) -> TensorShape:
+    """
+    Static result shape for operators.
+    """
+    if len(operands) == 1:
+        return static_result_shape(op, operands[0].shape, attributes)
+    elif len(operands) == 2:
+        return static_result_shape(op, operands[0].shape, operands[1].shape, attributes)
+    elif len(operands) == 3:
+        return static_result_shape(op, operands[0].shape, operands[1].shape, operands[2].shape, attributes)
+    else:
+        print("Error: Invalid number of operands")
+        return TensorShape()
+
+
 fn static_result_shape(
     op: OP, t1_shape: TensorShape, attributes: AttributeVector
 ) -> TensorShape:
@@ -164,7 +179,7 @@ fn static_result_shape(
         return TensorShape(-1, -1)
 
 
-fn static_result_shape(
+fn dynamic_result_shape(
     op: OP,
     operands: VariadicList[Symbol],
     attributes: AttributeVector,

@@ -719,6 +719,7 @@ struct FMA:
         t1_shape: TensorShape, t2_shape: TensorShape, t3_shape: TensorShape
     ) -> TensorShape:
         # FMA assumes: t1_shape == t2_shape == t3_shape
+        # TODO: Error handling, constraints in API
         return t1_shape
 
     @staticmethod

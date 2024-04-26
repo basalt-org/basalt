@@ -4,7 +4,7 @@ from collections.optional import Optional
 from .node import Node
 from .attributes import AttributeVector, Attribute
 from .symbol import Symbol
-from .ops import OP, static_result_shape
+from .ops import OP, static_result_shape, dynamic_result_shape
 from .params import ParamDict, Param
 
 from basalt import seed, dtype
@@ -76,17 +76,7 @@ struct Graph:
         *operands: Symbol,
         attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
-        var res_shape: TensorShape
-        if len(operands) == 1:
-            res_shape = static_result_shape(op, operands[0].shape, attributes)
-        elif len(operands) == 2:
-            res_shape = static_result_shape(op, operands[0].shape, operands[1].shape, attributes)
-        elif len(operands) == 3:
-            res_shape = static_result_shape(op, operands[0].shape, operands[1].shape, operands[2].shape, attributes)
-        else:
-            res_shape = TensorShape()
-            print("Error: Invalid number of operands")
-
+        var res_shape = static_result_shape(op, operands, attributes)
         var res = Symbol(self.symbol_count, dtype, res_shape, self.result_trainable(operands))
         self.symbol_count += 1
 
@@ -121,7 +111,7 @@ struct Graph:
         # NOTE: Concat could fit into g.op() given a different static_result_shape is called
         var attributes = AttributeVector(Attribute("dim", dim))
 
-        var res_shape = static_result_shape(OP.CONCAT, operands, attributes)[0]
+        var res_shape = dynamic_result_shape(OP.CONCAT, operands, attributes)[0]
         var res = Symbol(self.symbol_count, dtype, res_shape, self.result_trainable(operands))
         self.symbol_count += 1
         
@@ -133,7 +123,7 @@ struct Graph:
     
     fn split(inout self, operand: Symbol, sections: List[Int], dim: Int = 0) -> List[Symbol]:
         var attributes = AttributeVector(Attribute("sections", TensorShape(sections)), Attribute("dim", dim))
-        var res_shapes = static_result_shape(OP.SPLIT, operand, attributes)
+        var res_shapes = dynamic_result_shape(OP.SPLIT, operand, attributes)
         var trainable = self.result_trainable(operand)
 
         var results = List[Symbol]()
