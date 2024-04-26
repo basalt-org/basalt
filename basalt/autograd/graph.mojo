@@ -131,7 +131,7 @@ struct Graph:
         self.nodes.append(Node(OP.CONCAT, inputs, List[Symbol](res), attributes))
         return res
     
-    fn split(inout self, operand: Symbol, sections: List[Int], dim: Int) -> List[Symbol]:
+    fn split(inout self, operand: Symbol, sections: List[Int], dim: Int = 0) -> List[Symbol]:
         var attributes = AttributeVector(Attribute("sections", TensorShape(sections)), Attribute("dim", dim))
         var res_shapes = static_result_shape(OP.SPLIT, operand, attributes)
         var trainable = self.result_trainable(operand)

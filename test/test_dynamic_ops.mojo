@@ -1,6 +1,5 @@
 from test_tensorutils import assert_tensors_equal
 
-import basalt
 import basalt.nn as nn
 from basalt import GRADS
 from basalt import Graph, Symbol, OP
@@ -78,8 +77,6 @@ fn test_CONCAT_0() raises:
     assert_tensors_equal(GRADS[graph.nodes[0].inputs[0]], grad1_expected, "almost")
     assert_tensors_equal(GRADS[graph.nodes[0].inputs[1]], grad2_expected, "almost")
     assert_tensors_equal(GRADS[graph.nodes[0].inputs[2]], grad3_expected, "almost")
-
-    basalt.reset()
     
 
 fn test_CONCAT_1() raises:
@@ -135,8 +132,6 @@ fn test_CONCAT_1() raises:
     assert_tensors_equal(GRADS[graph.nodes[0].inputs[0]], grad1_expected, "almost")
     assert_tensors_equal(GRADS[graph.nodes[0].inputs[1]], grad2_expected, "almost")
     assert_tensors_equal(GRADS[graph.nodes[0].inputs[2]], grad3_expected, "almost")
-    
-    basalt.reset()
 
 
 fn test_CONCAT_2() raises:
@@ -193,7 +188,109 @@ fn test_CONCAT_2() raises:
     assert_tensors_equal(GRADS[graph.nodes[0].inputs[1]], grad2_expected, "almost")
     assert_tensors_equal(GRADS[graph.nodes[0].inputs[2]], grad3_expected, "almost")
 
-    basalt.reset()
+
+fn create_graph_split(t_shape: TensorShape, sections: List[Int], dim: Int) -> Graph:
+    var g = Graph()
+    var t = g.input(t_shape, trainable=True)
+    var results = g.split(t, sections=sections, dim=dim)
+    for i in range(len(sections)):
+        g.out(results[i])
+    g.loss(results[0]) # Any one
+    return g ^
+
+
+fn test_SPLIT_0() raises:
+    alias t_shape = TensorShape(4, 5, 6)
+    alias sections = List[Int](1, 2, 1)
+    
+    var t: Tensor[dtype] = Tensor[dtype](t_shape)
+    for i in range(4):
+        for j in range(5):
+            for k in range(6):
+                if i < 1:
+                    t[i*5*6 + j*6 + k] = 5.0
+                elif i >= 1 and i < 3:
+                    t[i*5*6 + j*6 + k] = 10.0
+                else:
+                    t[i*5*6 + j*6 + k] = 15.0
+    
+    var expected1 = Tensor[dtype](1, 5, 6)
+    var expected2 = Tensor[dtype](2, 5, 6)
+    var expected3 = Tensor[dtype](1, 5, 6)
+    fill(expected1, 5.0)
+    fill(expected2, 10.0)
+    fill(expected3, 15.0)
+
+    alias graph = create_graph_split(t_shape, sections, dim=0)
+    var model = nn.Model[graph]()
+    var results = model.inference(t)
+
+    assert_tensors_equal(results[0], expected1, "almost")
+    assert_tensors_equal(results[1], expected2, "almost")
+    assert_tensors_equal(results[2], expected3, "almost")
+
+
+fn test_SPLIT_1() raises:
+    alias t_shape = TensorShape(4, 5, 6)
+    alias sections = List[Int](1, 3, 1)
+    
+    var t: Tensor[dtype] = Tensor[dtype](t_shape)
+    for i in range(4):
+        for j in range(5):
+            for k in range(6):
+                if j < 1:
+                    t[i*5*6 + j*6 + k] = 5.0
+                elif j >= 1 and j < 4:
+                    t[i*5*6 + j*6 + k] = 10.0
+                else:
+                    t[i*5*6 + j*6 + k] = 15.0
+    
+    var expected1 = Tensor[dtype](4, 1, 6)
+    var expected2 = Tensor[dtype](4, 3, 6)
+    var expected3 = Tensor[dtype](4, 1, 6)
+    fill(expected1, 5.0)
+    fill(expected2, 10.0)
+    fill(expected3, 15.0)
+
+    alias graph = create_graph_split(t_shape, sections, dim=1)
+    var model = nn.Model[graph]()
+    var results = model.inference(t)
+
+    assert_tensors_equal(results[0], expected1, "almost")
+    assert_tensors_equal(results[1], expected2, "almost")
+    assert_tensors_equal(results[2], expected3, "almost")
+
+
+fn test_SPLIT_2() raises:
+    alias t_shape = TensorShape(4, 5, 6)
+    alias sections = List[Int](1, 4, 1)
+    
+    var t: Tensor[dtype] = Tensor[dtype](t_shape)
+    for i in range(4):
+        for j in range(5):
+            for k in range(6):
+                if k < 1:
+                    t[i*5*6 + j*6 + k] = 5.0
+                elif k >= 1 and k < 5:
+                    t[i*5*6 + j*6 + k] = 10.0
+                else:
+                    t[i*5*6 + j*6 + k] = 15.0
+    
+    var expected1 = Tensor[dtype](4, 5, 1)
+    var expected2 = Tensor[dtype](4, 5, 4)
+    var expected3 = Tensor[dtype](4, 5, 1)
+    fill(expected1, 5.0)
+    fill(expected2, 10.0)
+    fill(expected3, 15.0)
+
+    alias graph = create_graph_split(t_shape, sections, dim=2)
+    var model = nn.Model[graph]()
+    var results = model.inference(t)
+
+    assert_tensors_equal(results[0], expected1, "almost")
+    assert_tensors_equal(results[1], expected2, "almost")
+    assert_tensors_equal(results[2], expected3, "almost")
+
 
 
 fn main():
@@ -201,6 +298,9 @@ fn main():
         test_CONCAT_0()
         test_CONCAT_1()
         test_CONCAT_2()
+        test_SPLIT_0()
+        test_SPLIT_1()
+        test_SPLIT_2()
     except e:
         print("[ERROR] Error in dynamic ops")
         print(e)

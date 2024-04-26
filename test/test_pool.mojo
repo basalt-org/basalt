@@ -4,7 +4,6 @@ from testing import assert_equal
 from test_conv import to_numpy, to_tensor
 from test_tensorutils import assert_tensors_equal
 
-import basalt
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
@@ -106,7 +105,6 @@ fn test_pool_forward[
     )
 
     assert_tensors_equal(res, torch_out.expected)
-    basalt.reset()
 
 
 fn test_forward_1() raises:

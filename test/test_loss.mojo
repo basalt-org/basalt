@@ -1,6 +1,5 @@
 from testing import assert_equal, assert_almost_equal
 
-import basalt
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
@@ -41,7 +40,6 @@ fn test_MSE_perfect() raises:
 
     assert_equal(loss.dim(0), 1)  # MSE summed over all elements
     assert_equal(loss[0], 0)  # loss is 0
-    basalt.reset()
 
 
 fn test_MSE_imperfect() raises:
@@ -83,7 +81,6 @@ fn test_MSE_imperfect() raises:
     expected_loss = expected_loss / y_true_shape[1]
 
     assert_almost_equal(loss[0], expected_loss)
-    basalt.reset()
 
 
 fn test_CrossEntropy_perfect() raises:
@@ -128,7 +125,6 @@ fn test_CrossEntropy_perfect() raises:
 
     assert_equal(loss.shape(), TensorShape(1))
     assert_almost_equal(loss[0], 0.76794958)
-    basalt.reset()
 
 
 fn test_CrossEntropy_imperfect() raises:
@@ -172,7 +168,6 @@ fn test_CrossEntropy_imperfect() raises:
 
     assert_equal(loss.shape(), TensorShape(1))
     assert_almost_equal(loss[0], 1.31794953)
-    basalt.reset()
 
 
 fn main():

@@ -95,14 +95,36 @@ struct SPLIT:
         return res_shapes
 
     @staticmethod
+    fn calc_chunks(shape: TensorShape, dim: Int) -> Int:
+        # Number of chunks up to the concatenating dimension
+        # Assuming tensor of equal shape, except for the concatenating dimension
+        var chunks = 1
+        for i in range(dim):
+            chunks *= shape[i]
+        return chunks
+
+    @staticmethod
     fn forward[attributes: AttributeVector,](
         inputs: List[Symbol],
         outputs: List[Symbol]
     ):
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         alias sections = attributes["sections"].value().to_shape()
-        # TODO
-        pass
+        var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
+
+        var chunks = List[Int]()
+        var chunk_offsets = List[Int](0)
+        for i in range(len(outputs)):
+            chunks.append(outputs[i].shape.num_elements() // n_chunks)
+            chunk_offsets.append(chunk_offsets[i] + chunks[i])
+
+        for i in range(n_chunks):
+            for j in range(len(outputs)):
+                memcpy(
+                    TENSORS[outputs[j]].data() + i * chunks[j],
+                    TENSORS[inputs[0]].data() + i * chunk_offsets[len(outputs)] + chunk_offsets[j],
+                    chunks[j],
+                )
 
     @staticmethod
     fn backward[input_id: Int, attributes: AttributeVector](

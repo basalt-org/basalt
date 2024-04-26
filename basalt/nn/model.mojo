@@ -51,6 +51,11 @@ struct Model[
         else:
             self.perf_metrics = PerfMetrics()
 
+        # Clear all tensors and grad memory to avoid overwriting
+        # when multiple models are created and duplicate symbols exist (symbol_counting)
+        GRADS.clear()
+        TENSORS.clear()
+
         self.allocate_tensor_memory()
         self.allocate_grad_memory()
 

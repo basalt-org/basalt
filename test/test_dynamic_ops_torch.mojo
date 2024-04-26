@@ -2,7 +2,6 @@ from random import rand
 from python.python import Python
 from test_tensorutils import assert_tensors_equal
 
-import basalt
 import basalt.nn as nn
 from basalt import Graph, Symbol, OP, GRADS
 from basalt import Tensor, TensorShape
@@ -90,7 +89,6 @@ fn test_CONCAT() raises:
     assert_tensors_equal(GRADS[graph.nodes[0].inputs[0]], expected_and_grad.grad_1, "almost")
     assert_tensors_equal(GRADS[graph.nodes[0].inputs[1]], expected_and_grad.grad_2, "almost")
     assert_tensors_equal(GRADS[graph.nodes[0].inputs[2]], expected_and_grad.grad_3, "almost")
-    basalt.reset()
 
     # dim = 2
     alias graph_2 = create_graph_concat(t1_shape, t2_shape, t3_shape, dim=2)
@@ -108,7 +106,6 @@ fn test_CONCAT() raises:
     assert_tensors_equal(GRADS[graph_2.nodes[0].inputs[0]], expected_and_grad_2.grad_1, "almost")
     assert_tensors_equal(GRADS[graph_2.nodes[0].inputs[1]], expected_and_grad_2.grad_2, "almost")
     assert_tensors_equal(GRADS[graph_2.nodes[0].inputs[2]], expected_and_grad_2.grad_3, "almost")
-    basalt.reset()
 
 
 fn main():
