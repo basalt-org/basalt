@@ -1,3 +1,4 @@
+import Sidebar from "@/components/sidebar";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { findPackage } from "@/lib/docs";
 import React, { Fragment, useMemo } from "react";
@@ -36,6 +37,7 @@ export default function Package({ params }: { params: { pkg: string[] } }) {
   return (
     <main>
       {Crumbs}
+      <Sidebar pkg={pkg} />
     </main>
   );
 }

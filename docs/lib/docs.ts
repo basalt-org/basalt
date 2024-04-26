@@ -5,7 +5,7 @@ type Documentation = {
   version: string;
 };
 
-type Package = {
+export type Package = {
   description: string;
   kind: string;
   modules?: Module[];
