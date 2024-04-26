@@ -272,16 +272,17 @@ fn forward_op[
         print("[ERROR] Operator not found.")
 
 
-fn forward_op[op: OP](inputs: List[Symbol], outputs: List[Symbol]):
+fn forward_op[
+    op: OP,
+    attributes: AttributeVector,
+](inputs: List[Symbol], outputs: List[Symbol]):
     """
     Forward pass for dynamic operators.
     """
     if op == OP.CONCAT:
-        # TODO
-        pass
+        CONCAT.forward[attributes](inputs, outputs)
     elif op == OP.SPLIT:
-        # TODO
-        pass
+        SPLIT.forward[attributes](inputs, outputs)
     else:
         print("[ERROR] Operator not found.")
 
@@ -450,15 +451,16 @@ fn backward_op[
         accumulate_grad[t3_shape, res_grad_shape](grad, res_grad)
 
 
-fn backward_op[op: OP](inputs: List[Symbol], outputs: List[Symbol]):
+fn backward_op[
+    op: OP,
+    attributes: AttributeVector,
+](inputs: List[Symbol], outputs: List[Symbol]):
     """
     Backward pass for dynamic operators.
     """
     if op == OP.CONCAT:
-        # TODO
-        pass
+        CONCAT.backward[attributes](inputs, outputs)
     elif op == OP.SPLIT:
-        # TODO
-        pass
+        SPLIT.backward[attributes](inputs, outputs)
     else:
         print("[ERROR] Operator not found.")

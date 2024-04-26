@@ -20,14 +20,14 @@ struct CONCAT:
 
         return List[TensorShape](res_shape)
 
-    # @staticmethod
-    # fn calc_chunks(shape: TensorShape, dim: Int) -> Int:
-    #     # Number of chunks up to the concatenating dimension
-    #     # Assuming tensor of equal shape, except for the concatenating dimension
-    #     var chunks = 1
-    #     for i in range(dim):
-    #         chunks *= shape[i]
-    #     return chunks
+    @staticmethod
+    fn calc_chunks(shape: TensorShape, dim: Int) -> Int:
+        # Number of chunks up to the concatenating dimension
+        # Assuming tensor of equal shape, except for the concatenating dimension
+        var chunks = 1
+        for i in range(dim):
+            chunks *= shape[i]
+        return chunks
 
     @staticmethod
     fn forward[attributes: AttributeVector,](
@@ -35,25 +35,21 @@ struct CONCAT:
         outputs: List[Symbol]
     ):
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
-        # TODO
-        pass
+        var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
+        
+        var chunks = List[Int]()
+        var chunk_offsets = List[Int](0)
+        for i in range(len(inputs)):
+            chunks.append(inputs[i].shape.num_elements() // n_chunks)
+            chunk_offsets.append(chunk_offsets[i] + chunks[i])
 
-        # alias chunks = Self.calc_chunks(t1_shape, dim)
-        # alias chunk_1 = t1_shape.num_elements() // chunks
-        # alias chunk_2 = t2_shape.num_elements() // chunks
-
-        # @unroll
-        # for i in range(chunks):
-        #     memcpy(
-        #         res.data() + i * (chunk_1 + chunk_2),
-        #         t1.data() + i * chunk_1,
-        #         chunk_1,
-        #     )
-        #     memcpy(
-        #         res.data() + i * (chunk_1 + chunk_2) + chunk_1,
-        #         t2.data() + i * chunk_2,
-        #         chunk_2,
-        #     )
+        for i in range(n_chunks):
+            for j in range(len(inputs)):
+                memcpy(
+                    TENSORS[outputs[0]].data() + i * chunk_offsets[len(inputs)] + chunk_offsets[j],
+                    TENSORS[inputs[j]].data() + i * chunks[j],
+                    chunks[j],
+                )
 
     @staticmethod
     fn backward[attributes: AttributeVector](
@@ -64,9 +60,9 @@ struct CONCAT:
         # TODO
         pass
         
-        # alias chunks = Self.calc_chunks(t1_shape, dim)
-        # alias chunk_1 = t1_shape.num_elements() // chunks
-        # alias chunk_2 = t2_shape.num_elements() // chunks
+        # alias n_chunks = Self.calc_chunks(t1_shape, dim)
+        # alias chunk_1 = t1_shape.num_elements() // n_chunks
+        # alias chunk_2 = t2_shape.num_elements() // n_chunks
 
         # @parameter
         # if tensor_id == 0:
@@ -74,7 +70,7 @@ struct CONCAT:
         #     var t1_grad = Tensor[dtype](t1_shape)
             
         #     @unroll
-        #     for i in range(chunks):
+        #     for i in range(n_chunks):
         #         memcpy(
         #             t1_grad.data() + i * chunk_1,
         #             ug.data() + i * (chunk_1 + chunk_2),
@@ -87,7 +83,7 @@ struct CONCAT:
         #     var t2_grad = Tensor[dtype](t2_shape)
             
         #     @unroll
-        #     for i in range(chunks):
+        #     for i in range(n_chunks):
         #         memcpy(
         #             t2_grad.data() + i * chunk_2,
         #             ug.data() + i * (chunk_1 + chunk_2) + chunk_1,

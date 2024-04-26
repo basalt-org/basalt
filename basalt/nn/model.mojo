@@ -105,6 +105,7 @@ struct Model[
         @parameter
         fn fw_unroll[i: Int]():
             alias op = g.nodes[i].operator
+            alias attrs = g.nodes[i].attributes
 
             # Save start time for performance metrics
             @parameter
@@ -113,7 +114,7 @@ struct Model[
 
             @parameter
             if op.dynamic:
-                forward_op[op](
+                forward_op[op, attrs](
                     inputs = g.nodes[i].inputs,
                     outputs = g.nodes[i].outputs,
                 )
@@ -122,7 +123,6 @@ struct Model[
                 alias num_operands = len(g.nodes[i].inputs)
                 alias t1 = g.nodes[i].inputs[0]
                 alias out = g.nodes[i].outputs[0]
-                alias attrs = g.nodes[i].attributes
 
                 @parameter
                 if num_operands == 1:
@@ -169,6 +169,7 @@ struct Model[
         fn bw_unroll[i: Int]():
             alias reverse_i = g.nodes.size - i - 1
             alias op = g.nodes[reverse_i].operator
+            alias attrs = g.nodes[reverse_i].attributes
 
             # Save start time for performance metrics
             @parameter
@@ -177,7 +178,7 @@ struct Model[
 
             @parameter
             if op.dynamic:
-                backward_op[op](
+                backward_op[op, attrs](
                     inputs = g.nodes[reverse_i].inputs,
                     outputs = g.nodes[reverse_i].outputs,
                 )
@@ -186,7 +187,6 @@ struct Model[
                 alias num_operands = len(g.nodes[reverse_i].inputs)
                 alias out = g.nodes[reverse_i].outputs[0]  # or upper_grad symbol
                 alias t1 = g.nodes[reverse_i].inputs[0]
-                alias attrs = g.nodes[reverse_i].attributes
                 
                 @parameter
                 if num_operands == 1:
