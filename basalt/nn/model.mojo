@@ -4,7 +4,7 @@ from sys import env_get_int
 
 from basalt import TENSORS, GRADS
 from basalt import Graph, Symbol, Tensor, TensorShape
-from basalt.autograd.ops import forward_op, backward_op, dynamic_forward_op, dynamic_backward_op
+from basalt.autograd.ops import forward_op, backward_op
 from basalt.utils.collection import Collection
 from basalt.utils.tensorutils import fill
 from .initializers import initialize_tensor
@@ -113,7 +113,7 @@ struct Model[
 
             @parameter
             if op.dynamic:
-                dynamic_forward_op(
+                forward_op[op](
                     inputs = g.nodes[i].inputs,
                     outputs = g.nodes[i].outputs,
                 )
@@ -177,7 +177,7 @@ struct Model[
 
             @parameter
             if op.dynamic:
-                dynamic_backward_op(
+                backward_op[op](
                     inputs = g.nodes[reverse_i].inputs,
                     outputs = g.nodes[reverse_i].outputs,
                 )

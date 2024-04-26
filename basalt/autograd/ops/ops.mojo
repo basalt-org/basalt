@@ -15,7 +15,8 @@ from .basics import (
     TRANSPOSE,
     FMA,
 )
-from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE, CONCAT2
+from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE
+from .dynamics import CONCAT, SPLIT
 from .conv import CONV2D
 from .pool import MAXPOOL2D
 
@@ -56,7 +57,8 @@ struct OP(Stringable):
     alias CLIP = OP(20, "CLIP")
     alias SQUEEZE = OP(21, "SQUEEZE")
     alias UNSQUEEZE = OP(22, "UNSQUEEZE")
-    alias CONCAT2 = OP(23, "CONCAT2")
+    alias CONCAT = OP(23, "CONCAT", dynamic=True)
+    alias SPLIT = OP(24, "SPLIT", dynamic=True)
 
     var id: UInt8
     var name: Bytes[16]
@@ -136,8 +138,6 @@ fn static_result_shape(
         return POW.result_shape(t1_shape, t2_shape)
     elif op == OP.DOT:
         return DOT.result_shape(t1_shape, t2_shape)
-    elif op == OP.CONCAT2:
-        return CONCAT2.result_shape(t1_shape, t2_shape, attributes)
     else:
         # We can't print at compile time (at least for now it crashes at comp time with an error)
         print("[ERROR] Operator not found.")
@@ -162,6 +162,28 @@ fn static_result_shape(
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1, -1)
+
+
+fn static_result_shape(
+    op: OP,
+    operands: VariadicList[Symbol],
+    attributes: AttributeVector,
+) -> List[TensorShape]:
+    """
+    Static result shape for dynamic operators.
+    """
+    # Unknown number of inputs and outputs.
+    var input_shapes = List[TensorShape]()
+    for operand in operands:
+        input_shapes.append(operand.shape)
+
+    if op == OP.CONCAT:
+        return CONCAT.result_shape(input_shapes, attributes)
+    elif op == OP.SPLIT:
+        return SPLIT.result_shape(input_shapes, attributes)
+    else:
+        print("[ERROR] Operator not found.")
+        return List[TensorShape](TensorShape(-1))
 
 
 fn forward_op[
@@ -226,8 +248,6 @@ fn forward_op[
         POW.forward[t1_shape, t2_shape](res, t1, t2)
     elif op == OP.DOT:
         DOT.forward[t1_shape, t2_shape](res, t1, t2)
-    elif op == OP.CONCAT2:
-        CONCAT2.forward[t1_shape, t2_shape, attributes](res, t1, t2)
     else:
         print("[ERROR] Operator not found.")
 
@@ -248,6 +268,20 @@ fn forward_op[
         CONV2D.forward[t1_shape, t2_shape, t3_shape, attributes](res, t1, t2, t3)
     elif op == OP.FMA:
         FMA.forward[t1_shape, t2_shape, t3_shape](res, t1, t2, t3)
+    else:
+        print("[ERROR] Operator not found.")
+
+
+fn forward_op[op: OP](inputs: List[Symbol], outputs: List[Symbol]):
+    """
+    Forward pass for dynamic operators.
+    """
+    if op == OP.CONCAT:
+        # TODO
+        pass
+    elif op == OP.SPLIT:
+        # TODO
+        pass
     else:
         print("[ERROR] Operator not found.")
 
@@ -333,8 +367,6 @@ fn backward_op[
         res_grad = POW.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
     elif op == OP.DOT:
         res_grad = DOT.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
-    elif op == OP.CONCAT2:
-        res_grad = CONCAT2.backward[tensor_id, ug_shape, t1_shape, t2_shape, attributes](ug, t1, t2)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)
@@ -416,3 +448,17 @@ fn backward_op[
         # if res_grad.shape() != res_grad_shape:
         #     print("[ERROR] tensor_id: 0, Assumption not holding. res_grad_shape != res_grad.shape(), for ternary operator.")
         accumulate_grad[t3_shape, res_grad_shape](grad, res_grad)
+
+
+fn backward_op[op: OP](inputs: List[Symbol], outputs: List[Symbol]):
+    """
+    Backward pass for dynamic operators.
+    """
+    if op == OP.CONCAT:
+        # TODO
+        pass
+    elif op == OP.SPLIT:
+        # TODO
+        pass
+    else:
+        print("[ERROR] Operator not found.")
