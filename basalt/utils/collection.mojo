@@ -96,8 +96,7 @@ struct Collection(CollectionElement, Sized):
     fn clear(inout self):
         for i in range(self.size):
             _ = (self.data + i).take_value()
-        self.symbols.free()
-        self.symbols = DTypePointer[DType.uint32].alloc(self.capacity)
+        memset_zero(self.symbols, self.capacity)
         self.size = 0
 
     @always_inline("nodebug")
