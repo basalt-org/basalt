@@ -36,7 +36,6 @@ export default function Package({ params }: { params: { pkg: string[] } }) {
 
   return (
     <main>
-      {Crumbs}
       <Sidebar pkg={pkg} />
     </main>
   );
