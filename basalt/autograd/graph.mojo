@@ -28,8 +28,8 @@ struct Graph:
         self.loss_out = None
         self.symbol_count = 0
 
-    fn input(inout self, shape: TensorShape) -> Symbol:
-        var inp = Symbol(self.symbol_count, dtype, shape, False)
+    fn input(inout self, shape: TensorShape, trainable: Bool = False) -> Symbol:
+        var inp = Symbol(self.symbol_count, dtype, shape, trainable)
         self.inputs.append(inp)
         self.symbol_count += 1
         return inp

@@ -26,5 +26,7 @@ struct Symbol(CollectionElement, Stringable, EqualityComparable):
             + str(self.dtype)
             + '", "shape": "'
             + str(self.shape)
+            + '", "trainable": "'
+            + str(self.trainable)
             + '"}'
         )

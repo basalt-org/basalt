@@ -156,13 +156,15 @@ struct Model[
 
         unroll[fw_unroll, num_nodes]()
 
-    fn backward(inout self):
+    fn backward(inout self, upper_grad: Optional[Tensor[dtype]] = None):
         """
         Main entrypoint of backward pass.
         """
-
         # 1. Initialize output gradient at the beginning of the backward pass
-        fill(GRADS[g.loss_out.value()], 1.0)
+        if upper_grad:
+            GRADS[g.loss_out.value()] = upper_grad.value()
+        else:
+            fill(GRADS[g.loss_out.value()], 1.0)
 
         # 2. Loop over all nodes in reverse order and execute backward operations
         @parameter
@@ -307,8 +309,11 @@ struct Model[
                 )
 
     fn allocate_grad_memory(inout self):
-        # Inputs don't have gradients.
         # Gradient have same shape as the tensor
+        for i in range(len(g.inputs)):
+            if g.inputs[i].trainable:
+                GRADS.append(Tensor[dtype](g.inputs[i].shape), g.inputs[i])
+        
         for i in range(len(g.params)):
             var grad = g.params.symbols[i]
             if grad.trainable:
