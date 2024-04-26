@@ -63,7 +63,7 @@ export default function SearchBar() {
           <CommandEmpty>No results found.</CommandEmpty>
           <CommandGroup heading="Packages">
             {allPackages.map((pkg) => (
-              <CommandItem key={pkg.path} onSelect={() => runCommand(() => router.push("/docs" + pkg.path))} className="capitalize">
+              <CommandItem key={pkg.path} onSelect={() => runCommand(() => router.push("/docs" + pkg.path))} className="capitalize !pointer-events-auto !opacity-80 !cursor-pointer">
                 {pkg.package.name}
               </CommandItem>
             ))}
@@ -71,22 +71,22 @@ export default function SearchBar() {
           <CommandSeparator />
           <CommandGroup heading="Modules">
             {allModules.map((mod) => (
-              <CommandItem key={mod.path} onSelect={() => runCommand(() => router.push("/docs" + mod.path))} className="capitalize">
+              <CommandItem key={mod.path} onSelect={() => runCommand(() => router.push("/docs" + mod.path))} className="capitalize !pointer-events-auto !opacity-80 !cursor-pointer">
                 {mod.module.name}
               </CommandItem>
             ))}
           </CommandGroup>
           <CommandSeparator />
           <CommandGroup heading="Theme">
-            <CommandItem onSelect={() => runCommand(() => setTheme("light"))}>
+            <CommandItem onSelect={() => runCommand(() => setTheme("light"))} className="capitalize !pointer-events-auto !opacity-80 !cursor-pointer">
               <SunIcon className="mr-2 h-4 w-4" />
               Light
             </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => setTheme("dark"))}>
+            <CommandItem onSelect={() => runCommand(() => setTheme("dark"))} className="capitalize !pointer-events-auto !opacity-80 !cursor-pointer">
               <MoonIcon className="mr-2 h-4 w-4" />
               Dark
             </CommandItem>
-            <CommandItem onSelect={() => runCommand(() => setTheme("system"))}>
+            <CommandItem onSelect={() => runCommand(() => setTheme("system"))} className="capitalize !pointer-events-auto !opacity-80 !cursor-pointer"  >
               <LaptopIcon className="mr-2 h-4 w-4" />
               System
             </CommandItem>

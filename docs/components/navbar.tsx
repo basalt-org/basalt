@@ -7,8 +7,8 @@ import SearchBar from "./searchbar";
 function Logo() {
   return (
     <Link href="/" className="flex items-center gap-2">
-      <Image src="/basalt.png" alt="Basalt" width={36} height={36} />
-      <span className="text-lg font-semibold">Basalt</span>
+      <Image src="/basalt.png" alt="Basalt" width={40} height={40} />
+      <span className="text-lg font-medium text-primary/90">Basalt</span>
     </Link>
   );
 }
