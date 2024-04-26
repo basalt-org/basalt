@@ -57,40 +57,23 @@ struct CONCAT:
         outputs: List[Symbol]
     ) -> Tensor[dtype]:
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
-        # TODO
-        return Tensor[dtype]()
+        var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
         
-        # alias n_chunks = Self.calc_chunks(t1_shape, dim)
-        # alias chunk_1 = t1_shape.num_elements() // n_chunks
-        # alias chunk_2 = t2_shape.num_elements() // n_chunks
+        var chunks = List[Int]()
+        var chunk_offsets = List[Int](0)
+        for i in range(len(inputs)):
+            chunks.append(inputs[i].shape.num_elements() // n_chunks)
+            chunk_offsets.append(chunk_offsets[i] + chunks[i])
+        
+        var res_grad = Tensor[dtype](inputs[input_id].shape)
+        for i in range(n_chunks):
+            memcpy(
+                res_grad.data() + i * chunks[input_id],
+                GRADS[outputs[0]].data() + i * chunk_offsets[len(inputs)] + chunk_offsets[input_id],
+                chunks[input_id],
+            )
 
-        # @parameter
-        # if tensor_id == 0:
-        #     var t1_size = t1_shape[dim]
-        #     var t1_grad = Tensor[dtype](t1_shape)
-            
-        #     @unroll
-        #     for i in range(n_chunks):
-        #         memcpy(
-        #             t1_grad.data() + i * chunk_1,
-        #             ug.data() + i * (chunk_1 + chunk_2),
-        #             chunk_1,
-        #         )
-
-        #     return t1_grad ^
-        # else:
-        #     var t2_size = t2_shape[dim]
-        #     var t2_grad = Tensor[dtype](t2_shape)
-            
-        #     @unroll
-        #     for i in range(n_chunks):
-        #         memcpy(
-        #             t2_grad.data() + i * chunk_2,
-        #             ug.data() + i * (chunk_1 + chunk_2) + chunk_1,
-        #             chunk_2,
-        #         )
-
-        #     return t2_grad ^
+        return res_grad ^
 
 
 struct SPLIT:
