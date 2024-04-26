@@ -14,7 +14,7 @@ struct CONCAT:
         var concat_size: Int = 0
         for i in range(len(input_shapes)):
             concat_size += input_shapes[i][dim]
-        
+
         var res_shape = input_shapes[0]
         res_shape[dim] = concat_size
 
@@ -30,13 +30,12 @@ struct CONCAT:
         return chunks
 
     @staticmethod
-    fn forward[attributes: AttributeVector,](
-        inputs: List[Symbol],
-        outputs: List[Symbol]
-    ):
+    fn forward[
+        attributes: AttributeVector,
+    ](inputs: List[Symbol], outputs: List[Symbol]):
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
-        
+
         var chunks = List[Int]()
         var chunk_offsets = List[Int](0)
         for i in range(len(inputs)):
@@ -46,30 +45,33 @@ struct CONCAT:
         for i in range(n_chunks):
             for j in range(len(inputs)):
                 memcpy(
-                    TENSORS[outputs[0]].data() + i * chunk_offsets[len(inputs)] + chunk_offsets[j],
+                    TENSORS[outputs[0]].data()
+                    + i * chunk_offsets[len(inputs)]
+                    + chunk_offsets[j],
                     TENSORS[inputs[j]].data() + i * chunks[j],
                     chunks[j],
                 )
 
     @staticmethod
-    fn backward[input_id: Int, attributes: AttributeVector](
-        inputs: List[Symbol],
-        outputs: List[Symbol]
-    ) -> Tensor[dtype]:
+    fn backward[
+        input_id: Int, attributes: AttributeVector
+    ](inputs: List[Symbol], outputs: List[Symbol]) -> Tensor[dtype]:
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
-        
+
         var chunks = List[Int]()
         var chunk_offsets = List[Int](0)
         for i in range(len(inputs)):
             chunks.append(inputs[i].shape.num_elements() // n_chunks)
             chunk_offsets.append(chunk_offsets[i] + chunks[i])
-        
+
         var res_grad = Tensor[dtype](inputs[input_id].shape)
         for i in range(n_chunks):
             memcpy(
                 res_grad.data() + i * chunks[input_id],
-                GRADS[outputs[0]].data() + i * chunk_offsets[len(inputs)] + chunk_offsets[input_id],
+                GRADS[outputs[0]].data()
+                + i * chunk_offsets[len(inputs)]
+                + chunk_offsets[input_id],
                 chunks[input_id],
             )
 
@@ -104,10 +106,9 @@ struct SPLIT:
         return chunks
 
     @staticmethod
-    fn forward[attributes: AttributeVector,](
-        inputs: List[Symbol],
-        outputs: List[Symbol]
-    ):
+    fn forward[
+        attributes: AttributeVector,
+    ](inputs: List[Symbol], outputs: List[Symbol]):
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         alias sections = attributes["sections"].value().to_shape()
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
@@ -122,15 +123,16 @@ struct SPLIT:
             for j in range(len(outputs)):
                 memcpy(
                     TENSORS[outputs[j]].data() + i * chunks[j],
-                    TENSORS[inputs[0]].data() + i * chunk_offsets[len(outputs)] + chunk_offsets[j],
+                    TENSORS[inputs[0]].data()
+                    + i * chunk_offsets[len(outputs)]
+                    + chunk_offsets[j],
                     chunks[j],
                 )
 
     @staticmethod
-    fn backward[input_id: Int, attributes: AttributeVector](
-        inputs: List[Symbol],
-        outputs: List[Symbol]
-    ) -> Tensor[dtype]:
+    fn backward[
+        input_id: Int, attributes: AttributeVector
+    ](inputs: List[Symbol], outputs: List[Symbol]) -> Tensor[dtype]:
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         alias sections = attributes["sections"].value().to_shape()
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
@@ -146,7 +148,9 @@ struct SPLIT:
         for i in range(n_chunks):
             for j in range(len(outputs)):
                 memcpy(
-                    res_grad.data() + i * chunk_offsets[len(outputs)] + chunk_offsets[j],
+                    res_grad.data()
+                    + i * chunk_offsets[len(outputs)]
+                    + chunk_offsets[j],
                     GRADS[outputs[j]].data() + i * chunks[j],
                     chunks[j],
                 )

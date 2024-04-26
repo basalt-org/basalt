@@ -76,7 +76,9 @@ struct OP(Stringable):
         return str(self.name)
 
 
-fn static_result_shape(op: OP, operands: VariadicList[Symbol], attributes: AttributeVector) -> TensorShape:
+fn static_result_shape(
+    op: OP, operands: VariadicList[Symbol], attributes: AttributeVector
+) -> TensorShape:
     """
     Static result shape for operators.
     """
@@ -85,7 +87,9 @@ fn static_result_shape(op: OP, operands: VariadicList[Symbol], attributes: Attri
     elif len(operands) == 2:
         return static_result_shape(op, operands[0].shape, operands[1].shape, attributes)
     elif len(operands) == 3:
-        return static_result_shape(op, operands[0].shape, operands[1].shape, operands[2].shape, attributes)
+        return static_result_shape(
+            op, operands[0].shape, operands[1].shape, operands[2].shape, attributes
+        )
     else:
         print("Error: Invalid number of operands")
         return TensorShape()
@@ -389,7 +393,7 @@ fn backward_op[
     if broadcastable(op):
         accumulate_grad[
             grad_shape = t1_shape if tensor_id == 0 else t2_shape,
-            res_grad_shape = broadcast_shapes(t1_shape, t2_shape)
+            res_grad_shape = broadcast_shapes(t1_shape, t2_shape),
         ](grad, res_grad)
     else:
         accumulate_grad(grad, res_grad)
@@ -435,16 +439,12 @@ fn backward_op[
     input_id: Int,
     op: OP,
     attributes: AttributeVector,
-](
-    inputs: List[Symbol],
-    outputs: List[Symbol],
-    inout grad: Tensor[dtype],
-):
+](inputs: List[Symbol], outputs: List[Symbol], inout grad: Tensor[dtype],):
     """
     Backward pass for dynamic operators.
     """
     var res_grad: Tensor[dtype]
-    
+
     if op == OP.CONCAT:
         res_grad = CONCAT.backward[input_id, attributes](inputs, outputs)
     elif op == OP.SPLIT:

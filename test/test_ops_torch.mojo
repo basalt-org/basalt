@@ -20,7 +20,7 @@ from test_utils_extras import (
     test_ternary_op,
     test_unary_op_backward,
     test_binary_op_backward,
-    test_ternary_op_backward
+    test_ternary_op_backward,
 )
 
 alias dtype = DType.float32

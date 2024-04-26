@@ -81,14 +81,20 @@ fn test_CONCAT() raises:
     alias ug_shape = TensorShape(33, 3, 17, 19)
     var ug = Tensor[dtype](ug_shape)
     rand(ug.data(), ug.num_elements())
-    
+
     var expected_and_grad = torch_cat(t1, t2, t3, ug, dim=0)
     model.backward(ug)
 
     assert_tensors_equal(res, expected_and_grad.expected, "almost")
-    assert_tensors_equal(GRADS[graph.nodes[0].inputs[0]], expected_and_grad.grad_1, "almost")
-    assert_tensors_equal(GRADS[graph.nodes[0].inputs[1]], expected_and_grad.grad_2, "almost")
-    assert_tensors_equal(GRADS[graph.nodes[0].inputs[2]], expected_and_grad.grad_3, "almost")
+    assert_tensors_equal(
+        GRADS[graph.nodes[0].inputs[0]], expected_and_grad.grad_1, "almost"
+    )
+    assert_tensors_equal(
+        GRADS[graph.nodes[0].inputs[1]], expected_and_grad.grad_2, "almost"
+    )
+    assert_tensors_equal(
+        GRADS[graph.nodes[0].inputs[2]], expected_and_grad.grad_3, "almost"
+    )
 
     # dim = 2
     alias graph_2 = create_graph_concat(t1_shape, t2_shape, t3_shape, dim=2)
@@ -103,12 +109,18 @@ fn test_CONCAT() raises:
     model_2.backward(ug_2)
 
     assert_tensors_equal(res_2, expected_and_grad_2.expected, "almost")
-    assert_tensors_equal(GRADS[graph_2.nodes[0].inputs[0]], expected_and_grad_2.grad_1, "almost")
-    assert_tensors_equal(GRADS[graph_2.nodes[0].inputs[1]], expected_and_grad_2.grad_2, "almost")
-    assert_tensors_equal(GRADS[graph_2.nodes[0].inputs[2]], expected_and_grad_2.grad_3, "almost")
+    assert_tensors_equal(
+        GRADS[graph_2.nodes[0].inputs[0]], expected_and_grad_2.grad_1, "almost"
+    )
+    assert_tensors_equal(
+        GRADS[graph_2.nodes[0].inputs[1]], expected_and_grad_2.grad_2, "almost"
+    )
+    assert_tensors_equal(
+        GRADS[graph_2.nodes[0].inputs[2]], expected_and_grad_2.grad_3, "almost"
+    )
 
 
-@value 
+@value
 struct torch_output_split:
     var expected1: Tensor[dtype]
     var expected2: Tensor[dtype]
@@ -117,7 +129,12 @@ struct torch_output_split:
 
 
 fn torch_split(
-    input: Tensor, upper_grad_1: Tensor, upper_grad_2: Tensor, upper_grad_3: Tensor, sections: List[Int], dim: Int
+    input: Tensor,
+    upper_grad_1: Tensor,
+    upper_grad_2: Tensor,
+    upper_grad_3: Tensor,
+    sections: List[Int],
+    dim: Int,
 ) -> torch_output_split:
     try:
         var py = Python.import_module("builtins")
@@ -160,7 +177,7 @@ fn test_SPLIT() raises:
     rand(t1.data(), t1.num_elements())
 
     # default: dim = 0
-    alias sections = List[Int](3, 6, 2) # 11
+    alias sections = List[Int](3, 6, 2)  # 11
     alias graph = create_graph_split(t1_shape, sections, dim=0)
     var model = nn.Model[graph]()
     var results = model.inference(t1)
@@ -181,10 +198,12 @@ fn test_SPLIT() raises:
     assert_tensors_equal(results[0], expected_and_grad.expected1, "almost")
     assert_tensors_equal(results[1], expected_and_grad.expected2, "almost")
     assert_tensors_equal(results[2], expected_and_grad.expected3, "almost")
-    assert_tensors_equal(GRADS[graph.nodes[0].inputs[0]], expected_and_grad.grad, "almost")
+    assert_tensors_equal(
+        GRADS[graph.nodes[0].inputs[0]], expected_and_grad.grad, "almost"
+    )
 
     # dim = 2
-    alias sections_2 = List[Int](3, 6, 8) # 17
+    alias sections_2 = List[Int](3, 6, 8)  # 17
     alias graph_2 = create_graph_split(t1_shape, sections_2, dim=2)
     var model_2 = nn.Model[graph_2]()
     var results_2 = model_2.inference(t1)
@@ -205,7 +224,9 @@ fn test_SPLIT() raises:
     assert_tensors_equal(results_2[0], expected_and_grad_2.expected1, "almost")
     assert_tensors_equal(results_2[1], expected_and_grad_2.expected2, "almost")
     assert_tensors_equal(results_2[2], expected_and_grad_2.expected3, "almost")
-    assert_tensors_equal(GRADS[graph_2.nodes[0].inputs[0]], expected_and_grad_2.grad, "almost")
+    assert_tensors_equal(
+        GRADS[graph_2.nodes[0].inputs[0]], expected_and_grad_2.grad, "almost"
+    )
 
 
 fn main():

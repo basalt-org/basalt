@@ -15,7 +15,6 @@ alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
 
 
-
 # ------ Test Binary Ops ------
 fn test_ADD() raises:
     alias t1_shape = TensorShape(2, 3)
@@ -122,7 +121,7 @@ fn test_POW() raises:
     var expected = Tensor[dtype](2, 3)
     fill(expected, 4.0)
 
-    test_binary_op[OP.POW, t1_shape,t2_shape](t1, t2, expected)
+    test_binary_op[OP.POW, t1_shape, t2_shape](t1, t2, expected)
 
 
 fn test_SUM() raises:
@@ -168,7 +167,7 @@ fn test_MAX() raises:
     test_unary_op[OP.MAX, t1_shape, attrs](t1, expected)
 
     # Test axis 1
-    alias attrs_1 = AttributeVector(Attribute("axis", 1)) 
+    alias attrs_1 = AttributeVector(Attribute("axis", 1))
     var expected_max_axis_1_temp = StaticIntTuple[4](5, 6, 11, 12)
     expected = Tensor[dtype](2, 1, 2)
     fill_tensor(expected, expected_max_axis_1_temp)

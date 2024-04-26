@@ -77,7 +77,9 @@ struct Graph:
         attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
         var res_shape = static_result_shape(op, operands, attributes)
-        var res = Symbol(self.symbol_count, dtype, res_shape, self.result_trainable(operands))
+        var res = Symbol(
+            self.symbol_count, dtype, res_shape, self.result_trainable(operands)
+        )
         self.symbol_count += 1
 
         var inputs = List[Symbol]()
@@ -112,34 +114,35 @@ struct Graph:
         var attributes = AttributeVector(Attribute("dim", dim))
 
         var res_shape = dynamic_result_shape(OP.CONCAT, operands, attributes)[0]
-        var res = Symbol(self.symbol_count, dtype, res_shape, self.result_trainable(operands))
+        var res = Symbol(
+            self.symbol_count, dtype, res_shape, self.result_trainable(operands)
+        )
         self.symbol_count += 1
-        
+
         var inputs = List[Symbol]()
         for operand in operands:
             inputs.append(operand)
         self.nodes.append(Node(OP.CONCAT, inputs, List[Symbol](res), attributes))
         return res
-    
-    fn split(inout self, operand: Symbol, sections: List[Int], dim: Int = 0) -> List[Symbol]:
-        var attributes = AttributeVector(Attribute("sections", TensorShape(sections)), Attribute("dim", dim))
+
+    fn split(
+        inout self, operand: Symbol, sections: List[Int], dim: Int = 0
+    ) -> List[Symbol]:
+        var attributes = AttributeVector(
+            Attribute("sections", TensorShape(sections)), Attribute("dim", dim)
+        )
         var res_shapes = dynamic_result_shape(OP.SPLIT, operand, attributes)
         var trainable = self.result_trainable(operand)
 
         var results = List[Symbol]()
         for i in range(len(res_shapes)):
-            var symbol = Symbol(
-                self.symbol_count,
-                dtype,
-                res_shapes[i],
-                trainable
-            )
+            var symbol = Symbol(self.symbol_count, dtype, res_shapes[i], trainable)
             results.append(symbol)
-            self.symbol_count += 1 
-        
+            self.symbol_count += 1
+
         self.nodes.append(Node(OP.SPLIT, List[Symbol](operand), results, attributes))
         return results
-    
+
     @staticmethod
     fn result_trainable(operands: VariadicList[Symbol]) -> Bool:
         for operand in operands:

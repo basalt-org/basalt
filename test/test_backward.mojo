@@ -1,7 +1,11 @@
 from math import log, exp
 from testing import assert_true, assert_equal
 from test_tensorutils import assert_tensors_equal
-from test_utils_extras import test_unary_op_backward, test_binary_op_backward, test_ternary_op_backward
+from test_utils_extras import (
+    test_unary_op_backward,
+    test_binary_op_backward,
+    test_ternary_op_backward,
+)
 
 from basalt import Tensor, TensorShape, OP
 from basalt.utils.tensorutils import fill, tsum
@@ -24,7 +28,9 @@ fn test_ADD() raises:
 
     var expected_grad = Tensor[dtype](ug_shape)
     fill(expected_grad, 1.0)
-    test_binary_op_backward[OP.ADD, t1_shape, t2_shape, ug_shape](t1, t2, ug, expected_grad, expected_grad)
+    test_binary_op_backward[OP.ADD, t1_shape, t2_shape, ug_shape](
+        t1, t2, ug, expected_grad, expected_grad
+    )
 
 
 fn test_SUB() raises:
@@ -42,7 +48,9 @@ fn test_SUB() raises:
     var expected_grad2 = Tensor[dtype](t2_shape)
     fill(expected_grad1, 1.0)
     fill(expected_grad2, -1.0)
-    test_binary_op_backward[OP.SUB, t1_shape, t2_shape, ug_shape](t1, t2, ug, expected_grad1, expected_grad2)
+    test_binary_op_backward[OP.SUB, t1_shape, t2_shape, ug_shape](
+        t1, t2, ug, expected_grad1, expected_grad2
+    )
 
 
 fn test_MUL() raises:
@@ -60,7 +68,9 @@ fn test_MUL() raises:
     var expected_grad2 = Tensor[dtype](t2_shape)
     fill(expected_grad1, 2.0)
     fill(expected_grad2, 1.0)
-    test_binary_op_backward[OP.MUL, t1_shape, t2_shape, ug_shape](t1, t2, ug, expected_grad1, expected_grad2)
+    test_binary_op_backward[OP.MUL, t1_shape, t2_shape, ug_shape](
+        t1, t2, ug, expected_grad1, expected_grad2
+    )
 
 
 fn test_DIV() raises:
@@ -78,7 +88,9 @@ fn test_DIV() raises:
     var expected_grad2 = Tensor[dtype](t2_shape)
     fill(expected_grad1, 1.0 / 2.0)
     fill[dtype](expected_grad2, -1.0 / (2.0**2))
-    test_binary_op_backward[OP.DIV, t1_shape, t2_shape, ug_shape](t1, t2, ug, expected_grad1, expected_grad2)
+    test_binary_op_backward[OP.DIV, t1_shape, t2_shape, ug_shape](
+        t1, t2, ug, expected_grad1, expected_grad2
+    )
 
 
 fn test_DOT() raises:
@@ -96,7 +108,9 @@ fn test_DOT() raises:
     var expected_grad2 = Tensor[dtype](t2_shape)
     fill(expected_grad1, 4.0)
     fill(expected_grad2, 2.0)
-    test_binary_op_backward[OP.DOT, t1_shape, t2_shape, ug_shape](t1, t2, ug, expected_grad1, expected_grad2)
+    test_binary_op_backward[OP.DOT, t1_shape, t2_shape, ug_shape](
+        t1, t2, ug, expected_grad1, expected_grad2
+    )
 
 
 fn test_EXP() raises:
@@ -143,7 +157,9 @@ fn test_POW() raises:
     fill(temp, (2**2) * log[dtype, 1](2))
     expected_grad2[0] = tsum(temp)
 
-    test_binary_op_backward[OP.POW, t1_shape, t2_shape, ug_shape](t1, t2, ug, expected_grad1, expected_grad2)
+    test_binary_op_backward[OP.POW, t1_shape, t2_shape, ug_shape](
+        t1, t2, ug, expected_grad1, expected_grad2
+    )
 
 
 fn test_SUM() raises:
@@ -174,7 +190,9 @@ fn test_SUM_0() raises:
     for i in range(expected_grad1.num_elements()):
         expected_grad1[i] = i % 3
 
-    test_unary_op_backward[OP.SUM, t1_shape, ug_shape, attributes](t1, ug, expected_grad1)
+    test_unary_op_backward[OP.SUM, t1_shape, ug_shape, attributes](
+        t1, ug, expected_grad1
+    )
 
 
 fn test_SUM_1() raises:
@@ -191,7 +209,9 @@ fn test_SUM_1() raises:
     for i in range(expected_grad1.num_elements()):
         expected_grad1[i] = 0 if i < 3 else 1
 
-    test_unary_op_backward[OP.SUM, t1_shape, ug_shape, attributes](t1, ug, expected_grad1)
+    test_unary_op_backward[OP.SUM, t1_shape, ug_shape, attributes](
+        t1, ug, expected_grad1
+    )
 
 
 fn test_MAX() raises:
@@ -231,7 +251,9 @@ fn test_MAX_0() raises:
     expected_grad[10] = 2.0
     expected_grad[11] = 2.0
 
-    test_unary_op_backward[OP.MAX, t1_shape, ug_shape, attributes](t1, ug, expected_grad)
+    test_unary_op_backward[OP.MAX, t1_shape, ug_shape, attributes](
+        t1, ug, expected_grad
+    )
 
 
 fn test_MAX_1() raises:
@@ -252,7 +274,9 @@ fn test_MAX_1() raises:
     expected_grad[10] = 2.0
     expected_grad[11] = 2.0
 
-    test_unary_op_backward[OP.MAX, t1_shape, ug_shape, attributes](t1, ug, expected_grad)
+    test_unary_op_backward[OP.MAX, t1_shape, ug_shape, attributes](
+        t1, ug, expected_grad
+    )
 
 
 fn test_MAX_2() raises:
@@ -275,7 +299,9 @@ fn test_MAX_2() raises:
     expected_grad[9] = 2.0
     expected_grad[11] = 2.0
 
-    test_unary_op_backward[OP.MAX, t1_shape, ug_shape, attributes](t1, ug, expected_grad)
+    test_unary_op_backward[OP.MAX, t1_shape, ug_shape, attributes](
+        t1, ug, expected_grad
+    )
 
 
 fn test_MEAN() raises:
@@ -304,7 +330,9 @@ fn test_MEAN_0() raises:
     for i in range(expected_grad.num_elements()):
         expected_grad[i] = 1.0 / t1_shape[0] * 3.0
 
-    test_unary_op_backward[OP.MEAN, t1_shape, ug_shape, attributes](t1, ug, expected_grad)
+    test_unary_op_backward[OP.MEAN, t1_shape, ug_shape, attributes](
+        t1, ug, expected_grad
+    )
 
 
 fn test_MEAN_1() raises:
@@ -320,7 +348,9 @@ fn test_MEAN_1() raises:
     for i in range(expected_grad.num_elements()):
         expected_grad[i] = 1.0 / t1_shape[1] * 3.0
 
-    test_unary_op_backward[OP.MEAN, t1_shape, ug_shape, attributes](t1, ug, expected_grad)
+    test_unary_op_backward[OP.MEAN, t1_shape, ug_shape, attributes](
+        t1, ug, expected_grad
+    )
 
 
 fn test_TRANSPOSE() raises:
@@ -363,7 +393,9 @@ fn test_TRANSPOSE() raises:
                     i * ug_shape_2[1] * ug_shape_2[2] + j * ug_shape_2[2] + k
                 ]
 
-    test_unary_op_backward[OP.TRANSPOSE, t1_shape, ug_shape_2, attributes_2](t1, ug, expected_grad)
+    test_unary_op_backward[OP.TRANSPOSE, t1_shape, ug_shape_2, attributes_2](
+        t1, ug, expected_grad
+    )
 
 
 fn test_FLATTEN() raises:

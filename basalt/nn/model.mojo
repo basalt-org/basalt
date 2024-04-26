@@ -40,7 +40,9 @@ fn calc_n_inference_nodes(g: Graph) -> Optional[Int]:
 
 struct Model[
     g: Graph,
-    n_inference_nodes: Optional[Int] = calc_n_inference_nodes(g),  # TODO: remove when modules
+    n_inference_nodes: Optional[Int] = calc_n_inference_nodes(
+        g
+    ),  # TODO: remove when modules
 ]():
     var perf_metrics: PerfMetrics
 
@@ -120,8 +122,8 @@ struct Model[
             @parameter
             if op.dynamic:
                 forward_op[op, attrs](
-                    inputs = g.nodes[i].inputs,
-                    outputs = g.nodes[i].outputs,
+                    inputs=g.nodes[i].inputs,
+                    outputs=g.nodes[i].outputs,
                 )
             else:
                 # Statically known shapes and number of operands
@@ -132,9 +134,7 @@ struct Model[
                 @parameter
                 if num_operands == 1:
                     # Unary operator
-                    forward_op[op, t1.shape, attrs](
-                        TENSORS[out], TENSORS[t1]
-                    )
+                    forward_op[op, t1.shape, attrs](TENSORS[out], TENSORS[t1])
                 elif num_operands == 2:
                     # Binary operator
                     alias t2 = g.nodes[i].inputs[1]
@@ -167,11 +167,14 @@ struct Model[
         """
         # 1. Initialize output gradient at the beginning of the backward pass
         if len(upper_grads) == 0:
-            fill(GRADS[g.loss_out.value()], 1.0) # TODO remove loss_out tag
+            fill(GRADS[g.loss_out.value()], 1.0)  # TODO remove loss_out tag
         else:
             var node_outputs = g.nodes[g.nodes.size - 1].outputs
             if len(upper_grads) != node_outputs.size:
-                print("[WARNING] Number of upper grads does not match number of node outputs!")
+                print(
+                    "[WARNING] Number of upper grads does not match number of node"
+                    " outputs!"
+                )
             for i in range(node_outputs.size):
                 GRADS[node_outputs[i]] = upper_grads[i]
 
@@ -190,7 +193,7 @@ struct Model[
 
             @parameter
             if op.dynamic:
-                
+
                 @parameter
                 fn unroll_dynamic[j: Int]():
                     @parameter
@@ -198,16 +201,18 @@ struct Model[
                         backward_op[j, op, attrs](
                             g.nodes[reverse_i].inputs,
                             g.nodes[reverse_i].outputs,
-                            GRADS[g.nodes[reverse_i].inputs[j]], # grads to be updated: inputs[j]
+                            GRADS[
+                                g.nodes[reverse_i].inputs[j]
+                            ],  # grads to be updated: inputs[j]
                         )
-                
+
                 unroll[unroll_dynamic, num_operands]()
-            
+
             else:
                 # Statically known shapes and number of operands
                 alias out = g.nodes[reverse_i].outputs[0]  # or upper_grad symbol
                 alias t1 = g.nodes[reverse_i].inputs[0]
-                
+
                 @parameter
                 if num_operands == 1:
                     # Unary operator
@@ -248,7 +253,9 @@ struct Model[
 
                     @parameter
                     if t1.trainable:
-                        backward_op[0, op, out.shape, t1.shape, t2.shape, t3.shape, attrs](
+                        backward_op[
+                            0, op, out.shape, t1.shape, t2.shape, t3.shape, attrs
+                        ](
                             GRADS[out],
                             TENSORS[t1],
                             TENSORS[t2],
@@ -258,7 +265,9 @@ struct Model[
 
                     @parameter
                     if t2.trainable:
-                        backward_op[1, op, out.shape, t1.shape, t2.shape, t3.shape, attrs](
+                        backward_op[
+                            1, op, out.shape, t1.shape, t2.shape, t3.shape, attrs
+                        ](
                             GRADS[out],
                             TENSORS[t1],
                             TENSORS[t2],
@@ -268,7 +277,9 @@ struct Model[
 
                     @parameter
                     if t3.trainable:
-                        backward_op[2, op, out.shape, t1.shape, t2.shape, t3.shape, attrs](
+                        backward_op[
+                            2, op, out.shape, t1.shape, t2.shape, t3.shape, attrs
+                        ](
                             GRADS[out],
                             TENSORS[t1],
                             TENSORS[t2],
@@ -308,7 +319,7 @@ struct Model[
                 # Default parameter initialization to zero
                 par = Tensor[dtype](p.shape)
 
-            TENSORS.append(par^, p)
+            TENSORS.append(par ^, p)
 
         for i in range(len(g.nodes)):
             # Assumption: An input or a param cannot be an output of a node
@@ -322,7 +333,7 @@ struct Model[
         for i in range(len(g.inputs)):
             if g.inputs[i].trainable:
                 GRADS.append(Tensor[dtype](g.inputs[i].shape), g.inputs[i])
-        
+
         for i in range(len(g.params)):
             var grad = g.params.symbols[i]
             if grad.trainable:

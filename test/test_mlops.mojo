@@ -11,7 +11,12 @@ from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUE
 from basalt.utils.tensorutils import fill
 from basalt.autograd.attributes import AttributeVector, Attribute
 
-from test_utils_extras import test_unary_op, test_binary_op, test_unary_op_backward, test_binary_op_backward
+from test_utils_extras import (
+    test_unary_op,
+    test_binary_op,
+    test_unary_op_backward,
+    test_binary_op_backward,
+)
 
 alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()

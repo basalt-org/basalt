@@ -79,7 +79,10 @@ fn test_unary_op[
 
 
 fn test_binary_op[
-    op: OP, t1_shape: TensorShape, t2_shape: TensorShape, attrs: OptionalReg[AttributeVector] = None
+    op: OP,
+    t1_shape: TensorShape,
+    t2_shape: TensorShape,
+    attrs: OptionalReg[AttributeVector] = None,
 ](t1: Tensor[dtype], t2: Tensor[dtype], expected: Tensor[dtype]) raises:
     fn create_graph() -> Graph:
         var g = Graph()
@@ -132,7 +135,10 @@ fn test_ternary_op[
 
 # ------- Test backward ops -------
 fn test_unary_op_backward[
-    op: OP, t1_shape: TensorShape, ug_shape: TensorShape, attrs: AttributeVector = AttributeVector()
+    op: OP,
+    t1_shape: TensorShape,
+    ug_shape: TensorShape,
+    attrs: AttributeVector = AttributeVector(),
 ](t1: Tensor[dtype], ug: Tensor[dtype], grad_1_expected: Tensor[dtype],) raises:
     var grad_1 = Tensor[dtype](t1_shape)
     backward_op[0, op, ug_shape, t1_shape, attrs](ug, t1, grad_1)
@@ -140,7 +146,11 @@ fn test_unary_op_backward[
 
 
 fn test_binary_op_backward[
-    op: OP, t1_shape: TensorShape, t2_shape: TensorShape, ug_shape: TensorShape, attrs: AttributeVector = AttributeVector()
+    op: OP,
+    t1_shape: TensorShape,
+    t2_shape: TensorShape,
+    ug_shape: TensorShape,
+    attrs: AttributeVector = AttributeVector(),
 ](
     t1: Tensor[dtype],
     t2: Tensor[dtype],
@@ -149,15 +159,11 @@ fn test_binary_op_backward[
     grad_2_expected: Tensor[dtype],
 ) raises:
     var grad_1 = Tensor[dtype](t1_shape)
-    backward_op[0, op, ug_shape, t1_shape, t2_shape, attrs](
-        ug, t1, t2, grad_1
-    )
+    backward_op[0, op, ug_shape, t1_shape, t2_shape, attrs](ug, t1, t2, grad_1)
     assert_tensors_equal(grad_1, grad_1_expected, "almost")
 
     var grad_2 = Tensor[dtype](t2_shape)
-    backward_op[1, op, ug_shape, t1_shape, t2_shape, attrs](
-        ug, t1, t2, grad_2
-    )
+    backward_op[1, op, ug_shape, t1_shape, t2_shape, attrs](ug, t1, t2, grad_2)
     assert_tensors_equal(grad_2, grad_2_expected, "almost")
 
 
@@ -167,7 +173,7 @@ fn test_ternary_op_backward[
     t2_shape: TensorShape,
     t3_shape: TensorShape,
     ug_shape: TensorShape,
-    attrs: AttributeVector = AttributeVector()
+    attrs: AttributeVector = AttributeVector(),
 ](
     t1: Tensor[dtype],
     t2: Tensor[dtype],

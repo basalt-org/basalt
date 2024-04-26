@@ -52,20 +52,20 @@ struct Collection(CollectionElement, Sized):
             self.data.free()
         if self.symbols:
             self.symbols.free()
-        
+
         self.data = new_data
         self.symbols = new_symbols
         self.capacity = new_capacity
 
     @always_inline
     fn append(inout self, owned value: Tensor[dtype], symbol: Symbol):
-        self.append(value^, symbol.name)
+        self.append(value ^, symbol.name)
 
     @always_inline
     fn append(inout self, owned value: Tensor[dtype], symbol_name: UInt32):
         if self.size >= self.capacity:
             self._realloc(max(1, self.capacity * 2))
-        (self.data + self.size).emplace_value(value^)
+        (self.data + self.size).emplace_value(value ^)
         self.symbols[self.size] = symbol_name
         self.size += 1
 
