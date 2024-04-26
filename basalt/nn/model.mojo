@@ -161,15 +161,19 @@ struct Model[
 
         unroll[fw_unroll, num_nodes]()
 
-    fn backward(inout self, upper_grad: Optional[Tensor[dtype]] = None):
+    fn backward(inout self, *upper_grads: Tensor[dtype]):
         """
         Main entrypoint of backward pass.
         """
         # 1. Initialize output gradient at the beginning of the backward pass
-        if upper_grad:
-            GRADS[g.loss_out.value()] = upper_grad.value()
+        if len(upper_grads) == 0:
+            fill(GRADS[g.loss_out.value()], 1.0) # TODO remove loss_out tag
         else:
-            fill(GRADS[g.loss_out.value()], 1.0)
+            var node_outputs = g.nodes[g.nodes.size - 1].outputs
+            if len(upper_grads) != node_outputs.size:
+                print("[WARNING] Number of upper grads does not match number of node outputs!")
+            for i in range(node_outputs.size):
+                GRADS[node_outputs[i]] = upper_grads[i]
 
         # 2. Loop over all nodes in reverse order and execute backward operations
         @parameter

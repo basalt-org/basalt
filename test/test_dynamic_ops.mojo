@@ -229,6 +229,29 @@ fn test_SPLIT_0() raises:
     assert_tensors_equal(results[1], expected2, "almost")
     assert_tensors_equal(results[2], expected3, "almost")
 
+    # BACKWARD
+    var ug1 = Tensor[dtype](1, 5, 6)
+    var ug2 = Tensor[dtype](2, 5, 6)
+    var ug3 = Tensor[dtype](1, 5, 6)
+    fill(ug1, 1.0)
+    fill(ug2, 2.0)
+    fill(ug3, 3.0)
+
+    model.backward(ug1, ug2, ug3)
+
+    var grad_expected = Tensor[dtype](t_shape)
+    for i in range(4):
+        for j in range(5):
+            for k in range(6):
+                if i < 1:
+                    grad_expected[i*5*6 + j*6 + k] = 1.0
+                elif i >= 1 and i < 3:
+                    grad_expected[i*5*6 + j*6 + k] = 2.0
+                else:
+                    grad_expected[i*5*6 + j*6 + k] = 3.0
+
+    assert_tensors_equal(GRADS[graph.nodes[0].inputs[0]], grad_expected, "almost")
+
 
 fn test_SPLIT_1() raises:
     alias t_shape = TensorShape(4, 5, 6)
@@ -259,6 +282,29 @@ fn test_SPLIT_1() raises:
     assert_tensors_equal(results[0], expected1, "almost")
     assert_tensors_equal(results[1], expected2, "almost")
     assert_tensors_equal(results[2], expected3, "almost")
+
+    # BACKWARD
+    var ug1 = Tensor[dtype](4, 1, 6)
+    var ug2 = Tensor[dtype](4, 3, 6)
+    var ug3 = Tensor[dtype](4, 1, 6)
+    fill(ug1, 1.0)
+    fill(ug2, 2.0)
+    fill(ug3, 3.0)
+
+    model.backward(ug1, ug2, ug3)
+
+    var grad_expected = Tensor[dtype](t_shape)
+    for i in range(4):
+        for j in range(5):
+            for k in range(6):
+                if j < 1:
+                    grad_expected[i*5*6 + j*6 + k] = 1.0
+                elif j >= 1 and j < 4:
+                    grad_expected[i*5*6 + j*6 + k] = 2.0
+                else:
+                    grad_expected[i*5*6 + j*6 + k] = 3.0
+
+    assert_tensors_equal(GRADS[graph.nodes[0].inputs[0]], grad_expected, "almost")
 
 
 fn test_SPLIT_2() raises:
@@ -291,6 +337,28 @@ fn test_SPLIT_2() raises:
     assert_tensors_equal(results[1], expected2, "almost")
     assert_tensors_equal(results[2], expected3, "almost")
 
+    # BACKWARD
+    var ug1 = Tensor[dtype](4, 5, 1)
+    var ug2 = Tensor[dtype](4, 5, 4)
+    var ug3 = Tensor[dtype](4, 5, 1)
+    fill(ug1, 1.0)
+    fill(ug2, 2.0)
+    fill(ug3, 3.0)
+
+    model.backward(ug1, ug2, ug3)
+
+    var grad_expected = Tensor[dtype](t_shape)
+    for i in range(4):
+        for j in range(5):
+            for k in range(6):
+                if k < 1:
+                    grad_expected[i*5*6 + j*6 + k] = 1.0
+                elif k >= 1 and k < 5:
+                    grad_expected[i*5*6 + j*6 + k] = 2.0
+                else:
+                    grad_expected[i*5*6 + j*6 + k] = 3.0
+
+    assert_tensors_equal(GRADS[graph.nodes[0].inputs[0]], grad_expected, "almost")
 
 
 fn main():

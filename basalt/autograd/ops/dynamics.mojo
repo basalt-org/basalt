@@ -133,5 +133,22 @@ struct SPLIT:
     ) -> Tensor[dtype]:
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         alias sections = attributes["sections"].value().to_shape()
-        # TODO
-        return Tensor[dtype]()
+        var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
+
+        var chunks = List[Int]()
+        var chunk_offsets = List[Int](0)
+        for i in range(len(outputs)):
+            chunks.append(outputs[i].shape.num_elements() // n_chunks)
+            chunk_offsets.append(chunk_offsets[i] + chunks[i])
+
+        var res_grad = Tensor[dtype](inputs[input_id].shape)
+
+        for i in range(n_chunks):
+            for j in range(len(outputs)):
+                memcpy(
+                    res_grad.data() + i * chunk_offsets[len(outputs)] + chunk_offsets[j],
+                    GRADS[outputs[j]].data() + i * chunks[j],
+                    chunks[j],
+                )
+
+        return res_grad ^
