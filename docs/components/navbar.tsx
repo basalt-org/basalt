@@ -22,7 +22,7 @@ function GitHubLink() {
       rel="noopener noreferrer"
     >
       <Github className="h-5 w-5" />
-      <span className="hidden sm:inline">GitHub</span>
+      <span className="hidden md:inline">GitHub</span>
     </Link>
   );
 }
@@ -32,11 +32,13 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full bg-white shadow-sm border-b border-gray-200 dark:bg-gray-950 dark:border-gray-700">
       <div className="container flex h-16 items-center justify-between px-4 md:px-6">
         <Logo />
-        <div className="hidden md:flex flex-1 justify-center max-w-lg mx-auto">
+        <div className="p-4 flex flex-1 justify-center max-w-lg mx-auto">
           <SearchBar />
         </div>
-        <GitHubLink />
-        <ThemeToggle />
+        <div className="inline-flex">
+          <GitHubLink />
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

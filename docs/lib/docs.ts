@@ -120,6 +120,7 @@ export function getAllPackages(): IndexedPackage[] {
   }
 
   walk(Docs.decl, "");
+  packages.shift();
 
   return packages;
 }
