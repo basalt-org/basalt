@@ -13,12 +13,12 @@ from basalt.utils.rand_utils import MersenneTwister
 
 fn create_simple_nn(
     batch_size: Int,
-    linear1_weights: List[SIMD[dtype, 1]],
-    linear1_bias: List[SIMD[dtype, 1]],
-    linear2_weights: List[SIMD[dtype, 1]],
-    linear2_bias: List[SIMD[dtype, 1]],
-    linear3_weights: List[SIMD[dtype, 1]],
-    linear3_bias: List[SIMD[dtype, 1]],
+    linear1_weights: List[Scalar[dtype]],
+    linear1_bias: List[Scalar[dtype]],
+    linear2_weights: List[Scalar[dtype]],
+    linear2_bias: List[Scalar[dtype]],
+    linear3_weights: List[Scalar[dtype]],
+    linear3_bias: List[Scalar[dtype]],
 ) -> Graph:
     var g = Graph()
 
@@ -58,18 +58,18 @@ fn create_simple_nn(
 
 fn run_mojo[
     batch_size: Int,
-    linear1_weights: List[SIMD[dtype, 1]],
-    linear1_bias: List[SIMD[dtype, 1]],
-    linear2_weights: List[SIMD[dtype, 1]],
-    linear2_bias: List[SIMD[dtype, 1]],
-    linear3_weights: List[SIMD[dtype, 1]],
-    linear3_bias: List[SIMD[dtype, 1]],
+    linear1_weights: List[Scalar[dtype]],
+    linear1_bias: List[Scalar[dtype]],
+    linear2_weights: List[Scalar[dtype]],
+    linear2_bias: List[Scalar[dtype]],
+    linear3_weights: List[Scalar[dtype]],
+    linear3_bias: List[Scalar[dtype]],
 ](
     epochs: Int,
     learning_rate: Float64,
     inputs: Tensor[dtype],
     labels: Tensor[dtype],
-) -> List[SIMD[dtype, 1]]:
+) -> List[Scalar[dtype]]:
     alias graph = create_simple_nn(
         batch_size,
         linear1_weights,
@@ -83,7 +83,7 @@ fn run_mojo[
     var model = nn.Model[graph]()
     var optim = nn.optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
 
-    var losses = List[SIMD[dtype, 1]]()
+    var losses = List[Scalar[dtype]]()
 
     for i in range(epochs):
         var loss = model.forward(inputs, labels)
@@ -109,8 +109,8 @@ fn run_torch(
     owned linear2_bias: Tensor,
     owned linear3_weights: Tensor,
     owned linear3_bias: Tensor,
-) -> List[SIMD[dtype, 1]]:
-    var out: List[SIMD[dtype, 1]] = List[SIMD[dtype, 1]]()
+) -> List[Scalar[dtype]]:
+    var out: List[Scalar[dtype]] = List[Scalar[dtype]]()
 
     try:
         var torch = Python.import_module("torch")
@@ -165,21 +165,21 @@ fn run_torch(
         return out
 
 
-fn create_weights(num_elements: Int, zero: Bool) -> List[SIMD[dtype, 1]]:
+fn create_weights(num_elements: Int, zero: Bool) -> List[Scalar[dtype]]:
     var prng = MersenneTwister(123456)
-    var weights = List[SIMD[dtype, 1]](capacity=num_elements)
+    var weights = List[Scalar[dtype]](capacity=num_elements)
     for i in range(num_elements):
         if zero:
-            weights.append(SIMD[dtype, 1](0.0))
+            weights.append(Scalar[dtype](0.0))
         else:
             var rand_float = prng.next().cast[dtype]() / max_finite[DType.int32]().cast[
                 dtype
             ]()
-            weights.append(SIMD[dtype, 1](rand_float / 10))
+            weights.append(Scalar[dtype](rand_float / 10))
     return weights ^
 
 
-fn dv_to_tensor(dv: List[SIMD[dtype, 1]], shape: TensorShape) -> Tensor[dtype]:
+fn dv_to_tensor(dv: List[Scalar[dtype]], shape: TensorShape) -> Tensor[dtype]:
     var t = Tensor[dtype](shape)
     if t.num_elements() != len(dv):
         print("[WARNING] tensor and dv not the shame shape")
