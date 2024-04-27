@@ -13,7 +13,7 @@ fn Linear(
     A fully connected layer.
     """
 
-    var fan_in: Float64 = inputs.shape[1]
+    var fan_in: Scalar[dtype] = inputs.shape[1]
     var bound = q_sqrt(fan_in)
     var weights = g.param(
         TensorShape(inputs.shape[1], n_outputs),

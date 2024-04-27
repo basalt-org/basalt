@@ -25,7 +25,7 @@ fn Conv2d(
     """
 
     var in_channels: Int = inputs.shape[1]
-    var fan_in: SIMD[dtype, 1] = in_channels * kernel_size[0] * kernel_size[1]
+    var fan_in: Scalar[dtype] = in_channels * kernel_size[0] * kernel_size[1]
     var bound = q_sqrt(fan_in)
     var weights = g.param(
         TensorShape(out_channels, in_channels, kernel_size[0], kernel_size[1]),
