@@ -295,12 +295,10 @@ fn forward_op[
 fn forward_op[
     op: OP,
     attributes: AttributeVector,
-    mutability: __mlir_type.i1,
-    lifetime: AnyLifetime[mutability].type,
 ](
     inputs: List[Symbol],
     outputs: List[Symbol],
-    parameters: Reference[Parameters, mutability, lifetime],
+    parameters: Parameters,
 ):
     """
     Forward pass for dynamic operators.
@@ -446,13 +444,11 @@ fn backward_op[
     input_id: Int,
     op: OP,
     attributes: AttributeVector,
-    mutability: __mlir_type.i1,
-    lifetime: AnyLifetime[mutability].type,
 ](
     inputs: List[Symbol],
     outputs: List[Symbol],
     inout grad: Tensor[dtype],
-    parameters: Reference[Parameters, mutability, lifetime],
+    parameters: Parameters,
 ):
     """
     Backward pass for dynamic operators.

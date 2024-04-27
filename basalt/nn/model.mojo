@@ -129,7 +129,7 @@ struct Model[
                 forward_op[op, attrs](
                     g.nodes[i].inputs,
                     g.nodes[i].outputs,
-                    Reference(self.parameters),
+                    self.parameters,
                 )
             else:
                 # Statically known shapes and number of operands
@@ -211,7 +211,7 @@ struct Model[
                             g.nodes[reverse_i].inputs,
                             g.nodes[reverse_i].outputs,
                             self.parameters.grads[g.nodes[reverse_i].inputs[j]],
-                            Reference(self.parameters),
+                            self.parameters,
                         )
 
                 unroll[unroll_dynamic, num_operands]()
