@@ -8,6 +8,7 @@ struct Collection(CollectionElement, Sized):
     """
     A collection of tensors with associated symbols.
     """
+
     var size: Int
     var capacity: Int
     var data: AnyPointer[Tensor[dtype]]
@@ -42,7 +43,7 @@ struct Collection(CollectionElement, Sized):
         self.size = existing.size
         self.data = AnyPointer[Tensor[dtype]].alloc(existing.capacity)
         self.symbols = DTypePointer[DType.uint32].alloc(existing.capacity)
-        memcpy(self.symbols, existing.symbols, existing.capacity)    
+        memcpy(self.symbols, existing.symbols, existing.capacity)
 
         for i in range(existing.size):
             (self.data + i).emplace_value((existing.data + i)[])

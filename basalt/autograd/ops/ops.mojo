@@ -21,6 +21,7 @@ from .conv import CONV2D
 from .pool import MAXPOOL2D
 
 from basalt import Tensor, TensorShape
+from basalt.nn.model import Parameters
 from basalt.utils.bytes import Bytes
 from basalt.utils.tensorutils import broadcast_shapes, accumulate_grad
 from ..attributes import AttributeVector
@@ -294,14 +295,20 @@ fn forward_op[
 fn forward_op[
     op: OP,
     attributes: AttributeVector,
-](inputs: List[Symbol], outputs: List[Symbol]):
+    mutability: __mlir_type.i1,
+    lifetime: AnyLifetime[mutability].type,
+](
+    inputs: List[Symbol],
+    outputs: List[Symbol],
+    parameters: Reference[Parameters, mutability, lifetime],
+):
     """
     Forward pass for dynamic operators.
     """
     if op == OP.CONCAT:
-        CONCAT.forward[attributes](inputs, outputs)
+        CONCAT.forward[attributes](inputs, outputs, parameters)
     elif op == OP.SPLIT:
-        SPLIT.forward[attributes](inputs, outputs)
+        SPLIT.forward[attributes](inputs, outputs, parameters)
     else:
         print("[ERROR] Operator not found.")
 
@@ -439,16 +446,23 @@ fn backward_op[
     input_id: Int,
     op: OP,
     attributes: AttributeVector,
-](inputs: List[Symbol], outputs: List[Symbol], inout grad: Tensor[dtype],):
+    mutability: __mlir_type.i1,
+    lifetime: AnyLifetime[mutability].type,
+](
+    inputs: List[Symbol],
+    outputs: List[Symbol],
+    inout grad: Tensor[dtype],
+    parameters: Reference[Parameters, mutability, lifetime],
+):
     """
     Backward pass for dynamic operators.
     """
     var res_grad: Tensor[dtype]
 
     if op == OP.CONCAT:
-        res_grad = CONCAT.backward[input_id, attributes](inputs, outputs)
+        res_grad = CONCAT.backward[input_id, attributes](inputs, outputs, parameters)
     elif op == OP.SPLIT:
-        res_grad = SPLIT.backward[input_id, attributes](inputs, outputs)
+        res_grad = SPLIT.backward[input_id, attributes](inputs, outputs, parameters)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)

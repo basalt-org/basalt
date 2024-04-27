@@ -44,7 +44,7 @@ fn main():
     # except: print("Could not render graph")
 
     var model = nn.Model[graph]()
-    var optimizer = nn.optim.Adam[graph](lr=learning_rate)
+    var optimizer = nn.optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
 
     var x_data = Tensor[dtype](batch_size, n_inputs)
     var y_data = Tensor[dtype](batch_size, n_outputs)

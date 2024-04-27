@@ -112,7 +112,7 @@ fn run_mojo[
     )
 
     var model = nn.Model[graph]()
-    var optim = nn.optim.Adam[graph](lr=learning_rate)
+    var optim = nn.optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
 
     var losses = List[SIMD[dtype, 1]]()
 

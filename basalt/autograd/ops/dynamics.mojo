@@ -1,5 +1,5 @@
 from basalt import Symbol
-from basalt import TENSORS, GRADS
+from basalt.nn.model import Parameters
 from ..attributes import AttributeVector
 
 
@@ -32,7 +32,13 @@ struct CONCAT:
     @staticmethod
     fn forward[
         attributes: AttributeVector,
-    ](inputs: List[Symbol], outputs: List[Symbol]):
+        mutability: __mlir_type.i1,
+        lifetime: AnyLifetime[mutability].type,
+    ](
+        inputs: List[Symbol],
+        outputs: List[Symbol],
+        parameters: Reference[Parameters, mutability, lifetime],
+    ):
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
 
@@ -45,17 +51,24 @@ struct CONCAT:
         for i in range(n_chunks):
             for j in range(len(inputs)):
                 memcpy(
-                    TENSORS[outputs[0]].data()
+                    parameters[].tensors[outputs[0]].data()
                     + i * chunk_offsets[len(inputs)]
                     + chunk_offsets[j],
-                    TENSORS[inputs[j]].data() + i * chunks[j],
+                    parameters[].tensors[inputs[j]].data() + i * chunks[j],
                     chunks[j],
                 )
 
     @staticmethod
     fn backward[
-        input_id: Int, attributes: AttributeVector
-    ](inputs: List[Symbol], outputs: List[Symbol]) -> Tensor[dtype]:
+        input_id: Int,
+        attributes: AttributeVector,
+        mutability: __mlir_type.i1,
+        lifetime: AnyLifetime[mutability].type,
+    ](
+        inputs: List[Symbol],
+        outputs: List[Symbol],
+        parameters: Reference[Parameters, mutability, lifetime],
+    ) -> Tensor[dtype]:
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
 
@@ -69,7 +82,7 @@ struct CONCAT:
         for i in range(n_chunks):
             memcpy(
                 res_grad.data() + i * chunks[input_id],
-                GRADS[outputs[0]].data()
+                parameters[].grads[outputs[0]].data()
                 + i * chunk_offsets[len(inputs)]
                 + chunk_offsets[input_id],
                 chunks[input_id],
@@ -108,7 +121,13 @@ struct SPLIT:
     @staticmethod
     fn forward[
         attributes: AttributeVector,
-    ](inputs: List[Symbol], outputs: List[Symbol]):
+        mutability: __mlir_type.i1,
+        lifetime: AnyLifetime[mutability].type,
+    ](
+        inputs: List[Symbol],
+        outputs: List[Symbol],
+        parameters: Reference[Parameters, mutability, lifetime],
+    ):
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         alias sections = attributes["sections"].value().to_shape()
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
@@ -122,8 +141,8 @@ struct SPLIT:
         for i in range(n_chunks):
             for j in range(len(outputs)):
                 memcpy(
-                    TENSORS[outputs[j]].data() + i * chunks[j],
-                    TENSORS[inputs[0]].data()
+                    parameters[].tensors[outputs[j]].data() + i * chunks[j],
+                    parameters[].tensors[inputs[0]].data()
                     + i * chunk_offsets[len(outputs)]
                     + chunk_offsets[j],
                     chunks[j],
@@ -131,8 +150,15 @@ struct SPLIT:
 
     @staticmethod
     fn backward[
-        input_id: Int, attributes: AttributeVector
-    ](inputs: List[Symbol], outputs: List[Symbol]) -> Tensor[dtype]:
+        input_id: Int,
+        attributes: AttributeVector,
+        mutability: __mlir_type.i1,
+        lifetime: AnyLifetime[mutability].type,
+    ](
+        inputs: List[Symbol],
+        outputs: List[Symbol],
+        parameters: Reference[Parameters, mutability, lifetime],
+    ) -> Tensor[dtype]:
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         alias sections = attributes["sections"].value().to_shape()
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
@@ -151,7 +177,7 @@ struct SPLIT:
                     res_grad.data()
                     + i * chunk_offsets[len(outputs)]
                     + chunk_offsets[j],
-                    GRADS[outputs[j]].data() + i * chunks[j],
+                    parameters[].grads[outputs[j]].data() + i * chunks[j],
                     chunks[j],
                 )
 

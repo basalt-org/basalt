@@ -2,7 +2,6 @@ from collections.optional import Optional
 
 from sys import env_get_int
 
-from basalt import TENSORS, GRADS
 from basalt import Graph, Symbol, Tensor, TensorShape
 from basalt.autograd.ops import forward_op, backward_op
 from basalt.utils.collection import Collection
@@ -25,7 +24,7 @@ fn dv_contains(dv: List[Symbol], symbol: Symbol) -> Bool:
 
 
 # TODO: remove when ability to concatenate graphs (modules)
-fn calc_n_inference_nodes(g: Graph) -> Optional[Int]:
+fn n_inference_nodes(g: Graph) -> Optional[Int]:
     """
     Calculate the index of the node up to wich the forward pass should be executed for a model inference.
     When looping in revers: Equals the first index on which the node output is also a graph output.
@@ -38,25 +37,31 @@ fn calc_n_inference_nodes(g: Graph) -> Optional[Int]:
     return None
 
 
+@value
+struct Parameters:
+    var tensors: Collection
+    var grads: Collection
+
+    fn __init__(inout self):
+        self.tensors = Collection()
+        self.grads = Collection()
+
+
 struct Model[
     g: Graph,
-    n_inference_nodes: Optional[Int] = calc_n_inference_nodes(
-        g
-    ),  # TODO: remove when modules
+    n_inference_nodes: Optional[Int] = n_inference_nodes(g),
 ]():
+    var parameters: Parameters
     var perf_metrics: PerfMetrics
 
     fn __init__(inout self, inference_only: Bool = False):
+        self.parameters = Parameters()
+
         @parameter
         if DEBUG == 1:
             self.perf_metrics = PerfMetrics(g)
         else:
             self.perf_metrics = PerfMetrics()
-
-        # Clear all tensors and grad memory to avoid overwriting
-        # when multiple models are created and duplicate symbols exist (symbol_counting)
-        GRADS.clear()
-        TENSORS.clear()
 
         self.allocate_tensor_memory()
         self.allocate_grad_memory()
@@ -90,7 +95,7 @@ struct Model[
 
         # 2. Return loss from allocated output memory
         # TODO: known copy (reference?)
-        return TENSORS[g.loss_out.value()]
+        return self.parameters.tensors[g.loss_out.value()]
 
     fn inference(inout self, *t_inputs: Tensor[dtype]) -> List[Tensor[dtype]]:
         # 1. Execute forward pass up to model out
@@ -100,13 +105,13 @@ struct Model[
         # TODO: known copies (reference?)
         var outputs = List[Tensor[dtype]]()
         for i in range(len(g.outputs)):
-            outputs.append(TENSORS[g.outputs[i]])
+            outputs.append(self.parameters.tensors[g.outputs[i]])
         return outputs ^
 
     fn execute[num_nodes: Int](inout self, t_input: VariadicListMem[Tensor[dtype]]):
         # 1. Write inputs to allocated input memory
         for i in range(len(g.inputs)):
-            TENSORS[g.inputs[i]] = t_input[i]
+            self.parameters.tensors[g.inputs[i]] = t_input[i]
 
         # 2. Loop over all nodes and execute forward operations
         @parameter
@@ -122,8 +127,9 @@ struct Model[
             @parameter
             if op.dynamic:
                 forward_op[op, attrs](
-                    inputs=g.nodes[i].inputs,
-                    outputs=g.nodes[i].outputs,
+                    g.nodes[i].inputs,
+                    g.nodes[i].outputs,
+                    Reference(self.parameters),
                 )
             else:
                 # Statically known shapes and number of operands
@@ -134,24 +140,26 @@ struct Model[
                 @parameter
                 if num_operands == 1:
                     # Unary operator
-                    forward_op[op, t1.shape, attrs](TENSORS[out], TENSORS[t1])
+                    forward_op[op, t1.shape, attrs](
+                        self.parameters.tensors[out], self.parameters.tensors[t1]
+                    )
                 elif num_operands == 2:
                     # Binary operator
                     alias t2 = g.nodes[i].inputs[1]
                     forward_op[op, t1.shape, t2.shape, attrs](
-                        TENSORS[out],
-                        TENSORS[t1],
-                        TENSORS[t2],
+                        self.parameters.tensors[out],
+                        self.parameters.tensors[t1],
+                        self.parameters.tensors[t2],
                     )
                 elif num_operands == 3:
                     # Ternary operator
                     alias t2 = g.nodes[i].inputs[1]
                     alias t3 = g.nodes[i].inputs[2]
                     forward_op[op, t1.shape, t2.shape, t3.shape, attrs](
-                        TENSORS[out],
-                        TENSORS[t1],
-                        TENSORS[t2],
-                        TENSORS[t3],
+                        self.parameters.tensors[out],
+                        self.parameters.tensors[t1],
+                        self.parameters.tensors[t2],
+                        self.parameters.tensors[t3],
                     )
 
             # Save end time for performance metrics
@@ -167,7 +175,8 @@ struct Model[
         """
         # 1. Initialize output gradient at the beginning of the backward pass
         if len(upper_grads) == 0:
-            fill(GRADS[g.loss_out.value()], 1.0)  # TODO remove loss_out tag
+            # TODO remove loss_out tag
+            fill(self.parameters.grads[g.loss_out.value()], 1.0)
         else:
             var node_outputs = g.nodes[g.nodes.size - 1].outputs
             if len(upper_grads) != node_outputs.size:
@@ -176,7 +185,7 @@ struct Model[
                     " outputs!"
                 )
             for i in range(node_outputs.size):
-                GRADS[node_outputs[i]] = upper_grads[i]
+                self.parameters.grads[node_outputs[i]] = upper_grads[i]
 
         # 2. Loop over all nodes in reverse order and execute backward operations
         @parameter
@@ -201,9 +210,8 @@ struct Model[
                         backward_op[j, op, attrs](
                             g.nodes[reverse_i].inputs,
                             g.nodes[reverse_i].outputs,
-                            GRADS[
-                                g.nodes[reverse_i].inputs[j]
-                            ],  # grads to be updated: inputs[j]
+                            self.parameters.grads[g.nodes[reverse_i].inputs[j]],
+                            Reference(self.parameters),
                         )
 
                 unroll[unroll_dynamic, num_operands]()
@@ -219,9 +227,9 @@ struct Model[
                     @parameter
                     if t1.trainable:
                         backward_op[0, op, out.shape, t1.shape, attrs](
-                            GRADS[out],
-                            TENSORS[t1],
-                            GRADS[t1],  # grad to be updated: inputs[0]
+                            self.parameters.grads[out],
+                            self.parameters.tensors[t1],
+                            self.parameters.grads[t1],  # grad to be updated: inputs[0]
                         )
 
                 elif num_operands == 2:
@@ -231,19 +239,19 @@ struct Model[
                     @parameter
                     if t1.trainable:
                         backward_op[0, op, out.shape, t1.shape, t2.shape, attrs](
-                            GRADS[out],
-                            TENSORS[t1],
-                            TENSORS[t2],
-                            GRADS[t1],  # grad to be updated: inputs[0]
+                            self.parameters.grads[out],
+                            self.parameters.tensors[t1],
+                            self.parameters.tensors[t2],
+                            self.parameters.grads[t1],  # grad to be updated: inputs[0]
                         )
 
                     @parameter
                     if t2.trainable:
                         backward_op[1, op, out.shape, t1.shape, t2.shape, attrs](
-                            GRADS[out],
-                            TENSORS[t1],
-                            TENSORS[t2],
-                            GRADS[t2],  # grad to be updated: inputs[1]
+                            self.parameters.grads[out],
+                            self.parameters.tensors[t1],
+                            self.parameters.tensors[t2],
+                            self.parameters.grads[t2],  # grad to be updated: inputs[1]
                         )
 
                 elif num_operands == 3:
@@ -256,11 +264,11 @@ struct Model[
                         backward_op[
                             0, op, out.shape, t1.shape, t2.shape, t3.shape, attrs
                         ](
-                            GRADS[out],
-                            TENSORS[t1],
-                            TENSORS[t2],
-                            TENSORS[t3],
-                            GRADS[t1],  # grad to be updated: inputs[0]
+                            self.parameters.grads[out],
+                            self.parameters.tensors[t1],
+                            self.parameters.tensors[t2],
+                            self.parameters.tensors[t3],
+                            self.parameters.grads[t1],  # grad to be updated: inputs[0]
                         )
 
                     @parameter
@@ -268,11 +276,11 @@ struct Model[
                         backward_op[
                             1, op, out.shape, t1.shape, t2.shape, t3.shape, attrs
                         ](
-                            GRADS[out],
-                            TENSORS[t1],
-                            TENSORS[t2],
-                            TENSORS[t3],
-                            GRADS[t2],  # grad to be updated: inputs[1]
+                            self.parameters.grads[out],
+                            self.parameters.tensors[t1],
+                            self.parameters.tensors[t2],
+                            self.parameters.tensors[t3],
+                            self.parameters.grads[t2],  # grad to be updated: inputs[1]
                         )
 
                     @parameter
@@ -280,11 +288,11 @@ struct Model[
                         backward_op[
                             2, op, out.shape, t1.shape, t2.shape, t3.shape, attrs
                         ](
-                            GRADS[out],
-                            TENSORS[t1],
-                            TENSORS[t2],
-                            TENSORS[t3],
-                            GRADS[t3],  # grad to be updated: inputs[2]
+                            self.parameters.grads[out],
+                            self.parameters.tensors[t1],
+                            self.parameters.tensors[t2],
+                            self.parameters.tensors[t3],
+                            self.parameters.grads[t3],  # grad to be updated: inputs[2]
                         )
 
             # Save end time for performance metrics
@@ -296,7 +304,9 @@ struct Model[
 
     fn allocate_tensor_memory(inout self):
         for i in range(len(g.inputs)):
-            TENSORS.append(Tensor[dtype](g.inputs[i].shape), g.inputs[i])
+            self.parameters.tensors.append(
+                Tensor[dtype](g.inputs[i].shape), g.inputs[i]
+            )
 
         for i in range(len(g.params)):
             var p = g.params.symbols[i]
@@ -319,12 +329,12 @@ struct Model[
                 # Default parameter initialization to zero
                 par = Tensor[dtype](p.shape)
 
-            TENSORS.append(par ^, p)
+            self.parameters.tensors.append(par ^, p)
 
         for i in range(len(g.nodes)):
             # Assumption: An input or a param cannot be an output of a node
             for j in range(len(g.nodes[i].outputs)):
-                TENSORS.append(
+                self.parameters.tensors.append(
                     Tensor[dtype](g.nodes[i].outputs[j].shape), g.nodes[i].outputs[j]
                 )
 
@@ -332,18 +342,20 @@ struct Model[
         # Gradient have same shape as the tensor
         for i in range(len(g.inputs)):
             if g.inputs[i].trainable:
-                GRADS.append(Tensor[dtype](g.inputs[i].shape), g.inputs[i])
+                self.parameters.grads.append(
+                    Tensor[dtype](g.inputs[i].shape), g.inputs[i]
+                )
 
         for i in range(len(g.params)):
             var grad = g.params.symbols[i]
             if grad.trainable:
-                GRADS.append(Tensor[dtype](grad.shape), grad)
+                self.parameters.grads.append(Tensor[dtype](grad.shape), grad)
 
         for i in range(len(g.nodes)):
             for j in range(len(g.nodes[i].outputs)):
                 var out = g.nodes[i].outputs[j]
                 if out.trainable:
-                    GRADS.append(Tensor[dtype](out.shape), out)
+                    self.parameters.grads.append(Tensor[dtype](out.shape), out)
 
     fn print_perf_metrics(self, time_format: String = "ns", print_shape: Bool = False):
         self.perf_metrics.print_forward_perf_metrics(time_format, print_shape)
