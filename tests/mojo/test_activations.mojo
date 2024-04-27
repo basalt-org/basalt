@@ -1,15 +1,10 @@
 from testing import assert_equal, assert_almost_equal
-from test_tensorutils import assert_tensors_equal
+from testing_utils import assert_tensors_equal
 
-import basalt.nn as nn
-from basalt import Tensor, TensorShape
-from basalt import Graph, Symbol, OP
+from basalt import dtype, nelts
+from basalt.nn import Tensor, TensorShape, Model, Softmax, LogSoftmax, ReLU, Sigmoid, Tanh
+from basalt.autograd import Graph
 from basalt.utils.tensorutils import fill
-
-
-alias dtype = DType.float32
-alias nelts: Int = 2 * simdwidthof[dtype]()
-
 
 fn test_SOFTMAX() raises:
     alias x_shape = TensorShape(2, 3, 2)
@@ -19,7 +14,7 @@ fn test_SOFTMAX() raises:
 
         var x = g.input(x_shape)
 
-        var softmax = nn.Softmax(g, x, axis)
+        var softmax = Softmax(g, x, axis)
 
         g.out(softmax)
 
@@ -32,7 +27,7 @@ fn test_SOFTMAX() raises:
     # Test axis 0
     alias graph = create_graph(0)
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
     var res = model.inference(x)[0]
 
     var expected = Tensor[dtype](x_shape)
@@ -48,7 +43,7 @@ fn test_SOFTMAX() raises:
     # Test axis 1
     alias graph_2 = create_graph(1)
 
-    var model_2 = nn.Model[graph_2](inference_only=True)
+    var model_2 = Model[graph_2](inference_only=True)
     res = model_2.inference(x)[0]
 
     expected = Tensor[dtype](x_shape)
@@ -60,7 +55,7 @@ fn test_SOFTMAX() raises:
     # Test axis 2
     alias graph_3 = create_graph(2)
 
-    var model_3 = nn.Model[graph_3](inference_only=True)
+    var model_3 = Model[graph_3](inference_only=True)
     res = model_3.inference(x)[0]
 
     expected = Tensor[dtype](x_shape)
@@ -78,7 +73,7 @@ fn test_LOGSOFTMAX() raises:
 
         var x = g.input(x_shape)
 
-        var logsoftmax = nn.LogSoftmax(g, x, axis)
+        var logsoftmax = LogSoftmax(g, x, axis)
 
         g.out(logsoftmax)
 
@@ -91,7 +86,7 @@ fn test_LOGSOFTMAX() raises:
     # Test axis 0
     alias graph = create_graph(0)
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
     var res = model.inference(x)[0]
 
     var expected = Tensor[dtype](x_shape)
@@ -107,7 +102,7 @@ fn test_LOGSOFTMAX() raises:
     # Test axis 1
     alias graph_2 = create_graph(1)
 
-    var model_2 = nn.Model[graph_2](inference_only=True)
+    var model_2 = Model[graph_2](inference_only=True)
     res = model_2.inference(x)[0]
 
     expected = Tensor[dtype](x_shape)
@@ -119,7 +114,7 @@ fn test_LOGSOFTMAX() raises:
     # Test axis 2
     alias graph_3 = create_graph(2)
 
-    var model_3 = nn.Model[graph_3](inference_only=True)
+    var model_3 = Model[graph_3](inference_only=True)
     res = model_3.inference(x)[0]
 
     expected = Tensor[dtype](x_shape)
@@ -134,13 +129,9 @@ fn test_RELU() raises:
 
     fn create_graph() -> Graph:
         var g = Graph()
-
         var x = g.input(x_shape)
-
-        var relu = nn.ReLU(g, x)
-
+        var relu = ReLU(g, x)
         g.out(relu)
-
         return g ^
 
     var x = Tensor[dtype](x_shape)
@@ -151,7 +142,7 @@ fn test_RELU() raises:
 
     alias graph = create_graph()
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
     var res = model.inference(x)[0]
 
     var expected = Tensor[dtype](x_shape)
@@ -172,7 +163,7 @@ fn test_SIGMOID() raises:
 
         var x = g.input(x_shape)
 
-        var sigmoid = nn.Sigmoid(g, x)
+        var sigmoid = Sigmoid(g, x)
 
         g.out(sigmoid)
 
@@ -183,7 +174,7 @@ fn test_SIGMOID() raises:
 
     alias graph = create_graph()
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
     var res = model.inference(x)[0]
 
     var expected = Tensor[dtype](x_shape)
@@ -201,7 +192,7 @@ fn test_TANH() raises:
 
         var x = g.input(x_shape)
 
-        var tanh = nn.Tanh(g, x)
+        var tanh = Tanh(g, x)
 
         g.out(tanh)
 
@@ -212,7 +203,7 @@ fn test_TANH() raises:
 
     alias graph = create_graph()
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
     var res = model.inference(x)[0]
 
     var expected = Tensor[dtype](x_shape)
