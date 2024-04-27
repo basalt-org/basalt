@@ -16,10 +16,12 @@ from .basics import (
     FMA,
 )
 from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE
+from .dynamics import CONCAT, SPLIT
 from .conv import CONV2D
 from .pool import MAXPOOL2D
 
 from basalt import Tensor, TensorShape
+from basalt.nn.model import Parameters
 from basalt.utils.bytes import Bytes
 from basalt.utils.tensorutils import broadcast_shapes, accumulate_grad
 from ..attributes import AttributeVector
@@ -33,44 +35,65 @@ struct OP(Stringable):
     Compile time Operators list.
     """
 
-    alias ADD = OP(0, "ADD", num_operands=2)
-    alias SUB = OP(1, "SUB", num_operands=2)
-    alias MUL = OP(2, "MUL", num_operands=2)
-    alias DIV = OP(3, "DIV", num_operands=2)
-    alias EXP = OP(4, "EXP", num_operands=1)
-    alias LOG = OP(5, "LOG", num_operands=1)
-    alias POW = OP(6, "POW", num_operands=2)
-    alias DOT = OP(7, "DOT", num_operands=2)
-    alias SUM = OP(8, "SUM", num_operands=1)
-    alias MEAN = OP(9, "MEAN", num_operands=1)
-    alias MAX = OP(10, "MAX", num_operands=1)
-    alias FLATTEN = OP(11, "FLATTEN", num_operands=1)
-    alias RESHAPE = OP(12, "RESHAPE", num_operands=1)
-    alias SIGMOID = OP(13, "SIGMOID", num_operands=1)
-    alias RELU = OP(14, "RELU", num_operands=1)
-    alias TANH = OP(15, "TANH", num_operands=1)
-    alias CONV2D = OP(16, "CONV2D", num_operands=3)
-    alias TRANSPOSE = OP(17, "TRANSPOSE", num_operands=1)
-    alias MAXPOOL2D = OP(18, "MAXPOOL2D", num_operands=1)
-    alias FMA = OP(19, "FMA", num_operands=3)
-    alias CLIP = OP(20, "CLIP", num_operands=1)
-    alias SQUEEZE = OP(21, "SQUEEZE", num_operands=1)
-    alias UNSQUEEZE = OP(22, "UNSQUEEZE", num_operands=1)
+    alias ADD = OP(0, "ADD")
+    alias SUB = OP(1, "SUB")
+    alias MUL = OP(2, "MUL")
+    alias DIV = OP(3, "DIV")
+    alias EXP = OP(4, "EXP")
+    alias LOG = OP(5, "LOG")
+    alias POW = OP(6, "POW")
+    alias DOT = OP(7, "DOT")
+    alias SUM = OP(8, "SUM")
+    alias MEAN = OP(9, "MEAN")
+    alias MAX = OP(10, "MAX")
+    alias FLATTEN = OP(11, "FLATTEN")
+    alias RESHAPE = OP(12, "RESHAPE")
+    alias SIGMOID = OP(13, "SIGMOID")
+    alias RELU = OP(14, "RELU")
+    alias TANH = OP(15, "TANH")
+    alias CONV2D = OP(16, "CONV2D")
+    alias TRANSPOSE = OP(17, "TRANSPOSE")
+    alias MAXPOOL2D = OP(18, "MAXPOOL2D")
+    alias FMA = OP(19, "FMA")
+    alias CLIP = OP(20, "CLIP")
+    alias SQUEEZE = OP(21, "SQUEEZE")
+    alias UNSQUEEZE = OP(22, "UNSQUEEZE")
+    alias CONCAT = OP(23, "CONCAT", dynamic=True)
+    alias SPLIT = OP(24, "SPLIT", dynamic=True)
 
     var id: UInt8
     var name: Bytes[16]
-    var num_operands: UInt8
+    var dynamic: Bool
 
-    fn __init__(inout self, id: UInt8, name: String, num_operands: UInt8):
+    fn __init__(inout self, id: UInt8, name: String, dynamic: Bool = False):
         self.id = id
         self.name = Bytes[16](name)
-        self.num_operands = num_operands
+        self.dynamic = dynamic
 
     fn __eq__(self, other: OP) -> Bool:
         return self.id == other.id
 
     fn __str__(self) -> String:
         return str(self.name)
+
+
+fn static_result_shape(
+    op: OP, operands: VariadicList[Symbol], attributes: AttributeVector
+) -> TensorShape:
+    """
+    Static result shape for operators.
+    """
+    if len(operands) == 1:
+        return static_result_shape(op, operands[0].shape, attributes)
+    elif len(operands) == 2:
+        return static_result_shape(op, operands[0].shape, operands[1].shape, attributes)
+    elif len(operands) == 3:
+        return static_result_shape(
+            op, operands[0].shape, operands[1].shape, operands[2].shape, attributes
+        )
+    else:
+        print("Error: Invalid number of operands")
+        return TensorShape()
 
 
 fn static_result_shape(
@@ -161,6 +184,28 @@ fn static_result_shape(
         return TensorShape(-1, -1)
 
 
+fn dynamic_result_shape(
+    op: OP,
+    operands: VariadicList[Symbol],
+    attributes: AttributeVector,
+) -> List[TensorShape]:
+    """
+    Static result shape for dynamic operators.
+    """
+    # Unknown number of inputs and outputs.
+    var input_shapes = List[TensorShape]()
+    for operand in operands:
+        input_shapes.append(operand.shape)
+
+    if op == OP.CONCAT:
+        return CONCAT.result_shape(input_shapes, attributes)
+    elif op == OP.SPLIT:
+        return SPLIT.result_shape(input_shapes, attributes)
+    else:
+        print("[ERROR] Operator not found.")
+        return List[TensorShape](TensorShape(-1))
+
+
 fn forward_op[
     op: OP, t1_shape: TensorShape, attributes: AttributeVector
 ](inout res: Tensor[dtype], t1: Tensor[dtype]):
@@ -247,6 +292,25 @@ fn forward_op[
         print("[ERROR] Operator not found.")
 
 
+fn forward_op[
+    op: OP,
+    attributes: AttributeVector,
+](
+    inputs: List[Symbol],
+    outputs: List[Symbol],
+    parameters: Parameters,
+):
+    """
+    Forward pass for dynamic operators.
+    """
+    if op == OP.CONCAT:
+        CONCAT.forward[attributes](inputs, outputs, parameters)
+    elif op == OP.SPLIT:
+        SPLIT.forward[attributes](inputs, outputs, parameters)
+    else:
+        print("[ERROR] Operator not found.")
+
+
 fn backward_op[
     tensor_id: Int,
     op: OP,
@@ -294,12 +358,7 @@ fn backward_op[
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1)
 
-    alias res_grad_shape = t1_shape
-    # grad_shape = t1_shape
-    # NOTE: Assumption res_grad.shape() == res_grad_shape
-    # if res_grad.shape() != res_grad_shape:
-    #     print("[ERROR] tensor_id: 0, Assumption not holding. res_grad_shape != res_grad.shape(), for unary operator.")
-    accumulate_grad[t1_shape, res_grad_shape](grad, res_grad)
+    accumulate_grad(grad, res_grad)
 
 
 fn backward_op[
@@ -332,26 +391,17 @@ fn backward_op[
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)
 
-    @parameter
-    if tensor_id == 0:
-        alias res_grad_shape = t1_shape if op == OP.DOT else broadcast_shapes(
-            t1_shape, t2_shape
-        )
-        # grad_shape = t1_shape
-        # NOTE: Assumption res_grad.shape() == res_grad_shape
-        # if res_grad.shape() != res_grad_shape:
-        #     print("[ERROR] tensor_id: 0, Assumption not holding. res_grad_shape != res_grad.shape(), for binary operator.")
-        accumulate_grad[t1_shape, res_grad_shape](grad, res_grad)
+    fn broadcastable(op: OP) -> Bool:
+        return op == OP.ADD or op == OP.SUB or op == OP.MUL or op == OP.DIV
 
-    elif tensor_id == 1:
-        alias res_grad_shape = t2_shape if op == OP.DOT else broadcast_shapes(
-            t1_shape, t2_shape
-        )
-        # grad_shape = t2_shape
-        # NOTE: Assumption res_grad.shape() == res_grad_shape
-        # if res_grad.shape() != res_grad_shape:
-        #     print("[ERROR] tensor_id: 1, Assumption not holding. res_grad_shape != res_grad.shape(), for binary operator.")
-        accumulate_grad[t2_shape, res_grad_shape](grad, res_grad)
+    @parameter
+    if broadcastable(op):
+        accumulate_grad[
+            grad_shape = t1_shape if tensor_id == 0 else t2_shape,
+            res_grad_shape = broadcast_shapes(t1_shape, t2_shape),
+        ](grad, res_grad)
+    else:
+        accumulate_grad(grad, res_grad)
 
 
 fn backward_op[
@@ -387,22 +437,30 @@ fn backward_op[
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)
 
-    @parameter
-    if tensor_id == 0:
-        alias res_grad_shape = t1_shape
-        # NOTE: Assumption res_grad.shape() == res_grad_shape
-        # if res_grad.shape() != res_grad_shape:
-        #     print("[ERROR] tensor_id: 0, Assumption not holding. res_grad_shape != res_grad.shape(), for ternary operator.")
-        accumulate_grad[t1_shape, res_grad_shape](grad, res_grad)
-    elif tensor_id == 1:
-        alias res_grad_shape = t2_shape
-        # NOTE: Assumption res_grad.shape() == res_grad_shape
-        # if res_grad.shape() != res_grad_shape:
-        #     print("[ERROR] tensor_id: 0, Assumption not holding. res_grad_shape != res_grad.shape(), for ternary operator.")
-        accumulate_grad[t2_shape, res_grad_shape](grad, res_grad)
-    elif tensor_id == 2:
-        alias res_grad_shape = t3_shape
-        # NOTE: Assumption res_grad.shape() == res_grad_shape
-        # if res_grad.shape() != res_grad_shape:
-        #     print("[ERROR] tensor_id: 0, Assumption not holding. res_grad_shape != res_grad.shape(), for ternary operator.")
-        accumulate_grad[t3_shape, res_grad_shape](grad, res_grad)
+    accumulate_grad(grad, res_grad)
+
+
+fn backward_op[
+    input_id: Int,
+    op: OP,
+    attributes: AttributeVector,
+](
+    inputs: List[Symbol],
+    outputs: List[Symbol],
+    inout grad: Tensor[dtype],
+    parameters: Parameters,
+):
+    """
+    Backward pass for dynamic operators.
+    """
+    var res_grad: Tensor[dtype]
+
+    if op == OP.CONCAT:
+        res_grad = CONCAT.backward[input_id, attributes](inputs, outputs, parameters)
+    elif op == OP.SPLIT:
+        res_grad = SPLIT.backward[input_id, attributes](inputs, outputs, parameters)
+    else:
+        print("[ERROR] Operator not found.")
+        res_grad = Tensor[dtype](-1, -1)
+
+    accumulate_grad(grad, res_grad)

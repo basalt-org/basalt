@@ -217,7 +217,9 @@ struct SQUEEZE:
 
         var new_shape = List[Int]()
         for i in range(t1_shape.rank()):
-            if (not dim and t1_shape[i] == 1) or (i in dims_to_squeeze and t1_shape[i] == 1): 
+            if (not dim and t1_shape[i] == 1) or (
+                i in dims_to_squeeze and t1_shape[i] == 1
+            ):
                 continue
             new_shape.append(t1_shape[i])
 
@@ -275,35 +277,3 @@ struct UNSQUEEZE:
         var res_grad = Tensor[dtype](t1_shape)
         memcpy(res_grad.data(), ug.data(), ug.num_elements())
         return res_grad ^
-
-
-# struct SOFTMAX:
-#     @staticmethod
-#     fn softmax[axis: Int](n: Tensor[dtype]) -> Tensor[dtype]:
-#         """Softmax operation."""
-#         # exp(x_i - max(x_j)) / sum(exp(x_j))
-#         var max_val = tmax[dtype, nelts](n, axis)
-#         var x_minus_max = elwise_op[dtype, nelts, sub](n, max_val)
-
-#         var exp_res = elwise_transform[dtype, nelts, exp](x_minus_max)
-#         var sum_res = tsum[dtype, nelts](exp_res, axis)
-#         var res = elwise_op[dtype, nelts, div](exp_res, sum_res)
-
-#         return res
-
-#     @staticmethod
-#     fn forward[axis: Int](n: Node[dtype]) -> Node[dtype]:
-#         """Forward operation of softmax."""
-#         # softmax: exp(x_i) / sum(exp(x_j))
-#         # stable softmax: exp(x_i - max(x_j)) / sum(exp(x_j))
-#         var softmax_res = Self.softmax[axis](n.tensor)
-#         var res = elwise_op[dtype, nelts, div](n.tensor, softmax_res)
-
-#         return GRAPH.create_graph_node[Self.backward[axis]](res, n)
-
-#     @staticmethod
-#     fn backward[axis: Int](
-#         ug: Tensor[dtype], tensor_vec: DynamicVector[String], tensor_id: Int
-#     ) -> Tensor[dtype]:
-#         """Backward operation of softmax."""
-#         pass

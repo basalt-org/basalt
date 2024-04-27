@@ -4,7 +4,7 @@ from collections.optional import Optional
 from .node import Node
 from .attributes import AttributeVector, Attribute
 from .symbol import Symbol
-from .ops import OP, static_result_shape
+from .ops import OP, static_result_shape, dynamic_result_shape
 from .params import ParamDict, Param
 
 from basalt import seed, dtype
@@ -28,8 +28,8 @@ struct Graph:
         self.loss_out = None
         self.symbol_count = 0
 
-    fn input(inout self, shape: TensorShape) -> Symbol:
-        var inp = Symbol(self.symbol_count, dtype, shape, False)
+    fn input(inout self, shape: TensorShape, trainable: Bool = False) -> Symbol:
+        var inp = Symbol(self.symbol_count, dtype, shape, trainable)
         self.inputs.append(inp)
         self.symbol_count += 1
         return inp
@@ -73,44 +73,19 @@ struct Graph:
     fn op(
         inout self,
         op: OP,
-        operand_1: Symbol,
-        operand_2: Optional[Symbol] = None,
-        operand_3: Optional[Symbol] = None,
+        *operands: Symbol,
         attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
-        var res: Symbol
-        if operand_3:
-            res = Symbol(
-                self.symbol_count,
-                dtype,
-                static_result_shape(
-                    op,
-                    operand_1.shape,
-                    operand_2.value().shape,
-                    operand_3.value().shape,
-                    attributes,
-                ),
-                self.result_trainable(operand_1, operand_2.value(), operand_3.value()),
-            )
-        elif operand_2:
-            res = Symbol(
-                self.symbol_count,
-                dtype,
-                static_result_shape(
-                    op, operand_1.shape, operand_2.value().shape, attributes
-                ),
-                self.result_trainable(operand_1, operand_2.value()),
-            )
-        else:
-            res = Symbol(
-                self.symbol_count,
-                dtype,
-                static_result_shape(op, operand_1.shape, attributes),
-                self.result_trainable(operand_1),
-            )
-
-        self.nodes.append(Node(op, res, operand_1, operand_2, operand_3, attributes))
+        var res_shape = static_result_shape(op, operands, attributes)
+        var res = Symbol(
+            self.symbol_count, dtype, res_shape, self.result_trainable(operands)
+        )
         self.symbol_count += 1
+
+        var inputs = List[Symbol]()
+        for operand in operands:
+            inputs.append(operand)
+        self.nodes.append(Node(op, inputs, List[Symbol](res), attributes))
         return res
 
     fn op(
@@ -121,20 +96,7 @@ struct Graph:
         attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
         var operand_2_symbol = self.scalar(operand_2)
-        var res = Symbol(
-            self.symbol_count,
-            dtype,
-            static_result_shape(
-                op, operand_1.shape, operand_2_symbol.shape, attributes
-            ),
-            self.result_trainable(operand_1),
-        )
-
-        self.nodes.append(
-            Node(op, res, operand_1, operand_2_symbol, attributes=attributes)
-        )
-        self.symbol_count += 1
-        return res
+        return self.op(op, operand_1, operand_2_symbol, attributes=attributes)
 
     fn op(
         inout self,
@@ -144,34 +106,49 @@ struct Graph:
         attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
         var operand_1_symbol = self.scalar(operand_1)
-        var res = Symbol(
-            self.symbol_count,
-            dtype,
-            static_result_shape(
-                op, operand_1_symbol.shape, operand_2.shape, attributes
-            ),
-            self.result_trainable(operand_2),
-        )
+        return self.op(op, operand_1_symbol, operand_2, attributes=attributes)
 
-        self.nodes.append(
-            Node(op, res, operand_1_symbol, operand_2, attributes=attributes)
+    # Dynamic ops
+    fn concat(inout self, *operands: Symbol, dim: Int = 0) -> Symbol:
+        # NOTE: Concat could fit into g.op() given a different static_result_shape is called
+        var attributes = AttributeVector(Attribute("dim", dim))
+
+        var res_shape = dynamic_result_shape(OP.CONCAT, operands, attributes)[0]
+        var res = Symbol(
+            self.symbol_count, dtype, res_shape, self.result_trainable(operands)
         )
         self.symbol_count += 1
+
+        var inputs = List[Symbol]()
+        for operand in operands:
+            inputs.append(operand)
+        self.nodes.append(Node(OP.CONCAT, inputs, List[Symbol](res), attributes))
         return res
 
-    @staticmethod
-    fn result_trainable(operand_1: Symbol) -> Bool:
-        return operand_1.trainable
+    fn split(
+        inout self, operand: Symbol, sections: List[Int], dim: Int = 0
+    ) -> List[Symbol]:
+        var attributes = AttributeVector(
+            Attribute("sections", TensorShape(sections)), Attribute("dim", dim)
+        )
+        var res_shapes = dynamic_result_shape(OP.SPLIT, operand, attributes)
+        var trainable = self.result_trainable(operand)
+
+        var results = List[Symbol]()
+        for i in range(len(res_shapes)):
+            var symbol = Symbol(self.symbol_count, dtype, res_shapes[i], trainable)
+            results.append(symbol)
+            self.symbol_count += 1
+
+        self.nodes.append(Node(OP.SPLIT, List[Symbol](operand), results, attributes))
+        return results
 
     @staticmethod
-    fn result_trainable(operand_1: Symbol, operand_2: Symbol) -> Bool:
-        return operand_1.trainable or operand_2.trainable
-
-    @staticmethod
-    fn result_trainable(
-        operand_1: Symbol, operand_2: Symbol, operand_3: Symbol
-    ) -> Bool:
-        return operand_1.trainable or operand_2.trainable or operand_3.trainable
+    fn result_trainable(operands: VariadicList[Symbol]) -> Bool:
+        for operand in operands:
+            if operand.trainable:
+                return True
+        return False
 
     fn json(self) -> String:
         var result: String = '{"graph_name": "basalt", "nodes": ['

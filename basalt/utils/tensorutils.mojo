@@ -401,6 +401,12 @@ fn broadcast_elwise_op[
 
 
 @always_inline
+fn accumulate_grad(inout grad: Tensor[dtype], res_grad: Tensor[dtype]):
+    # Accumulate gradient without checking for broadcasting
+    elwise_op[add](grad, grad, res_grad)
+
+
+@always_inline
 fn accumulate_grad[
     grad_shape: TensorShape, res_grad_shape: TensorShape
 ](inout grad: Tensor[dtype], res_grad: Tensor[dtype]):

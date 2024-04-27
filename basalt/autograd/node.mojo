@@ -10,26 +10,20 @@ from .attributes import AttributeVector
 @value
 struct Node(CollectionElement, Stringable):
     var operator: OP
-    var output: Symbol
-    var input_1: Symbol
-    var input_2: Optional[Symbol]
-    var input_3: Optional[Symbol]
+    var inputs: List[Symbol]
+    var outputs: List[Symbol]
     var attributes: AttributeVector
 
     fn __init__(
         inout self,
         operator: OP,
-        output: Symbol,
-        input_1: Symbol,
-        input_2: Optional[Symbol] = None,
-        input_3: Optional[Symbol] = None,
+        inputs: List[Symbol],
+        outputs: List[Symbol],
         attributes: AttributeVector = AttributeVector(),
     ):
         self.operator = operator
-        self.output = output
-        self.input_1 = input_1
-        self.input_2 = input_2
-        self.input_3 = input_3
+        self.inputs = inputs
+        self.outputs = outputs
         self.attributes = attributes
 
     fn __str__(self) -> String:
@@ -37,11 +31,14 @@ struct Node(CollectionElement, Stringable):
 
     fn json(self) -> String:
         var s: String = '{"operator": "' + str(self.operator.name) + '", "inputs": ['
-        s += self.input_1.json()
-        if self.input_2:
-            s += ", " + self.input_2.value().json()
-        if self.input_3:
-            s += ", " + self.input_3.value().json()
+        for i in range(len(self.inputs)):
+            s += self.inputs[i].json()
+            if i < len(self.inputs) - 1:
+                s += ", "
         s += '], "outputs": ['
-        s += self.output.json() + "]}"
+        for i in range(len(self.outputs)):
+            s += self.outputs[i].json()
+            if i < len(self.outputs) - 1:
+                s += ", "
+        s += "]}"
         return s

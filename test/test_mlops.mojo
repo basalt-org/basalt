@@ -11,38 +11,18 @@ from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUE
 from basalt.utils.tensorutils import fill
 from basalt.autograd.attributes import AttributeVector, Attribute
 
+from test_utils_extras import (
+    test_unary_op,
+    test_binary_op,
+    test_unary_op_backward,
+    test_binary_op_backward,
+)
 
 alias dtype = DType.float32
 alias nelts: Int = simdwidthof[dtype]()
 
 
 # ------ Test Unary Ops ------
-fn test_unary_op[
-    op: OP, t1_shape: TensorShape, attrs: OptionalReg[AttributeVector] = None
-](t1: Tensor[dtype], expected: Tensor[dtype]) raises:
-    fn create_graph() -> Graph:
-        var g = Graph()
-        var t1 = g.input(t1_shape)
-
-        var res: Symbol
-        if attrs:
-            res = g.op(op, t1, attributes=attrs.value())
-        else:
-            res = g.op(op, t1)
-
-        g.out(res)
-
-        return g ^
-
-    alias graph = create_graph()
-    assert_equal(len(graph.nodes), 1)
-
-    var model = nn.Model[graph](inference_only=True)
-    var res = model.inference(t1)[0]
-
-    assert_tensors_equal(res, expected)
-
-
 fn test_SIGMOID() raises:
     alias t1_shape = TensorShape(2, 3)
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)  # filled with zeroes
@@ -65,8 +45,7 @@ fn test_backward_SIGMOID() raises:
         expected_grad, 5.0 * 0.25
     )  # 0.25 = d(sigmoid(0))/dx = sigmoid(0) * (1 - sigmoid(0))
 
-    var grad = SIGMOID.backward[ug_shape, t1_shape](ug, t1)
-    assert_tensors_equal(grad, expected_grad)
+    test_unary_op_backward[OP.SIGMOID, t1_shape, ug_shape](t1, ug, expected_grad)
 
 
 fn test_RELU() raises:
@@ -104,8 +83,7 @@ fn test_backward_RELU() raises:
     for i in range(3, 6):
         expected_grad[i] = 0 * 5.0  # 0 = d(relu(-3))/dx
 
-    var grad = RELU.backward[ug_shape, t1_shape](ug, t1)
-    assert_tensors_equal(grad, expected_grad)
+    test_unary_op_backward[OP.RELU, t1_shape, ug_shape](t1, ug, expected_grad)
 
 
 fn test_TANH() raises:
@@ -128,8 +106,7 @@ fn test_backward_TANH() raises:
     var expected_grad = Tensor[dtype](2, 3)
     fill(expected_grad, 5.0 * 1.0)  # 1.0 = d(tanh(0))/dx = 1 - tanh(0)^2
 
-    var grad = TANH.backward[ug_shape, t1_shape](ug, t1)
-    assert_tensors_equal(grad, expected_grad)
+    test_unary_op_backward[OP.TANH, t1_shape, ug_shape](t1, ug, expected_grad)
 
 
 fn test_CLIP() raises:
@@ -182,28 +159,26 @@ fn test_backward_CLIP() raises:
 
     # Clip without min and max
     var expected_no = ug
-    var grad_no = CLIP.backward[ug_shape, t1_shape](ug, t1)
-    assert_tensors_equal(grad_no, expected_no)
+    test_unary_op_backward[OP.CLIP, t1_shape, ug_shape](t1, ug, expected_no)
 
     # Clip with min
-    alias min_attr = Attribute("min", -1.1)
+    alias min_attr = AttributeVector(Attribute("min", -1.1))
     var expected_min = Tensor[dtype](2, 3)
     for i in range(6):
         var val = Scalar[dtype](i - 3)
         expected_min[i] = 5.0 if (val > -1.1) else 0.0
-    var grad_min = CLIP.backward[ug_shape, t1_shape, AttributeVector(min_attr)](ug, t1)
-    assert_tensors_equal(grad_min, expected_min)
+    test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, min_attr](t1, ug, expected_min)
 
     # Clip with max
-    alias max_attr = Attribute("max", 1.1)
+    alias max_attr = AttributeVector(Attribute("max", 1.1))
     var expected_max = Tensor[dtype](2, 3)
     for i in range(6):
         var val = Scalar[dtype](i - 3)
         expected_max[i] = 5.0 if (val < 1.1) else 0.0
-    var grad_max = CLIP.backward[ug_shape, t1_shape, AttributeVector(max_attr)](ug, t1)
-    assert_tensors_equal(grad_max, expected_max)
+    test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, max_attr](t1, ug, expected_max)
 
     # Clip with min and max
+    alias attrs = AttributeVector(Attribute("min", -1.1), Attribute("max", 1.1))
     var expected = Tensor[dtype](2, 3)
     for i in range(6):
         var val = Scalar[dtype](i - 3)
@@ -211,10 +186,7 @@ fn test_backward_CLIP() raises:
             expected[i] = 0.0
         else:
             expected[i] = 5.0
-    var grad = CLIP.backward[ug_shape, t1_shape, AttributeVector(min_attr, max_attr)](
-        ug, t1
-    )
-    assert_tensors_equal(grad, expected)
+    test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, attrs](t1, ug, expected)
 
 
 fn test_SQUEEZE() raises:
@@ -230,16 +202,22 @@ fn test_SQUEEZE() raises:
     # Test with one dim
     expected = Tensor[dtype](1, 2, 1, 3)
     fill(expected, 5.0)
-    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(4)))](t1, expected)
+    test_unary_op[
+        OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(4)))
+    ](t1, expected)
 
     expected = Tensor[dtype](1, 2, 3, 1)
     fill(expected, 5.0)
-    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(2)))](t1, expected)
+    test_unary_op[
+        OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(2)))
+    ](t1, expected)
 
     # Test with multiple dims
     expected = Tensor[dtype](1, 2, 3)
     fill(expected, 5.0)
-    test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(2, 4)))](t1, expected)
+    test_unary_op[
+        OP.SQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(2, 4)))
+    ](t1, expected)
 
 
 fn test_backward_SQUEEZE() raises:
@@ -253,8 +231,7 @@ fn test_backward_SQUEEZE() raises:
     var expected_grad = Tensor[dtype](2, 1, 3, 1)
     fill(expected_grad, 5.0)
 
-    var grad = SQUEEZE.backward[ug_shape, t1_shape](ug, t1)
-    assert_tensors_equal(grad, expected_grad)
+    test_unary_op_backward[OP.SQUEEZE, t1_shape, ug_shape](t1, ug, expected_grad)
 
 
 fn test_UNSQUEEZE() raises:
@@ -265,20 +242,28 @@ fn test_UNSQUEEZE() raises:
 
     var expected = Tensor[dtype](2, 1, 3, 1)
     fill(expected, 5.0)
-    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(1, 3)))](t1, expected)
+    test_unary_op[
+        OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(1, 3)))
+    ](t1, expected)
 
     expected = Tensor[dtype](2, 1, 3)
     fill(expected, 5.0)
 
-    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(1)))](t1, expected)
+    test_unary_op[
+        OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(1)))
+    ](t1, expected)
 
     expected = Tensor[dtype](1, 2, 3)
     fill(expected, 5.0)
-    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(-3)))](t1, expected)
+    test_unary_op[
+        OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(-3)))
+    ](t1, expected)
 
     expected = Tensor[dtype](2, 1, 3, 1)
     fill(expected, 5.0)
-    test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(-1, -3)))](t1, expected)
+    test_unary_op[
+        OP.UNSQUEEZE, t1_shape, AttributeVector(Attribute("dims", TensorShape(-1, -3)))
+    ](t1, expected)
 
 
 fn test_backward_UNSQUEEZE() raises:
@@ -292,8 +277,7 @@ fn test_backward_UNSQUEEZE() raises:
     var expected_grad = Tensor[dtype](2, 3)
     fill(expected_grad, 5.0)
 
-    var grad = UNSQUEEZE.backward[ug_shape, t1_shape](ug, t1)
-    assert_tensors_equal(grad, expected_grad)
+    test_unary_op_backward[OP.UNSQUEEZE, t1_shape, ug_shape](t1, ug, expected_grad)
 
 
 fn main():

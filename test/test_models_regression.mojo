@@ -54,8 +54,7 @@ fn run_mojo[
     )
 
     var model = nn.Model[graph]()
-    var optim = nn.optim.Adam[graph](lr=learning_rate)
-    optim.allocate_rms_and_momentum(model.parameters)
+    var optim = nn.optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
 
     var losses = List[SIMD[dtype, 1]]()
 
@@ -63,9 +62,9 @@ fn run_mojo[
         var loss = model.forward(inputs, labels)
 
         # Backward pass
-        optim.zero_grad(model.parameters)
+        optim.zero_grad()
         model.backward()
-        optim.step(model.parameters)
+        optim.step()
 
         losses.append(loss[0])
 
