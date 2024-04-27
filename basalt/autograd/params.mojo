@@ -8,36 +8,36 @@ from .attributes import Attribute
 
 @value
 struct Param(CollectionElement, Stringable):
-    var data: Optional[List[SIMD[dtype, 1]]]
+    var data: Optional[List[Scalar[dtype]]]
     var initializer: Optional[Attribute]
 
     fn __init__(inout self):
         self.data = None
         self.initializer = None
 
-    fn __init__(inout self, data: List[SIMD[dtype, 1]]):
+    fn __init__(inout self, data: List[Scalar[dtype]]):
         self.data = data
         self.initializer = None
 
-    fn __init__(inout self, a: SIMD[dtype, 1]):
-        var data = List[SIMD[dtype, 1]]()
+    fn __init__(inout self, a: Scalar[dtype]):
+        var data = List[Scalar[dtype]]()
         data.append(a)
         self.data = data
         self.initializer = None
 
-    fn __init__(inout self, initializer: String, *args: SIMD[dtype, 1]):
+    fn __init__(inout self, initializer: String, *args: Scalar[dtype]):
         # Supported initializers:
         #   "random_uniform", lower_bound, upper_bound
         #   "random_normal", mean, std
         #   #TODO: "kaiming_uniform", mode, nonlinearity
         #   #TODO: "kaiming_normal", mode, nonlinearity
         self.initializer = Attribute("initializer", initializer)
-        var data = List[SIMD[dtype, 1]]()
+        var data = List[Scalar[dtype]]()
         for arg in args:
             data.append(arg)
         self.data = data
 
-    fn __getitem__(self, i: Int) -> Optional[SIMD[dtype, 1]]:
+    fn __getitem__(self, i: Int) -> Optional[Scalar[dtype]]:
         if self.data:
             return self.data.value()[i]
         else:

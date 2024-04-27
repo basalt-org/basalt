@@ -6,7 +6,7 @@ from basalt.utils.rand_utils import rand_normal, rand_uniform
 
 
 fn initialize_tensor(
-    shape: TensorShape, type: String, data: List[SIMD[dtype, 1]]
+    shape: TensorShape, type: String, data: List[Scalar[dtype]]
 ) -> Tensor[dtype]:
     if type == "random_uniform":
         var low = data[0]
@@ -35,7 +35,7 @@ fn initialize_tensor(
         return Tensor[dtype]()
 
 
-fn calculate_fan(shape: TensorShape, mode: String) -> SIMD[dtype, 1]:
+fn calculate_fan(shape: TensorShape, mode: String) -> Scalar[dtype]:
     """
     Calculate the fan-in and fan-out of any tensor.
     """

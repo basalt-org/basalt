@@ -131,21 +131,21 @@ fn find_nth(s: String, delimiter: String, n: Int) -> Int:
     return -1
 
 
-fn cast_string[dtype: DType](s: String) raises -> SIMD[dtype, 1]:
+fn cast_string[dtype: DType](s: String) raises -> Scalar[dtype]:
     """
     Cast a string with decimal to a SIMD vector of dtype.
     """
 
     var idx = find_first(s, delimiter=".")
-    var x: SIMD[dtype, 1] = -1
+    var x: Scalar[dtype] = -1
 
     if idx == -1:
         # No decimal point
         x = atol(s)
         return x
     else:
-        var c_int: SIMD[dtype, 1]
-        var c_frac: SIMD[dtype, 1]
+        var c_int: Scalar[dtype]
+        var c_frac: Scalar[dtype]
         c_int = atol(s[:idx])
         c_frac = atol(s[idx + 1 :])
         x = c_int + c_frac / (10 ** len(s[idx + 1 :]))

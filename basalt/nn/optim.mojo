@@ -28,10 +28,10 @@ struct Adam[
 ]:
     var parameters: Reference[Parameters, mutability, lifetime]
 
-    var lr: SIMD[dtype, 1]
-    var beta1: SIMD[dtype, 1]
-    var beta2: SIMD[dtype, 1]
-    var epsilon: SIMD[dtype, 1]
+    var lr: Scalar[dtype]
+    var beta1: Scalar[dtype]
+    var beta2: Scalar[dtype]
+    var epsilon: Scalar[dtype]
     var iter: Int
 
     var rms_grads: Collection
@@ -40,10 +40,10 @@ struct Adam[
     fn __init__(
         inout self,
         parameters: Reference[Parameters, mutability, lifetime],
-        lr: SIMD[dtype, 1] = 0.001,
-        beta1: SIMD[dtype, 1] = 0.9,
-        beta2: SIMD[dtype, 1] = 0.999,
-        epsilon: SIMD[dtype, 1] = 1e-8,
+        lr: Scalar[dtype] = 0.001,
+        beta1: Scalar[dtype] = 0.9,
+        beta2: Scalar[dtype] = 0.999,
+        epsilon: Scalar[dtype] = 1e-8,
     ):
         self.parameters = parameters
 

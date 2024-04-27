@@ -48,7 +48,7 @@ struct Graph:
         self.symbol_count += 1
         return param_id
 
-    fn scalar(inout self, value: SIMD[dtype, 1]) -> Symbol:
+    fn scalar(inout self, value: Scalar[dtype]) -> Symbol:
         var scal = Param(value)
         var scalar_id = Symbol(
             self.symbol_count, dtype, TensorShape(1), trainable=False
@@ -57,7 +57,7 @@ struct Graph:
         self.symbol_count += 1
         return scalar_id
 
-    fn constant(inout self, shape: TensorShape, data: List[SIMD[dtype, 1]]) -> Symbol:
+    fn constant(inout self, shape: TensorShape, data: List[Scalar[dtype]]) -> Symbol:
         var cst = Param(data)
         var constant_id = Symbol(self.symbol_count, dtype, shape, trainable=False)
         self.params.put(constant_id, cst)
