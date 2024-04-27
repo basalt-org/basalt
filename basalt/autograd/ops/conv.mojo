@@ -311,7 +311,7 @@ struct CONV2D:
 
                     # TODO: Cant vectorize since you are going different directions across input and upper grad
                     # But theoretically could transpose or split somehow
-                    var result: SIMD[dtype, 1] = 0
+                    var result: Scalar[dtype] = 0
                     for batch in range(input_shape_0):
                         for ux in range(ug_shape_2):
                             for uy in range(ug_shape_3):
@@ -351,7 +351,7 @@ struct CONV2D:
             @parameter
             fn bias_grad(out_ch: Int):
                 var channel_offset = out_ch * ug_strides_1
-                var sum: SIMD[dtype, 1] = 0
+                var sum: Scalar[dtype] = 0
                 for batch in range(ug_shape_0):
                     var batch_offset = batch * ug_strides_0 + channel_offset
 

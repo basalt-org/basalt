@@ -9,7 +9,7 @@ from basalt.nn.tensor import MAX_RANK
 
 
 @always_inline
-fn fill[dtype: DType](inout t: Tensor[dtype], val: SIMD[dtype, 1]):
+fn fill[dtype: DType](inout t: Tensor[dtype], val: Scalar[dtype]):
     @parameter
     fn fill_vec[nelts: Int](idx: Int):
         t.store[nelts](idx, t.load[nelts](idx).splat(val))
@@ -349,7 +349,7 @@ fn elwise_op[
     func: fn[dtype: DType, nelts: Int] (
         x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]
     ) -> SIMD[dtype, nelts],
-](inout res: Tensor[dtype], t1: Tensor[dtype], a: SIMD[dtype, 1]):
+](inout res: Tensor[dtype], t1: Tensor[dtype], a: Scalar[dtype]):
     """Element-wise operation on a tensor and a scalar."""
 
     @parameter
@@ -364,7 +364,7 @@ fn elwise_op[
     func: fn[dtype: DType, nelts: Int] (
         x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]
     ) -> SIMD[dtype, nelts],
-](inout res: Tensor[dtype], a: SIMD[dtype, 1], t1: Tensor[dtype]):
+](inout res: Tensor[dtype], a: Scalar[dtype], t1: Tensor[dtype]):
     """Element-wise operation on a tensor and a scalar."""
 
     @parameter
@@ -485,7 +485,7 @@ fn reduce[
     reduce_op: fn[type: DType, simd_width: Int] (x: SIMD[type, simd_width]) -> SIMD[
         type, 1
     ],
-](t: Tensor[dtype], starting_value: SIMD[dtype, nelts]) -> SIMD[dtype, 1]:
+](t: Tensor[dtype], starting_value: Scalar[dtype, nelts]) -> SIMD[dtype]:
     var m: SIMD[dtype, nelts] = starting_value
 
     @parameter
@@ -560,25 +560,25 @@ fn reduce[
 @always_inline
 fn _reduce_sum[
     type: DType, simd_width: Int
-](x: SIMD[type, simd_width]) -> SIMD[type, 1]:
+](x: Scalar[type, simd_width]) -> SIMD[type]:
     return x.reduce_add()
 
 
 @always_inline
-fn tsum(t: Tensor[dtype]) -> SIMD[dtype, 1]:
+fn tsum(t: Tensor[dtype]) -> Scalar[dtype]:
     var starting_value = 0
     return reduce[add, _reduce_sum](t, starting_value)
 
 
 @always_inline
-fn tmean(t: Tensor[dtype]) -> SIMD[dtype, 1]:
+fn tmean(t: Tensor[dtype]) -> Scalar[dtype]:
     return tsum(t) / t.num_elements()
 
 
 @always_inline
-fn tstd(t: Tensor[dtype]) -> SIMD[dtype, 1]:
-    var mu: SIMD[dtype, 1] = tmean(t)
-    var variance: SIMD[dtype, 1] = 0
+fn tstd(t: Tensor[dtype]) -> Scalar[dtype]:
+    var mu: Scalar[dtype] = tmean(t)
+    var variance: Scalar[dtype] = 0
 
     @parameter
     fn vecvar[nelts: Int](idx: Int):
@@ -598,7 +598,7 @@ fn tsum(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 
 @always_inline
 fn tmean(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
-    var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)
+    var num_elements_axis: Scalar[dtype] = t.dim(axis)
     tsum(res, t, axis)
     elwise_op[div](res, res, num_elements_axis)
 
@@ -608,7 +608,7 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
     var mu = Tensor[dtype](get_reduce_shape(t.shape(), axis))
     tmean(mu, t, axis)
 
-    var num_elements_axis: SIMD[dtype, 1] = t.dim(axis)
+    var num_elements_axis: Scalar[dtype] = t.dim(axis)
     var strides = t.strides()
     var strides_mu = mu.strides()
 
@@ -654,12 +654,12 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 @always_inline
 fn _reduce_max[
     type: DType, simd_width: Int
-](x: SIMD[type, simd_width]) -> SIMD[type, 1]:
+](x: Scalar[type, simd_width]) -> SIMD[type]:
     return x.reduce_max()
 
 
 @always_inline
-fn tmax(t: Tensor[dtype]) -> SIMD[dtype, 1]:
+fn tmax(t: Tensor[dtype]) -> Scalar[dtype]:
     var starting_value = math.limit.min_finite[dtype]()
     return reduce[max, _reduce_max](t, starting_value)
 

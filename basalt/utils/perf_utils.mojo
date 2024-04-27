@@ -110,7 +110,7 @@ struct PerfMetrics:
         else:
             print("\n\nBackward pass performance metrics:")
 
-        var total_time: SIMD[DType.float64, 1] = 0
+        var total_time: Scalar[DType.float64] = 0
 
         var size: Int = 0
 

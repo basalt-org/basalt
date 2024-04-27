@@ -73,7 +73,7 @@ fn test_MSE_imperfect() raises:
 
     var loss = model.inference(y_pred, y_true)[0]
 
-    var expected_loss: SIMD[dtype, 1] = 0.0
+    var expected_loss: Scalar[dtype] = 0.0
 
     for i in range(10):
         expected_loss += (y_pred[i] - y_true[i]) ** 2

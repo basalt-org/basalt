@@ -152,7 +152,7 @@ struct DIV:
 
             @parameter
             if is_scalar:
-                var factor: SIMD[dtype, 1] = -1.0 / (t2[0] ** 2)
+                var factor: Scalar[dtype] = -1.0 / (t2[0] ** 2)
 
                 @parameter
                 fn vec_div_bw_scalar[nelts: Int](i: Int):
@@ -440,7 +440,7 @@ struct MEAN:
         # d(mean(t)) / dt = 1 / t.num_elements()
         var res_grad = Tensor[dtype](t_shape)
 
-        var grad: SIMD[dtype, 1] = 1.0 / t_shape.num_elements()
+        var grad: Scalar[dtype] = 1.0 / t_shape.num_elements()
 
         grad = (
             grad * ug[0]
@@ -462,7 +462,7 @@ struct MEAN:
         # d(mean(t)) / dt = 1 / t.dim(axis)
         var res_grad = Tensor[dtype](t_shape)
 
-        var grad: SIMD[dtype, 1] = 1.0 / t_shape[axis]
+        var grad: Scalar[dtype] = 1.0 / t_shape[axis]
 
         fill(res_grad, grad)
 
@@ -528,7 +528,7 @@ struct MAX:
 
         # ug_shape size is 1
         var max_res = tmax(t)
-        var sum_eq: SIMD[dtype, 1] = 0
+        var sum_eq: Scalar[dtype] = 0
         for i in range(t.num_elements()):
             if t[i] == max_res:
                 sum_eq += 1
@@ -562,7 +562,7 @@ struct MAX:
                 strides[axis] * t.dim(axis)
             )
 
-            var count_1s: SIMD[dtype, 1] = 0
+            var count_1s: Scalar[dtype] = 0
             # Count the number of values equal to max_res
             for j in range(t.dim(axis)):
                 var index = index_base + j * strides[axis]

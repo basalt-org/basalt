@@ -12,12 +12,12 @@ from test_conv import to_numpy, to_tensor
 
 fn create_CNN(
     batch_size: Int,
-    conv1_weights: List[SIMD[dtype, 1]],
-    conv1_bias: List[SIMD[dtype, 1]],
-    conv2_weights: List[SIMD[dtype, 1]],
-    conv2_bias: List[SIMD[dtype, 1]],
-    linear1_weights: List[SIMD[dtype, 1]],
-    linear1_bias: List[SIMD[dtype, 1]],
+    conv1_weights: List[Scalar[dtype]],
+    conv1_bias: List[Scalar[dtype]],
+    conv2_weights: List[Scalar[dtype]],
+    conv2_bias: List[Scalar[dtype]],
+    linear1_weights: List[Scalar[dtype]],
+    linear1_bias: List[Scalar[dtype]],
 ) -> Graph:
     var g = Graph()
     var x = g.input(TensorShape(batch_size, 1, 28, 28))
@@ -89,18 +89,18 @@ fn create_CNN(
 
 fn run_mojo[
     batch_size: Int,
-    conv1_weights: List[SIMD[dtype, 1]],
-    conv1_bias: List[SIMD[dtype, 1]],
-    conv2_weights: List[SIMD[dtype, 1]],
-    conv2_bias: List[SIMD[dtype, 1]],
-    linear1_weights: List[SIMD[dtype, 1]],
-    linear1_bias: List[SIMD[dtype, 1]],
+    conv1_weights: List[Scalar[dtype]],
+    conv1_bias: List[Scalar[dtype]],
+    conv2_weights: List[Scalar[dtype]],
+    conv2_bias: List[Scalar[dtype]],
+    linear1_weights: List[Scalar[dtype]],
+    linear1_bias: List[Scalar[dtype]],
 ](
     epochs: Int,
     learning_rate: Float64,
     inputs: Tensor[dtype],
     labels: Tensor[dtype],
-) -> List[SIMD[dtype, 1]]:
+) -> List[Scalar[dtype]]:
     alias graph = create_CNN(
         batch_size,
         conv1_weights,
@@ -114,7 +114,7 @@ fn run_mojo[
     var model = nn.Model[graph]()
     var optim = nn.optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
 
-    var losses = List[SIMD[dtype, 1]]()
+    var losses = List[Scalar[dtype]]()
 
     for i in range(epochs):
         var loss = model.forward(inputs, labels)
@@ -140,8 +140,8 @@ fn run_torch(
     owned conv2_bias: Tensor,
     owned linear1_weights: Tensor,
     owned linear1_bias: Tensor,
-) -> List[SIMD[dtype, 1]]:
-    var out: List[SIMD[dtype, 1]] = List[SIMD[dtype, 1]]()
+) -> List[Scalar[dtype]]:
+    var out: List[Scalar[dtype]] = List[Scalar[dtype]]()
 
     try:
         var torch = Python.import_module("torch")
@@ -197,17 +197,17 @@ fn run_torch(
         return out
 
 
-fn create_weights(num_elements: Int, zero: Bool) -> List[SIMD[dtype, 1]]:
-    var weights = List[SIMD[dtype, 1]](capacity=num_elements)
+fn create_weights(num_elements: Int, zero: Bool) -> List[Scalar[dtype]]:
+    var weights = List[Scalar[dtype]](capacity=num_elements)
     for i in range(num_elements):
         if zero:
-            weights.append(SIMD[dtype, 1](0.0))
+            weights.append(Scalar[dtype](0.0))
         else:
-            weights.append(SIMD[dtype, 1](0.02))
+            weights.append(Scalar[dtype](0.02))
     return weights ^
 
 
-fn dv_to_tensor(dv: List[SIMD[dtype, 1]], shape: TensorShape) -> Tensor[dtype]:
+fn dv_to_tensor(dv: List[Scalar[dtype]], shape: TensorShape) -> Tensor[dtype]:
     var t = Tensor[dtype](shape)
     if t.num_elements() != len(dv):
         print("[WARNING] tensor and dv not the shame shape")

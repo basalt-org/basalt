@@ -153,7 +153,7 @@ fn test_elwise_tensor_tensor() raises:
 
 
 fn test_elwise_tensor_scalar() raises:
-    var a: SIMD[dtype, 1] = 2.0
+    var a: Scalar[dtype] = 2.0
     var t1 = Tensor[dtype](2, 10)
     fill(t1, 1.0)
     var result = Tensor[dtype](2, 10)
@@ -222,7 +222,7 @@ fn test_sum_mean_std() raises:
     assert_equal(tensor_mean, s / 20)
 
     var tensor_std = tstd(t)
-    var expected_std: SIMD[dtype, 1] = 0
+    var expected_std: Scalar[dtype] = 0
     for i in range(20):
         expected_std += (i + 1 - tensor_mean) ** 2
     expected_std = sqrt(expected_std / 20)
@@ -287,7 +287,7 @@ fn test_sum_mean_std_n() raises:
     assert_equal(tensor_mean, s / 60)
 
     var tensor_std = tstd(t)
-    var expected_std: SIMD[dtype, 1] = 0
+    var expected_std: Scalar[dtype] = 0
     for i in range(60):
         expected_std += (i + 1 - tensor_mean) ** 2
     expected_std = sqrt(expected_std / 60)

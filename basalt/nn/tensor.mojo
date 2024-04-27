@@ -139,11 +139,11 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
         self._shape = other._shape
 
     @always_inline("nodebug")
-    fn __getitem__(self, index: Int) -> SIMD[dtype, 1]:
+    fn __getitem__(self, index: Int) -> Scalar[dtype]:
         return self._data[index]
 
     @always_inline("nodebug")
-    fn __setitem__(self, index: Int, value: SIMD[dtype, 1]):
+    fn __setitem__(self, index: Int, value: Scalar[dtype]):
         self._data[index] = value
 
     @always_inline("nodebug")
