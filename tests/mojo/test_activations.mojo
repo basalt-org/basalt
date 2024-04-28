@@ -50,7 +50,7 @@ fn test_graph[
 
     var model = Model[graph](inference_only=True)
     var res = model.inference(input)[0]
-
+    
     assert_tensors_equal["almost"](res, expected)
     assert_equal(len(graph.nodes), nodes)
 
