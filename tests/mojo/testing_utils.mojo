@@ -2,11 +2,8 @@ from testing import assert_equal, assert_almost_equal
 from basalt.nn import Tensor
 from basalt import dtype
 
-fn assert_tensors_equal(
-    t1: Tensor[dtype], t2: Tensor[dtype], mode: String = "exact"
-) raises:
-    if mode != "exact" and mode != "almost":
-        raise "Mode must be either 'exact' or 'almost'"
+fn assert_tensors_equal[mode: String = "exact"](t1: Tensor[dtype], t2: Tensor[dtype]) raises:
+    constrained[mode == "exact" or mode == "almost", "Mode must be either 'exact' or 'almost'"]()
 
     assert_equal(t1.shape(), t2.shape(), "Tensor shape mismatch")
     

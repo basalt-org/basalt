@@ -2,215 +2,151 @@ from testing import assert_equal, assert_almost_equal
 from testing_utils import assert_tensors_equal
 
 from basalt import dtype, nelts
-from basalt.nn import Tensor, TensorShape, Model, Softmax, LogSoftmax, ReLU, Sigmoid, Tanh
-from basalt.autograd import Graph
+from basalt.nn import (
+    Tensor,
+    TensorShape,
+    Model,
+    Softmax,
+    LogSoftmax,
+    ReLU,
+    Sigmoid,
+    Tanh,
+)
+from basalt.autograd import Graph, Symbol
 from basalt.utils.tensorutils import fill
 
-fn test_SOFTMAX() raises:
-    alias x_shape = TensorShape(2, 3, 2)
+alias Activation = fn (inout g: Graph, input: Symbol) -> Symbol
+alias AxisActivation = fn (inout g: Graph, input: Symbol, axis: Int) -> Symbol
 
-    fn create_graph(axis: Int) -> Graph:
-        var g = Graph()
+fn create_graph[
+    shape: TensorShape,
+    func: AxisActivation,
+    axis: Int,
+]() -> Graph:
+    var g = Graph()
+    var x = g.input(shape)
+    var activation = func(g, x, axis)
+    g.out(activation)
+    return g ^
 
-        var x = g.input(x_shape)
 
-        var softmax = Softmax(g, x, axis)
+fn create_graph[
+    shape: TensorShape, func: Activation
+]() -> Graph:
+    var g = Graph()
+    var x = g.input(shape)
+    var activation = func(g, x)
+    g.out(activation)
+    return g ^
 
-        g.out(softmax)
 
-        return g ^
-
-    var x = Tensor[dtype](x_shape)
-
-    fill(x, 4)
-
-    # Test axis 0
-    alias graph = create_graph(0)
+fn test_graph[
+    shape: TensorShape,
+    func: AxisActivation,
+    nodes: Int,
+    axis: Int,
+](input: Tensor[dtype], expected: Tensor[dtype]) raises:
+    alias graph = create_graph[shape, func, axis]()
 
     var model = Model[graph](inference_only=True)
-    var res = model.inference(x)[0]
+    var res = model.inference(input)[0]
 
-    var expected = Tensor[dtype](x_shape)
+    assert_tensors_equal["almost"](res, expected)
+    assert_equal(len(graph.nodes), nodes)
+
+fn test_graph[
+    shape: TensorShape,
+    func: Activation,
+    nodes: Int,
+](input: Tensor[dtype], expected: Tensor[dtype]) raises:
+    alias graph = create_graph[shape, func]()
+
+    var model = Model[graph](inference_only=True)
+    var res = model.inference(input)[0]
+
+    assert_tensors_equal["almost"](res, expected)
+    assert_equal(len(graph.nodes), nodes)
+
+
+fn test_SOFTMAX() raises:
+    alias shape = TensorShape(2, 3, 2)
+    alias nodes = 5
+
+    var input = Tensor[dtype](shape)
+    fill(input, 4)
+
+    var expected = Tensor[dtype](shape)
 
     fill(expected, 0.5)
-
-    assert_tensors_equal(res, expected, "almost")
-
-    assert_equal(
-        len(graph.nodes), 5
-    )  # max_values, exp_values, sum_values, diff_max_values, result_div
-
-    # Test axis 1
-    alias graph_2 = create_graph(1)
-
-    var model_2 = Model[graph_2](inference_only=True)
-    res = model_2.inference(x)[0]
-
-    expected = Tensor[dtype](x_shape)
+    test_graph[shape, Softmax, nodes, 0](input, expected)
 
     fill(expected, 1.0 / 3.0)
-
-    assert_tensors_equal(res, expected, "almost")
-
-    # Test axis 2
-    alias graph_3 = create_graph(2)
-
-    var model_3 = Model[graph_3](inference_only=True)
-    res = model_3.inference(x)[0]
-
-    expected = Tensor[dtype](x_shape)
+    test_graph[shape, Softmax, nodes, 1](input, expected)
 
     fill(expected, 0.5)
-
-    assert_tensors_equal(res, expected, "almost")
+    test_graph[shape, Softmax, nodes, 2](input, expected)
 
 
 fn test_LOGSOFTMAX() raises:
-    alias x_shape = TensorShape(2, 3, 2)
+    alias shape = TensorShape(2, 3, 2)
+    alias nodes = 6
 
-    fn create_graph(axis: Int) -> Graph:
-        var g = Graph()
+    var input = Tensor[dtype](shape)
+    fill(input, 4)
 
-        var x = g.input(x_shape)
-
-        var logsoftmax = LogSoftmax(g, x, axis)
-
-        g.out(logsoftmax)
-
-        return g ^
-
-    var x = Tensor[dtype](x_shape)
-
-    fill(x, 4)
-
-    # Test axis 0
-    alias graph = create_graph(0)
-
-    var model = Model[graph](inference_only=True)
-    var res = model.inference(x)[0]
-
-    var expected = Tensor[dtype](x_shape)
+    var expected = Tensor[dtype](shape)
 
     fill(expected, -0.69314718)
-
-    assert_tensors_equal(res, expected, "almost")
-
-    assert_equal(
-        len(graph.nodes), 6
-    )  # max_values, exp_values, sum_values, diff_max_values, log_values, result_sub
-
-    # Test axis 1
-    alias graph_2 = create_graph(1)
-
-    var model_2 = Model[graph_2](inference_only=True)
-    res = model_2.inference(x)[0]
-
-    expected = Tensor[dtype](x_shape)
+    test_graph[shape, LogSoftmax, nodes, 0](input, expected)
 
     fill(expected, -1.09861231)
-
-    assert_tensors_equal(res, expected, "almost")
-
-    # Test axis 2
-    alias graph_3 = create_graph(2)
-
-    var model_3 = Model[graph_3](inference_only=True)
-    res = model_3.inference(x)[0]
-
-    expected = Tensor[dtype](x_shape)
+    test_graph[shape, LogSoftmax, nodes, 1](input, expected)
 
     fill(expected, -0.69314718)
-
-    assert_tensors_equal(res, expected, "almost")
+    test_graph[shape, LogSoftmax, nodes, 2](input, expected)
 
 
 fn test_RELU() raises:
-    alias x_shape = TensorShape(2, 3)
+    alias shape = TensorShape(2, 3)
+    alias nodes = 1
 
-    fn create_graph() -> Graph:
-        var g = Graph()
-        var x = g.input(x_shape)
-        var relu = ReLU(g, x)
-        g.out(relu)
-        return g ^
+    var input = Tensor[dtype](shape)
 
-    var x = Tensor[dtype](x_shape)
-    for i in range(3):
-        x[i] = 3
-    for i in range(3, 6):
-        x[i] = -3
+    for i in range(6):
+        input[i] = 3 if i < 3 else -3
 
-    alias graph = create_graph()
+    var expected = Tensor[dtype](shape)
 
-    var model = Model[graph](inference_only=True)
-    var res = model.inference(x)[0]
+    for i in range(6):
+        expected[i] = 3 if i < 3 else 0
 
-    var expected = Tensor[dtype](x_shape)
-    for i in range(3):
-        expected[i] = 3
-    for i in range(3, 6):
-        expected[i] = 0
-
-    assert_tensors_equal(res, expected, "almost")
-    assert_equal(len(graph.nodes), 1)
+    test_graph[shape, ReLU, nodes](input, expected)
 
 
 fn test_SIGMOID() raises:
-    alias x_shape = TensorShape(2, 3)
+    alias shape = TensorShape(2, 3)
+    alias nodes = 1
 
-    fn create_graph() -> Graph:
-        var g = Graph()
+    var input = Tensor[dtype](shape)
+    fill(input, 0)
 
-        var x = g.input(x_shape)
+    var expected = Tensor[dtype](shape)
 
-        var sigmoid = Sigmoid(g, x)
-
-        g.out(sigmoid)
-
-        return g ^
-
-    var x = Tensor[dtype](x_shape)
-    fill(x, 0)
-
-    alias graph = create_graph()
-
-    var model = Model[graph](inference_only=True)
-    var res = model.inference(x)[0]
-
-    var expected = Tensor[dtype](x_shape)
     fill(expected, 0.5)
-
-    assert_tensors_equal(res, expected, "almost")
-    assert_equal(len(graph.nodes), 1)
+    test_graph[shape, Sigmoid, nodes](input, expected)
 
 
 fn test_TANH() raises:
-    alias x_shape = TensorShape(2, 3)
+    alias shape = TensorShape(2, 3)
+    alias nodes = 1
 
-    fn create_graph() -> Graph:
-        var g = Graph()
+    var input = Tensor[dtype](shape)
+    fill(input, 0)
 
-        var x = g.input(x_shape)
+    var expected = Tensor[dtype](shape)
 
-        var tanh = Tanh(g, x)
-
-        g.out(tanh)
-
-        return g ^
-
-    var x = Tensor[dtype](x_shape)
-    fill(x, 0)
-
-    alias graph = create_graph()
-
-    var model = Model[graph](inference_only=True)
-    var res = model.inference(x)[0]
-
-    var expected = Tensor[dtype](x_shape)
     fill(expected, 0.0)
-
-    assert_tensors_equal(res, expected, "almost")
-    assert_equal(len(graph.nodes), 1)
+    test_graph[shape, Tanh, nodes](input, expected)
 
 
 fn main():
