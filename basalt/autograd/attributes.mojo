@@ -52,6 +52,8 @@ struct Attribute(Stringable, CollectionElement):
     var name: Bytes[MAX_NAME_CHARS]
     var data: Bytes[MAX_DATA_BYTES]
     var data_shape: StaticIntTuple[MAX_RANK]
+    var type: Bytes[MAX_NAME_CHARS]  # stringliteral
+    var size: Int
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: String):
@@ -59,6 +61,8 @@ struct Attribute(Stringable, CollectionElement):
         self.data = Bytes[MAX_DATA_BYTES](value)
         self.data_shape = StaticIntTuple[MAX_RANK]()
         self.data_shape[0] = len(value)
+        self.type = Bytes[MAX_NAME_CHARS]("string")
+        self.size = 1
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: TensorShape):
@@ -68,6 +72,8 @@ struct Attribute(Stringable, CollectionElement):
         self.data[0] = value.rank()
         for i in range(value.rank()):
             self.data_shape[i] = value._shape[i]
+        self.type = Bytes[MAX_NAME_CHARS]("shape")
+        self.size = value.rank()
 
     @always_inline("nodebug")
     fn __init__[N: Int](inout self, name: String, value: StaticIntTuple[N]):
@@ -76,6 +82,8 @@ struct Attribute(Stringable, CollectionElement):
         self.data_shape = StaticIntTuple[MAX_RANK]()
         for i in range(N):
             self.data_shape[i] = value[i]
+        self.type = Bytes[MAX_NAME_CHARS]("tuple[int]")
+        self.size = N
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Scalar):
@@ -93,6 +101,30 @@ struct Attribute(Stringable, CollectionElement):
             self.data[Index] = fbytes[Index]
 
         unroll[copy, f64_size]()
+
+        self.size = 1
+        if (
+            value.type == DType.int32
+            or value.type == DType.int64
+            or value.type == DType.int16
+            or value.type == DType.int8
+            or value.type == DType.uint32
+            or value.type == DType.uint64
+            or value.type == DType.uint16
+            or value.type == DType.uint8
+        ):
+            self.type = Bytes[MAX_NAME_CHARS]("int")
+        elif (
+            value.type == DType.float32
+            or value.type == DType.float64
+            or value.type == DType.float16
+            or value.type == DType.bfloat16
+        ):
+            self.type = Bytes[MAX_NAME_CHARS]("float")
+        elif value.type == DType.bool:
+            self.type = Bytes[MAX_NAME_CHARS]("bool")
+        else:
+            self.type = Bytes[MAX_NAME_CHARS]("int")
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Int):
@@ -138,3 +170,48 @@ struct Attribute(Stringable, CollectionElement):
     @always_inline("nodebug")
     fn to_int(self) -> Int:
         return self.to_scalar[DType.float64]().to_int()
+
+    fn json(self) -> String:
+        var result = '{"name": "' + str(self.name) + '", '
+
+        var type: String = ""
+        var value: String = ""
+
+        if str(self.type) == "string":
+            type = "STRING"
+            value = '"' + self.to_string() + '"'
+        elif str(self.type) == "shape":
+            type = "INTS"
+
+            var value_temp = self.to_shape()
+            value = "["
+            for i in range(value_temp.rank()):
+                value += str(value_temp._shape[i])
+                if i < value_temp.rank() - 1:
+                    value += ", "
+            value += "]"
+        elif str(self.type) == "tuple[int]":
+            type = "INTS"
+
+            var value_temp = self.to_static[MAX_RANK]()
+            value = "["
+            for i in range(self.size):
+                value += str(value_temp[i])
+                if i < self.size - 1:
+                    value += ", "
+            value += "]"
+        elif str(self.type) == "float":
+            type = "FLOAT"
+            value = str(self.to_scalar[DType.float64]())
+        elif str(self.type) == "int":
+            type = "INT"
+            value = str(self.to_int())
+        else:
+            type = "UNKNOWN"
+            value = "UNKNOWN"
+
+        print(self.type)
+
+        result += '"type": "' + type + '", ' + '"value": ' + value
+
+        return result + "}"

@@ -40,5 +40,10 @@ struct Node(CollectionElement, Stringable):
             s += self.outputs[i].json()
             if i < len(self.outputs) - 1:
                 s += ", "
+        s += '], "attributes": ['
+        for i in range(len(self.attributes)):
+            s += self.attributes[i].json()
+            if i < len(self.attributes) - 1:
+                s += ", "
         s += "]}"
         return s

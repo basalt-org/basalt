@@ -60,6 +60,28 @@ def create_onnx_graph_from_json(graph, type="node"):
             outputs=[output["name"] for output in node["outputs"]],
             name=f"{node['operator']}_node",
         )
+
+        # Process attributes
+        for attribute in node["attributes"]:
+            attr_type = 0
+            if attribute["type"] == "FLOAT":
+                attr_type = onnx.AttributeProto.FLOAT
+            elif attribute["type"] == "INT":
+                attr_type = onnx.AttributeProto.INT
+            elif attribute["type"] == "STRING":
+                attr_type = onnx.AttributeProto.STRING
+            elif attribute["type"] == "FLOATS":
+                attr_type = onnx.AttributeProto.FLOATS
+            elif attribute["type"] == "INTS":
+                attr_type = onnx.AttributeProto.INTS
+            else:
+                raise ValueError(f"Unsupported attribute type: {attribute['type']}")
+
+            onnx_attribute = helper.make_attribute(
+                        attribute["name"], attribute["value"], attr_type=attr_type
+                    )
+            onnx_node.attribute.append(onnx_attribute)
+
         nodes.append(onnx_node)
 
         # Process intermediates
