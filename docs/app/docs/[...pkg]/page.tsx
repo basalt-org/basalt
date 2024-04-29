@@ -1,6 +1,12 @@
 import ModuleCard from "@/components/module-card";
 import Sidebar from "@/components/sidebar";
-import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 import { findPackage } from "@/lib/docs";
 import React, { Fragment, useMemo } from "react";
 
@@ -20,7 +26,12 @@ export default function Package({ params }: { params: { pkg: string[] } }) {
             <Fragment key={pkg}>
               <BreadcrumbSeparator />
               <BreadcrumbItem>
-                <BreadcrumbLink href={generateHref(index)} className="capitalize">{pkg}</BreadcrumbLink>
+                <BreadcrumbLink
+                  href={generateHref(index)}
+                  className="capitalize"
+                >
+                  {pkg}
+                </BreadcrumbLink>
               </BreadcrumbItem>
             </Fragment>
           ))}
@@ -43,10 +54,7 @@ export default function Package({ params }: { params: { pkg: string[] } }) {
         <Sidebar pkg={pkg} />
         <div className="w-4/5 p-4 grid grid-cols-1 gap-4 translate-x-1/4">
           {modules.length > 0 &&
-            modules.map((mdl) => (
-                <ModuleCard mdl={mdl} key={mdl.name} />
-            ))
-          }
+            modules.map((mdl) => <ModuleCard mdl={mdl} key={mdl.name} />)}
         </div>
       </div>
     </main>
