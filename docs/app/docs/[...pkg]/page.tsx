@@ -1,3 +1,4 @@
+import ModuleCard from "@/components/module-card";
 import Sidebar from "@/components/sidebar";
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from "@/components/ui/breadcrumb";
 import { findPackage } from "@/lib/docs";
@@ -34,9 +35,20 @@ export default function Package({ params }: { params: { pkg: string[] } }) {
     return <div>Package not found</div>;
   }
 
+  const modules = pkg.modules || [];
+
   return (
     <main>
-      <Sidebar pkg={pkg} />
+      <div className="flex items-center h-full">
+        <Sidebar pkg={pkg} />
+        <div className="w-4/5 p-4 grid grid-cols-1 gap-4 translate-x-1/4">
+          {modules.length > 0 &&
+            modules.map((mdl) => (
+                <ModuleCard mdl={mdl} key={mdl.name} />
+            ))
+          }
+        </div>
+      </div>
     </main>
   );
 }
