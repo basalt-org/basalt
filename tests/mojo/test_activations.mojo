@@ -1,7 +1,7 @@
-from testing import assert_equal, assert_almost_equal
+from testing import assert_equal
 from testing_utils import assert_tensors_equal
 
-from basalt import dtype, nelts
+from basalt import dtype
 from basalt.nn import (
     Tensor,
     TensorShape,
