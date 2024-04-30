@@ -1,6 +1,7 @@
 import { Alias, Module, Struct, Function } from "@/lib/docs";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Separator } from "./ui/separator";
+import FunctionCard from "./function-card";
 
 const AliasValue = ({ alias }: { alias: Alias }) => (
   <span className="text-sm text-primary/90">
@@ -10,10 +11,6 @@ const AliasValue = ({ alias }: { alias: Alias }) => (
 
 const StructValue = ({ struct }: { struct: Struct }) => (
   <span className="text-sm text-primary/90">{struct.name}</span>
-);
-
-const FunctionValue = ({ func }: { func: Function }) => (
-  <span className="text-sm text-primary/90">{func.name}</span>
 );
 
 export default function ModuleCard({ mdl }: { mdl: Module }) {
@@ -53,7 +50,7 @@ export default function ModuleCard({ mdl }: { mdl: Module }) {
               <h2 className="text-md text-primary/90">Functions</h2>
               <Separator className="w-1/4" />
               {mdl.functions.map((func) => (
-                <FunctionValue func={func} key={func.name} />
+                <FunctionCard func={func} key={func.name} />
               ))}
             </div>
             <div className="p-4" />
