@@ -74,11 +74,11 @@ fn test_resize_collection() raises:
 
     c.append(t2 ^, s2)
     assert_equal(c.size, 2)
-    assert_equal(c.capacity, 2)  # current capacity * 2
+    assert_equal(c.capacity, 2)
 
     c.append(t3 ^, s3)
     assert_equal(c.size, 3)
-    assert_equal(c.capacity, 4)  # current capacity * 2
+    assert_equal(c.capacity, 4)
 
     var t1_expected = Tensor[dtype](s1.shape)
     var t2_expected = Tensor[dtype](s2.shape)
@@ -141,7 +141,6 @@ fn test_operate_on_reference() raises:
         some_operation[res_shape, t1_shape](c[sr], c[s1])
         fill(c[s1], i)
 
-        # Expected
         var res_expected = Tensor[dtype](res_shape)
         var t1_expected = Tensor[dtype](t1_shape)
         fill(res_expected, i - 1)
