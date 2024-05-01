@@ -61,6 +61,7 @@ fn load_onnx_data(
 
             var data = data_np.flatten()
 
+            # It would be better to use memcpy here
             for j in range(len(data)):
                 model_parameters.tensors[g.params.symbols[i]][j] = data[j].to_float64()
         else:

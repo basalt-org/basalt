@@ -10,6 +10,37 @@ alias MAX_NAME_CHARS = 16
 alias MAX_DATA_BYTES = 32
 
 
+@value
+@register_passable("trivial")
+struct AttributeType(Stringable):
+    """
+    Attributes type.
+    """
+
+    alias INT = AttributeType(0, "INT")
+    alias FLOAT = AttributeType(1, "FLOAT")
+    alias STRING = AttributeType(2, "STRING")
+    alias TENSOR_SHAPE = AttributeType(3, "TENSOR_SHAPE")
+    alias INTS = AttributeType(4, "INTS")
+    alias FLOATS = AttributeType(5, "FLOATS")
+    alias STRINGS = AttributeType(6, "STRINGS")
+    alias TENSOR = AttributeType(7, "TENSOR")
+    alias BOOL = AttributeType(8, "BOOL")
+
+    var id: UInt8
+    var name: Bytes[16]  # StringLiteral
+
+    fn __init__(inout self, id: UInt8, name: String):
+        self.id = id
+        self.name = Bytes[16](name)
+
+    fn __eq__(self, other: Self) -> Bool:
+        return self.id == other.id
+
+    fn __str__(self) -> String:
+        return str(self.name)
+
+
 @register_passable("trivial")
 struct AttributeVector(Sized, Stringable, CollectionElement):
     var attributes: StaticTuple[Attribute, MAX_ATTRS]
@@ -52,7 +83,7 @@ struct Attribute(Stringable, CollectionElement):
     var name: Bytes[MAX_NAME_CHARS]
     var data: Bytes[MAX_DATA_BYTES]
     var data_shape: StaticIntTuple[MAX_RANK]
-    var type: Bytes[MAX_NAME_CHARS]  # stringliteral
+    var type: AttributeType
     var size: Int
 
     @always_inline("nodebug")
@@ -61,7 +92,7 @@ struct Attribute(Stringable, CollectionElement):
         self.data = Bytes[MAX_DATA_BYTES](value)
         self.data_shape = StaticIntTuple[MAX_RANK]()
         self.data_shape[0] = len(value)
-        self.type = Bytes[MAX_NAME_CHARS]("string")
+        self.type = AttributeType.STRING
         self.size = 1
 
     @always_inline("nodebug")
@@ -72,7 +103,7 @@ struct Attribute(Stringable, CollectionElement):
         self.data[0] = value.rank()
         for i in range(value.rank()):
             self.data_shape[i] = value._shape[i]
-        self.type = Bytes[MAX_NAME_CHARS]("shape")
+        self.type = AttributeType.TENSOR_SHAPE
         self.size = value.rank()
 
     @always_inline("nodebug")
@@ -82,7 +113,7 @@ struct Attribute(Stringable, CollectionElement):
         self.data_shape = StaticIntTuple[MAX_RANK]()
         for i in range(N):
             self.data_shape[i] = value[i]
-        self.type = Bytes[MAX_NAME_CHARS]("tuple[int]")
+        self.type = AttributeType.INTS
         self.size = N
 
     @always_inline("nodebug")
@@ -113,18 +144,18 @@ struct Attribute(Stringable, CollectionElement):
             or value.type == DType.uint16
             or value.type == DType.uint8
         ):
-            self.type = Bytes[MAX_NAME_CHARS]("int")
+            self.type = AttributeType.INT
         elif (
             value.type == DType.float32
             or value.type == DType.float64
             or value.type == DType.float16
             or value.type == DType.bfloat16
         ):
-            self.type = Bytes[MAX_NAME_CHARS]("float")
+            self.type = AttributeType.FLOAT
         elif value.type == DType.bool:
-            self.type = Bytes[MAX_NAME_CHARS]("bool")
+            self.type = AttributeType.BOOL
         else:
-            self.type = Bytes[MAX_NAME_CHARS]("int")
+            self.type = AttributeType.INT
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Int):
@@ -177,10 +208,10 @@ struct Attribute(Stringable, CollectionElement):
         var type: String = ""
         var value: String = ""
 
-        if str(self.type) == "string":
+        if self.type == AttributeType.STRING:
             type = "STRING"
             value = '"' + self.to_string() + '"'
-        elif str(self.type) == "shape":
+        elif self.type == AttributeType.TENSOR_SHAPE:
             type = "INTS"
 
             var value_temp = self.to_shape()
@@ -190,7 +221,7 @@ struct Attribute(Stringable, CollectionElement):
                 if i < value_temp.rank() - 1:
                     value += ", "
             value += "]"
-        elif str(self.type) == "tuple[int]":
+        elif self.type == AttributeType.INTS:
             type = "INTS"
 
             var value_temp = self.to_static[MAX_RANK]()
@@ -200,17 +231,15 @@ struct Attribute(Stringable, CollectionElement):
                 if i < self.size - 1:
                     value += ", "
             value += "]"
-        elif str(self.type) == "float":
+        elif self.type == AttributeType.FLOAT:
             type = "FLOAT"
             value = str(self.to_scalar[DType.float64]())
-        elif str(self.type) == "int":
+        elif self.type == AttributeType.INT:
             type = "INT"
             value = str(self.to_int())
         else:
             type = "UNKNOWN"
             value = "UNKNOWN"
-
-        print(self.type)
 
         result += '"type": "' + type + '", ' + '"value": ' + value
 

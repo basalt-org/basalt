@@ -124,7 +124,7 @@ fn main():
     print("Training finished: ", (now() - start) / 1e9, "seconds")
     
     # Testing
-    print("Testing started/")
+    print("Testing started")
     start = now()
 
     var correct = 0
