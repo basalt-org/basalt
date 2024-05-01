@@ -122,5 +122,39 @@ fn main():
         print("Epoch time: ", (now() - epoch_start) / 1e9, "seconds")
 
     print("Training finished: ", (now() - start) / 1e9, "seconds")
+    
+    # Testing
+    print("Testing started/")
+    start = now()
+
+    var correct = 0
+    for batch in training_loader:
+        var labels_one_hot = Tensor[dtype](batch.labels.dim(0), 10)
+        for bb in range(batch.labels.dim(0)):
+            labels_one_hot[(bb * 10 + batch.labels[bb]).to_int()] = 1.0
+
+        var output = model.inference(batch.data, labels_one_hot)[0]
+        
+        fn argmax(tensor: Tensor[dtype], dim: Int) -> Tensor[dtype]:
+            var result = Tensor[dtype](tensor.dim(0))
+            for i in range(tensor.dim(0)):
+                var max_val = tensor[i * 10]
+                var max_idx = 0
+                for j in range(1, 10):
+                    if tensor[i * 10 + j] > max_val:
+                        max_val = tensor[i * 10 + j]
+                        max_idx = j
+                result[i] = max_idx
+            
+            return result
+
+        var pred = argmax(output, dim=1)
+
+        for i in range(batch.labels.dim(0)):
+            if pred[i] == batch.labels[i]:
+                correct += 1
+
+    print("Accuracy: ", correct / train_data.data.dim(0) * 100, "%")
+    print("Testing finished: ", (now() - start) / 1e9, "seconds")
 
     # model.print_perf_metrics("ms", True)
