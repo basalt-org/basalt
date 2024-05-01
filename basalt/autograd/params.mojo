@@ -39,7 +39,7 @@ struct Param(CollectionElement, Stringable):
 
     fn __getitem__(self, i: Int) -> Optional[Scalar[dtype]]:
         if self.data:
-            return self.data.value()[i]
+            return self.data.value()[][i]
         else:
             return None
 
@@ -48,9 +48,9 @@ struct Param(CollectionElement, Stringable):
         if self.data:
             var data = self.data.value()
             s += "["
-            for i in range(len(data)):
-                s += str(data[i])
-                if i < len(data) - 1:
+            for i in range(len(data[])):
+                s += str(data[][i])
+                if i < len(data[]) - 1:
                     s += ", "
             s += "]"
         return s
@@ -74,7 +74,7 @@ struct ParamDict(Sized):
         var num = self.symbols[idx].shape.num_elements()
         var t = DTypePointer[dtype].alloc(num)
         for i in range(num):
-            t[i] = self.values[idx][i].value()
+            t[i] = self.values[idx][i].value()[]
         return Tensor[dtype](t, self.symbols[idx].shape)
 
     fn __len__(self) -> Int:

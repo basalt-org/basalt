@@ -9,7 +9,7 @@ fn set_static_stride(
     kernel_size: StaticIntTuple[2], stride: Optional[Int] = None
 ) -> StaticIntTuple[2]:
     if stride:
-        return StaticIntTuple[2](stride.value(), stride.value())
+        return StaticIntTuple[2](stride.value()[], stride.value()[])
     else:
         return kernel_size
 

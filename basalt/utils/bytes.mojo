@@ -67,7 +67,7 @@ struct Bytes[capacity: Int](Stringable, CollectionElement, EqualityComparable):
         for i in range(capacity):
             var val = self[i]
             if val != 0:
-                result += chr(val.to_int())
+                result += chr(int(val))
 
         return result
 
@@ -142,10 +142,10 @@ fn bytes_to_f64[
 
     unroll[to_bin, size]()
 
-    var sign = (-1) ** ((binary_rep >> (exponent_bits + mantissa_bits)) & 1).to_int()
-    var exponent: Int = (
+    var sign = (-1) ** int(((binary_rep >> (exponent_bits + mantissa_bits)) & 1))
+    var exponent: Int = int((
         (binary_rep >> mantissa_bits) & ((1 << exponent_bits) - 1)
-    ).to_int() - exponent_bias
+    )) - exponent_bias
     var mantissa: Float64 = (binary_rep & ((1 << mantissa_bits) - 1)).cast[
         DType.float64
     ]() / (1 << mantissa_bits) + Float64(exponent != -exponent_bias)

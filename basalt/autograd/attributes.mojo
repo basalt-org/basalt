@@ -1,4 +1,4 @@
-from collections import Optional
+from collections import Optional, OptionalReg
 
 from basalt import Tensor, TensorShape
 from basalt.nn.tensor import MAX_RANK
@@ -31,7 +31,7 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
         return self.attributes[index]
 
     @always_inline("nodebug")
-    fn __getitem__(self, index: StringLiteral) -> Optional[Attribute]:
+    fn __getitem__(self, index: StringLiteral) -> OptionalReg[Attribute]:
         for i in range(self.size):
             if self.attributes[i].name == Bytes[MAX_NAME_CHARS](index):
                 return self.attributes[i]
@@ -112,7 +112,7 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn to_shape(self) -> TensorShape:
-        return TensorShape(rank=self.data[0].to_int(), shape=self.data_shape)
+        return TensorShape(rank=int(self.data[0]), shape=self.data_shape)
 
     @always_inline("nodebug")
     fn to_static[N: Int](self) -> StaticIntTuple[N]:
@@ -137,4 +137,4 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn to_int(self) -> Int:
-        return self.to_scalar[DType.float64]().to_int()
+        return int(self.to_scalar[DType.float64]())

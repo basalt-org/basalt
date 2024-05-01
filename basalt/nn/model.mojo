@@ -1,4 +1,4 @@
-from collections.optional import Optional
+from collections.optional import Optional, OptionalReg
 
 from sys import env_get_int
 
@@ -24,7 +24,7 @@ fn dv_contains(dv: List[Symbol], symbol: Symbol) -> Bool:
 
 
 # TODO: remove when ability to concatenate graphs (modules)
-fn n_inference_nodes(g: Graph) -> Optional[Int]:
+fn n_inference_nodes(g: Graph) -> OptionalReg[Int]:
     """
     Calculate the index of the node up to wich the forward pass should be executed for a model inference.
     When looping in revers: Equals the first index on which the node output is also a graph output.
@@ -49,7 +49,7 @@ struct Parameters:
 
 struct Model[
     g: Graph,
-    n_inference_nodes: Optional[Int] = n_inference_nodes(g),
+    n_inference_nodes: OptionalReg[Int] = n_inference_nodes(g),
 ]():
     var parameters: Parameters
     var perf_metrics: PerfMetrics
@@ -315,11 +315,11 @@ struct Model[
             var par: Tensor[dtype]
             if p_init.initializer:
                 # 1. Specific parameter initialization defined
-                var initializer_attr = p_init.initializer.value()
+                var initializer_attr = p_init.initializer.value()[]
                 par = initialize_tensor(
                     shape=p.shape,
                     type=initializer_attr.to_string(),
-                    data=p_init.data.value(),
+                    data=p_init.data.value()[],
                 )
             elif p_init.data:
                 # 2. Parameter initialized with data only

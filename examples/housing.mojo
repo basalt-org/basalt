@@ -43,6 +43,7 @@ fn main():
         train_data = BostonHousing(file_path="./examples/data/housing.csv")
     except:
         print("Could not load data")
+        return
 
     var training_loader = DataLoader(
         data=train_data.data, labels=train_data.labels, batch_size=batch_size

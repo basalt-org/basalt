@@ -302,7 +302,7 @@ struct POW:
     ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
         """Forward operation of element wise pow."""
         # t2_shape is a graph scalar
-        elwise_pow(res, t1, t2[0].to_int())
+        elwise_pow(res, t1, int(t2[0]))
 
     @staticmethod
     fn backward[
@@ -315,7 +315,7 @@ struct POW:
         # d(x^y) / dx = y * x^(y-1)
         # d(x^y) / dy = sum( x^y * log(x) )
         var res_grad: Tensor[dtype]
-        var a = t2[0].to_int()
+        var a = int(t2[0])
 
         @parameter
         if tensor_id == 0:

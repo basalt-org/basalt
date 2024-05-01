@@ -74,7 +74,7 @@ fn torch_unary_op(
                 else:
                     expected = torch.squeeze(input_1)
             elif attrs_tuple:
-                expected = torch.squeeze(input_1, dim=attrs_tuple.value())
+                expected = torch.squeeze(input_1, dim=attrs_tuple.value()[])
             else:
                 expected = torch.squeeze(input_1)
         elif op == OP.UNSQUEEZE:
@@ -87,7 +87,7 @@ fn torch_unary_op(
                 else:
                     expected = torch.unsqueeze(input_1, 0)
             elif attrs_tuple:
-                expected = torch.reshape(input_1, attrs_tuple.value())
+                expected = torch.reshape(input_1, attrs_tuple.value()[])
             else:
                 expected = torch.unsqueeze(input_1, 0)
         else:

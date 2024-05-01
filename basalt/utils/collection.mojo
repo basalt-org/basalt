@@ -1,5 +1,5 @@
 from math import max
-from memory.anypointer import AnyPointer
+from memory.unsafe_pointer import UnsafePointer, move_from_pointee, initialize_pointee_copy, initialize_pointee_move
 
 from basalt import Tensor, TensorShape, Symbol
 
@@ -11,7 +11,7 @@ struct Collection(CollectionElement, Sized):
 
     var size: Int
     var capacity: Int
-    var data: AnyPointer[Tensor[dtype]]
+    var data: UnsafePointer[Tensor[dtype]]
     var symbols: DTypePointer[DType.uint32]
 
     @always_inline("nodebug")
@@ -21,7 +21,7 @@ struct Collection(CollectionElement, Sized):
         """
         self.size = 0
         self.capacity = capacity
-        self.data = AnyPointer[Tensor[dtype]].alloc(capacity)
+        self.data = UnsafePointer[Tensor[dtype]].alloc(capacity)
         self.symbols = DTypePointer[DType.uint32].alloc(capacity)
 
     @always_inline("nodebug")
@@ -41,12 +41,12 @@ struct Collection(CollectionElement, Sized):
         """
         self.capacity = existing.capacity
         self.size = existing.size
-        self.data = AnyPointer[Tensor[dtype]].alloc(existing.capacity)
+        self.data = UnsafePointer[Tensor[dtype]].alloc(existing.capacity)
         self.symbols = DTypePointer[DType.uint32].alloc(existing.capacity)
         memcpy(self.symbols, existing.symbols, existing.capacity)
 
         for i in range(existing.size):
-            (self.data + i).emplace_value((existing.data + i)[])
+            initialize_pointee_move((self.data + i), (existing.data + i)[])
 
     @always_inline("nodebug")
     fn __del__(owned self):
@@ -54,7 +54,7 @@ struct Collection(CollectionElement, Sized):
         Destructor for the Collection.
         """
         for i in range(self.size):
-            _ = (self.data + i).take_value()
+            _ = move_from_pointee((self.data + i))
         if self.data:
             self.data.free()
         if self.symbols:
@@ -72,11 +72,11 @@ struct Collection(CollectionElement, Sized):
         """
         Reallocates the Collection to the new capacity.
         """
-        var new_data = AnyPointer[Tensor[dtype]].alloc(new_capacity)
+        var new_data = UnsafePointer[Tensor[dtype]].alloc(new_capacity)
         var new_symbols = DTypePointer[DType.uint32].alloc(new_capacity)
 
         for i in range(self.size):
-            (new_data + i).emplace_value((self.data + i).take_value())
+            initialize_pointee_move((new_data + i), (self.data + i)[])
             new_symbols[i] = self.symbols[i]
 
         self.data.free()
@@ -100,7 +100,7 @@ struct Collection(CollectionElement, Sized):
         """
         if self.size >= self.capacity:
             self._realloc(max(1, self.capacity * 2))
-        (self.data + self.size).emplace_value(value ^)
+        initialize_pointee_move((self.data + self.size), value ^)
         self.symbols[self.size] = symbol_name
         self.size += 1
 
@@ -119,7 +119,7 @@ struct Collection(CollectionElement, Sized):
         mutability: __mlir_type.i1,
         lifetime: AnyLifetime[mutability].type,
     ](
-        self: Reference[Self, mutability, lifetime].mlir_ref_type,
+        self: Reference[Self, mutability, lifetime]._mlir_type,
         symbol: Symbol,
     ) -> Reference[Tensor[dtype], mutability, lifetime]:
         """
@@ -127,11 +127,13 @@ struct Collection(CollectionElement, Sized):
         """
         var index = Reference(self)[].get_index(symbol.name)
 
-        return Reference(
-            __mlir_op.`lit.ref.from_pointer`[
-                _type = Reference[Tensor[dtype], mutability, lifetime].mlir_ref_type
-            ]((Reference(self)[].data + index).value)
-        )
+        return (Reference(self)[].data + index)[]
+
+        # return Reference(
+        #     __mlir_op.`lit.ref.from_pointer`[
+        #         _type = Reference[Tensor[dtype], mutability, lifetime]._mlir_type
+        #     ]((Reference(self)[].data + index))
+        # )
 
     @always_inline("nodebug")
     fn clear(inout self):
@@ -139,7 +141,7 @@ struct Collection(CollectionElement, Sized):
         Clears the Collection, removing all tensors and symbols.
         """
         for i in range(self.size):
-            _ = (self.data + i).take_value()
+            _ = move_from_pointee((self.data + i))
         memset_zero(self.symbols, self.capacity)
         self.size = 0
 
