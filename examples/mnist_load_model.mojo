@@ -1,4 +1,5 @@
 from time.time import now
+from pathlib import Path
 
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
@@ -46,11 +47,6 @@ fn create_CNN(batch_size: Int) -> Graph:
     var out = nn.Linear(g, x7, n_outputs=10)
     g.out(out)
 
-    var y_true = g.input(TensorShape(batch_size, 10))
-    var loss = nn.CrossEntropyLoss(g, out, y_true)
-    # var loss = nn.MSELoss(g, out, y_true)
-    g.loss(loss)
-
     return g ^
 
 
@@ -66,7 +62,6 @@ fn main():
 
     var model = nn.Model[graph]()
     model.load_model_data("./examples/data/mnist_torch.onnx")
-    var optim = nn.optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
 
     print("Loading data ...")
     var train_data: MNIST
@@ -81,51 +76,10 @@ fn main():
     var training_loader = DataLoader(
         data=train_data.data, labels=train_data.labels, batch_size=batch_size
     )
-
-    print("Training started/")
-    var start = now()
-
-    for epoch in range(num_epochs):
-        var num_batches: Int = 0
-        var epoch_loss: Float32 = 0.0
-        var epoch_start = now()
-        for batch in training_loader:
-            # [ONE HOT ENCODING!]
-            var labels_one_hot = Tensor[dtype](batch.labels.dim(0), 10)
-            for bb in range(batch.labels.dim(0)):
-                labels_one_hot[(bb * 10 + batch.labels[bb]).to_int()] = 1.0
-
-            # Forward pass
-            var loss = model.forward(batch.data, labels_one_hot)
-
-            # Backward pass
-            optim.zero_grad()
-            model.backward()
-            optim.step()
-
-            epoch_loss += loss[0]
-            num_batches += 1
-
-            print(
-                "Epoch [",
-                epoch + 1,
-                "/",
-                num_epochs,
-                "],\t Step [",
-                num_batches,
-                "/",
-                train_data.data.dim(0) // batch_size,
-                "],\t Loss:",
-                epoch_loss / num_batches,
-            )
-
-        print("Epoch time: ", (now() - epoch_start) / 1e9, "seconds")
-
-    print("Training finished: ", (now() - start) / 1e9, "seconds")
     
     # Testing
     print("Testing started")
-    start = now()
+    var start = now()
 
     var correct = 0
     for batch in training_loader:
@@ -158,3 +112,5 @@ fn main():
     print("Testing finished: ", (now() - start) / 1e9, "seconds")
 
     # model.print_perf_metrics("ms", True)
+
+    model.export_model("./output_model.onnx")

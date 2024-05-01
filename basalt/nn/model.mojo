@@ -9,7 +9,7 @@ from basalt.utils.collection import Collection
 from basalt.utils.tensorutils import fill
 from .initializers import initialize_tensor
 from basalt.utils.perf_utils import PerfMetrics
-from basalt.utils.onnx_loader import load_onnx_data
+from basalt.utils.onnx_utils import load_onnx_data, export_onnx_model
 
 
 # When runing mojo -D DEBUG=1 -I . file, a crash happens at some point at runtime because of an error in linking it seems (because of using -I .)
@@ -374,3 +374,15 @@ struct Model[
                 print("Model file format not supported:", path.suffix())
         except e:
             print("Error loading model data:", e)
+
+    fn export_model(self, model_path: String):
+        var path = Path(model_path)
+        print("Exporting model to:", path)
+
+        try:
+            if path.suffix() == ".onnx":
+                export_onnx_model(model_path, self.parameters, self.g)
+            else:
+                print("Model file format not supported:", path.suffix())
+        except e:
+            print("Error exporting model:", e)

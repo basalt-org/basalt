@@ -20,12 +20,11 @@ struct AttributeType(Stringable):
     alias INT = AttributeType(0, "INT")
     alias FLOAT = AttributeType(1, "FLOAT")
     alias STRING = AttributeType(2, "STRING")
-    alias TENSOR_SHAPE = AttributeType(3, "TENSOR_SHAPE")
-    alias INTS = AttributeType(4, "INTS")
-    alias FLOATS = AttributeType(5, "FLOATS")
-    alias STRINGS = AttributeType(6, "STRINGS")
-    alias TENSOR = AttributeType(7, "TENSOR")
-    alias BOOL = AttributeType(8, "BOOL")
+    alias INTS = AttributeType(3, "INTS")
+    alias FLOATS = AttributeType(4, "FLOATS")
+    alias STRINGS = AttributeType(5, "STRINGS")
+    alias TENSOR = AttributeType(6, "TENSOR")
+    alias BOOL = AttributeType(7, "BOOL")
 
     var id: UInt8
     var name: Bytes[16]  # StringLiteral
@@ -103,7 +102,7 @@ struct Attribute(Stringable, CollectionElement):
         self.data[0] = value.rank()
         for i in range(value.rank()):
             self.data_shape[i] = value._shape[i]
-        self.type = AttributeType.TENSOR_SHAPE
+        self.type = AttributeType.INTS
         self.size = value.rank()
 
     @always_inline("nodebug")
@@ -175,7 +174,7 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn to_shape(self) -> TensorShape:
-        return TensorShape(rank=self.data[0].to_int(), shape=self.data_shape)
+        return TensorShape(rank=self.size, shape=self.data_shape)
 
     @always_inline("nodebug")
     fn to_static[N: Int](self) -> StaticIntTuple[N]:
@@ -211,7 +210,7 @@ struct Attribute(Stringable, CollectionElement):
         if self.type == AttributeType.STRING:
             type = "STRING"
             value = '"' + self.to_string() + '"'
-        elif self.type == AttributeType.TENSOR_SHAPE:
+        elif self.type == AttributeType.INTS:
             type = "INTS"
 
             var value_temp = self.to_shape()
@@ -219,16 +218,6 @@ struct Attribute(Stringable, CollectionElement):
             for i in range(value_temp.rank()):
                 value += str(value_temp._shape[i])
                 if i < value_temp.rank() - 1:
-                    value += ", "
-            value += "]"
-        elif self.type == AttributeType.INTS:
-            type = "INTS"
-
-            var value_temp = self.to_static[MAX_RANK]()
-            value = "["
-            for i in range(self.size):
-                value += str(value_temp[i])
-                if i < self.size - 1:
                     value += ", "
             value += "]"
         elif self.type == AttributeType.FLOAT:
