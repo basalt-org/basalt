@@ -57,6 +57,7 @@ export default function Package({ params }: { params: { pkg: string[] } }) {
             modules.map((mdl) => <ModuleCard mdl={mdl} key={mdl.name} />)}
         </div>
       </div>
+      <div className="fixed bottom-0 right-0">{Crumbs}</div>
     </main>
   );
 }

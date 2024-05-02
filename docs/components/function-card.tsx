@@ -25,7 +25,9 @@ export default async function FunctionCard({ func }: { func: Function }) {
           <CardContent>
             <ul>
               {signatures.map((signature) => (
-                <li key={signature}>
+                <li key={signature} className={
+                  "p-2 my-2 bg-gray-100 dark:bg-gray-800 rounded-md"
+                }>
                   <code>{signature}</code>
                 </li>
               ))}
