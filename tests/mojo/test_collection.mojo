@@ -1,5 +1,5 @@
 from testing import assert_equal
-from testing_utils import assert_tensors_equal
+from tests import assert_tensors_equal
 
 from basalt import dtype
 from basalt.nn import Tensor, TensorShape

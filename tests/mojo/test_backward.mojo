@@ -1,6 +1,6 @@
 from math import log, exp
 from testing import assert_equal
-from testing_utils import test_unary_op_backward, test_binary_op_backward, test_ternary_op_backward
+from tests import test_unary_op_backward, test_binary_op_backward, test_ternary_op_backward
 
 from basalt.utils.tensorutils import fill, tsum
 from basalt.nn import Tensor, TensorShape
