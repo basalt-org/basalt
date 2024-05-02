@@ -1,18 +1,12 @@
-from random import rand
-from testing import assert_equal
-from test_tensorutils import assert_tensors_equal
 from math import exp, log
 
-import basalt.nn as nn
-from basalt import Tensor, TensorShape
-from basalt import Graph, Symbol, OP
+from basalt import dtype, nelts
+from basalt.nn import Tensor, TensorShape
+from basalt.autograd import OP
 from basalt.autograd.attributes import Attribute, AttributeVector
 from basalt.utils.tensorutils import fill
 
-from test_utils_extras import test_unary_op, test_binary_op, test_ternary_op
-
-alias dtype = DType.float32
-alias nelts: Int = simdwidthof[dtype]()
+from tests import test_unary_op, test_binary_op, test_ternary_op
 
 
 # ------ Test Binary Ops ------

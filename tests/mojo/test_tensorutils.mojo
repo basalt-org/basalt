@@ -1,8 +1,8 @@
 from random import rand
-from testing import assert_equal, assert_true, assert_almost_equal
+from testing import assert_equal, assert_almost_equal
 
 from basalt import dtype, nelts
-from basalt import Tensor, TensorShape
+from basalt.nn import Tensor, TensorShape
 from basalt.utils.tensorutils import (
     fill,
     dot,
@@ -13,17 +13,14 @@ from basalt.utils.tensorutils import (
     broadcast_elwise_op,
     get_reduce_shape,
     accumulate_grad,
-)
-from basalt.utils.tensorutils import (
     tsum,
     tmean,
     tstd,
     tmax,
     transpose,
-)  # , transpose_2D, transpose, pad_zeros
+)
 
-from math import sqrt, exp, round
-from math import add, sub, mul, div
+from math import sqrt, exp, round, add, sub, mul, div
 
 
 fn assert_tensors_equal(

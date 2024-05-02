@@ -2,12 +2,11 @@ from random import rand
 from python import Python
 from math.limit import max_finite
 from testing import assert_almost_equal
-from test_conv import to_numpy, to_tensor
-from test_tensorutils import assert_tensors_equal
+from tests import to_numpy, to_tensor
 
-import basalt.nn as nn
-from basalt import Tensor, TensorShape
-from basalt import Graph, Symbol, OP, dtype
+from basalt import dtype
+from basalt.nn import Tensor, TensorShape, Model, MSELoss, optim
+from basalt.autograd import Graph, OP
 from basalt.utils.rand_utils import MersenneTwister
 
 
@@ -29,7 +28,7 @@ fn create_linear_regression(
     g.out(out)
 
     var y_true = g.input(TensorShape(batch_size, n_outputs))
-    var loss = nn.MSELoss(g, out, y_true)
+    var loss = MSELoss(g, out, y_true)
     g.loss(loss)
 
     return g ^
@@ -53,8 +52,8 @@ fn run_mojo[
         linear1_bias,
     )
 
-    var model = nn.Model[graph]()
-    var optim = nn.optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
+    var model = Model[graph]()
+    var optim = optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
 
     var losses = List[Scalar[dtype]]()
 

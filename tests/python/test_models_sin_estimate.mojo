@@ -2,12 +2,11 @@ from random import rand
 from python import Python
 from math.limit import max_finite
 from testing import assert_almost_equal
-from test_conv import to_numpy, to_tensor
-from test_tensorutils import assert_tensors_equal
+from tests import to_numpy, to_tensor
 
-import basalt.nn as nn
-from basalt import Tensor, TensorShape
-from basalt import Graph, Symbol, OP, dtype
+from basalt import dtype
+from basalt.nn import Tensor, TensorShape, Model, ReLU, MSELoss, optim
+from basalt.autograd import Graph, OP
 from basalt.utils.rand_utils import MersenneTwister
 
 
@@ -32,7 +31,7 @@ fn create_simple_nn(
     var x1 = g.op(OP.ADD, res_1, l1_b)
 
     # ReLU 1
-    var x2 = nn.ReLU(g, x1)
+    var x2 = ReLU(g, x1)
 
     # Linear 2: nn.Linear(g, x2, n_outputs=32)
     var l2_w = g.param(TensorShape(32, 32), init=linear2_weights)
@@ -41,7 +40,7 @@ fn create_simple_nn(
     var x3 = g.op(OP.ADD, res_2, l2_b)
 
     # ReLU 2
-    var x4 = nn.ReLU(g, x3)
+    var x4 = ReLU(g, x3)
 
     # Linear 3: nn.Linear(g, x4, n_outputs=1)
     var l3_w = g.param(TensorShape(32, 1), init=linear3_weights)
@@ -50,7 +49,7 @@ fn create_simple_nn(
     var y_pred = g.op(OP.ADD, res_3, l3_b)
     g.out(y_pred)
 
-    var loss = nn.MSELoss(g, y_pred, y_true)
+    var loss = MSELoss(g, y_pred, y_true)
     g.loss(loss)
 
     return g ^
@@ -80,8 +79,8 @@ fn run_mojo[
         linear3_bias,
     )
 
-    var model = nn.Model[graph]()
-    var optim = nn.optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
+    var model = Model[graph]()
+    var optim = optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
 
     var losses = List[Scalar[dtype]]()
 

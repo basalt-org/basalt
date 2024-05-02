@@ -1,13 +1,20 @@
 from random import rand
 from python import Python
 from testing import assert_almost_equal
-from test_tensorutils import assert_tensors_equal
+from tests import assert_tensors_equal, to_numpy, to_tensor
 
-import basalt.nn as nn
-from basalt import Tensor, TensorShape
-from basalt import Graph, Symbol, OP, dtype
+from basalt import dtype
+from basalt.nn import (
+    Tensor,
+    TensorShape,
+    Model,
+    ReLU,
+    MaxPool2d,
+    CrossEntropyLoss,
+    optim,
+)
+from basalt.autograd import Graph, OP
 from basalt.autograd.attributes import AttributeVector, Attribute
-from test_conv import to_numpy, to_tensor
 
 
 fn create_CNN(
@@ -38,8 +45,8 @@ fn create_CNN(
         ),
     )
 
-    var x2 = nn.ReLU(g, x1)
-    var x3 = nn.MaxPool2d(g, x2, kernel_size=2)
+    var x2 = ReLU(g, x1)
+    var x3 = MaxPool2d(g, x2, kernel_size=2)
 
     # conv2
     # var x4 = nn.Conv2d(g, x3, out_channels=32, kernel_size=5, padding=2)
@@ -57,8 +64,8 @@ fn create_CNN(
         ),
     )
 
-    var x5 = nn.ReLU(g, x4)
-    var x6 = nn.MaxPool2d(g, x5, kernel_size=2)
+    var x5 = ReLU(g, x4)
+    var x6 = MaxPool2d(g, x5, kernel_size=2)
     var x6_shape = x6.shape
     var x7 = g.op(
         OP.RESHAPE,
@@ -80,7 +87,7 @@ fn create_CNN(
     g.out(out)
 
     var y_true = g.input(TensorShape(batch_size, 10))
-    var loss = nn.CrossEntropyLoss(g, out, y_true)
+    var loss = CrossEntropyLoss(g, out, y_true)
     # var loss = nn.MSELoss(g, out, y_true)
     g.loss(loss)
 
@@ -111,8 +118,8 @@ fn run_mojo[
         linear1_bias,
     )
 
-    var model = nn.Model[graph]()
-    var optim = nn.optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
+    var model = Model[graph]()
+    var optim = optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
 
     var losses = List[Scalar[dtype]]()
 

@@ -1,25 +1,11 @@
-from random import rand
-from testing import assert_equal
-from test_tensorutils import assert_tensors_equal
-from collections.optional import OptionalReg
+from tests import assert_tensors_equal, test_unary_op, test_unary_op_backward
 
-
-import basalt.nn as nn
-from basalt import Tensor, TensorShape
-from basalt import Graph, Symbol, OP
+from basalt import dtype, nelts
+from basalt.nn import Tensor, TensorShape
+from basalt.autograd import OP
 from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE
 from basalt.utils.tensorutils import fill
 from basalt.autograd.attributes import AttributeVector, Attribute
-
-from test_utils_extras import (
-    test_unary_op,
-    test_binary_op,
-    test_unary_op_backward,
-    test_binary_op_backward,
-)
-
-alias dtype = DType.float32
-alias nelts: Int = simdwidthof[dtype]()
 
 
 # ------ Test Unary Ops ------

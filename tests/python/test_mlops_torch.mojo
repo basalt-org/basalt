@@ -1,19 +1,7 @@
 from random import rand
-from testing import assert_equal
 from math.limit import min_finite, max_finite
-from test_tensorutils import assert_tensors_equal
-from collections.optional import OptionalReg, Optional
-from python.python import Python
-from python.object import PythonObject
-
-import basalt.nn as nn
-from basalt import Tensor, TensorShape
-from basalt import Graph, Symbol, OP
-from basalt.autograd.attributes import Attribute, AttributeVector
-from basalt.utils.tensorutils import fill
-from basalt.autograd.ops.ops import backward_op
-
-from test_utils_extras import (
+from tests import (
+    assert_tensors_equal,
     to_numpy,
     to_tensor,
     test_unary_op,
@@ -21,9 +9,14 @@ from test_utils_extras import (
     test_unary_op_backward,
     test_binary_op_backward,
 )
+from collections.optional import OptionalReg, Optional
+from python.python import Python
+from python.object import PythonObject
 
-alias dtype = DType.float32
-alias nelts: Int = simdwidthof[dtype]()
+from basalt import dtype, nelts
+from basalt.nn import Tensor, TensorShape
+from basalt.autograd import OP
+from basalt.autograd.attributes import Attribute, AttributeVector
 
 
 # ------ Test Unary Ops ------

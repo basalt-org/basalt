@@ -4,7 +4,7 @@ from python.python import Python
 
 from basalt.autograd.attributes import AttributeVector
 from basalt.autograd.ops.ops import backward_op
-from basalt.nn import Tensor, TensorShape
+from basalt.nn import Tensor, TensorShape, Model
 from basalt.autograd import Graph, OP
 from basalt import dtype
 
@@ -39,14 +39,14 @@ fn test_unary_op[
             g.out(res)
             return g ^
         else:
-            res = g.op(op, t1)
+            var res = g.op(op, t1)
             g.out(res)
             return g ^
 
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
     var res = model.inference(t1)[0]
 
     assert_tensors_equal["almost"](res, expected)
@@ -75,7 +75,7 @@ fn test_binary_op[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
     var res = model.inference(t1, t2)[0]
 
     assert_tensors_equal["almost"](res, expected)
@@ -101,7 +101,7 @@ fn test_ternary_op[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
     var res = model.inference(t1, t2, t3)[0]
 
     assert_tensors_equal["almost"](res, expected)
@@ -212,3 +212,27 @@ fn to_tensor(np_array: PythonObject) raises -> Tensor[dtype]:
         tensor[i] = np_array_temp[i].to_float64().cast[dtype]()
 
     return tensor
+
+
+fn create_graph_concat(
+    t1_shape: TensorShape, t2_shape: TensorShape, t3_shape: TensorShape, dim: Int
+) -> Graph:
+    # Testing with 3 operands
+    var g = Graph()
+    var t1 = g.input(t1_shape, trainable=True)
+    var t2 = g.input(t2_shape, trainable=True)
+    var t3 = g.input(t3_shape, trainable=True)
+    var res = g.concat(t1, t2, t3, dim=dim)
+    g.out(res)
+    g.loss(res)
+    return g ^
+
+
+fn create_graph_split(t_shape: TensorShape, sections: List[Int], dim: Int) -> Graph:
+    var g = Graph()
+    var t = g.input(t_shape, trainable=True)
+    var results = g.split(t, sections=sections, dim=dim)
+    for i in range(len(sections)):
+        g.out(results[i])
+    g.loss(results[0])  # Any one
+    return g ^
