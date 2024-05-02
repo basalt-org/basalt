@@ -8,10 +8,9 @@ from basalt.utils.tensorutils import fill
 from tests import assert_tensors_equal, test_unary_op, test_unary_op_backward
 
 
-# ------ Test Unary Ops ------
 fn test_SIGMOID() raises:
     alias t1_shape = TensorShape(2, 3)
-    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)  # filled with zeroes
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
 
     var expected = Tensor[dtype](2, 3)
     fill(expected, 0.5)
@@ -22,7 +21,7 @@ fn test_SIGMOID() raises:
 fn test_backward_SIGMOID() raises:
     alias t1_shape = TensorShape(2, 3)
     alias ug_shape = TensorShape(2, 3)
-    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)  # filled with zeroes
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
     fill(ug, 5.0)
 
@@ -74,7 +73,7 @@ fn test_backward_RELU() raises:
 
 fn test_TANH() raises:
     alias t1_shape = TensorShape(2, 3)
-    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)  # filled with zeroes
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
 
     var expected = Tensor[dtype](2, 3)
     fill(expected, 0.0)
@@ -85,7 +84,7 @@ fn test_TANH() raises:
 fn test_backward_TANH() raises:
     alias t1_shape = TensorShape(2, 3)
     alias ug_shape = TensorShape(2, 3)
-    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)  # filled with zeroes
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
     fill(ug, 5.0)
 

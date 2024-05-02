@@ -9,7 +9,6 @@ from basalt.nn import Tensor, TensorShape
 from tests import test_unary_op, test_binary_op, test_ternary_op
 
 
-# ------ Test Binary Ops ------
 fn test_ADD() raises:
     alias t1_shape = TensorShape(2, 3)
     alias t2_shape = TensorShape(2, 3)
@@ -80,7 +79,6 @@ fn test_DOT() raises:
     test_binary_op[OP.DOT, t1_shape, t2_shape](t1, t2, expected)
 
 
-# ------ Test Unary Ops ------
 fn test_EXP() raises:
     alias t1_shape = TensorShape(2, 3)
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)

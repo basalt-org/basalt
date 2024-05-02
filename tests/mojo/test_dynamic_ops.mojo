@@ -179,7 +179,6 @@ fn test_CONCAT_2() raises:
     fill(grad2_expected, 2.0)
     fill(grad3_expected, 3.0)
 
-    # Extracting the gradients
     assert_tensors_equal["almost"](
         model.parameters.grads[graph.nodes[0].inputs[0]], grad1_expected
     )

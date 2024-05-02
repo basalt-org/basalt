@@ -7,7 +7,7 @@ from basalt.utils.tensorutils import fill
 
 
 fn test_MSE_perfect() raises:
-    alias y_pred_shape = TensorShape(2, 10)
+    alias y_pred_shape = TensorShape(2, 10)  # batch of 2, 10 classes
     alias y_true_shape = TensorShape(2, 10)
 
     fn create_graph() -> Graph:
@@ -25,7 +25,7 @@ fn test_MSE_perfect() raises:
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 3)
 
-    var y_pred = Tensor[dtype](y_pred_shape)  # batch of 2, 10 classes
+    var y_pred = Tensor[dtype](y_pred_shape)
     var y_true = Tensor[dtype](y_true_shape)
 
     fill(y_pred, 1)
@@ -40,7 +40,7 @@ fn test_MSE_perfect() raises:
 
 
 fn test_MSE_imperfect() raises:
-    alias y_pred_shape = TensorShape(1, 10)
+    alias y_pred_shape = TensorShape(1, 10)  # batch of 1, 10 classes
     alias y_true_shape = TensorShape(1, 10)
 
     fn create_graph() -> Graph:
@@ -58,7 +58,7 @@ fn test_MSE_imperfect() raises:
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 3)
 
-    var y_pred = Tensor[dtype](y_pred_shape)  # batch of 1, 10 classes
+    var y_pred = Tensor[dtype](y_pred_shape)
     var y_true = Tensor[dtype](y_true_shape)
 
     fill(y_pred, 1)
@@ -81,7 +81,7 @@ fn test_MSE_imperfect() raises:
 
 
 fn test_CrossEntropy_perfect() raises:
-    alias y_pred_shape = TensorShape(2, 3)
+    alias y_pred_shape = TensorShape(2, 3)  # batch of 2, 3 classes
     alias y_true_shape = TensorShape(2, 3)
 
     fn create_graph() -> Graph:
@@ -99,7 +99,7 @@ fn test_CrossEntropy_perfect() raises:
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 9)
 
-    var y_pred = Tensor[dtype](y_pred_shape)  # batch of 2, 10 classes
+    var y_pred = Tensor[dtype](y_pred_shape)
     var y_true = Tensor[dtype](y_true_shape)
 
     y_pred[0 * y_pred.dim(1) + 0] = 0.1
@@ -125,7 +125,7 @@ fn test_CrossEntropy_perfect() raises:
 
 
 fn test_CrossEntropy_imperfect() raises:
-    alias y_pred_shape = TensorShape(2, 3)
+    alias y_pred_shape = TensorShape(2, 3)  # batch of 2, 3 classes
     alias y_true_shape = TensorShape(2, 3)
 
     fn create_graph() -> Graph:
@@ -142,7 +142,7 @@ fn test_CrossEntropy_imperfect() raises:
 
     alias graph = create_graph()
 
-    var y_pred = Tensor[dtype](y_pred_shape)  # batch of 2, 10 classes
+    var y_pred = Tensor[dtype](y_pred_shape)
     var y_true = Tensor[dtype](y_true_shape)
 
     y_pred[0 * y_pred.dim(1) + 0] = 0.1
