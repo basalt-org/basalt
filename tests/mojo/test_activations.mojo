@@ -18,6 +18,7 @@ from basalt.utils.tensorutils import fill
 alias Activation = fn (inout g: Graph, input: Symbol) -> Symbol
 alias AxisActivation = fn (inout g: Graph, input: Symbol, axis: Int) -> Symbol
 
+
 fn create_graph[
     shape: TensorShape,
     func: AxisActivation,
@@ -30,9 +31,7 @@ fn create_graph[
     return g ^
 
 
-fn create_graph[
-    shape: TensorShape, func: Activation
-]() -> Graph:
+fn create_graph[shape: TensorShape, func: Activation]() -> Graph:
     var g = Graph()
     var x = g.input(shape)
     var activation = func(g, x)
@@ -50,9 +49,10 @@ fn test_graph[
 
     var model = Model[graph](inference_only=True)
     var res = model.inference(input)[0]
-    
+
     assert_tensors_equal["almost"](res, expected)
     assert_equal(len(graph.nodes), nodes)
+
 
 fn test_graph[
     shape: TensorShape,

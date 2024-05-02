@@ -1,12 +1,17 @@
 from math import log, exp
 from testing import assert_equal
-from tests import test_unary_op_backward, test_binary_op_backward, test_ternary_op_backward
+from tests import (
+    test_unary_op_backward,
+    test_binary_op_backward,
+    test_ternary_op_backward,
+)
 
 from basalt.utils.tensorutils import fill, tsum
 from basalt.nn import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector, Attribute
 from basalt.autograd import OP
 from basalt import dtype, nelts
+
 
 fn test_ADD() raises:
     alias t1_shape = TensorShape(2, 3)
@@ -24,6 +29,7 @@ fn test_ADD() raises:
     test_binary_op_backward[OP.ADD, t1_shape, t2_shape, ug_shape](
         t1, t2, ug, expected_grad, expected_grad
     )
+
 
 fn test_SUB() raises:
     alias t1_shape = TensorShape(2, 3)

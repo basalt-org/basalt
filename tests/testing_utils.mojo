@@ -174,6 +174,7 @@ fn test_ternary_op_backward[
     )
     assert_tensors_equal["almost"](grad_3, grad_3_expected)
 
+
 def to_numpy(tensor: Tensor) -> PythonObject:
     var np = Python.import_module("numpy")
     np.set_printoptions(4)
