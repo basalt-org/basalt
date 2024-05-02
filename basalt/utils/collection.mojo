@@ -1,5 +1,5 @@
 from math import max
-from memory.unsafe_pointer import UnsafePointer, move_from_pointee, initialize_pointee_copy, initialize_pointee_move
+from memory.unsafe_pointer import UnsafePointer, move_from_pointee, initialize_pointee_copy, initialize_pointee_move, destroy_pointee
 
 from basalt import Tensor, TensorShape, Symbol
 
@@ -54,7 +54,7 @@ struct Collection(CollectionElement, Sized):
         Destructor for the Collection.
         """
         for i in range(self.size):
-            _ = move_from_pointee((self.data + i))
+            destroy_pointee((self.data + i))
         if self.data:
             self.data.free()
         if self.symbols:
@@ -141,7 +141,7 @@ struct Collection(CollectionElement, Sized):
         Clears the Collection, removing all tensors and symbols.
         """
         for i in range(self.size):
-            _ = move_from_pointee((self.data + i))
+            destroy_pointee((self.data + i))
         memset_zero(self.symbols, self.capacity)
         self.size = 0
 
