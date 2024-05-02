@@ -2,12 +2,13 @@ from random import rand
 from python import Python
 from math.limit import max_finite
 from testing import assert_almost_equal
-from tests import to_numpy, to_tensor
 
 from basalt import dtype
-from basalt.nn import Tensor, TensorShape, Model, MSELoss, optim
 from basalt.autograd import Graph, OP
+from basalt.nn import Tensor, TensorShape, Model, MSELoss, optim
 from basalt.utils.rand_utils import MersenneTwister
+
+from tests import to_numpy, to_tensor
 
 
 fn create_linear_regression(

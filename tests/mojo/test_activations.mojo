@@ -1,5 +1,4 @@
 from testing import assert_equal
-from tests import assert_tensors_equal
 
 from basalt import dtype
 from basalt.nn import (
@@ -14,6 +13,9 @@ from basalt.nn import (
 )
 from basalt.autograd import Graph, Symbol
 from basalt.utils.tensorutils import fill
+
+from tests import assert_tensors_equal
+
 
 alias Activation = fn (inout g: Graph, input: Symbol) -> Symbol
 alias AxisActivation = fn (inout g: Graph, input: Symbol, axis: Int) -> Symbol

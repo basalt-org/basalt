@@ -1,11 +1,11 @@
-from tests import assert_tensors_equal, test_unary_op, test_unary_op_backward
-
 from basalt import dtype, nelts
-from basalt.nn import Tensor, TensorShape
 from basalt.autograd import OP
-from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE
-from basalt.utils.tensorutils import fill
 from basalt.autograd.attributes import AttributeVector, Attribute
+from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE
+from basalt.nn import Tensor, TensorShape
+from basalt.utils.tensorutils import fill
+
+from tests import assert_tensors_equal, test_unary_op, test_unary_op_backward
 
 
 # ------ Test Unary Ops ------

@@ -1,8 +1,8 @@
 from testing import assert_equal, assert_almost_equal
 
 from basalt import dtype, nelts
-from basalt.nn import Model, Tensor, TensorShape, MSELoss, CrossEntropyLoss
 from basalt.autograd import Graph, Symbol, OP
+from basalt.nn import Model, Tensor, TensorShape, MSELoss, CrossEntropyLoss
 from basalt.utils.tensorutils import fill
 
 

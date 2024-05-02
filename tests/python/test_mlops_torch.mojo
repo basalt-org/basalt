@@ -1,5 +1,14 @@
 from random import rand
 from math.limit import min_finite, max_finite
+from collections.optional import OptionalReg, Optional
+from python.python import Python
+from python.object import PythonObject
+
+from basalt import dtype, nelts
+from basalt.autograd import OP
+from basalt.autograd.attributes import Attribute, AttributeVector
+from basalt.nn import Tensor, TensorShape
+
 from tests import (
     assert_tensors_equal,
     to_numpy,
@@ -9,14 +18,6 @@ from tests import (
     test_unary_op_backward,
     test_binary_op_backward,
 )
-from collections.optional import OptionalReg, Optional
-from python.python import Python
-from python.object import PythonObject
-
-from basalt import dtype, nelts
-from basalt.nn import Tensor, TensorShape
-from basalt.autograd import OP
-from basalt.autograd.attributes import Attribute, AttributeVector
 
 
 # ------ Test Unary Ops ------

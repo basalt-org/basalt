@@ -4,9 +4,10 @@ from python.python import Python
 from collections.optional import Optional
 
 from basalt import dtype, nelts
-from basalt.nn import Tensor, TensorShape
 from basalt.autograd import OP
 from basalt.autograd.attributes import Attribute, AttributeVector
+from basalt.nn import Tensor, TensorShape
+
 from tests import (
     to_numpy,
     to_tensor,

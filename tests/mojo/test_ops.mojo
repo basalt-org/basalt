@@ -1,10 +1,10 @@
 from math import exp, log
 
 from basalt import dtype, nelts
-from basalt.nn import Tensor, TensorShape
 from basalt.autograd import OP
 from basalt.autograd.attributes import Attribute, AttributeVector
 from basalt.utils.tensorutils import fill
+from basalt.nn import Tensor, TensorShape
 
 from tests import test_unary_op, test_binary_op, test_ternary_op
 

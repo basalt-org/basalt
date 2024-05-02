@@ -1,11 +1,12 @@
 from testing import assert_equal
-from tests import assert_tensors_equal
 
 from basalt import dtype
 from basalt.nn import Tensor, TensorShape
 from basalt.autograd import Symbol
 from basalt.utils.collection import Collection
 from basalt.utils.tensorutils import fill
+
+from tests import assert_tensors_equal
 
 
 fn test_append_tensors() raises:

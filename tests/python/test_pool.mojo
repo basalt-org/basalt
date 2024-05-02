@@ -1,14 +1,15 @@
 from random import rand
 from python.python import Python
 from testing import assert_equal
-from tests import assert_tensors_equal, to_numpy, to_tensor
 
 from basalt import dtype, nelts
-from basalt.nn import Tensor, TensorShape, Model
 from basalt.autograd import Graph, OP
 from basalt.autograd.ops.pool import MAXPOOL2D
 from basalt.autograd.ops.conv import get_result_shape
 from basalt.autograd.attributes import Attribute, AttributeVector
+from basalt.nn import Tensor, TensorShape, Model
+
+from tests import assert_tensors_equal, to_numpy, to_tensor
 
 
 @value

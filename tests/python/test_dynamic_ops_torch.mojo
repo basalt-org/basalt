@@ -1,5 +1,11 @@
 from random import rand
 from python.python import Python
+
+from basalt import dtype, nelts
+from basalt.autograd import Graph, Symbol, OP
+from basalt.autograd.attributes import Attribute, AttributeVector
+from basalt.nn import Model, Tensor, TensorShape
+
 from tests import (
     assert_tensors_equal,
     to_numpy,
@@ -7,11 +13,6 @@ from tests import (
     create_graph_concat,
     create_graph_split,
 )
-
-from basalt import dtype, nelts
-from basalt.nn import Model, Tensor, TensorShape
-from basalt.autograd import Graph, Symbol, OP
-from basalt.autograd.attributes import Attribute, AttributeVector
 
 
 @value

@@ -1,9 +1,10 @@
 from random import rand
 from python import Python
 from testing import assert_almost_equal
-from tests import assert_tensors_equal, to_numpy, to_tensor
 
 from basalt import dtype
+from basalt.autograd import Graph, OP
+from basalt.autograd.attributes import AttributeVector, Attribute
 from basalt.nn import (
     Tensor,
     TensorShape,
@@ -13,8 +14,8 @@ from basalt.nn import (
     CrossEntropyLoss,
     optim,
 )
-from basalt.autograd import Graph, OP
-from basalt.autograd.attributes import AttributeVector, Attribute
+
+from tests import assert_tensors_equal, to_numpy, to_tensor
 
 
 fn create_CNN(

@@ -1,16 +1,18 @@
 from math import log, exp
 from testing import assert_equal
+
+from basalt import dtype, nelts
+from basalt.autograd.attributes import AttributeVector, Attribute
+from basalt.autograd import OP
+from basalt.nn import Tensor, TensorShape
+from basalt.utils.tensorutils import fill, tsum
+
+
 from tests import (
     test_unary_op_backward,
     test_binary_op_backward,
     test_ternary_op_backward,
 )
-
-from basalt.utils.tensorutils import fill, tsum
-from basalt.nn import Tensor, TensorShape
-from basalt.autograd.attributes import AttributeVector, Attribute
-from basalt.autograd import OP
-from basalt import dtype, nelts
 
 
 fn test_ADD() raises:

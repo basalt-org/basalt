@@ -1,10 +1,10 @@
-from tests import assert_tensors_equal, create_graph_concat, create_graph_split
-
 from basalt import dtype, nelts
-from basalt.nn import Model, Tensor, TensorShape
 from basalt.autograd import Graph, Symbol, OP
 from basalt.autograd.ops.dynamics import CONCAT, SPLIT
+from basalt.nn import Model, Tensor, TensorShape
 from basalt.utils.tensorutils import fill
+
+from tests import assert_tensors_equal, create_graph_concat, create_graph_split
 
 
 fn test_CONCAT_0() raises:

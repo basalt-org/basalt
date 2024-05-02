@@ -1,14 +1,15 @@
-from testing import assert_equal, assert_almost_equal
-from collections import OptionalReg
 from python.python import Python
+from collections import OptionalReg
+from testing import assert_equal, assert_almost_equal
 
-from basalt.autograd.attributes import AttributeVector
-from basalt.autograd.ops.ops import backward_op
-from basalt.nn import Tensor, TensorShape, Model
-from basalt.autograd import Graph, OP
 from basalt import dtype
+from basalt.autograd import Graph, OP
+from basalt.autograd.ops.ops import backward_op
+from basalt.autograd.attributes import AttributeVector
+from basalt.nn import Tensor, TensorShape, Model
 
 
+# The below regex should be used to convert deprecated calls
 # assert_tensors_equal\(([^,]+),\s*([^,]+),\s*"([^"]+)"\)
 # assert_tensors_equal["$3"]($1, $2)
 fn assert_tensors_equal[
