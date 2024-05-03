@@ -1,9 +1,8 @@
 from math import add
-from basalt import Tensor, TensorShape
-from basalt.utils.tensorutils import fill, elwise_op
 
-alias dtype = DType.float32
-alias nelts = simdwidthof[dtype]()
+from basalt import dtype, nelts
+from basalt.nn import Tensor, TensorShape
+from basalt.utils.tensorutils import fill, elwise_op
 
 
 fn generate_tensor(*shape: Int) -> Tensor[dtype]:

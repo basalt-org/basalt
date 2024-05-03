@@ -1,16 +1,13 @@
 from testing import assert_equal, assert_almost_equal
 
-import basalt.nn as nn
-from basalt import Tensor, TensorShape
-from basalt import Graph, Symbol, OP
+from basalt import dtype, nelts
+from basalt.autograd import Graph, Symbol, OP
+from basalt.nn import Model, Tensor, TensorShape, MSELoss, CrossEntropyLoss
 from basalt.utils.tensorutils import fill
-
-alias dtype = DType.float32
-alias nelts: Int = simdwidthof[dtype]()
 
 
 fn test_MSE_perfect() raises:
-    alias y_pred_shape = TensorShape(2, 10)
+    alias y_pred_shape = TensorShape(2, 10)  # batch of 2, 10 classes
     alias y_true_shape = TensorShape(2, 10)
 
     fn create_graph() -> Graph:
@@ -19,7 +16,7 @@ fn test_MSE_perfect() raises:
         var y_pred = g.input(y_pred_shape)
         var y_true = g.input(y_true_shape)
 
-        var loss = nn.MSELoss(g, y_pred, y_true)
+        var loss = MSELoss(g, y_pred, y_true)
 
         g.out(loss)
 
@@ -28,13 +25,13 @@ fn test_MSE_perfect() raises:
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 3)
 
-    var y_pred = Tensor[dtype](y_pred_shape)  # batch of 2, 10 classes
+    var y_pred = Tensor[dtype](y_pred_shape)
     var y_true = Tensor[dtype](y_true_shape)
 
     fill(y_pred, 1)
     fill(y_true, 1)
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
 
     var loss = model.inference(y_pred, y_true)[0]
 
@@ -43,7 +40,7 @@ fn test_MSE_perfect() raises:
 
 
 fn test_MSE_imperfect() raises:
-    alias y_pred_shape = TensorShape(1, 10)
+    alias y_pred_shape = TensorShape(1, 10)  # batch of 1, 10 classes
     alias y_true_shape = TensorShape(1, 10)
 
     fn create_graph() -> Graph:
@@ -52,7 +49,7 @@ fn test_MSE_imperfect() raises:
         var y_pred = g.input(y_pred_shape)
         var y_true = g.input(y_true_shape)
 
-        var loss = nn.MSELoss(g, y_pred, y_true)
+        var loss = MSELoss(g, y_pred, y_true)
 
         g.out(loss)
 
@@ -61,7 +58,7 @@ fn test_MSE_imperfect() raises:
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 3)
 
-    var y_pred = Tensor[dtype](y_pred_shape)  # batch of 1, 10 classes
+    var y_pred = Tensor[dtype](y_pred_shape)
     var y_true = Tensor[dtype](y_true_shape)
 
     fill(y_pred, 1)
@@ -69,7 +66,7 @@ fn test_MSE_imperfect() raises:
     for i in range(10):
         y_true[i] = i
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
 
     var loss = model.inference(y_pred, y_true)[0]
 
@@ -84,7 +81,7 @@ fn test_MSE_imperfect() raises:
 
 
 fn test_CrossEntropy_perfect() raises:
-    alias y_pred_shape = TensorShape(2, 3)
+    alias y_pred_shape = TensorShape(2, 3)  # batch of 2, 3 classes
     alias y_true_shape = TensorShape(2, 3)
 
     fn create_graph() -> Graph:
@@ -93,7 +90,7 @@ fn test_CrossEntropy_perfect() raises:
         var y_pred = g.input(y_pred_shape)
         var y_true = g.input(y_true_shape)
 
-        var loss = nn.CrossEntropyLoss(g, y_pred, y_true)
+        var loss = CrossEntropyLoss(g, y_pred, y_true)
 
         g.out(loss)
 
@@ -102,7 +99,7 @@ fn test_CrossEntropy_perfect() raises:
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 9)
 
-    var y_pred = Tensor[dtype](y_pred_shape)  # batch of 2, 10 classes
+    var y_pred = Tensor[dtype](y_pred_shape)
     var y_true = Tensor[dtype](y_true_shape)
 
     y_pred[0 * y_pred.dim(1) + 0] = 0.1
@@ -119,7 +116,7 @@ fn test_CrossEntropy_perfect() raises:
     y_true[1 * y_true.dim(1) + 1] = 0
     y_true[1 * y_true.dim(1) + 2] = 0
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
 
     var loss = model.inference(y_pred, y_true)[0]
 
@@ -128,7 +125,7 @@ fn test_CrossEntropy_perfect() raises:
 
 
 fn test_CrossEntropy_imperfect() raises:
-    alias y_pred_shape = TensorShape(2, 3)
+    alias y_pred_shape = TensorShape(2, 3)  # batch of 2, 3 classes
     alias y_true_shape = TensorShape(2, 3)
 
     fn create_graph() -> Graph:
@@ -137,7 +134,7 @@ fn test_CrossEntropy_imperfect() raises:
         var y_pred = g.input(y_pred_shape)
         var y_true = g.input(y_true_shape)
 
-        var loss = nn.CrossEntropyLoss(g, y_pred, y_true)
+        var loss = CrossEntropyLoss(g, y_pred, y_true)
 
         g.out(loss)
 
@@ -145,7 +142,7 @@ fn test_CrossEntropy_imperfect() raises:
 
     alias graph = create_graph()
 
-    var y_pred = Tensor[dtype](y_pred_shape)  # batch of 2, 10 classes
+    var y_pred = Tensor[dtype](y_pred_shape)
     var y_true = Tensor[dtype](y_true_shape)
 
     y_pred[0 * y_pred.dim(1) + 0] = 0.1
@@ -162,7 +159,7 @@ fn test_CrossEntropy_imperfect() raises:
     y_true[1 * y_true.dim(1) + 1] = 0
     y_true[1 * y_true.dim(1) + 2] = 1
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
 
     var loss = model.inference(y_pred, y_true)[0]
 

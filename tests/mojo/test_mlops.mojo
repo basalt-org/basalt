@@ -1,31 +1,16 @@
-from random import rand
-from testing import assert_equal
-from test_tensorutils import assert_tensors_equal
-from collections.optional import OptionalReg
-
-
-import basalt.nn as nn
-from basalt import Tensor, TensorShape
-from basalt import Graph, Symbol, OP
-from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE
-from basalt.utils.tensorutils import fill
+from basalt import dtype, nelts
+from basalt.autograd import OP
 from basalt.autograd.attributes import AttributeVector, Attribute
+from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE
+from basalt.nn import Tensor, TensorShape
+from basalt.utils.tensorutils import fill
 
-from test_utils_extras import (
-    test_unary_op,
-    test_binary_op,
-    test_unary_op_backward,
-    test_binary_op_backward,
-)
-
-alias dtype = DType.float32
-alias nelts: Int = simdwidthof[dtype]()
+from tests import assert_tensors_equal, test_unary_op, test_unary_op_backward
 
 
-# ------ Test Unary Ops ------
 fn test_SIGMOID() raises:
     alias t1_shape = TensorShape(2, 3)
-    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)  # filled with zeroes
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
 
     var expected = Tensor[dtype](2, 3)
     fill(expected, 0.5)
@@ -36,7 +21,7 @@ fn test_SIGMOID() raises:
 fn test_backward_SIGMOID() raises:
     alias t1_shape = TensorShape(2, 3)
     alias ug_shape = TensorShape(2, 3)
-    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)  # filled with zeroes
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
     fill(ug, 5.0)
 
@@ -88,7 +73,7 @@ fn test_backward_RELU() raises:
 
 fn test_TANH() raises:
     alias t1_shape = TensorShape(2, 3)
-    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)  # filled with zeroes
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
 
     var expected = Tensor[dtype](2, 3)
     fill(expected, 0.0)
@@ -99,7 +84,7 @@ fn test_TANH() raises:
 fn test_backward_TANH() raises:
     alias t1_shape = TensorShape(2, 3)
     alias ug_shape = TensorShape(2, 3)
-    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)  # filled with zeroes
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
     fill(ug, 5.0)
 
