@@ -136,7 +136,7 @@ fn make_onnx_operator_type(op_type: OP) raises -> String:
 
 
 # --- Loader and exporter ---
-fn load_onnx_data(
+fn load_onnx_model(
     model_path: Path, inout model_parameters: Parameters, g: Graph
 ) raises:
     # Simple onnx data loader where we load the data in order (so we need to have the correct order of the weights and biases in the model. We don't use the names for the loading)
