@@ -1,7 +1,6 @@
 from collections import Optional
 
-from basalt import Tensor, TensorShape
-from basalt.nn.tensor import MAX_RANK
+from basalt.nn.tensor import Tensor, TensorShape, MAX_RANK
 from basalt.utils.bytes import Bytes, f64_to_bytes, bytes_to_f64
 
 
