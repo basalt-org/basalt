@@ -85,7 +85,7 @@ fn run_torch(
         var torch = Python.import_module("torch")
         var F = Python.import_module("torch.nn.functional")
         var np = Python.import_module("numpy")
-        Python.add_to_path("./test")
+        Python.add_to_path("./tests/python")
         var torch_models = Python.import_module("test_models_torch")
 
         var inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
