@@ -1,7 +1,7 @@
 from python.python import Python
 from testing import assert_true
 
-from basalt import Tensor, TensorShape
+from basalt.nn import Tensor, TensorShape
 from basalt.utils.tensorutils import broadcast_shapes
 
 
@@ -14,7 +14,6 @@ fn to_tensor_shape(owned shape: PythonObject) raises -> TensorShape:
 
 fn np_broadcast_shapes(s1: TensorShape, s2: TensorShape) raises -> TensorShape:
     var np = Python.import_module("numpy")
-    # Convert to python list
     var s1_py: PythonObject = []
     var s2_py: PythonObject = []
     for i in range(s1.rank()):
@@ -22,7 +21,6 @@ fn np_broadcast_shapes(s1: TensorShape, s2: TensorShape) raises -> TensorShape:
     for i in range(s2.rank()):
         s2_py += [s2[i]]
 
-    # Numpy broadcast_shapes
     var py_shape = np.broadcast_shapes(s1_py, s2_py)
 
     return to_tensor_shape(py_shape)

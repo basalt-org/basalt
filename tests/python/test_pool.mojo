@@ -1,19 +1,15 @@
 from random import rand
 from python.python import Python
 from testing import assert_equal
-from test_conv import to_numpy, to_tensor
-from test_tensorutils import assert_tensors_equal
 
-import basalt.nn as nn
-from basalt import Tensor, TensorShape
-from basalt import Graph, Symbol, OP
+from basalt import dtype, nelts
+from basalt.autograd import Graph, OP
 from basalt.autograd.ops.pool import MAXPOOL2D
 from basalt.autograd.ops.conv import get_result_shape
 from basalt.autograd.attributes import Attribute, AttributeVector
+from basalt.nn import Tensor, TensorShape, Model
 
-
-alias dtype = DType.float32
-alias nelts: Int = simdwidthof[dtype]()
+from tests import assert_tensors_equal, to_numpy, to_tensor
 
 
 @value
@@ -92,7 +88,7 @@ fn test_pool_forward[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
     var res = model.inference(inputs)[0]
 
     var torch_out = torch_maxpool2d(
@@ -175,7 +171,7 @@ fn test_pool_backward[
         upper_grad=ug,
     )
 
-    assert_tensors_equal(grad, torch_out.expected_grad, "almost")
+    assert_tensors_equal["almost"](grad, torch_out.expected_grad)
 
 
 fn test_backward_1() raises:

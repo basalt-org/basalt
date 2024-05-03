@@ -1,20 +1,16 @@
 from random import rand
 from python.python import Python
 from testing import assert_equal
-from test_tensorutils import assert_tensors_equal
 
-import basalt.nn as nn
-from basalt import Tensor, TensorShape
-from basalt import Graph, Symbol, OP
-from basalt.autograd.ops.conv import get_result_shape, CONV2D
+from basalt import dtype, nelts
+from basalt.autograd import Graph, Symbol
 from basalt.autograd.attributes import Attribute, AttributeVector
+from basalt.autograd.ops import OP
+from basalt.autograd.ops.conv import get_result_shape, CONV2D
+from basalt.nn import Tensor, TensorShape, Model
 from basalt.utils.tensorutils import fill
 
-from test_utils_extras import to_numpy, to_tensor
-
-
-alias dtype = DType.float32
-alias nelts: Int = simdwidthof[dtype]()
+from tests import assert_tensors_equal, to_numpy, to_tensor
 
 
 fn test_get_result_shape() raises:
@@ -156,7 +152,7 @@ fn test_conv_forward[
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
 
-    var model = nn.Model[graph](inference_only=True)
+    var model = Model[graph](inference_only=True)
     var res = model.inference(inputs, kernel, bias)[0]
 
     var torch_out = torch_conv2d(
@@ -274,9 +270,9 @@ fn test_conv_backward[
         upper_grad=ug,
     )
 
-    assert_tensors_equal(grad1, torch_out.expected_inputs_grad, "almost")
-    assert_tensors_equal(grad2, torch_out.expected_kernel_grad, "almost")
-    assert_tensors_equal(grad3, torch_out.expected_bias_grad, "almost")
+    assert_tensors_equal["almost"](grad1, torch_out.expected_inputs_grad)
+    assert_tensors_equal["almost"](grad2, torch_out.expected_kernel_grad)
+    assert_tensors_equal["almost"](grad3, torch_out.expected_bias_grad)
 
 
 fn test_backward_1() raises:
