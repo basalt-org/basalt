@@ -1,7 +1,6 @@
 from collections import Optional
 
-from basalt import Tensor, TensorShape
-from basalt.nn.tensor import MAX_RANK
+from basalt.nn.tensor import Tensor, TensorShape, MAX_RANK
 from basalt.utils.bytes import Bytes, f64_to_bytes, bytes_to_f64
 
 
@@ -23,8 +22,7 @@ struct AttributeType(Stringable):
     alias INTS = AttributeType(3, "INTS")
     alias FLOATS = AttributeType(4, "FLOATS")
     alias STRINGS = AttributeType(5, "STRINGS")
-    alias TENSOR = AttributeType(6, "TENSOR")
-    alias BOOL = AttributeType(7, "BOOL")
+    alias BOOL = AttributeType(6, "BOOL")
 
     var id: UInt8
     var name: Bytes[16]  # StringLiteral
@@ -32,6 +30,14 @@ struct AttributeType(Stringable):
     fn __init__(inout self, id: UInt8, name: String):
         self.id = id
         self.name = Bytes[16](name)
+
+    fn __init__(inout self, type: DType):
+        if type.is_floating_point():
+            self = AttributeType.FLOAT
+        elif type.is_bool():
+            self = AttributeType.BOOL
+        else:
+            self = AttributeType.INT
 
     fn __eq__(self, other: Self) -> Bool:
         return self.id == other.id
@@ -79,50 +85,53 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
 
 @register_passable("trivial")
 struct Attribute(Stringable, CollectionElement):
+    var data_shape: StaticIntTuple[MAX_RANK]
     var name: Bytes[MAX_NAME_CHARS]
     var data: Bytes[MAX_DATA_BYTES]
-    var data_shape: StaticIntTuple[MAX_RANK]
     var type: AttributeType
     var size: Int
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: String):
+        self.data_shape = StaticIntTuple[MAX_RANK]()
         self.name = Bytes[MAX_NAME_CHARS](name)
         self.data = Bytes[MAX_DATA_BYTES](value)
-        self.data_shape = StaticIntTuple[MAX_RANK]()
-        self.data_shape[0] = len(value)
         self.type = AttributeType.STRING
-        self.size = 1
+        self.size = len(value)
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: TensorShape):
+        self.data_shape = StaticIntTuple[MAX_RANK]()
         self.name = Bytes[MAX_NAME_CHARS](name)
         self.data = Bytes[MAX_DATA_BYTES]()
-        self.data_shape = StaticIntTuple[MAX_RANK]()
-        self.data[0] = value.rank()
-        for i in range(value.rank()):
-            self.data_shape[i] = value._shape[i]
         self.type = AttributeType.INTS
         self.size = value.rank()
 
+        for i in range(self.size):
+            self.data_shape[i] = value._shape[i]
+
     @always_inline("nodebug")
     fn __init__[N: Int](inout self, name: String, value: StaticIntTuple[N]):
+        self.data_shape = StaticIntTuple[MAX_RANK]()
         self.name = Bytes[MAX_NAME_CHARS](name)
         self.data = Bytes[MAX_DATA_BYTES]()
-        self.data_shape = StaticIntTuple[MAX_RANK]()
-        for i in range(N):
-            self.data_shape[i] = value[i]
         self.type = AttributeType.INTS
         self.size = N
+
+        for i in range(self.size):
+            self.data[i] = value[i]
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Scalar):
         # BUG: Known bug for big attributes (>1e18, max_finite, inf)
+        # TODO: Add supporting assert
         alias f64_size = DType.float64.sizeof()
 
+        self.data_shape = StaticIntTuple[MAX_RANK]()
         self.name = Bytes[MAX_NAME_CHARS](name)
         self.data = Bytes[MAX_DATA_BYTES]()
-        self.data_shape = StaticIntTuple[MAX_RANK]()
+        self.type = AttributeType(value.type)
+        self.size = 1
 
         var fbytes = f64_to_bytes(value.cast[DType.float64]().min(1e18))
 
@@ -131,30 +140,6 @@ struct Attribute(Stringable, CollectionElement):
             self.data[Index] = fbytes[Index]
 
         unroll[copy, f64_size]()
-
-        self.size = 1
-        if (
-            value.type == DType.int32
-            or value.type == DType.int64
-            or value.type == DType.int16
-            or value.type == DType.int8
-            or value.type == DType.uint32
-            or value.type == DType.uint64
-            or value.type == DType.uint16
-            or value.type == DType.uint8
-        ):
-            self.type = AttributeType.INT
-        elif (
-            value.type == DType.float32
-            or value.type == DType.float64
-            or value.type == DType.float16
-            or value.type == DType.bfloat16
-        ):
-            self.type = AttributeType.FLOAT
-        elif value.type == DType.bool:
-            self.type = AttributeType.BOOL
-        else:
-            self.type = AttributeType.INT
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Int):
@@ -179,8 +164,10 @@ struct Attribute(Stringable, CollectionElement):
     @always_inline("nodebug")
     fn to_static[N: Int](self) -> StaticIntTuple[N]:
         var result = StaticIntTuple[N]()
+
         for i in range(N):
-            result[i] = self.data_shape[i]
+            result[i] = self.data[i].to_int()
+
         return result
 
     @always_inline("nodebug")
