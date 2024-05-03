@@ -83,7 +83,6 @@ struct Attribute(Stringable, CollectionElement):
     var data: Bytes[MAX_DATA_BYTES]
     var data_shape: StaticIntTuple[MAX_RANK]
     var type: AttributeType
-    var size: Int
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: String):
@@ -92,7 +91,6 @@ struct Attribute(Stringable, CollectionElement):
         self.data_shape = StaticIntTuple[MAX_RANK]()
         self.data_shape[0] = len(value)
         self.type = AttributeType.STRING
-        self.size = 1
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: TensorShape):
@@ -103,7 +101,6 @@ struct Attribute(Stringable, CollectionElement):
         for i in range(value.rank()):
             self.data_shape[i] = value._shape[i]
         self.type = AttributeType.INTS
-        self.size = value.rank()
 
     @always_inline("nodebug")
     fn __init__[N: Int](inout self, name: String, value: StaticIntTuple[N]):
@@ -113,7 +110,6 @@ struct Attribute(Stringable, CollectionElement):
         for i in range(N):
             self.data_shape[i] = value[i]
         self.type = AttributeType.INTS
-        self.size = N
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Scalar):
@@ -132,27 +128,10 @@ struct Attribute(Stringable, CollectionElement):
 
         unroll[copy, f64_size]()
 
-        self.size = 1
-        if (
-            value.type == DType.int32
-            or value.type == DType.int64
-            or value.type == DType.int16
-            or value.type == DType.int8
-            or value.type == DType.uint32
-            or value.type == DType.uint64
-            or value.type == DType.uint16
-            or value.type == DType.uint8
-        ):
-            self.type = AttributeType.INT
-        elif (
-            value.type == DType.float32
-            or value.type == DType.float64
-            or value.type == DType.float16
-            or value.type == DType.bfloat16
-        ):
-            self.type = AttributeType.FLOAT
-        elif value.type == DType.bool:
+        if value.type.is_bool():
             self.type = AttributeType.BOOL
+        elif value.type.is_floating_point():
+            self.type = AttributeType.FLOAT
         else:
             self.type = AttributeType.INT
 
@@ -174,7 +153,7 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn to_shape(self) -> TensorShape:
-        return TensorShape(rank=self.size, shape=self.data_shape)
+        return TensorShape(rank=self.data[0].to_int(), shape=self.data_shape)
 
     @always_inline("nodebug")
     fn to_static[N: Int](self) -> StaticIntTuple[N]:
