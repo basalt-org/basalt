@@ -129,7 +129,7 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: FloatLiteral):
-        self.__init__(name, Float64(value))
+        self.__init__(name, Float32(value))
 
     @always_inline("nodebug")
     fn __str__(self) -> String:
