@@ -75,7 +75,8 @@ struct MNIST:
             var pixel_data = line[1:]
             for i in range(self.data.shape()[2]):
                 for j in range(self.data.shape()[3]):
-                    self.data[item * 28 * 28 + i * 28 + j] = atol(pixel_data[i + j])
+                    self.data[item * 28 * 28 + i * 28 + j] = atol(pixel_data[i * 28 + j])
+
 
         # Normalize data
         alias nelts = simdwidthof[dtype]()
