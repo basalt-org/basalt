@@ -17,7 +17,9 @@ struct BostonHousing:
         s = s[find_first(s, "\n") + 1 :]  # Ignore header
 
         var N = num_lines(s)
-        self.data = Tensor[dtype](N, self.n_inputs)  # All columns except the last one
+        self.data = Tensor[dtype](
+            N, self.n_inputs
+        )  # All columns except the last one
         self.labels = Tensor[dtype](N, 1)  # Only the last column (MEDV)
 
         var idx_low: Int
@@ -59,7 +61,7 @@ struct MNIST:
 
     fn __init__(inout self, file_path: String) raises:
         var s = read_file(file_path)
-        var list_of_lines = s.split("\n")[1:-1] # Skip the first and last lines
+        var list_of_lines = s.split("\n")[1:-1]  # Skip the first and last lines
 
         # Length is number of lines
         var N = len(list_of_lines)
