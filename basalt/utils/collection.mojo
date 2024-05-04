@@ -129,12 +129,6 @@ struct Collection(CollectionElement, Sized):
 
         return (Reference(self)[].data + index)[]
 
-        # return Reference(
-        #     __mlir_op.`lit.ref.from_pointer`[
-        #         _type = Reference[Tensor[dtype], mutability, lifetime]._mlir_type
-        #     ]((Reference(self)[].data + index))
-        # )
-
     @always_inline("nodebug")
     fn clear(inout self):
         """
