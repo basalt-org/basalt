@@ -1,5 +1,5 @@
 from algorithm import vectorize
-from math import exp, pow
+from math import exp, pow, max, abs
 from math.limit import min_finite, max_finite
 
 from basalt import Tensor, TensorShape
@@ -277,3 +277,33 @@ struct UNSQUEEZE:
         var res_grad = Tensor[dtype](t1_shape)
         memcpy(res_grad.data(), ug.data(), ug.num_elements())
         return res_grad ^
+
+
+struct SLICE:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        var slice = attributes["slice"].value().to_static[3]()
+        var dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
+
+        var start = slice[0] if slice[0] >= 0 else t1_shape[dim] + slice[0]
+        var stop = slice[1] if slice[1] >= 0 else t1_shape[dim] + slice[1]
+        var step = slice[2]
+
+        var new_shape = t1_shape
+        new_shape[dim] = max(0, (stop - start + abs(step) - 1) // abs(step))
+        return new_shape
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        pass
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        attributes: AttributeVector = AttributeVector(),
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        return Tensor[dtype](SLICE.result_shape(t1_shape, attributes))
