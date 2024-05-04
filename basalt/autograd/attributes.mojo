@@ -166,7 +166,7 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn to_int(self) -> Int:
-        return int(self.to_scalar[DType.uint8]())
+        return int(self.to_scalar[DType.int64]())
 
     fn json(self) -> String:
         var result = '{"name": "' + str(self.name) + '", '
