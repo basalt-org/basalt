@@ -17,7 +17,9 @@ struct BostonHousing:
         s = s[find_first(s, "\n") + 1 :]  # Ignore header
 
         var N = num_lines(s)
-        self.data = Tensor[dtype](N, self.n_inputs)  # All columns except the last one
+        self.data = Tensor[dtype](
+            N, self.n_inputs
+        )  # All columns except the last one
         self.labels = Tensor[dtype](N, 1)  # Only the last column (MEDV)
 
         var idx_low: Int
@@ -59,32 +61,21 @@ struct MNIST:
 
     fn __init__(inout self, file_path: String) raises:
         var s = read_file(file_path)
-        s = s[find_first(s, "\n") + 1 :]  # Ignore header
+        var list_of_lines = s.split("\n")[1:-1]  # Skip the first and last lines
 
-        var N = num_lines(s)
+        # Length is number of lines
+        var N = len(list_of_lines)
         self.data = Tensor[dtype](N, 1, 28, 28)
         self.labels = Tensor[dtype](N)
 
-        var idx_low: Int
-        var idx_high: Int
-        var idx_line: Int = 0
-
+        var line: List[String] = List[String]()
         # Load data in Tensor
-        # TODO: redo when String .split(",") is supported
-        for i in range(N):
-            s = s[idx_line:]
-            idx_line = find_first(s, "\n") + 1
-            self.labels[i] = atol(s[: find_first(s, ",")])
-            for m in range(28):
-                for n in range(28):
-                    idx_low = find_nth(s, ",", 28 * m + n + 1) + 1
-                    if m == 27 and n == 27:
-                        self.data[i * 28 * 28 + m * 28 + n] = atol(
-                            s[idx_low : idx_line - 1]
-                        )
-                    else:
-                        idx_high = find_nth(s, ",", 28 * m + n + 2)
-                        self.data[i * 28 * 28 + m * 28 + n] = atol(s[idx_low:idx_high])
+        for item in range(N):
+            line = list_of_lines[item].split(",")
+            self.labels[item] = atol(line[0])
+            for i in range(self.data.shape()[2]):
+                for j in range(self.data.shape()[3]):
+                    self.data[item * 28 * 28 + i * 28 + j] = atol(line[i + j])
 
         # Normalize data
         alias nelts = simdwidthof[dtype]()
