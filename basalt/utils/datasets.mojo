@@ -33,9 +33,7 @@ struct BostonHousing:
                 idx_low = find_nth(s, ",", n) + 1
                 idx_high = find_nth(s, ",", n + 1)
 
-                self.data[i * self.n_inputs + n] = cast_string[dtype](
-                    s[idx_low:idx_high]
-                )
+                self.data[i * self.n_inputs + n] = cast_string[dtype](s[idx_low:idx_high])
 
             idx_low = find_nth(s, ",", self.n_inputs) + 1
             self.labels[i] = cast_string[dtype](s[idx_low : idx_line - 1])
@@ -48,9 +46,7 @@ struct BostonHousing:
             for k in range(N):
                 col[k] = self.data[k * self.n_inputs + j]
             for i in range(N):
-                self.data[i * self.n_inputs + j] = (
-                    self.data[i * self.n_inputs + j] - tmean(col)
-                ) / tstd(col)
+                self.data[i * self.n_inputs + j] = (self.data[i * self.n_inputs + j] - tmean(col)) / tstd(col)
 
 
 struct MNIST:
@@ -76,7 +72,6 @@ struct MNIST:
             for i in range(self.data.shape()[2]):
                 for j in range(self.data.shape()[3]):
                     self.data[item * 28 * 28 + i * 28 + j] = atol(pixel_data[i * 28 + j])
-
 
         # Normalize data
         alias nelts = simdwidthof[dtype]()
