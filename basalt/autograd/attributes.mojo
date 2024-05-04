@@ -126,6 +126,7 @@ struct Attribute(Stringable, CollectionElement):
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Int):
         self.__init__(name, Int64(value))
+        self.data_shape[0] = 1
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: FloatLiteral):
@@ -156,7 +157,11 @@ struct Attribute(Stringable, CollectionElement):
     @always_inline("nodebug")
     fn to_scalar[Type: DType](self) -> Scalar[Type]:
         if self.data_shape[0] == 1:
-            return bytes_to_scalar[DType.float64](self.data).cast[Type]()
+            @parameter
+            if Type.is_floating_point():
+                return bytes_to_scalar[DType.float64](self.data).cast[Type]()
+            else:
+                return bytes_to_scalar[DType.int64](self.data).cast[Type]()
         return bytes_to_scalar[Type](self.data)
 
     @always_inline("nodebug")
