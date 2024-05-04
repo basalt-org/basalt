@@ -13,7 +13,7 @@ fn test_attribute_key() raises:
 fn test_attribute_int() raises:
     alias value: Int = 1
     alias a = Attribute(name="test", value=value)
-
+    
     assert_true(a.to_int() == 1)
 
 
@@ -46,7 +46,7 @@ fn test_attribute_scalar() raises:
             a1.to_scalar[DType.float32]() == value_a, "Float32 scalar attribute failed"
         )
 
-        alias value_b: Float64 = 65151
+        alias value_b: Float32 = 65151
         alias a2 = Attribute(name="test", value=value_b)
         assert_true(
             a2.to_scalar[DType.float32]() == value_b, "Float32 scalar attribute failed"
@@ -86,7 +86,7 @@ fn test_attribute_scalar() raises:
         )
 
     fn test_attribute_big_scalar() raises:
-        alias value_a: Float32 = 1e18
+        alias value_a: Float32 = 1e40
         alias a = Attribute(name="test", value=value_a)
         assert_true(
             a.to_scalar[DType.float32]() == value_a, "BIG scalar attribute failed"

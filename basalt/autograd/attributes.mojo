@@ -1,7 +1,7 @@
 from collections import Optional, OptionalReg
 
 from basalt.nn.tensor import Tensor, TensorShape, MAX_RANK
-from basalt.utils.bytes import Bytes, f64_to_bytes, bytes_to_f64
+from basalt.utils.bytes import Bytes, scalar_to_bytes, bytes_to_scalar
 
 
 alias MAX_ATTRS = 10
@@ -9,23 +9,17 @@ alias MAX_NAME_CHARS = 16
 alias MAX_DATA_BYTES = 32
 
 
-@value
 @register_passable("trivial")
 struct AttributeType(Stringable):
-    """
-    Attributes type.
-    """
-
-    alias INT = AttributeType(0, "INT")
-    alias FLOAT = AttributeType(1, "FLOAT")
-    alias STRING = AttributeType(2, "STRING")
-    alias INTS = AttributeType(3, "INTS")
-    alias FLOATS = AttributeType(4, "FLOATS")
-    alias STRINGS = AttributeType(5, "STRINGS")
-    alias BOOL = AttributeType(6, "BOOL")
+    alias BOOL = AttributeType(0, "BOOL")
+    alias INT = AttributeType(1, "INT")
+    alias FLOAT = AttributeType(2, "FLOAT")
+    alias STRING = AttributeType(3, "STRING")
+    alias INTS = AttributeType(4, "INTS")
+    alias FLOATS = AttributeType(5, "FLOATS")
 
     var id: UInt8
-    var name: Bytes[16]  # StringLiteral
+    var name: Bytes[16]
 
     fn __init__(inout self, id: UInt8, name: String):
         self.id = id
@@ -109,8 +103,6 @@ struct Attribute(Stringable, CollectionElement):
 
         for i in range(self.size):
             self.data_shape[i] = value._shape[i]
-        self.type = AttributeType.INTS
-        self.size = value.rank()
 
     @always_inline("nodebug")
     fn __init__[N: Int](inout self, name: String, value: StaticIntTuple[N]):
@@ -124,28 +116,22 @@ struct Attribute(Stringable, CollectionElement):
             self.data[i] = value[i]
 
     @always_inline("nodebug")
-    fn __init__(inout self, name: String, value: Scalar):
-        # BUG: Known bug for big attributes (>1e18, max_finite, inf)
-        # TODO: Add supporting assert
-        alias f64_size = DType.float64.sizeof()
-
+    fn __init__[Type: DType](inout self, name: String, value: Scalar[Type]):
         self.data_shape = StaticIntTuple[MAX_RANK]()
         self.name = Bytes[MAX_NAME_CHARS](name)
         self.data = Bytes[MAX_DATA_BYTES]()
-        self.type = AttributeType(value.type)
+        self.type = AttributeType(Type)
         self.size = 1
 
-        var fbytes = f64_to_bytes(value.cast[DType.float64]().min(1e18))
+        var bytes = scalar_to_bytes(value)
 
-        @parameter
-        fn copy[Index: Int]():
-            self.data[Index] = fbytes[Index]
-
-        unroll[copy, f64_size]()
+        @unroll
+        for i in range(Type.sizeof()):
+            self.data[i] = bytes[i]
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Int):
-        self.__init__(name, Float64(value))
+        self.__init__(name, Int64(value))
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: FloatLiteral):
@@ -173,22 +159,18 @@ struct Attribute(Stringable, CollectionElement):
         return result
 
     @always_inline("nodebug")
-    fn to_scalar[dtype: DType](self) -> Scalar[dtype]:
-        alias size = DType.float64.sizeof()
+    fn to_scalar[Type: DType](self) -> Scalar[Type]:
+        var bytes = Bytes[Type.sizeof()]()
 
-        var fbytes = Bytes[size]()
+        @unroll
+        for i in range(Type.sizeof()):
+            bytes[i] = self.data[i]
 
-        @parameter
-        fn copy[Index: Int]():
-            fbytes[Index] = self.data[Index]
-
-        unroll[copy, size]()
-
-        return bytes_to_f64(fbytes).cast[dtype]()
+        return bytes_to_scalar[Type](bytes)
 
     @always_inline("nodebug")
     fn to_int(self) -> Int:
-        return int(self.to_scalar[DType.float64]())
+        return int(self.to_scalar[DType.uint8]())
 
     fn json(self) -> String:
         var result = '{"name": "' + str(self.name) + '", '
