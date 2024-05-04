@@ -1,5 +1,5 @@
 from algorithm import vectorize
-from math import exp, pow, max, abs
+from math import exp, pow, max, min, abs
 from math.limit import min_finite, max_finite
 
 from basalt import Tensor, TensorShape
@@ -289,6 +289,10 @@ struct SLICE:
         var stop = slice[1] if slice[1] >= 0 else t1_shape[dim] + slice[1]
         var step = slice[2]
 
+        # Ensure start and stop are within bounds.
+        start = max(min(start, t1_shape[dim]), 0)
+        stop = max(min(stop, t1_shape[dim]), 0)
+
         var new_shape = t1_shape
         new_shape[dim] = max(0, (stop - start + abs(step) - 1) // abs(step))
         return new_shape
@@ -298,6 +302,21 @@ struct SLICE:
         t1_shape: TensorShape,
         attributes: AttributeVector,
     ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        var slice = attributes["slice"].value().to_static[3]()
+        var dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
+
+        var start = slice[0] if slice[0] >= 0 else t1_shape[dim] + slice[0]
+        var stop = slice[1] if slice[1] >= 0 else t1_shape[dim] + slice[1]
+        var step = slice[2]
+
+        # Ensure start and stop are within bounds.
+        start = max(min(start, t1_shape[dim]), 0)
+        stop = max(min(stop, t1_shape[dim]), 0)
+
+        print(start, stop, step)
+        print("SLICE forward not implemented")
+        print(t1)
+        print(res)
         pass
 
     @staticmethod

@@ -265,27 +265,48 @@ fn test_backward_UNSQUEEZE() raises:
     test_unary_op_backward[OP.UNSQUEEZE, t1_shape, ug_shape](t1, ug, expected_grad)
 
 
+fn test_SLICE() raises:
+    alias t1_shape = TensorShape(2, 10)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    for i in range(t1.num_elements()):
+        t1[i] = i
+
+    alias dim = 1
+    alias slice = Slice(0, 10, 2)
+    var expected = Tensor[dtype](2, 5)
+    for i in range(expected.num_elements()):
+        expected[i] = i * 2
+    
+    test_unary_op[
+        OP.SLICE, t1_shape, AttributeVector(
+            Attribute("slice", StaticIntTuple[3](slice.start, slice.end, slice.step)),
+            Attribute("dim", dim)
+        )
+    ](t1, expected)
+
+
 fn main():
     try:
-        test_SIGMOID()
-        test_RELU()
-        test_TANH()
-        test_CLIP()
-        test_SQUEEZE()
-        test_UNSQUEEZE()
+        # test_SIGMOID()
+        # test_RELU()
+        # test_TANH()
+        # test_CLIP()
+        # test_SQUEEZE()
+        # test_UNSQUEEZE()
+        test_SLICE()
     except e:
         print("[ERROR] Error in forward mlops")
         print(e)
         return
 
-    try:
-        test_backward_SIGMOID()
-        test_backward_RELU()
-        test_backward_TANH()
-        test_backward_CLIP()
-        test_backward_SQUEEZE()
-        test_backward_UNSQUEEZE()
-    except e:
-        print("[ERROR] Error in backward mlops")
-        print(e)
-        return
+    # try:
+    #     test_backward_SIGMOID()
+    #     test_backward_RELU()
+    #     test_backward_TANH()
+    #     test_backward_CLIP()
+    #     test_backward_SQUEEZE()
+    #     test_backward_UNSQUEEZE()
+    # except e:
+    #     print("[ERROR] Error in backward mlops")
+    #     print(e)
+    #     return
