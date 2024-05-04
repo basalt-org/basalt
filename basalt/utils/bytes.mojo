@@ -82,7 +82,7 @@ fn scalar_to_bytes[
 
     @unroll
     for i in range(Type.sizeof()):
-        bytes[i] = (int_bytes >> (i * 8)).cast[DType.uint8]()
+        bytes[i] = (int_bytes >> (i * 8) & 0xFF).cast[DType.uint8]()
 
     return bytes
 
