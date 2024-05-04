@@ -17,9 +17,7 @@ struct BostonHousing:
         s = s[find_first(s, "\n") + 1 :]  # Ignore header
 
         var N = num_lines(s)
-        self.data = Tensor[dtype](
-            N, self.n_inputs
-        )  # All columns except the last one
+        self.data = Tensor[dtype](N, self.n_inputs)  # All columns except the last one
         self.labels = Tensor[dtype](N, 1)  # Only the last column (MEDV)
 
         var idx_low: Int
@@ -69,6 +67,7 @@ struct MNIST:
         self.labels = Tensor[dtype](N)
 
         var line: List[String] = List[String]()
+
         # Load data in Tensor
         for item in range(N):
             line = list_of_lines[item].split(",")
