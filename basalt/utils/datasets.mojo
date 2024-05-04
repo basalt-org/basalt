@@ -59,7 +59,7 @@ struct MNIST:
 
     fn __init__(inout self, file_path: String) raises:
         var s = read_file(file_path)
-        var list_of_lines = s.split("\n")[1:-1] # Skip the first line
+        var list_of_lines = s.split("\n")[1:-1] # Skip the first and last lines
 
         # Length is number of lines
         var N = len(list_of_lines)
