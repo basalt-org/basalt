@@ -1,4 +1,4 @@
-from collections import Optional
+from collections import Optional, OptionalReg
 
 from basalt.nn.tensor import Tensor, TensorShape, MAX_RANK
 from basalt.utils.bytes import Bytes, f64_to_bytes, bytes_to_f64
@@ -67,7 +67,7 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
         return self.attributes[index]
 
     @always_inline("nodebug")
-    fn __getitem__(self, index: StringLiteral) -> Optional[Attribute]:
+    fn __getitem__(self, index: StringLiteral) -> OptionalReg[Attribute]:
         for i in range(self.size):
             if self.attributes[i].name == Bytes[MAX_NAME_CHARS](index):
                 return self.attributes[i]
@@ -109,6 +109,8 @@ struct Attribute(Stringable, CollectionElement):
 
         for i in range(self.size):
             self.data_shape[i] = value._shape[i]
+        self.type = AttributeType.INTS
+        self.size = value.rank()
 
     @always_inline("nodebug")
     fn __init__[N: Int](inout self, name: String, value: StaticIntTuple[N]):
@@ -166,7 +168,7 @@ struct Attribute(Stringable, CollectionElement):
         var result = StaticIntTuple[N]()
 
         for i in range(N):
-            result[i] = self.data[i].to_int()
+            result[i] = int(self.data[i])
 
         return result
 
@@ -186,7 +188,7 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn to_int(self) -> Int:
-        return self.to_scalar[DType.float64]().to_int()
+        return int(self.to_scalar[DType.float64]())
 
     fn json(self) -> String:
         var result = '{"name": "' + str(self.name) + '", '

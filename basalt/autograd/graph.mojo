@@ -1,5 +1,5 @@
 from python.python import Python
-from collections.optional import Optional
+from collections.optional import Optional, OptionalReg
 
 from .node import Node
 from .attributes import AttributeVector, Attribute
@@ -17,7 +17,7 @@ struct Graph:
     var params: ParamDict
     var nodes: List[Node]
     var outputs: List[Symbol]
-    var loss_out: Optional[Symbol]
+    var loss_out: OptionalReg[Symbol]
     var symbol_count: UInt32
 
     fn __init__(inout self):

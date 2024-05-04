@@ -92,7 +92,7 @@ fn main():
             # [ONE HOT ENCODING!]
             var labels_one_hot = Tensor[dtype](batch.labels.dim(0), 10)
             for bb in range(batch.labels.dim(0)):
-                labels_one_hot[(bb * 10 + batch.labels[bb]).to_int()] = 1.0
+                labels_one_hot[int((bb * 10 + batch.labels[bb]))] = 1.0
 
             # Forward pass
             var loss = model.forward(batch.data, labels_one_hot)

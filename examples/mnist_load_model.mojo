@@ -85,7 +85,7 @@ fn main():
     for batch in training_loader:
         var labels_one_hot = Tensor[dtype](batch.labels.dim(0), 10)
         for bb in range(batch.labels.dim(0)):
-            labels_one_hot[(bb * 10 + batch.labels[bb]).to_int()] = 1.0
+            labels_one_hot[int(bb * 10 + batch.labels[bb])] = 1.0
 
         var output = model.inference(batch.data, labels_one_hot)[0]
         
