@@ -163,13 +163,7 @@ struct Attribute(Stringable, CollectionElement):
     @always_inline("nodebug")
     fn to_scalar[Type: DType](self) -> Scalar[Type]:
         constrained[Type.is_numeric(), "Attribute value must be numeric."]()
-
-        if self.data_shape[0] == 1:
-            @parameter
-            if Type.is_floating_point():
-                return bytes_to_scalar[DType.float64](self.data).cast[Type]()
-            else:
-                return bytes_to_scalar[DType.int64](self.data).cast[Type]()
+        
         return bytes_to_scalar[Type](self.data)
 
     @always_inline("nodebug")
