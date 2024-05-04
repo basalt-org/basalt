@@ -119,15 +119,9 @@ struct Attribute(Stringable, CollectionElement):
     fn __init__[Type: DType](inout self, name: String, value: Scalar[Type]):
         self.data_shape = StaticIntTuple[MAX_RANK]()
         self.name = Bytes[MAX_NAME_CHARS](name)
-        self.data = Bytes[MAX_DATA_BYTES]()
+        self.data = scalar_to_bytes[Type, MAX_DATA_BYTES](value)
         self.type = AttributeType(Type)
         self.size = 1
-
-        var bytes = scalar_to_bytes(value)
-
-        @unroll
-        for i in range(Type.sizeof()):
-            self.data[i] = bytes[i]
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: Int):
@@ -160,13 +154,7 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn to_scalar[Type: DType](self) -> Scalar[Type]:
-        var bytes = Bytes[Type.sizeof()]()
-
-        @unroll
-        for i in range(Type.sizeof()):
-            bytes[i] = self.data[i]
-
-        return bytes_to_scalar[Type](bytes)
+        return bytes_to_scalar[Type](self.data)
 
     @always_inline("nodebug")
     fn to_int(self) -> Int:

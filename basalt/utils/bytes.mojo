@@ -81,13 +81,13 @@ fn scalar_to_bytes[
     var bytes = Bytes[Size]()
 
     @unroll
-    for i in range(Size):
+    for i in range(Type.sizeof()):
         bytes[i] = (int_bytes >> (i * 8)).cast[DType.uint8]()
 
     return bytes
 
 
-fn bytes_to_scalar[Type: DType, Size: Int = Type.sizeof()](bytes: Bytes[Size]) -> Scalar[Type]:
+fn bytes_to_scalar[Type: DType, Size: Int = Type.sizeof()](bytes: Bytes) -> Scalar[Type]:
     alias UInt_N = get_uint_type[Type]()
     
     var int_bytes: Scalar[UInt_N] = 0
