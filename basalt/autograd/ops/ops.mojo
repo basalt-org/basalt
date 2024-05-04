@@ -86,10 +86,16 @@ fn static_result_shape(
     if len(operands) == 1:
         return static_result_shape(op, operands[0].shape, attributes)
     elif len(operands) == 2:
-        return static_result_shape(op, operands[0].shape, operands[1].shape, attributes)
+        return static_result_shape(
+            op, operands[0].shape, operands[1].shape, attributes
+        )
     elif len(operands) == 3:
         return static_result_shape(
-            op, operands[0].shape, operands[1].shape, operands[2].shape, attributes
+            op,
+            operands[0].shape,
+            operands[1].shape,
+            operands[2].shape,
+            attributes,
         )
     else:
         print("Error: Invalid number of operands")
@@ -249,7 +255,10 @@ fn forward_op[
 
 
 fn forward_op[
-    op: OP, t1_shape: TensorShape, t2_shape: TensorShape, attributes: AttributeVector
+    op: OP,
+    t1_shape: TensorShape,
+    t2_shape: TensorShape,
+    attributes: AttributeVector,
 ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
     """
     Forward pass for binary operators.
@@ -278,14 +287,21 @@ fn forward_op[
     t2_shape: TensorShape,
     t3_shape: TensorShape,
     attributes: AttributeVector,
-](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype]):
+](
+    inout res: Tensor[dtype],
+    t1: Tensor[dtype],
+    t2: Tensor[dtype],
+    t3: Tensor[dtype],
+):
     """
     Forward pass for ternary operators.
     """
 
     @parameter
     if op == OP.CONV2D:
-        CONV2D.forward[t1_shape, t2_shape, t3_shape, attributes](res, t1, t2, t3)
+        CONV2D.forward[t1_shape, t2_shape, t3_shape, attributes](
+            res, t1, t2, t3
+        )
     elif op == OP.FMA:
         FMA.forward[t1_shape, t2_shape, t3_shape](res, t1, t2, t3)
     else:
@@ -295,11 +311,7 @@ fn forward_op[
 fn forward_op[
     op: OP,
     attributes: AttributeVector,
-](
-    inputs: List[Symbol],
-    outputs: List[Symbol],
-    parameters: Parameters,
-):
+](inputs: List[Symbol], outputs: List[Symbol], parameters: Parameters,):
     """
     Forward pass for dynamic operators.
     """
@@ -368,7 +380,12 @@ fn backward_op[
     t1_shape: TensorShape,
     t2_shape: TensorShape,
     attributes: AttributeVector,
-](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], inout grad: Tensor[dtype]):
+](
+    ug: Tensor[dtype],
+    t1: Tensor[dtype],
+    t2: Tensor[dtype],
+    inout grad: Tensor[dtype],
+):
     """
     Backward pass for binary operators.
     """
@@ -376,17 +393,29 @@ fn backward_op[
 
     @parameter
     if op == OP.ADD:
-        res_grad = ADD.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = ADD.backward[tensor_id, ug_shape, t1_shape, t2_shape](
+            ug, t1, t2
+        )
     elif op == OP.SUB:
-        res_grad = SUB.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = SUB.backward[tensor_id, ug_shape, t1_shape, t2_shape](
+            ug, t1, t2
+        )
     elif op == OP.MUL:
-        res_grad = MUL.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = MUL.backward[tensor_id, ug_shape, t1_shape, t2_shape](
+            ug, t1, t2
+        )
     elif op == OP.DIV:
-        res_grad = DIV.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = DIV.backward[tensor_id, ug_shape, t1_shape, t2_shape](
+            ug, t1, t2
+        )
     elif op == OP.POW:
-        res_grad = POW.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = POW.backward[tensor_id, ug_shape, t1_shape, t2_shape](
+            ug, t1, t2
+        )
     elif op == OP.DOT:
-        res_grad = DOT.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = DOT.backward[tensor_id, ug_shape, t1_shape, t2_shape](
+            ug, t1, t2
+        )
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)
@@ -430,9 +459,9 @@ fn backward_op[
             tensor_id, ug_shape, t1_shape, t2_shape, t3_shape, attributes
         ](ug, t1, t2, t3)
     elif op == OP.FMA:
-        res_grad = FMA.backward[tensor_id, ug_shape, t1_shape, t2_shape, t3_shape](
-            ug, t1, t2, t3
-        )
+        res_grad = FMA.backward[
+            tensor_id, ug_shape, t1_shape, t2_shape, t3_shape
+        ](ug, t1, t2, t3)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)
@@ -456,9 +485,13 @@ fn backward_op[
     var res_grad: Tensor[dtype]
 
     if op == OP.CONCAT:
-        res_grad = CONCAT.backward[input_id, attributes](inputs, outputs, parameters)
+        res_grad = CONCAT.backward[input_id, attributes](
+            inputs, outputs, parameters
+        )
     elif op == OP.SPLIT:
-        res_grad = SPLIT.backward[input_id, attributes](inputs, outputs, parameters)
+        res_grad = SPLIT.backward[input_id, attributes](
+            inputs, outputs, parameters
+        )
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)

@@ -32,7 +32,7 @@ fn create_linear_regression(
     var loss = MSELoss(g, out, y_true)
     g.loss(loss)
 
-    return g ^
+    return g^
 
 
 fn run_mojo[
@@ -94,7 +94,9 @@ fn run_torch(
         var linear1_weights = torch.from_numpy(
             to_numpy(linear1_weights)
         ).requires_grad_(True)
-        var linear1_bias = torch.from_numpy(to_numpy(linear1_bias)).requires_grad_(True)
+        var linear1_bias = torch.from_numpy(
+            to_numpy(linear1_bias)
+        ).requires_grad_(True)
 
         var regression = torch_models.LinearRegression(
             linear1_weights,
@@ -129,11 +131,11 @@ fn create_weights(num_elements: Int, zero: Bool) -> List[Scalar[dtype]]:
         if zero:
             weights.append(Scalar[dtype](0.0))
         else:
-            var rand_float = prng.next().cast[dtype]() / max_finite[DType.int32]().cast[
-                dtype
-            ]()
+            var rand_float = prng.next().cast[dtype]() / max_finite[
+                DType.int32
+            ]().cast[dtype]()
             weights.append(Scalar[dtype](rand_float / 10))
-    return weights ^
+    return weights^
 
 
 fn dv_to_tensor(dv: List[Scalar[dtype]], shape: TensorShape) -> Tensor[dtype]:
@@ -142,7 +144,7 @@ fn dv_to_tensor(dv: List[Scalar[dtype]], shape: TensorShape) -> Tensor[dtype]:
         print("[WARNING] tensor and dv not the shame shape")
     for i in range(t.num_elements()):
         t[i] = dv[i]
-    return t ^
+    return t^
 
 
 fn main():
@@ -159,11 +161,18 @@ fn main():
             labels[i * n_outputs + j] = 1
 
     alias l1_w_shape = TensorShape(13, n_outputs)
-    alias linear1_weights = create_weights(l1_w_shape.num_elements(), zero=False)
+    alias linear1_weights = create_weights(
+        l1_w_shape.num_elements(), zero=False
+    )
     alias l1_b_shape = TensorShape(n_outputs)
     alias linear1_bias = create_weights(l1_b_shape.num_elements(), zero=False)
 
-    var losses_mojo = run_mojo[batch_size, n_outputs, linear1_weights, linear1_bias,](
+    var losses_mojo = run_mojo[
+        batch_size,
+        n_outputs,
+        linear1_weights,
+        linear1_bias,
+    ](
         epochs,
         learning_rate,
         inputs,

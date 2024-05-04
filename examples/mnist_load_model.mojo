@@ -40,14 +40,16 @@ fn create_CNN(batch_size: Int) -> Graph:
         attributes=AttributeVector(
             Attribute(
                 "shape",
-                TensorShape(x6.shape[0], x6.shape[1] * x6.shape[2] * x6.shape[3]),
+                TensorShape(
+                    x6.shape[0], x6.shape[1] * x6.shape[2] * x6.shape[3]
+                ),
             )
         ),
     )
     var out = nn.Linear(g, x7, n_outputs=10)
     g.out(out)
 
-    return g ^
+    return g^
 
 
 fn main():
@@ -76,7 +78,7 @@ fn main():
     var training_loader = DataLoader(
         data=train_data.data, labels=train_data.labels, batch_size=batch_size
     )
-    
+
     # Testing
     print("Testing started")
     var start = now()
@@ -88,7 +90,7 @@ fn main():
             labels_one_hot[int(bb * 10 + batch.labels[bb])] = 1.0
 
         var output = model.inference(batch.data, labels_one_hot)[0]
-        
+
         fn argmax(tensor: Tensor[dtype], dim: Int) -> Tensor[dtype]:
             var result = Tensor[dtype](tensor.dim(0))
             for i in range(tensor.dim(0)):
@@ -99,7 +101,7 @@ fn main():
                         max_val = tensor[i * 10 + j]
                         max_idx = j
                 result[i] = max_idx
-            
+
             return result
 
         var pred = argmax(output, dim=1)

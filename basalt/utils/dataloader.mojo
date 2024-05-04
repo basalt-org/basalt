@@ -11,7 +11,9 @@ struct Batch[dtype: DType](CollectionElement):
     var data: Tensor[dtype]
     var labels: Tensor[dtype]
 
-    fn __init__(inout self, batch_data: Tensor[dtype], batch_labels: Tensor[dtype]):
+    fn __init__(
+        inout self, batch_data: Tensor[dtype], batch_labels: Tensor[dtype]
+    ):
         self.data = batch_data
         self.labels = batch_labels
 

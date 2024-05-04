@@ -24,7 +24,11 @@ struct torch_output_cat:
 
 
 fn torch_cat(
-    input_1: Tensor, input_2: Tensor, input_3: Tensor, upper_grad: Tensor, dim: Int
+    input_1: Tensor,
+    input_2: Tensor,
+    input_3: Tensor,
+    upper_grad: Tensor,
+    dim: Int,
 ) -> torch_output_cat:
     try:
         var py = Python.import_module("builtins")
@@ -223,14 +227,17 @@ fn test_SPLIT() raises:
     rand(ug2_2.data(), ug2_2.num_elements())
     rand(ug3_2.data(), ug3_2.num_elements())
 
-    var expected_and_grad_2 = torch_split(t1, ug1_2, ug2_2, ug3_2, sections_2, dim=2)
+    var expected_and_grad_2 = torch_split(
+        t1, ug1_2, ug2_2, ug3_2, sections_2, dim=2
+    )
     model_2.backward(ug1_2, ug2_2, ug3_2)
 
     assert_tensors_equal["almost"](results_2[0], expected_and_grad_2.expected1)
     assert_tensors_equal["almost"](results_2[1], expected_and_grad_2.expected2)
     assert_tensors_equal["almost"](results_2[2], expected_and_grad_2.expected3)
     assert_tensors_equal["almost"](
-        model_2.parameters.grads[graph_2.nodes[0].inputs[0]], expected_and_grad_2.grad
+        model_2.parameters.grads[graph_2.nodes[0].inputs[0]],
+        expected_and_grad_2.grad,
     )
 
 

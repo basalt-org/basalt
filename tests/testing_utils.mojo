@@ -16,7 +16,8 @@ fn assert_tensors_equal[
     mode: String = "exact", msg: String = "Error"
 ](t1: Tensor[dtype], t2: Tensor[dtype]) raises:
     constrained[
-        mode == "exact" or mode == "almost", "Mode must be either 'exact' or 'almost'"
+        mode == "exact" or mode == "almost",
+        "Mode must be either 'exact' or 'almost'",
     ]()
 
     assert_equal(t1.shape(), t2.shape(), "Tensor shape mismatch")
@@ -38,11 +39,11 @@ fn test_unary_op[
         if attrs:
             var res = g.op(op, t1, attributes=attrs.value())
             g.out(res)
-            return g ^
+            return g^
         else:
             var res = g.op(op, t1)
             g.out(res)
-            return g ^
+            return g^
 
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
@@ -67,11 +68,11 @@ fn test_binary_op[
         if attrs:
             var res = g.op(op, t1, t2, attributes=attrs.value())
             g.out(res)
-            return g ^
+            return g^
         else:
             var res = g.op(op, t1, t2)
             g.out(res)
-            return g ^
+            return g^
 
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
@@ -85,7 +86,10 @@ fn test_binary_op[
 fn test_ternary_op[
     op: OP, t1_shape: TensorShape, t2_shape: TensorShape, t3_shape: TensorShape
 ](
-    t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype], expected: Tensor[dtype]
+    t1: Tensor[dtype],
+    t2: Tensor[dtype],
+    t3: Tensor[dtype],
+    expected: Tensor[dtype],
 ) raises:
     @parameter
     fn create_graph() -> Graph:
@@ -97,7 +101,7 @@ fn test_ternary_op[
         var res = g.op(op, t1, t2, t3)
         g.out(res)
 
-        return g ^
+        return g^
 
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
@@ -189,7 +193,9 @@ def to_numpy(tensor: Tensor) -> PythonObject:
     elif rank == 3:
         pyarray = np.empty((tensor.dim(0), tensor.dim(1), tensor.dim(2)))
     elif rank == 4:
-        pyarray = np.empty((tensor.dim(0), tensor.dim(1), tensor.dim(2), tensor.dim(3)))
+        pyarray = np.empty(
+            (tensor.dim(0), tensor.dim(1), tensor.dim(2), tensor.dim(3))
+        )
     else:
         print("Error: rank not supported: ", rank)
 
@@ -216,7 +222,10 @@ fn to_tensor(np_array: PythonObject) raises -> Tensor[dtype]:
 
 
 fn create_graph_concat(
-    t1_shape: TensorShape, t2_shape: TensorShape, t3_shape: TensorShape, dim: Int
+    t1_shape: TensorShape,
+    t2_shape: TensorShape,
+    t3_shape: TensorShape,
+    dim: Int,
 ) -> Graph:
     # Testing with 3 operands
     var g = Graph()
@@ -226,14 +235,16 @@ fn create_graph_concat(
     var res = g.concat(t1, t2, t3, dim=dim)
     g.out(res)
     g.loss(res)
-    return g ^
+    return g^
 
 
-fn create_graph_split(t_shape: TensorShape, sections: List[Int], dim: Int) -> Graph:
+fn create_graph_split(
+    t_shape: TensorShape, sections: List[Int], dim: Int
+) -> Graph:
     var g = Graph()
     var t = g.input(t_shape, trainable=True)
     var results = g.split(t, sections=sections, dim=dim)
     for i in range(len(sections)):
         g.out(results[i])
     g.loss(results[0])  # Any one
-    return g ^
+    return g^

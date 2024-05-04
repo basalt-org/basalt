@@ -208,9 +208,9 @@ fn test_TRANSPOSE() raises:
     for i in range(t1_shape[0]):
         for j in range(t1_shape[1]):
             for k in range(t1_shape[2]):
-                expected[k * expected_strides[0] + j * expected_strides[1] + i] = t1[
-                    i * t1_shape[1] * t1_shape[2] + j * t1_shape[2] + k
-                ]
+                expected[
+                    k * expected_strides[0] + j * expected_strides[1] + i
+                ] = t1[i * t1_shape[1] * t1_shape[2] + j * t1_shape[2] + k]
 
     test_unary_op[OP.TRANSPOSE, t1_shape](t1, expected)
 
@@ -222,7 +222,9 @@ fn test_TRANSPOSE() raises:
         for j in range(t1_shape[1]):
             for k in range(t1_shape[2]):
                 expected_axis_1[
-                    j * expected_axis_1_strides[0] + k * expected_axis_1_strides[1] + i
+                    j * expected_axis_1_strides[0]
+                    + k * expected_axis_1_strides[1]
+                    + i
                 ] = t1[i * t1_shape[1] * t1_shape[2] + j * t1_shape[2] + k]
 
     test_unary_op[OP.TRANSPOSE, t1_shape, attrs](t1, expected_axis_1)

@@ -24,7 +24,9 @@ def to_numpy(tensor: Tensor) -> PythonObject:
     elif rank == 3:
         pyarray = np.empty((tensor.dim(0), tensor.dim(1), tensor.dim(2)))
     elif rank == 4:
-        pyarray = np.empty((tensor.dim(0), tensor.dim(1), tensor.dim(2), tensor.dim(3)))
+        pyarray = np.empty(
+            (tensor.dim(0), tensor.dim(1), tensor.dim(2), tensor.dim(3))
+        )
     else:
         print("Error: rank not supported: ", rank)
 
@@ -95,13 +97,19 @@ fn make_onnx_operator_type(op_type: OP) raises -> String:
         return "Log"
     elif op_type == OP.SUM:
         # Special case, axis isn't an attribute, instead it is an input, because it can be dynamic
-        raise Error(str(op_type) + " is not supported right now for conversion to onnx")
+        raise Error(
+            str(op_type) + " is not supported right now for conversion to onnx"
+        )
         # return "ReduceSum"
     elif op_type == OP.MEAN:
-        raise Error(str(op_type) + " is not supported right now for conversion to onnx")
+        raise Error(
+            str(op_type) + " is not supported right now for conversion to onnx"
+        )
         # return "ReduceMean"
     elif op_type == OP.MAX:
-        raise Error(str(op_type) + " is not supported right now for conversion to onnx")
+        raise Error(
+            str(op_type) + " is not supported right now for conversion to onnx"
+        )
         # return "ReduceMax"
     elif op_type == OP.CONV2D:
         return "Conv"
@@ -194,12 +202,16 @@ fn load_onnx_model(
 
             # It would be better to use memcpy here
             for j in range(len(data)):
-                model_parameters.tensors[g.params.symbols[i]][j] = data[j].to_float64()
+                model_parameters.tensors[g.params.symbols[i]][j] = data[
+                    j
+                ].to_float64()
         else:
             raise Error("Unsupported data type")
 
 
-fn export_onnx_model(model_path: Path, model_parameters: Parameters, g: Graph) raises:
+fn export_onnx_model(
+    model_path: Path, model_parameters: Parameters, g: Graph
+) raises:
     # Create onnx model with data and nodes
     var onnx = Python.import_module("onnx")
     var onnx_helper = Python.import_module("onnx.helper")
@@ -258,7 +270,9 @@ fn export_onnx_model(model_path: Path, model_parameters: Parameters, g: Graph) r
                     shape.append(intermediate_shape[j])
 
                 # Create onnx tensor information
-                var onnx_output = onnx_helper.make_tensor_value_info(name, dtype, shape)
+                var onnx_output = onnx_helper.make_tensor_value_info(
+                    name, dtype, shape
+                )
                 graph.value_info.append(onnx_output)
 
         # Create onnx node

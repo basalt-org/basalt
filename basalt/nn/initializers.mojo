@@ -43,8 +43,8 @@ fn calculate_fan(shape: TensorShape, mode: String) -> Scalar[dtype]:
     # mode: "fan_in" or "fan_out"
     if shape.rank() < 2:
         print(
-            "[ERROR] Fan in and fan out can not be calculated for tensor with less than"
-            " 2 dimensions"
+            "[ERROR] Fan in and fan out can not be calculated for tensor with"
+            " less than 2 dimensions"
         )
 
     var num_input_fmaps = shape[1]

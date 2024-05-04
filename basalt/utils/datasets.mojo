@@ -17,7 +17,9 @@ struct BostonHousing:
         s = s[find_first(s, "\n") + 1 :]  # Ignore header
 
         var N = num_lines(s)
-        self.data = Tensor[dtype](N, self.n_inputs)  # All columns except the last one
+        self.data = Tensor[dtype](
+            N, self.n_inputs
+        )  # All columns except the last one
         self.labels = Tensor[dtype](N, 1)  # Only the last column (MEDV)
 
         var idx_low: Int
@@ -84,7 +86,9 @@ struct MNIST:
                         )
                     else:
                         idx_high = find_nth(s, ",", 28 * m + n + 2)
-                        self.data[i * 28 * 28 + m * 28 + n] = atol(s[idx_low:idx_high])
+                        self.data[i * 28 * 28 + m * 28 + n] = atol(
+                            s[idx_low:idx_high]
+                        )
 
         # Normalize data
         alias nelts = simdwidthof[dtype]()

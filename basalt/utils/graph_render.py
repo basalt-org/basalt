@@ -31,7 +31,9 @@ def create_onnx_graph_from_json(graph, type="node"):
             name = initializer["name"]
             dtype = TensorProto.FLOAT  # TODO
             shape = list(map(int, initializer["shape"].split("x")))
-            tensor = helper.make_tensor(name, dtype, shape, get_param_data(shape))
+            tensor = helper.make_tensor(
+                name, dtype, shape, get_param_data(shape)
+            )
             initializers.append(tensor)
             visited.append(name)
 
@@ -75,11 +77,13 @@ def create_onnx_graph_from_json(graph, type="node"):
             elif attribute["type"] == "INTS":
                 attr_type = onnx.AttributeProto.INTS
             else:
-                raise ValueError(f"Unsupported attribute type: {attribute['type']}")
+                raise ValueError(
+                    f"Unsupported attribute type: {attribute['type']}"
+                )
 
             onnx_attribute = helper.make_attribute(
-                        attribute["name"], attribute["value"], attr_type=attr_type
-                    )
+                attribute["name"], attribute["value"], attr_type=attr_type
+            )
             onnx_node.attribute.append(onnx_attribute)
 
         nodes.append(onnx_node)
@@ -90,7 +94,9 @@ def create_onnx_graph_from_json(graph, type="node"):
                 name = output["name"]
                 dtype = TensorProto.FLOAT
                 shape = list(map(int, output["shape"].split("x")))
-                intermediates.append(helper.make_tensor_value_info(name, dtype, shape))
+                intermediates.append(
+                    helper.make_tensor_value_info(name, dtype, shape)
+                )
                 visited.append(name)
 
     # Process loss

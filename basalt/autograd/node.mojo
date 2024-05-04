@@ -30,7 +30,9 @@ struct Node(CollectionElement, Stringable):
         return self.json()
 
     fn json(self) -> String:
-        var s: String = '{"operator": "' + str(self.operator.name) + '", "inputs": ['
+        var s: String = '{"operator": "' + str(
+            self.operator.name
+        ) + '", "inputs": ['
         for i in range(len(self.inputs)):
             s += self.inputs[i].json()
             if i < len(self.inputs) - 1:

@@ -19,7 +19,9 @@ fn rand_uniform[
 
 
 @always_inline
-fn rand_normal[dtype: DType](inout res: Tensor[dtype], mean: Float64, std: Float64):
+fn rand_normal[
+    dtype: DType
+](inout res: Tensor[dtype], mean: Float64, std: Float64):
     randn[dtype](
         res.data(), res.num_elements(), mean, std**2
     )  # Normal distribution tensor initialization

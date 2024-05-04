@@ -23,11 +23,21 @@ fn get_result_shape(
     """
 
     var result_x_dim = (
-        (input_shape[-2] + (2 * padding[0]) - dilation[0] * (kernel_shape[-2] - 1) - 1)
+        (
+            input_shape[-2]
+            + (2 * padding[0])
+            - dilation[0] * (kernel_shape[-2] - 1)
+            - 1
+        )
         // stride[0]
     ) + 1
     var result_y_dim = (
-        (input_shape[-1] + (2 * padding[1]) - dilation[1] * (kernel_shape[-1] - 1) - 1)
+        (
+            input_shape[-1]
+            + (2 * padding[1])
+            - dilation[1] * (kernel_shape[-1] - 1)
+            - 1
+        )
         // stride[1]
     ) + 1
 
@@ -47,7 +57,9 @@ struct CONV2D:
         var padding = attributes["padding"].value().to_static[2]()
         var stride = attributes["stride"].value().to_static[2]()
         var dilation = attributes["dilation"].value().to_static[2]()
-        var res = get_result_shape(input_shape, kernel_shape, padding, stride, dilation)
+        var res = get_result_shape(
+            input_shape, kernel_shape, padding, stride, dilation
+        )
 
         return TensorShape(input_shape[0], kernel_shape[0], res[0], res[1])
 
@@ -99,7 +111,9 @@ struct CONV2D:
         alias output_shape = Self.result_shape(
             input_shape, kernel_shape, bias_shape, attributes
         )
-        alias col_shape_stripped = TensorShape(in_channels * k_x * k_y, col_x, col_y)
+        alias col_shape_stripped = TensorShape(
+            in_channels * k_x * k_y, col_x, col_y
+        )
 
         alias inputs_strides = input_shape.strides()
         alias kernel_strides = kernel_shape.strides()
@@ -178,7 +192,9 @@ struct CONV2D:
                             + uy
                         )
 
-                        outputs[output_index] = result.reduce_add() + bias[out_ch]
+                        outputs[output_index] = (
+                            result.reduce_add() + bias[out_ch]
+                        )
 
         parallelize[conv](batch_size)
 
@@ -251,7 +267,9 @@ struct CONV2D:
             fn input_grad(batch: Int):
                 for out_ch in range(ug_shape_1):
                     for ux in range(ug_shape_2):
-                        for uy in range(ug_shape_3):  # For all the element of ug
+                        for uy in range(
+                            ug_shape_3
+                        ):  # For all the element of ug
                             var ix_base = ux * stride_0 - padding_0
                             var iy_base = uy * stride_1 - padding_1
 

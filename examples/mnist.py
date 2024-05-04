@@ -118,4 +118,6 @@ if __name__ == "__main__":
         dummy_input = torch.randn(1, 1, 28, 28)
 
         # cnn.out.weight = nn.Parameter(cnn.out.weight.T) # transpose because torch saves the weight of linear layer as (output_dim, input_dim) (so they transposed and there is not a real reason for this)
-        torch.onnx.export(cnn, dummy_input, "./examples/data/mnist_torch.onnx", verbose=True)
+        torch.onnx.export(
+            cnn, dummy_input, "./examples/data/mnist_torch.onnx", verbose=True
+        )

@@ -19,7 +19,7 @@ fn linear_regression(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
     var loss = nn.MSELoss(g, y_pred, y_true)
     g.loss(loss)
 
-    return g ^
+    return g^
 
 
 fn main():
@@ -34,7 +34,9 @@ fn main():
     # except: print("Could not render graph")
 
     var model = nn.Model[graph]()
-    var optim = nn.optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
+    var optim = nn.optim.Adam[graph](
+        Reference(model.parameters), lr=learning_rate
+    )
 
     # Batchwise data loader
     print("Loading data...")

@@ -20,7 +20,9 @@ fn Linear(
         init=Param("random_uniform", -bound, bound)
         # init=Param("random_uniform", 1) # NOTE: mode: fan_out required as weight are defined transposed
     )
-    var b = g.param(TensorShape(n_outputs), init=Param("random_uniform", -bound, bound))
+    var b = g.param(
+        TensorShape(n_outputs), init=Param("random_uniform", -bound, bound)
+    )
 
     var res = g.op(OP.DOT, inputs, weights)
     return g.op(OP.ADD, res, b)

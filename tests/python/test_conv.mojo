@@ -147,7 +147,7 @@ fn test_conv_forward[
         )
         g.out(res)
 
-        return g ^
+        return g^
 
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
@@ -241,7 +241,10 @@ fn test_conv_backward[
     stride: StaticIntTuple[2],
     dilation: StaticIntTuple[2],
 ](
-    ug: Tensor[dtype], inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]
+    ug: Tensor[dtype],
+    inputs: Tensor[dtype],
+    kernel: Tensor[dtype],
+    bias: Tensor[dtype],
 ) raises:
     alias bias_shape = TensorShape(kernel_shape[0])
     alias attributes = AttributeVector(
@@ -291,13 +294,17 @@ fn test_backward_1() raises:
     rand[dtype](bias.data(), bias.num_elements())
 
     # uppergrad
-    alias res = get_result_shape(input_shape, kernel_shape, padding, stride, dilation)
-    alias ug_shape = TensorShape(input_shape[0], kernel_shape[0], res[0], res[1])
+    alias res = get_result_shape(
+        input_shape, kernel_shape, padding, stride, dilation
+    )
+    alias ug_shape = TensorShape(
+        input_shape[0], kernel_shape[0], res[0], res[1]
+    )
     var ug = Tensor[dtype](ug_shape)
 
-    test_conv_backward[ug_shape, input_shape, kernel_shape, padding, stride, dilation](
-        ug, inputs, kernel, bias
-    )
+    test_conv_backward[
+        ug_shape, input_shape, kernel_shape, padding, stride, dilation
+    ](ug, inputs, kernel, bias)
 
 
 fn test_backward_2() raises:
@@ -316,14 +323,18 @@ fn test_backward_2() raises:
     rand[dtype](bias.data(), bias.num_elements())
 
     # uppergrad
-    alias res = get_result_shape(input_shape, kernel_shape, padding, stride, dilation)
-    alias ug_shape = TensorShape(input_shape[0], kernel_shape[0], res[0], res[1])
+    alias res = get_result_shape(
+        input_shape, kernel_shape, padding, stride, dilation
+    )
+    alias ug_shape = TensorShape(
+        input_shape[0], kernel_shape[0], res[0], res[1]
+    )
     var ug = Tensor[dtype](ug_shape)
     rand[dtype](ug.data(), ug.num_elements())
 
-    test_conv_backward[ug_shape, input_shape, kernel_shape, padding, stride, dilation](
-        ug, inputs, kernel, bias
-    )
+    test_conv_backward[
+        ug_shape, input_shape, kernel_shape, padding, stride, dilation
+    ](ug, inputs, kernel, bias)
 
 
 fn test_backward_3() raises:
@@ -342,14 +353,18 @@ fn test_backward_3() raises:
     rand[dtype](bias.data(), bias.num_elements())
 
     # uppergrad
-    alias res = get_result_shape(input_shape, kernel_shape, padding, stride, dilation)
-    alias ug_shape = TensorShape(input_shape[0], kernel_shape[0], res[0], res[1])
+    alias res = get_result_shape(
+        input_shape, kernel_shape, padding, stride, dilation
+    )
+    alias ug_shape = TensorShape(
+        input_shape[0], kernel_shape[0], res[0], res[1]
+    )
     var ug = Tensor[dtype](ug_shape)
     rand[dtype](ug.data(), ug.num_elements())
 
-    test_conv_backward[ug_shape, input_shape, kernel_shape, padding, stride, dilation](
-        ug, inputs, kernel, bias
-    )
+    test_conv_backward[
+        ug_shape, input_shape, kernel_shape, padding, stride, dilation
+    ](ug, inputs, kernel, bias)
 
 
 fn main():

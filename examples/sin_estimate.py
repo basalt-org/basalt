@@ -55,4 +55,6 @@ if __name__ == "__main__":
         if (i + 1) % 1000 == 0:
             print(f"Epoch [{i + 1}/{epochs}],\t Loss: {loss.item()}")
 
-    print(f"Training time: {time.time() - start:.2f} seconds. Loss: {loss.item()}")
+    print(
+        f"Training time: {time.time() - start:.2f} seconds. Loss: {loss.item()}"
+    )

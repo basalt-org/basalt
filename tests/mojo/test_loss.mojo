@@ -20,7 +20,7 @@ fn test_MSE_perfect() raises:
 
         g.out(loss)
 
-        return g ^
+        return g^
 
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 3)
@@ -53,7 +53,7 @@ fn test_MSE_imperfect() raises:
 
         g.out(loss)
 
-        return g ^
+        return g^
 
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 3)
@@ -94,7 +94,7 @@ fn test_CrossEntropy_perfect() raises:
 
         g.out(loss)
 
-        return g ^
+        return g^
 
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 9)
@@ -138,7 +138,7 @@ fn test_CrossEntropy_imperfect() raises:
 
         g.out(loss)
 
-        return g ^
+        return g^
 
     alias graph = create_graph()
 

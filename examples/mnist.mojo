@@ -39,7 +39,9 @@ fn create_CNN(batch_size: Int) -> Graph:
         attributes=AttributeVector(
             Attribute(
                 "shape",
-                TensorShape(x6.shape[0], x6.shape[1] * x6.shape[2] * x6.shape[3]),
+                TensorShape(
+                    x6.shape[0], x6.shape[1] * x6.shape[2] * x6.shape[3]
+                ),
             )
         ),
     )
@@ -51,7 +53,7 @@ fn create_CNN(batch_size: Int) -> Graph:
     # var loss = nn.MSELoss(g, out, y_true)
     g.loss(loss)
 
-    return g ^
+    return g^
 
 
 fn main():
@@ -65,7 +67,9 @@ fn main():
     # except: print("Could not render graph")
 
     var model = nn.Model[graph]()
-    var optim = nn.optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
+    var optim = nn.optim.Adam[graph](
+        Reference(model.parameters), lr=learning_rate
+    )
 
     print("Loading data ...")
     var train_data: MNIST

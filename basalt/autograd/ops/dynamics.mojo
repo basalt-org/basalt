@@ -30,12 +30,12 @@ struct CONCAT:
         return chunks
 
     @staticmethod
-    fn forward[attributes: AttributeVector](
-        inputs: List[Symbol],
-        outputs: List[Symbol],
-        parameters: Parameters,
-    ):
-        alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
+    fn forward[
+        attributes: AttributeVector
+    ](inputs: List[Symbol], outputs: List[Symbol], parameters: Parameters,):
+        alias dim = attributes["dim"].value().to_int() if attributes[
+            "dim"
+        ] else 0
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
 
         var chunks = List[Int]()
@@ -55,12 +55,16 @@ struct CONCAT:
                 )
 
     @staticmethod
-    fn backward[input_id: Int, attributes: AttributeVector](
+    fn backward[
+        input_id: Int, attributes: AttributeVector
+    ](
         inputs: List[Symbol],
         outputs: List[Symbol],
         parameters: Parameters,
     ) -> Tensor[dtype]:
-        alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
+        alias dim = attributes["dim"].value().to_int() if attributes[
+            "dim"
+        ] else 0
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
 
         var chunks = List[Int]()
@@ -79,7 +83,7 @@ struct CONCAT:
                 chunks[input_id],
             )
 
-        return res_grad ^
+        return res_grad^
 
 
 struct SPLIT:
@@ -110,12 +114,12 @@ struct SPLIT:
         return chunks
 
     @staticmethod
-    fn forward[attributes: AttributeVector](
-        inputs: List[Symbol],
-        outputs: List[Symbol],
-        parameters: Parameters,
-    ):
-        alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
+    fn forward[
+        attributes: AttributeVector
+    ](inputs: List[Symbol], outputs: List[Symbol], parameters: Parameters,):
+        alias dim = attributes["dim"].value().to_int() if attributes[
+            "dim"
+        ] else 0
         alias sections = attributes["sections"].value().to_shape()
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
 
@@ -136,12 +140,16 @@ struct SPLIT:
                 )
 
     @staticmethod
-    fn backward[input_id: Int, attributes: AttributeVector](
+    fn backward[
+        input_id: Int, attributes: AttributeVector
+    ](
         inputs: List[Symbol],
         outputs: List[Symbol],
         parameters: Parameters,
     ) -> Tensor[dtype]:
-        alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
+        alias dim = attributes["dim"].value().to_int() if attributes[
+            "dim"
+        ] else 0
         alias sections = attributes["sections"].value().to_shape()
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
 
@@ -163,4 +171,4 @@ struct SPLIT:
                     chunks[j],
                 )
 
-        return res_grad ^
+        return res_grad^

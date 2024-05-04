@@ -86,7 +86,9 @@ struct MAXPOOL2D:
 
     @staticmethod
     fn backward[
-        ug_shape: TensorShape, input_shape: TensorShape, attributes: AttributeVector
+        ug_shape: TensorShape,
+        input_shape: TensorShape,
+        attributes: AttributeVector,
     ](ug: Tensor[dtype], inputs: Tensor[dtype]) -> Tensor[dtype]:
         """
         Backward operation of MAXPOOL2D.

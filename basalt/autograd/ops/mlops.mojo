@@ -52,7 +52,7 @@ struct SIGMOID:
 
         vectorize[vec_sigmoid_bw, nelts](ug_shape.num_elements())
 
-        return res_grad ^
+        return res_grad^
 
 
 struct RELU:
@@ -100,7 +100,7 @@ struct RELU:
 
         vectorize[vec_relu_bw, nelts](ug_shape.num_elements())
 
-        return res_grad ^
+        return res_grad^
 
 
 struct TANH:
@@ -146,7 +146,7 @@ struct TANH:
 
         vectorize[vec_tanh_bw, nelts](ug_shape.num_elements())
 
-        return res_grad ^
+        return res_grad^
 
 
 struct CLIP:
@@ -164,12 +164,12 @@ struct CLIP:
         alias min_attr = attributes["min"]
         alias max_attr = attributes["max"]
 
-        var min_val = min_attr.value().to_scalar[dtype]() if min_attr else min_finite[
+        var min_val = min_attr.value().to_scalar[
             dtype
-        ]()
-        var max_val = max_attr.value().to_scalar[dtype]() if max_attr else max_finite[
+        ]() if min_attr else min_finite[dtype]()
+        var max_val = max_attr.value().to_scalar[
             dtype
-        ]()
+        ]() if max_attr else max_finite[dtype]()
 
         @parameter
         fn vec_clip[nelts: Int](i: Int):
@@ -187,12 +187,12 @@ struct CLIP:
         alias min_attr = attributes["min"]
         alias max_attr = attributes["max"]
 
-        var min_val = min_attr.value().to_scalar[dtype]() if min_attr else min_finite[
+        var min_val = min_attr.value().to_scalar[
             dtype
-        ]()
-        var max_val = max_attr.value().to_scalar[dtype]() if max_attr else max_finite[
+        ]() if min_attr else min_finite[dtype]()
+        var max_val = max_attr.value().to_scalar[
             dtype
-        ]()
+        ]() if max_attr else max_finite[dtype]()
 
         var res_grad = Tensor[dtype](t_shape)
 
@@ -201,17 +201,21 @@ struct CLIP:
             var val = t.load[nelts](i)
             res_grad.store[nelts](
                 i,
-                ((val >= min_val) * (val <= max_val)).select(ug.load[nelts](i), 0),
+                ((val >= min_val) * (val <= max_val)).select(
+                    ug.load[nelts](i), 0
+                ),
             )
 
         vectorize[vec_clip_bw, nelts, size = t_shape.num_elements()]()
 
-        return res_grad ^
+        return res_grad^
 
 
 struct SQUEEZE:
     @staticmethod
-    fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+    fn result_shape(
+        t1_shape: TensorShape, attributes: AttributeVector
+    ) -> TensorShape:
         var dim = attributes["dims"]
         var dims_to_squeeze = dim.value().to_shape() if dim else TensorShape()
 
@@ -239,12 +243,14 @@ struct SQUEEZE:
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
         var res_grad = Tensor[dtype](t1_shape)
         memcpy(res_grad.data(), ug.data(), ug.num_elements())
-        return res_grad ^
+        return res_grad^
 
 
 struct UNSQUEEZE:
     @staticmethod
-    fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+    fn result_shape(
+        t1_shape: TensorShape, attributes: AttributeVector
+    ) -> TensorShape:
         var dim = attributes["dims"]
         var dims_to_squeeze = dim.value().to_shape() if dim else TensorShape()
 
@@ -276,4 +282,4 @@ struct UNSQUEEZE:
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
         var res_grad = Tensor[dtype](t1_shape)
         memcpy(res_grad.data(), ug.data(), ug.num_elements())
-        return res_grad ^
+        return res_grad^

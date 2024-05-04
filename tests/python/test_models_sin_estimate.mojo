@@ -53,7 +53,7 @@ fn create_simple_nn(
     var loss = MSELoss(g, y_pred, y_true)
     g.loss(loss)
 
-    return g ^
+    return g^
 
 
 fn run_mojo[
@@ -125,15 +125,21 @@ fn run_torch(
         var linear1_weights = torch.from_numpy(
             to_numpy(linear1_weights)
         ).requires_grad_(True)
-        var linear1_bias = torch.from_numpy(to_numpy(linear1_bias)).requires_grad_(True)
+        var linear1_bias = torch.from_numpy(
+            to_numpy(linear1_bias)
+        ).requires_grad_(True)
         var linear2_weights = torch.from_numpy(
             to_numpy(linear2_weights)
         ).requires_grad_(True)
-        var linear2_bias = torch.from_numpy(to_numpy(linear2_bias)).requires_grad_(True)
+        var linear2_bias = torch.from_numpy(
+            to_numpy(linear2_bias)
+        ).requires_grad_(True)
         var linear3_weights = torch.from_numpy(
             to_numpy(linear3_weights)
         ).requires_grad_(True)
-        var linear3_bias = torch.from_numpy(to_numpy(linear3_bias)).requires_grad_(True)
+        var linear3_bias = torch.from_numpy(
+            to_numpy(linear3_bias)
+        ).requires_grad_(True)
 
         var regression = torch_models.SimpleNN(
             linear1_weights,
@@ -172,11 +178,11 @@ fn create_weights(num_elements: Int, zero: Bool) -> List[Scalar[dtype]]:
         if zero:
             weights.append(Scalar[dtype](0.0))
         else:
-            var rand_float = prng.next().cast[dtype]() / max_finite[DType.int32]().cast[
-                dtype
-            ]()
+            var rand_float = prng.next().cast[dtype]() / max_finite[
+                DType.int32
+            ]().cast[dtype]()
             weights.append(Scalar[dtype](rand_float / 10))
-    return weights ^
+    return weights^
 
 
 fn dv_to_tensor(dv: List[Scalar[dtype]], shape: TensorShape) -> Tensor[dtype]:
@@ -185,7 +191,7 @@ fn dv_to_tensor(dv: List[Scalar[dtype]], shape: TensorShape) -> Tensor[dtype]:
         print("[WARNING] tensor and dv not the shame shape")
     for i in range(t.num_elements()):
         t[i] = dv[i]
-    return t ^
+    return t^
 
 
 fn main():
@@ -208,11 +214,17 @@ fn main():
     alias l3_w_shape = TensorShape(32, 1)
     alias l3_b_shape = TensorShape(1)
 
-    alias linear1_weights = create_weights(l1_w_shape.num_elements(), zero=False)
+    alias linear1_weights = create_weights(
+        l1_w_shape.num_elements(), zero=False
+    )
     alias linear1_bias = create_weights(l1_b_shape.num_elements(), zero=False)
-    alias linear2_weights = create_weights(l2_w_shape.num_elements(), zero=False)
+    alias linear2_weights = create_weights(
+        l2_w_shape.num_elements(), zero=False
+    )
     alias linear2_bias = create_weights(l2_b_shape.num_elements(), zero=False)
-    alias linear3_weights = create_weights(l3_w_shape.num_elements(), zero=False)
+    alias linear3_weights = create_weights(
+        l3_w_shape.num_elements(), zero=False
+    )
     alias linear3_bias = create_weights(l3_b_shape.num_elements(), zero=False)
 
     var losses_mojo = run_mojo[

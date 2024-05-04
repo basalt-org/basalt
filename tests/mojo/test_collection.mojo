@@ -38,8 +38,8 @@ fn test_get_tensor_reference() raises:
     fill(t2, 2)
 
     var c = Collection(capacity=2)
-    c.append(t1 ^, s1)
-    c.append(t2 ^, s2)
+    c.append(t1^, s1)
+    c.append(t2^, s2)
 
     var t1_expected = Tensor[dtype](s1.shape)
     var t2_expected = Tensor[dtype](s2.shape)
@@ -69,15 +69,15 @@ fn test_resize_collection() raises:
     assert_equal(c.size, 0)
     assert_equal(c.capacity, 1)
 
-    c.append(t1 ^, s1)
+    c.append(t1^, s1)
     assert_equal(c.size, 1)
     assert_equal(c.capacity, 1)
 
-    c.append(t2 ^, s2)
+    c.append(t2^, s2)
     assert_equal(c.size, 2)
     assert_equal(c.capacity, 2)
 
-    c.append(t3 ^, s3)
+    c.append(t3^, s3)
     assert_equal(c.size, 3)
     assert_equal(c.capacity, 4)
 
@@ -104,8 +104,8 @@ fn test_set_zero() raises:
     fill(t2, 2)
 
     var c = Collection(capacity=2)
-    c.append(t1 ^, s1)
-    c.append(t2 ^, s2)
+    c.append(t1^, s1)
+    c.append(t2^, s2)
 
     var t1_expected = Tensor[dtype](s1.shape)
     var t2_expected = Tensor[dtype](s2.shape)
@@ -129,8 +129,8 @@ fn test_operate_on_reference() raises:
     var t1 = Tensor[dtype](s1.shape)
 
     var c = Collection(capacity=2)
-    c.append(res ^, sr)
-    c.append(t1 ^, s1)
+    c.append(res^, sr)
+    c.append(t1^, s1)
 
     fn some_operation[
         res_shape: TensorShape, t_shape: TensorShape

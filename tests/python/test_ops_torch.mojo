@@ -51,7 +51,13 @@ fn torch_binary_op(
         elif op == OP.DOT:
             expected = torch.matmul(input_1, input_2)
         else:
-            print("Error: op not supported (returning the default add op result): ", op)
+            print(
+                (
+                    "Error: op not supported (returning the default add op"
+                    " result): "
+                ),
+                op,
+            )
             expected = input_1 + input_2
 
         # uppergrad & backwards
@@ -84,7 +90,9 @@ fn test_ADD() raises:
 
     var expected_and_grad = torch_binary_op(OP.ADD, t1, t2, ug)
 
-    test_binary_op[OP.ADD, t1_shape, t2_shape](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.ADD, t1_shape, t2_shape](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.ADD, t1_shape, t2_shape, ug_shape](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -105,7 +113,9 @@ fn test_ADD() raises:
 
     expected_and_grad = torch_binary_op(OP.ADD, t1, t2, ug)
 
-    test_binary_op[OP.ADD, t1_shape_2, t2_shape_2](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.ADD, t1_shape_2, t2_shape_2](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.ADD, t1_shape_2, t2_shape_2, ug_shape_2](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -125,7 +135,9 @@ fn test_SUB() raises:
 
     var expected_and_grad = torch_binary_op(OP.SUB, t1, t2, ug)
 
-    test_binary_op[OP.SUB, t1_shape, t2_shape](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.SUB, t1_shape, t2_shape](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.SUB, t1_shape, t2_shape, ug_shape](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -146,7 +158,9 @@ fn test_SUB() raises:
 
     expected_and_grad = torch_binary_op(OP.SUB, t1, t2, ug)
 
-    test_binary_op[OP.SUB, t1_shape_2, t2_shape_2](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.SUB, t1_shape_2, t2_shape_2](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.SUB, t1_shape_2, t2_shape_2, ug_shape_2](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -166,7 +180,9 @@ fn test_MUL() raises:
 
     var expected_and_grad = torch_binary_op(OP.MUL, t1, t2, ug)
 
-    test_binary_op[OP.MUL, t1_shape, t2_shape](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.MUL, t1_shape, t2_shape](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.MUL, t1_shape, t2_shape, ug_shape](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -186,7 +202,9 @@ fn test_MUL() raises:
 
     expected_and_grad = torch_binary_op(OP.MUL, t1, t2, ug)
 
-    test_binary_op[OP.MUL, t1_shape_2, t2_shape_2](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.MUL, t1_shape_2, t2_shape_2](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.MUL, t1_shape_2, t2_shape_2, ug_shape_2](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -206,7 +224,9 @@ fn test_DIV() raises:
 
     var expected_and_grad = torch_binary_op(OP.DIV, t1, t2, ug)
 
-    test_binary_op[OP.DIV, t1_shape, t2_shape](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.DIV, t1_shape, t2_shape](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.DIV, t1_shape, t2_shape, ug_shape](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -226,7 +246,9 @@ fn test_DIV() raises:
 
     expected_and_grad = torch_binary_op(OP.DIV, t1, t2, ug)
 
-    test_binary_op[OP.DIV, t1_shape_2, t2_shape_2](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.DIV, t1_shape_2, t2_shape_2](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.DIV, t1_shape_2, t2_shape_2, ug_shape_2](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -245,7 +267,9 @@ fn test_DIV() raises:
 
     expected_and_grad = torch_binary_op(OP.DIV, t1, t2, ug)
 
-    test_binary_op[OP.DIV, t1_shape_3, t2_shape_3](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.DIV, t1_shape_3, t2_shape_3](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.DIV, t1_shape_3, t2_shape_3, ug_shape_3](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -265,7 +289,9 @@ fn test_DOT() raises:
 
     var expected_and_grad = torch_binary_op(OP.DOT, t1, t2, ug)
 
-    test_binary_op[OP.DOT, t1_shape, t2_shape](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.DOT, t1_shape, t2_shape](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.DOT, t1_shape, t2_shape, ug_shape](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -284,7 +310,9 @@ fn test_DOT() raises:
 
     expected_and_grad = torch_binary_op(OP.DOT, t1, t2, ug)
 
-    test_binary_op[OP.DOT, t1_shape_2, t2_shape_2](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.DOT, t1_shape_2, t2_shape_2](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.DOT, t1_shape_2, t2_shape_2, ug_shape_2](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -303,7 +331,9 @@ fn test_DOT() raises:
 
     expected_and_grad = torch_binary_op(OP.DOT, t1, t2, ug)
 
-    test_binary_op[OP.DOT, t1_shape_3, t2_shape_3](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.DOT, t1_shape_3, t2_shape_3](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.DOT, t1_shape_3, t2_shape_3, ug_shape_3](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -322,7 +352,9 @@ fn test_DOT() raises:
 
     expected_and_grad = torch_binary_op(OP.DOT, t1, t2, ug)
 
-    test_binary_op[OP.DOT, t1_shape_4, t2_shape_4](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.DOT, t1_shape_4, t2_shape_4](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.DOT, t1_shape_4, t2_shape_4, ug_shape_4](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -335,7 +367,9 @@ struct torch_output_unary_op:
     var grad_1: Tensor[dtype]
 
 
-fn torch_unary_op(op: OP, input_1: Tensor, upper_grad: Tensor) -> torch_output_unary_op:
+fn torch_unary_op(
+    op: OP, input_1: Tensor, upper_grad: Tensor
+) -> torch_output_unary_op:
     try:
         var torch = Python.import_module("torch")
         var np = Python.import_module("numpy")
@@ -379,7 +413,9 @@ fn test_EXP() raises:
     var expected_and_grad = torch_unary_op(OP.EXP, t1, ug)
 
     test_unary_op[OP.EXP, t1_shape](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.EXP, t1_shape, ug_shape](t1, ug, expected_and_grad.grad_1)
+    test_unary_op_backward[OP.EXP, t1_shape, ug_shape](
+        t1, ug, expected_and_grad.grad_1
+    )
 
 
 fn test_LOG() raises:
@@ -394,7 +430,9 @@ fn test_LOG() raises:
     var expected_and_grad = torch_unary_op(OP.LOG, t1, ug)
 
     test_unary_op[OP.LOG, t1_shape](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.LOG, t1_shape, ug_shape](t1, ug, expected_and_grad.grad_1)
+    test_unary_op_backward[OP.LOG, t1_shape, ug_shape](
+        t1, ug, expected_and_grad.grad_1
+    )
 
 
 # ------ Test POW ------
@@ -454,7 +492,9 @@ fn test_POW() raises:
     t2[0] = exponent
 
     var expected_and_grad = torch_pow_op(OP.POW, t1, t2, ug)
-    test_binary_op[OP.POW, t1_shape, t2_shape](t1, t2, expected_and_grad.expected)
+    test_binary_op[OP.POW, t1_shape, t2_shape](
+        t1, t2, expected_and_grad.expected
+    )
     test_binary_op_backward[OP.POW, t1_shape, t2_shape, ug_shape](
         t1, t2, ug, expected_and_grad.grad_1, expected_and_grad.grad_2
     )
@@ -772,7 +812,9 @@ fn test_RESHAPE() raises:
     alias new_shape_tuple = (new_shape[0], new_shape[1])
     alias attrs = AttributeVector(Attribute("shape", new_shape))
 
-    var expected_and_grad = torch_transform_op(OP.RESHAPE, t1, ug, new_shape_tuple)
+    var expected_and_grad = torch_transform_op(
+        OP.RESHAPE, t1, ug, new_shape_tuple
+    )
     test_unary_op[OP.RESHAPE, t1_shape, attrs](t1, expected_and_grad.expected)
     test_unary_op_backward[OP.RESHAPE, t1_shape, ug_shape, attrs](
         t1, ug, expected_and_grad.grad_1
@@ -808,7 +850,9 @@ fn test_TRANSPOSE() raises:
     alias attrs_2 = AttributeVector(Attribute("axes", axes_2))
 
     expected_and_grad = torch_transform_op(OP.TRANSPOSE, t1, ug, axes_tuple_2)
-    test_unary_op[OP.TRANSPOSE, t1_shape, attrs_2](t1, expected_and_grad.expected)
+    test_unary_op[OP.TRANSPOSE, t1_shape, attrs_2](
+        t1, expected_and_grad.expected
+    )
     test_unary_op_backward[OP.TRANSPOSE, t1_shape, ug_shape_2, attrs_2](
         t1, ug, expected_and_grad.grad_1
     )
@@ -827,7 +871,9 @@ fn test_TRANSPOSE() raises:
     alias attrs_3 = AttributeVector(Attribute("axes", axes_3))
 
     expected_and_grad = torch_transform_op(OP.TRANSPOSE, t1, ug, axes_tuple_3)
-    test_unary_op[OP.TRANSPOSE, t1_shape_3, attrs_3](t1, expected_and_grad.expected)
+    test_unary_op[OP.TRANSPOSE, t1_shape_3, attrs_3](
+        t1, expected_and_grad.expected
+    )
     test_unary_op_backward[OP.TRANSPOSE, t1_shape_3, ug_shape_3, attrs_3](
         t1, ug, expected_and_grad.grad_1
     )
@@ -843,7 +889,11 @@ struct torch_output_ternary_op:
 
 
 fn torch_ternary_op(
-    op: OP, input_1: Tensor, input_2: Tensor, input_3: Tensor, upper_grad: Tensor
+    op: OP,
+    input_1: Tensor,
+    input_2: Tensor,
+    input_3: Tensor,
+    upper_grad: Tensor,
 ) -> torch_output_ternary_op:
     try:
         var torch = Python.import_module("torch")

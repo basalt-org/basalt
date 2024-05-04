@@ -83,7 +83,7 @@ fn test_pool_forward[
         )
         g.out(res)
 
-        return g ^
+        return g^
 
     alias graph = create_graph()
     assert_equal(len(graph.nodes), 1)
@@ -114,7 +114,9 @@ fn test_forward_1() raises:
     var inputs = Tensor[dtype](input_shape)
     rand[dtype](inputs.data(), inputs.num_elements())
 
-    test_pool_forward[input_shape, kernel_size, padding, stride, dilation](inputs)
+    test_pool_forward[input_shape, kernel_size, padding, stride, dilation](
+        inputs
+    )
 
 
 fn test_forward_2() raises:
@@ -128,7 +130,9 @@ fn test_forward_2() raises:
     var inputs = Tensor[dtype](input_shape)
     rand[dtype](inputs.data(), inputs.num_elements())
 
-    test_pool_forward[input_shape, kernel_size, padding, stride, dilation](inputs)
+    test_pool_forward[input_shape, kernel_size, padding, stride, dilation](
+        inputs
+    )
 
 
 fn test_forward_3() raises:
@@ -142,7 +146,9 @@ fn test_forward_3() raises:
     var inputs = Tensor[dtype](input_shape)
     rand[dtype](inputs.data(), inputs.num_elements())
 
-    test_pool_forward[input_shape, kernel_size, padding, stride, dilation](inputs)
+    test_pool_forward[input_shape, kernel_size, padding, stride, dilation](
+        inputs
+    )
 
 
 fn test_pool_backward[
@@ -187,15 +193,19 @@ fn test_backward_1() raises:
 
     # uppergrad
     alias res = get_result_shape(
-        input_shape, TensorShape(kernel_size, kernel_size), padding, stride, dilation
+        input_shape,
+        TensorShape(kernel_size, kernel_size),
+        padding,
+        stride,
+        dilation,
     )
     alias ug_shape = TensorShape(input_shape[0], input_shape[1], res[0], res[1])
     var ug = Tensor[dtype](ug_shape)
     rand[dtype](ug.data(), ug.num_elements())
 
-    test_pool_backward[ug_shape, input_shape, kernel_size, padding, stride, dilation](
-        ug, inputs
-    )
+    test_pool_backward[
+        ug_shape, input_shape, kernel_size, padding, stride, dilation
+    ](ug, inputs)
 
 
 fn test_backward_2() raises:
@@ -211,15 +221,19 @@ fn test_backward_2() raises:
 
     # uppergrad
     alias res = get_result_shape(
-        input_shape, TensorShape(kernel_size, kernel_size), padding, stride, dilation
+        input_shape,
+        TensorShape(kernel_size, kernel_size),
+        padding,
+        stride,
+        dilation,
     )
     alias ug_shape = TensorShape(input_shape[0], input_shape[1], res[0], res[1])
     var ug = Tensor[dtype](ug_shape)
     rand[dtype](ug.data(), ug.num_elements())
 
-    test_pool_backward[ug_shape, input_shape, kernel_size, padding, stride, dilation](
-        ug, inputs
-    )
+    test_pool_backward[
+        ug_shape, input_shape, kernel_size, padding, stride, dilation
+    ](ug, inputs)
 
 
 fn test_backward_3() raises:
@@ -242,9 +256,9 @@ fn test_backward_3() raises:
     var ug = Tensor[dtype](ug_shape)
     rand[dtype](ug.data(), ug.num_elements())
 
-    test_pool_backward[ug_shape, input_shape, kernel_size, padding, stride, dilation](
-        ug, inputs
-    )
+    test_pool_backward[
+        ug_shape, input_shape, kernel_size, padding, stride, dilation
+    ](ug, inputs)
 
 
 fn main():

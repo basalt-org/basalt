@@ -30,7 +30,7 @@ fn create_graph[
     var x = g.input(shape)
     var activation = func(g, x, axis)
     g.out(activation)
-    return g ^
+    return g^
 
 
 fn create_graph[shape: TensorShape, func: Activation]() -> Graph:
@@ -38,7 +38,7 @@ fn create_graph[shape: TensorShape, func: Activation]() -> Graph:
     var x = g.input(shape)
     var activation = func(g, x)
     g.out(activation)
-    return g ^
+    return g^
 
 
 fn test_graph[

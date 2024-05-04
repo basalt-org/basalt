@@ -1,5 +1,11 @@
 from math import max
-from memory.unsafe_pointer import UnsafePointer, move_from_pointee, initialize_pointee_copy, initialize_pointee_move, destroy_pointee
+from memory.unsafe_pointer import (
+    UnsafePointer,
+    move_from_pointee,
+    initialize_pointee_copy,
+    initialize_pointee_move,
+    destroy_pointee,
+)
 
 from basalt import Tensor, TensorShape, Symbol
 
@@ -91,7 +97,7 @@ struct Collection(CollectionElement, Sized):
         """
         Appends a tensor and its associated symbol to the Collection.
         """
-        self.append(value ^, symbol.name)
+        self.append(value^, symbol.name)
 
     @always_inline("nodebug")
     fn append(inout self, owned value: Tensor[dtype], symbol_name: UInt32):
@@ -100,7 +106,7 @@ struct Collection(CollectionElement, Sized):
         """
         if self.size >= self.capacity:
             self._realloc(max(1, self.capacity * 2))
-        initialize_pointee_move((self.data + self.size), value ^)
+        initialize_pointee_move((self.data + self.size), value^)
         self.symbols[self.size] = symbol_name
         self.size += 1
 

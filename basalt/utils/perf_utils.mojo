@@ -67,8 +67,12 @@ struct PerfMetrics:
         self.backward_perf_metrics = List[PerfMetricsValues]()
 
         for i in range(graph.nodes.size):
-            self.forward_perf_metrics.append(PerfMetricsValues(graph.nodes[i], 0.0))
-            self.backward_perf_metrics.append(PerfMetricsValues(graph.nodes[i], 0.0))
+            self.forward_perf_metrics.append(
+                PerfMetricsValues(graph.nodes[i], 0.0)
+            )
+            self.backward_perf_metrics.append(
+                PerfMetricsValues(graph.nodes[i], 0.0)
+            )
 
         self.epochs_forward = 0
         self.epochs_backward = 0
@@ -123,18 +127,28 @@ struct PerfMetrics:
 
             @parameter
             if type_part == "Forward":
-                total_time += self.forward_perf_metrics[i].time / self.epochs_forward
+                total_time += (
+                    self.forward_perf_metrics[i].time / self.epochs_forward
+                )
             elif type_part == "Backward":
-                total_time += self.backward_perf_metrics[i].time / self.epochs_backward
+                total_time += (
+                    self.backward_perf_metrics[i].time / self.epochs_backward
+                )
 
         # 1. Header
         var header = fit_string[5]("Node") + "| " + fit_string[15](
             "Operator"
-        ) + "| " + fit_string[20]("Time [" + time_format + "]") + "| " + fit_string[20](
+        ) + "| " + fit_string[20](
+            "Time [" + time_format + "]"
+        ) + "| " + fit_string[
+            20
+        ](
             "Percentage [%]"
         )
         if print_shape:
-            header += "| " + fit_string[70]("Shape\t <out> = OP( <in1>, <in2>, <in3> )")
+            header += "| " + fit_string[70](
+                "Shape\t <out> = OP( <in1>, <in2>, <in3> )"
+            )
         print(header)
 
         # 2. Seperator
@@ -188,7 +202,9 @@ struct PerfMetrics:
                         "<" + str(value.node.outputs[j].shape) + ">"
                     )
                 shape_str += fit_string[7](" = OP(")
-                shape_str += fit_string[15]("<" + str(value.node.inputs[0].shape) + ">")
+                shape_str += fit_string[15](
+                    "<" + str(value.node.inputs[0].shape) + ">"
+                )
                 for j in range(1, len(value.node.inputs)):
                     shape_str += ", " + fit_string[15](
                         "<" + str(value.node.inputs[j].shape) + ">"

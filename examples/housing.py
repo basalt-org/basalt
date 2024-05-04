@@ -11,9 +11,9 @@ class BostonHousing(Dataset):
     def __init__(self, data: pd.DataFrame):
         # Data: All columns except the last one / Target: Only the last column (MEDV)
         self.data = torch.tensor(data.iloc[:, :-1].values, dtype=torch.float32)
-        self.target = torch.tensor(data.iloc[:, -1].values, dtype=torch.float32).view(
-            -1, 1
-        )
+        self.target = torch.tensor(
+            data.iloc[:, -1].values, dtype=torch.float32
+        ).view(-1, 1)
 
         # Normalize data
         self.data = (self.data - self.data.mean(dim=0)) / self.data.std(dim=0)

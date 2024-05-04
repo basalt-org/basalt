@@ -64,7 +64,9 @@ fn torch_unary_op(
                 var dim = attrs["dims"]
 
                 if dim:
-                    expected = torch.squeeze(input_1, dim=dim.value().to_shape()[0])
+                    expected = torch.squeeze(
+                        input_1, dim=dim.value().to_shape()[0]
+                    )
                 else:
                     expected = torch.squeeze(input_1)
             elif attrs_tuple:
@@ -77,7 +79,9 @@ fn torch_unary_op(
                 var dim = attrs["dims"]
 
                 if dim:
-                    expected = torch.unsqueeze(input_1, dim=dim.value().to_shape()[0])
+                    expected = torch.unsqueeze(
+                        input_1, dim=dim.value().to_shape()[0]
+                    )
                 else:
                     expected = torch.unsqueeze(input_1, 0)
             elif attrs_tuple:
@@ -169,23 +173,27 @@ fn test_CLIP() raises:
 
     # Clip with min
     alias min_attr = Attribute("min", 0.3333)
-    expected_and_grad = torch_unary_op(OP.CLIP, t1, ug, AttributeVector(min_attr))
+    expected_and_grad = torch_unary_op(
+        OP.CLIP, t1, ug, AttributeVector(min_attr)
+    )
     test_unary_op[OP.CLIP, t1_shape, AttributeVector(min_attr)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, AttributeVector(min_attr)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.CLIP, t1_shape, ug_shape, AttributeVector(min_attr)
+    ](t1, ug, expected_and_grad.grad_1)
 
     # Clip with max
     alias max_attr = Attribute("max", 0.6666)
-    expected_and_grad = torch_unary_op(OP.CLIP, t1, ug, AttributeVector(max_attr))
+    expected_and_grad = torch_unary_op(
+        OP.CLIP, t1, ug, AttributeVector(max_attr)
+    )
     test_unary_op[OP.CLIP, t1_shape, AttributeVector(max_attr)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, AttributeVector(max_attr)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.CLIP, t1_shape, ug_shape, AttributeVector(max_attr)
+    ](t1, ug, expected_and_grad.grad_1)
 
     # Clip with min and max
     expected_and_grad = torch_unary_op(
@@ -225,9 +233,9 @@ fn test_SQUEEZE() raises:
     test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(dim)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.SQUEEZE, t1_shape, ug_shape_1, AttributeVector(dim)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.SQUEEZE, t1_shape, ug_shape_1, AttributeVector(dim)
+    ](t1, ug, expected_and_grad.grad_1)
 
     alias ug_shape_2 = TensorShape(20, 28, 1)
     ug = Tensor[dtype](ug_shape_2)
@@ -235,13 +243,15 @@ fn test_SQUEEZE() raises:
 
     alias dim_2 = Attribute("dims", TensorShape(1))
 
-    expected_and_grad = torch_unary_op(OP.SQUEEZE, t1, ug, AttributeVector(dim_2))
+    expected_and_grad = torch_unary_op(
+        OP.SQUEEZE, t1, ug, AttributeVector(dim_2)
+    )
     test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(dim_2)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.SQUEEZE, t1_shape, ug_shape_2, AttributeVector(dim_2)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.SQUEEZE, t1_shape, ug_shape_2, AttributeVector(dim_2)
+    ](t1, ug, expected_and_grad.grad_1)
 
     # Squeeze with multiple dims
     ug = Tensor[dtype](ug_shape)
@@ -258,9 +268,9 @@ fn test_SQUEEZE() raises:
     test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(dims)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.SQUEEZE, t1_shape, ug_shape, AttributeVector(dims)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.SQUEEZE, t1_shape, ug_shape, AttributeVector(dims)
+    ](t1, ug, expected_and_grad.grad_1)
 
 
 fn test_UNSQUEEZE() raises:
@@ -274,13 +284,15 @@ fn test_UNSQUEEZE() raises:
 
     alias dim = Attribute("dims", TensorShape(1))
 
-    var expected_and_grad = torch_unary_op(OP.UNSQUEEZE, t1, ug, AttributeVector(dim))
+    var expected_and_grad = torch_unary_op(
+        OP.UNSQUEEZE, t1, ug, AttributeVector(dim)
+    )
     test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(dim)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.UNSQUEEZE, t1_shape, ug_shape, AttributeVector(dim)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.UNSQUEEZE, t1_shape, ug_shape, AttributeVector(dim)
+    ](t1, ug, expected_and_grad.grad_1)
 
     # Unsqueeze with multiple dims
     alias ug_shape_2 = TensorShape(20, 1, 28, 1)
@@ -297,9 +309,9 @@ fn test_UNSQUEEZE() raises:
     test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(dims)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.UNSQUEEZE, t1_shape, ug_shape_2, AttributeVector(dims)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.UNSQUEEZE, t1_shape, ug_shape_2, AttributeVector(dims)
+    ](t1, ug, expected_and_grad.grad_1)
 
 
 fn main():

@@ -17,7 +17,7 @@ fn get_trainable_parameters(g: Graph) -> List[Symbol]:
         if g.params.symbols[i].trainable:
             trainable_parameters.append(g.params.symbols[i])
 
-    return trainable_parameters ^
+    return trainable_parameters^
 
 
 struct Adam[
@@ -81,7 +81,9 @@ struct Adam[
 
                 # Momentum beta 1
                 # f1 = beta1 * momentum + (1 - beta1) * grad
-                momentum_grads = self.beta1 * momentum_grads + (1 - self.beta1) * grads
+                momentum_grads = (
+                    self.beta1 * momentum_grads + (1 - self.beta1) * grads
+                )
                 self.momentum_grads[param].store[nelts](j, momentum_grads)
 
                 # Bias correction
@@ -90,7 +92,9 @@ struct Adam[
 
                 # RMS beta 2
                 # f1 = beta2 * rms + (1 - beta2) * grad ** 2
-                rms_grads = self.beta2 * rms_grads + (1 - self.beta2) * grads * grads
+                rms_grads = (
+                    self.beta2 * rms_grads + (1 - self.beta2) * grads * grads
+                )
                 self.rms_grads[param].store[nelts](j, rms_grads)
 
                 # Bias correction

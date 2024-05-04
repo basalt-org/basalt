@@ -15,7 +15,9 @@ Implement forward and backward operations for basic tensor manipulations.
 @value
 struct ADD:
     @staticmethod
-    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
+    fn result_shape(
+        t1_shape: TensorShape, t2_shape: TensorShape
+    ) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
 
     @staticmethod
@@ -43,7 +45,9 @@ struct ADD:
 @value
 struct SUB:
     @staticmethod
-    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
+    fn result_shape(
+        t1_shape: TensorShape, t2_shape: TensorShape
+    ) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
 
     @staticmethod
@@ -73,13 +77,15 @@ struct SUB:
         else:
             var res_grad = Tensor[dtype](ug_shape)
             elwise_op[mul](res_grad, ug, -1.0)
-            return res_grad ^
+            return res_grad^
 
 
 @value
 struct MUL:
     @staticmethod
-    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
+    fn result_shape(
+        t1_shape: TensorShape, t2_shape: TensorShape
+    ) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
 
     @staticmethod
@@ -107,17 +113,19 @@ struct MUL:
         if tensor_id == 0:
             var res_grad = Tensor[dtype](ug_shape)
             elwise_op[ug_shape, t2_shape, mul](res_grad, ug, t2)
-            return res_grad ^
+            return res_grad^
         else:
             var res_grad = Tensor[dtype](ug_shape)
             elwise_op[ug_shape, t1_shape, mul](res_grad, ug, t1)
-            return res_grad ^
+            return res_grad^
 
 
 @value
 struct DIV:
     @staticmethod
-    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
+    fn result_shape(
+        t1_shape: TensorShape, t2_shape: TensorShape
+    ) -> TensorShape:
         return broadcast_shapes(t1_shape, t2_shape)
 
     @staticmethod
@@ -144,7 +152,7 @@ struct DIV:
         if tensor_id == 0:
             var res_grad = Tensor[dtype](ug_shape)
             elwise_op[ug_shape, t2_shape, div](res_grad, ug, t2)
-            return res_grad ^
+            return res_grad^
         else:
             alias broadcast = (t1_shape != t2_shape)
             alias is_scalar = (t2_shape == TensorShape(1))
@@ -164,8 +172,12 @@ struct DIV:
 
             elif broadcast and not is_scalar:
                 alias size = ug_shape.rank()
-                alias strides1 = broadcast_calculate_strides[size, t1_shape, ug_shape]()
-                alias strides2 = broadcast_calculate_strides[size, t2_shape, ug_shape]()
+                alias strides1 = broadcast_calculate_strides[
+                    size, t1_shape, ug_shape
+                ]()
+                alias strides2 = broadcast_calculate_strides[
+                    size, t2_shape, ug_shape
+                ]()
 
                 @parameter
                 fn vec_div_bw_broadcast[netls: Int](i: Int):
@@ -193,13 +205,15 @@ struct DIV:
 
                 vectorize[vec_div_bw, nelts](ug_shape.num_elements())
 
-            return res_grad ^
+            return res_grad^
 
 
 @value
 struct DOT:
     @staticmethod
-    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
+    fn result_shape(
+        t1_shape: TensorShape, t2_shape: TensorShape
+    ) -> TensorShape:
         return TensorShape(t1_shape[0], t2_shape[1])
 
     @staticmethod
@@ -226,12 +240,12 @@ struct DOT:
             # dot(ug, t2.T)
             var res_grad = Tensor[dtype](t1_shape)
             dot_transpose_t2[ug_shape, t2_shape](res_grad, ug, t2)
-            return res_grad ^
+            return res_grad^
         else:
             # dot(t1.T, ug)
             var res_grad = Tensor[dtype](t2_shape)
             dot_transpose_t1[t1_shape, ug_shape](res_grad, t1, ug)
-            return res_grad ^
+            return res_grad^
 
 
 @value
@@ -261,7 +275,7 @@ struct EXP:
             res_grad.store[nelts](i, exp(t1.load[nelts](i)) * ug.load[nelts](i))
 
         vectorize[vec_exp_bw, nelts](ug_shape.num_elements())
-        return res_grad ^
+        return res_grad^
 
 
 @value
@@ -286,12 +300,14 @@ struct LOG:
         # d(log(x)) / dx = 1 / x
         var res_grad = Tensor[dtype](ug_shape)
         elwise_op[ug_shape, t1_shape, div](res_grad, ug, t1)
-        return res_grad ^
+        return res_grad^
 
 
 struct POW:
     @staticmethod
-    fn result_shape(t1_shape: TensorShape, t2_shape: TensorShape) -> TensorShape:
+    fn result_shape(
+        t1_shape: TensorShape, t2_shape: TensorShape
+    ) -> TensorShape:
         # t2_shape == TensorShape(1)
         return t1_shape
 
@@ -342,12 +358,14 @@ struct POW:
 
             vectorize[vec_pow_bw_y, nelts](ug_shape.num_elements())
 
-        return res_grad ^
+        return res_grad^
 
 
 struct SUM:
     @staticmethod
-    fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+    fn result_shape(
+        t_shape: TensorShape, attributes: AttributeVector
+    ) -> TensorShape:
         var axis = attributes["axis"]
 
         if axis:
@@ -388,13 +406,15 @@ struct SUM:
 
         elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
 
-        return res_grad ^
+        return res_grad^
 
 
 @value
 struct MEAN:
     @staticmethod
-    fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+    fn result_shape(
+        t_shape: TensorShape, attributes: AttributeVector
+    ) -> TensorShape:
         var axis = attributes["axis"]
 
         if axis:
@@ -428,7 +448,9 @@ struct MEAN:
 
         @parameter
         if axis:
-            return Self.backward[ug_shape, t_shape](ug, t, axis.value().to_int())
+            return Self.backward[ug_shape, t_shape](
+                ug, t, axis.value().to_int()
+            )
         else:
             return Self.backward[ug_shape, t_shape](ug, t)
 
@@ -452,7 +474,7 @@ struct MEAN:
 
         vectorize[v_mean_d, nelts](t_shape.num_elements())
 
-        return res_grad ^
+        return res_grad^
 
     @staticmethod
     fn backward[
@@ -468,12 +490,14 @@ struct MEAN:
 
         elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
 
-        return res_grad ^
+        return res_grad^
 
 
 struct MAX:
     @staticmethod
-    fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+    fn result_shape(
+        t_shape: TensorShape, attributes: AttributeVector
+    ) -> TensorShape:
         var axis = attributes["axis"]
 
         if axis:
@@ -506,7 +530,9 @@ struct MAX:
 
         @parameter
         if axis:
-            return Self.backward[ug_shape, t_shape](ug, t, axis.value().to_int())
+            return Self.backward[ug_shape, t_shape](
+                ug, t, axis.value().to_int()
+            )
         else:
             return Self.backward[ug_shape, t_shape](ug, t)
 
@@ -538,7 +564,7 @@ struct MAX:
             if t[i] == max_res:
                 res_grad[i] = factor * ug[0]
 
-        return res_grad ^
+        return res_grad^
 
     @staticmethod
     fn backward[
@@ -575,12 +601,14 @@ struct MAX:
                 if t[index] == max_res[i]:
                     res_grad[index] = factor * ug[i]
 
-        return res_grad ^
+        return res_grad^
 
 
 struct TRANSPOSE:
     @staticmethod
-    fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+    fn result_shape(
+        t_shape: TensorShape, attributes: AttributeVector
+    ) -> TensorShape:
         var axes = attributes["axes"]  # axes to be permuted
 
         var rank = t_shape.rank()
@@ -663,7 +691,7 @@ struct TRANSPOSE:
 
             transpose(res_grad, ug, axes_shape_inv)
 
-        return res_grad ^
+        return res_grad^
 
 
 struct FLATTEN:
@@ -672,7 +700,9 @@ struct FLATTEN:
         return TensorShape(t_shape.num_elements())
 
     @staticmethod
-    fn forward[t_shape: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
+    fn forward[
+        t_shape: TensorShape
+    ](inout res: Tensor[dtype], t: Tensor[dtype]):
         """
         Forward pass of the flatten operation.
         """
@@ -686,17 +716,21 @@ struct FLATTEN:
         var res_grad = Tensor[dtype](t_shape)
         memcpy(res_grad.data(), ug.data(), ug_shape.num_elements())
 
-        return res_grad ^
+        return res_grad^
 
 
 struct RESHAPE:
     @staticmethod
-    fn result_shape(t_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+    fn result_shape(
+        t_shape: TensorShape, attributes: AttributeVector
+    ) -> TensorShape:
         var new_shape = attributes["shape"]
         return new_shape.value().to_shape()
 
     @staticmethod
-    fn forward[t_shape: TensorShape](inout res: Tensor[dtype], t: Tensor[dtype]):
+    fn forward[
+        t_shape: TensorShape
+    ](inout res: Tensor[dtype], t: Tensor[dtype]):
         """
         Forward pass of the reshape operation.
         """
@@ -710,7 +744,7 @@ struct RESHAPE:
         var res_grad = Tensor[dtype](t_shape)
         memcpy(res_grad.data(), ug.data(), ug_shape.num_elements())
 
-        return res_grad ^
+        return res_grad^
 
 
 struct FMA:
@@ -753,7 +787,10 @@ struct FMA:
         t2_shape: TensorShape,
         t3_shape: TensorShape,
     ](
-        ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype]
+        ug: Tensor[dtype],
+        t1: Tensor[dtype],
+        t2: Tensor[dtype],
+        t3: Tensor[dtype],
     ) -> Tensor[dtype]:
         """Backward operation of fma."""
         # d(x * y + z) / dx = y
@@ -764,10 +801,10 @@ struct FMA:
         if tensor_id == 0:
             var res_grad = Tensor[dtype](ug_shape)
             elwise_op[ug_shape, t2_shape, mul](res_grad, ug, t2)
-            return res_grad ^
+            return res_grad^
         elif tensor_id == 1:
             var res_grad = Tensor[dtype](ug_shape)
             elwise_op[ug_shape, t1_shape, mul](res_grad, ug, t1)
-            return res_grad ^
+            return res_grad^
         else:
             return ug

@@ -74,7 +74,9 @@ fn create_CNN(
         attributes=AttributeVector(
             Attribute(
                 "shape",
-                TensorShape(x6_shape[0], x6_shape[1] * x6_shape[2] * x6_shape[3]),
+                TensorShape(
+                    x6_shape[0], x6_shape[1] * x6_shape[2] * x6_shape[3]
+                ),
             )
         ),
     )
@@ -92,7 +94,7 @@ fn create_CNN(
     # var loss = nn.MSELoss(g, out, y_true)
     g.loss(loss)
 
-    return g ^
+    return g^
 
 
 fn run_mojo[
@@ -161,18 +163,24 @@ fn run_torch(
         var inputs = torch.from_numpy(to_numpy(inputs)).requires_grad_(True)
         var labels = torch.from_numpy(to_numpy(labels)).requires_grad_(True)
 
-        var conv1_weights = torch.from_numpy(to_numpy(conv1_weights)).requires_grad_(
+        var conv1_weights = torch.from_numpy(
+            to_numpy(conv1_weights)
+        ).requires_grad_(True)
+        var conv1_bias = torch.from_numpy(to_numpy(conv1_bias)).requires_grad_(
             True
         )
-        var conv1_bias = torch.from_numpy(to_numpy(conv1_bias)).requires_grad_(True)
-        var conv2_weights = torch.from_numpy(to_numpy(conv2_weights)).requires_grad_(
+        var conv2_weights = torch.from_numpy(
+            to_numpy(conv2_weights)
+        ).requires_grad_(True)
+        var conv2_bias = torch.from_numpy(to_numpy(conv2_bias)).requires_grad_(
             True
         )
-        var conv2_bias = torch.from_numpy(to_numpy(conv2_bias)).requires_grad_(True)
         var linear1_weights = torch.from_numpy(
             to_numpy(linear1_weights)
         ).requires_grad_(True)
-        var linear1_bias = torch.from_numpy(to_numpy(linear1_bias)).requires_grad_(True)
+        var linear1_bias = torch.from_numpy(
+            to_numpy(linear1_bias)
+        ).requires_grad_(True)
 
         var cnn = torch_models.CNN(
             conv1_weights,
@@ -212,7 +220,7 @@ fn create_weights(num_elements: Int, zero: Bool) -> List[Scalar[dtype]]:
             weights.append(Scalar[dtype](0.0))
         else:
             weights.append(Scalar[dtype](0.02))
-    return weights ^
+    return weights^
 
 
 fn dv_to_tensor(dv: List[Scalar[dtype]], shape: TensorShape) -> Tensor[dtype]:
@@ -221,7 +229,7 @@ fn dv_to_tensor(dv: List[Scalar[dtype]], shape: TensorShape) -> Tensor[dtype]:
         print("[WARNING] tensor and dv not the shame shape")
     for i in range(t.num_elements()):
         t[i] = dv[i]
-    return t ^
+    return t^
 
 
 fn main():
@@ -231,7 +239,9 @@ fn main():
 
     var inputs = Tensor[dtype](batch_size, 1, 28, 28)
     rand[dtype](inputs.data(), inputs.num_elements())
-    var labels = Tensor[dtype](batch_size, 10)  # one-hot encoded (probabilities)
+    var labels = Tensor[dtype](
+        batch_size, 10
+    )  # one-hot encoded (probabilities)
     for i in range(4):
         labels[i * 10 + i] = 1.0
 
@@ -246,7 +256,9 @@ fn main():
     alias conv2_bias = create_weights(32, zero=True)
 
     alias l1_w_shape = TensorShape(32 * 7 * 7, 10)
-    alias linear1_weights = create_weights(l1_w_shape.num_elements(), zero=False)
+    alias linear1_weights = create_weights(
+        l1_w_shape.num_elements(), zero=False
+    )
     alias l1_b_shape = TensorShape(10)
     alias linear1_bias = create_weights(10, zero=True)
 

@@ -10,7 +10,7 @@ fn generate_tensor(*shape: Int) -> Tensor[dtype]:
     var size = A.num_elements()
     for i in range(size):
         A[i] = i + 1
-    return A ^
+    return A^
 
 
 fn generate_expected_tensor[
@@ -19,7 +19,7 @@ fn generate_expected_tensor[
     var A = Tensor[dtype](shape)
     for i in range(size):
         A[i] = data[i]
-    return A ^
+    return A^
 
 
 struct TransposeData:

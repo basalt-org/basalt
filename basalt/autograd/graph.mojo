@@ -57,9 +57,13 @@ struct Graph:
         self.symbol_count += 1
         return scalar_id
 
-    fn constant(inout self, shape: TensorShape, data: List[Scalar[dtype]]) -> Symbol:
+    fn constant(
+        inout self, shape: TensorShape, data: List[Scalar[dtype]]
+    ) -> Symbol:
         var cst = Param(data)
-        var constant_id = Symbol(self.symbol_count, dtype, shape, trainable=False)
+        var constant_id = Symbol(
+            self.symbol_count, dtype, shape, trainable=False
+        )
         self.params.put(constant_id, cst)
         self.symbol_count += 1
         return constant_id
@@ -122,7 +126,9 @@ struct Graph:
         var inputs = List[Symbol]()
         for operand in operands:
             inputs.append(operand)
-        self.nodes.append(Node(OP.CONCAT, inputs, List[Symbol](res), attributes))
+        self.nodes.append(
+            Node(OP.CONCAT, inputs, List[Symbol](res), attributes)
+        )
         return res
 
     fn split(
@@ -136,11 +142,15 @@ struct Graph:
 
         var results = List[Symbol]()
         for i in range(len(res_shapes)):
-            var symbol = Symbol(self.symbol_count, dtype, res_shapes[i], trainable)
+            var symbol = Symbol(
+                self.symbol_count, dtype, res_shapes[i], trainable
+            )
             results.append(symbol)
             self.symbol_count += 1
 
-        self.nodes.append(Node(OP.SPLIT, List[Symbol](operand), results, attributes))
+        self.nodes.append(
+            Node(OP.SPLIT, List[Symbol](operand), results, attributes)
+        )
         return results
 
     @staticmethod

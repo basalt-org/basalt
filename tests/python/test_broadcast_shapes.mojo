@@ -97,7 +97,9 @@ fn test_broadcast_shapes_multiple() raises:
     s3 = TensorShape(7)
     var s4 = TensorShape(5, 1, 7)
     res = broadcast_shapes(s1, s2, s3, s4)
-    res_np = to_tensor_shape(np.broadcast_shapes((6, 7), (5, 6, 1), (7), (5, 1, 7)))
+    res_np = to_tensor_shape(
+        np.broadcast_shapes((6, 7), (5, 6, 1), (7), (5, 1, 7))
+    )
     assert_true(res == res_np)
 
 

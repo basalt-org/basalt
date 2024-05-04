@@ -377,14 +377,18 @@ fn test_TRANSPOSE() raises:
                     i * ug_shape[1] * ug_shape[2] + j * ug_shape[2] + k
                 ]
 
-    test_unary_op_backward[OP.TRANSPOSE, t1_shape, ug_shape](t1, ug, expected_grad)
+    test_unary_op_backward[OP.TRANSPOSE, t1_shape, ug_shape](
+        t1, ug, expected_grad
+    )
 
     # Test Transpose 1, 2, 0
     alias ug_shape_2 = TensorShape(3, 4, 2)
     ug = Tensor[dtype](ug_shape_2)
     arange(ug)
 
-    alias attributes_2 = AttributeVector(Attribute("axes", TensorShape(1, 2, 0)))
+    alias attributes_2 = AttributeVector(
+        Attribute("axes", TensorShape(1, 2, 0))
+    )
     expected_grad = Tensor[dtype](t1_shape)
     for i in range(ug_shape_2[0]):
         for j in range(ug_shape_2[1]):
@@ -408,7 +412,9 @@ fn test_FLATTEN() raises:
 
     var expected_grad1 = Tensor[dtype](t1_shape)
     fill(expected_grad1, 1.0)
-    test_unary_op_backward[OP.FLATTEN, t1_shape, ug_shape](t1, ug, expected_grad1)
+    test_unary_op_backward[OP.FLATTEN, t1_shape, ug_shape](
+        t1, ug, expected_grad1
+    )
 
 
 fn test_RESHAPE() raises:
@@ -422,7 +428,9 @@ fn test_RESHAPE() raises:
         ug[i] = i + 1
         expected_grad[i] = i + 1
 
-    test_unary_op_backward[OP.RESHAPE, t1_shape, ug_shape](t1, ug, expected_grad)
+    test_unary_op_backward[OP.RESHAPE, t1_shape, ug_shape](
+        t1, ug, expected_grad
+    )
 
 
 fn main():
