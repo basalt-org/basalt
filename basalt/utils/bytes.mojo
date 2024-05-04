@@ -1,6 +1,8 @@
 from math import nan
 from math.limit import inf
 
+alias ScalarBytes = DType.uint64.sizeof()
+
 
 @register_passable("trivial")
 struct Bytes[capacity: Int](Stringable, CollectionElement, EqualityComparable):
@@ -72,89 +74,43 @@ struct Bytes[capacity: Int](Stringable, CollectionElement, EqualityComparable):
         return result
 
 
-@always_inline("nodebug")
-fn f64_to_bytes[
-    size: Int = DType.float64.sizeof()
-](value: Scalar[DType.float64]) -> Bytes[size]:
-    """
-    Convert a f64 number to a sequence of bytes in IEEE 754 format.
-    """
-    alias exponent_bits = 11
-    alias mantissa_bits = 52
-    alias exponent_bias = 1023
+fn scalar_to_bytes[
+    Type: DType, Size: Int = ScalarBytes
+](value: Scalar[Type]) -> Bytes[Size]:
+    constrained[Size >= ScalarBytes, "Size must be at least ${ScalarBytes}"]()
 
-    if value == 0:
-        return Bytes[size]()
-
-    var sign: Int64
-    var abs: Float64
-
-    if value > 0:
-        sign = 0
-        abs = value
-    else:
-        sign = 1
-        abs = -value
-
-    var exponent: Int64 = exponent_bias
-
-    while abs >= 2.0:
-        abs /= 2.0
-        exponent += 1
-    while abs < 1.0:
-        abs *= 2.0
-        exponent -= 1
-
-    var mantissa = (abs - 1.0) * (1 << mantissa_bits)
-    var binary_rep: Int64 = (sign << (exponent_bits + mantissa_bits)) | (
-        exponent << mantissa_bits
-    ) | mantissa
-
-    var result = Bytes[size]()
+    var int_bytes = bitcast[DType.uint64](value.cast[expand_type[Type]()]())
+    var data = Bytes[Size]()
 
     @parameter
-    fn fill_bytes[Index: Int]():
-        alias Offest: Int64 = Index * 8
-        result[Index] = (binary_rep >> Offest & 0xFF).cast[DType.uint8]()
+    fn copy_bytes[Index: Int]():
+        data[Index] = (int_bytes >> (Index * 8) & 0xFF).cast[DType.uint8]()
 
-    unroll[fill_bytes, size]()
+    unroll[copy_bytes, ScalarBytes]()
 
-    return result
+    return data
 
 
-fn bytes_to_f64[
-    size: Int = DType.float64.sizeof()
-](bytes: Bytes[size]) -> Scalar[DType.float64]:
-    """
-    Convert a sequence of bytes in IEEE 754 format to a floating point number.
-    """
+fn bytes_to_scalar[Type: DType](bytes: Bytes) -> Scalar[Type]:
+    constrained[
+        bytes.capacity >= ScalarBytes, "Size must be at least ${ScalarBytes}"
+    ]()
 
-    alias exponent_bits = 11
-    alias mantissa_bits = 52
-    alias exponent_bias = 1023
-
-    var binary_rep: Int64 = 0
+    var int_bytes: UInt64 = 0
 
     @parameter
-    fn to_bin[Index: Int]():
-        alias Offest: Int64 = Index * 8
-        binary_rep |= bytes[Index].cast[DType.int64]() << Offest
+    fn copy_bytes[Index: Int]():
+        int_bytes |= bytes[Index].cast[DType.uint64]() << (Index * 8)
 
-    unroll[to_bin, size]()
+    unroll[copy_bytes, ScalarBytes]()
 
-    var sign = (-1) ** int(((binary_rep >> (exponent_bits + mantissa_bits)) & 1))
-    var exponent: Int = int((
-        (binary_rep >> mantissa_bits) & ((1 << exponent_bits) - 1)
-    )) - exponent_bias
-    var mantissa: Float64 = (binary_rep & ((1 << mantissa_bits) - 1)).cast[
-        DType.float64
-    ]() / (1 << mantissa_bits) + Float64(exponent != -exponent_bias)
+    return bitcast[expand_type[Type]()](int_bytes).cast[Type]()
 
-    if exponent == exponent_bias + 1:
-        return inf[DType.float64]() if mantissa == 0 else nan[DType.float64]()
-    elif exponent == -exponent_bias and mantissa == 0:
-        return 0.0
-    elif exponent < 0:
-        return sign * 1.0 / Float64(2**-exponent) * mantissa
-    else:
-        return sign * Float64(2**exponent) * mantissa
+
+fn expand_type[Type: DType]() -> DType:
+    @parameter
+    if Type.is_floating_point():
+        return DType.float64
+    elif Type.is_signed():
+        return DType.int64
+    return DType.uint64
