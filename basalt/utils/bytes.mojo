@@ -1,6 +1,8 @@
 from math import nan
 from math.limit import inf
 
+alias ScalarBytes = DType.uint64.sizeof()
+
 
 @register_passable("trivial")
 struct Bytes[capacity: Int](Stringable, CollectionElement, EqualityComparable):
@@ -73,24 +75,34 @@ struct Bytes[capacity: Int](Stringable, CollectionElement, EqualityComparable):
 
 
 fn scalar_to_bytes[
-    Type: DType, Size: Int = Type.sizeof()
+    Type: DType, Size: Int = ScalarBytes
 ](value: Scalar[Type]) -> Bytes[Size]:
+    constrained[Size >= ScalarBytes, "Size must be at least ${ScalarBytes}"]()
+
     var int_bytes = bitcast[DType.uint64](value.cast[expand_type[Type]()]())
-    var bytes = Bytes[Size]()
+    var data = Bytes[Size]()
 
-    @unroll
-    for i in range(DType.uint64.sizeof()):
-        bytes[i] = (int_bytes >> (i * 8) & 0xFF).cast[DType.uint8]()
+    @parameter
+    fn copy_bytes[Index: Int]():
+        data[Index] = (int_bytes >> (Index * 8) & 0xFF).cast[DType.uint8]()
 
-    return bytes
+    unroll[copy_bytes, ScalarBytes]()
+
+    return data
 
 
-fn bytes_to_scalar[Type: DType, Size: Int = Type.sizeof()](bytes: Bytes) -> Scalar[Type]:
-    var int_bytes: Scalar[DType.uint64] = 0
-    
-    @unroll
-    for i in range(DType.uint64.sizeof()):
-        int_bytes |= (bytes[i].cast[DType.uint64]() << (i * 8))
+fn bytes_to_scalar[Type: DType](bytes: Bytes) -> Scalar[Type]:
+    constrained[
+        bytes.capacity >= ScalarBytes, "Size must be at least ${ScalarBytes}"
+    ]()
+
+    var int_bytes: UInt64 = 0
+
+    @parameter
+    fn copy_bytes[Index: Int]():
+        int_bytes |= bytes[Index].cast[DType.uint64]() << (Index * 8)
+
+    unroll[copy_bytes, ScalarBytes]()
 
     return bitcast[expand_type[Type]()](int_bytes).cast[Type]()
 

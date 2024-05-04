@@ -106,7 +106,9 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn __init__[N: Int](inout self, name: String, value: StaticIntTuple[N]):
-        constrained[N < MAX_RANK, "Attribute rank must be less than MAX_RANK."]()
+        constrained[
+            N < MAX_RANK, "Attribute rank must be less than MAX_RANK."
+        ]()
 
         self.data_shape = StaticIntTuple[MAX_RANK]()
         self.name = Bytes[MAX_NAME_CHARS](name)
@@ -151,7 +153,9 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn to_static[N: Int](self) -> StaticIntTuple[N]:
-        constrained[N < MAX_RANK, "Attribute rank must be less than MAX_RANK."]()
+        constrained[
+            N < MAX_RANK, "Attribute rank must be less than MAX_RANK."
+        ]()
 
         var result = StaticIntTuple[N]()
 
@@ -163,7 +167,7 @@ struct Attribute(Stringable, CollectionElement):
     @always_inline("nodebug")
     fn to_scalar[Type: DType](self) -> Scalar[Type]:
         constrained[Type.is_numeric(), "Attribute value must be numeric."]()
-        
+
         return bytes_to_scalar[Type](self.data)
 
     @always_inline("nodebug")
