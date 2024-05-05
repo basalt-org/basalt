@@ -1,4 +1,4 @@
-from algorithm import vectorize
+from algorithm import vectorize, parallelize
 from math import exp, pow, max, min, abs
 from math.limit import min_finite, max_finite
 
@@ -281,17 +281,19 @@ struct UNSQUEEZE:
 
 struct SLICE:
     @staticmethod
+    fn adjust_boundary(slice: Int, dim_size: Int) -> Int:
+        # Adjust negative indices & ensure they are within bounds.
+        var s = slice if slice >= 0 else dim_size + slice
+        return max(min(s, dim_size), 0)
+    
+    @staticmethod
     fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         var slice = attributes["slice"].value().to_static[3]()
         var dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
 
-        var start = slice[0] if slice[0] >= 0 else t1_shape[dim] + slice[0]
-        var stop = slice[1] if slice[1] >= 0 else t1_shape[dim] + slice[1]
+        var start = Self.adjust_boundary(slice[0], t1_shape[dim])
+        var stop = Self.adjust_boundary(slice[1], t1_shape[dim])
         var step = slice[2]
-
-        # Ensure start and stop are within bounds.
-        start = max(min(start, t1_shape[dim]), 0)
-        stop = max(min(stop, t1_shape[dim]), 0)
 
         var new_shape = t1_shape
         new_shape[dim] = max(0, (stop - start + abs(step) - 1) // abs(step))
@@ -302,22 +304,41 @@ struct SLICE:
         t1_shape: TensorShape,
         attributes: AttributeVector,
     ](inout res: Tensor[dtype], t1: Tensor[dtype]):
-        var slice = attributes["slice"].value().to_static[3]()
-        var dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
+        alias slice = attributes["slice"].value().to_static[3]()
+        alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
 
-        var start = slice[0] if slice[0] >= 0 else t1_shape[dim] + slice[0]
-        var stop = slice[1] if slice[1] >= 0 else t1_shape[dim] + slice[1]
-        var step = slice[2]
+        alias start = Self.adjust_boundary(slice[0], t1_shape[dim])
+        alias stop = Self.adjust_boundary(slice[1], t1_shape[dim])
+        alias step = slice[2]
+    
+        @parameter
+        fn calc_N() -> Int:
+            var N = 1
+            for i in range(dim):
+                N *= t1_shape[i]
+            return N
+        
+        alias N = calc_N() # number of elements before slicing dimention
+        alias M = ((stop - start + abs(step) - 1) // abs(step)) # slicing dimention
+        alias K = strides[dim] # number of elements after slicing dimention
+        
+        alias strides = t1_shape.strides()
+        alias offset = strides[dim - 1] if dim > 0 else t1_shape.num_elements()
+        alias stride = strides[dim] * step
 
-        # Ensure start and stop are within bounds.
-        start = max(min(start, t1_shape[dim]), 0)
-        stop = max(min(stop, t1_shape[dim]), 0)
+        @parameter
+        fn n_par(i: Int):
+            for j in range(M):
 
-        print(start, stop, step)
-        print("SLICE forward not implemented")
-        print(t1)
-        print(res)
-        pass
+                @parameter
+                fn vec_k[nelts: Int](k: Int):
+                    res.store[nelts](
+                        i * M * K + j * K + k,
+                        t1.load[nelts](i * offset + j * stride + k + start * K)
+                    )
+                vectorize[vec_k, nelts, size = K]()
+
+        parallelize[n_par](N)
 
     @staticmethod
     fn backward[
