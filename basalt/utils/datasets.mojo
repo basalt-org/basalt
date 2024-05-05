@@ -14,29 +14,28 @@ struct BostonHousing:
 
     fn __init__(inout self, file_path: String) raises:
         var s = read_file(file_path)
-        s = s[find_first(s, "\n") + 1 :]  # Ignore header
+        # Skip the first and last lines
+        # This does assume your last line in the file has a newline at the end
+        var list_of_lines = s.split("\n")[1:-1]
 
-        var N = num_lines(s)
+        # Length is number of lines
+        var N = len(list_of_lines)
+
         self.data = Tensor[dtype](N, self.n_inputs)  # All columns except the last one
         self.labels = Tensor[dtype](N, 1)  # Only the last column (MEDV)
 
-        var idx_low: Int
-        var idx_high: Int
-        var idx_line: Int = 0
+        var line: List[String] = List[String]()
 
         # Load data in Tensor
-        # TODO: redo when String .split(",") is supported
-        for i in range(N):
-            s = s[idx_line:]
-            idx_line = find_first(s, "\n") + 1
+        for item in range(N):
+
+            line = list_of_lines[item].split(",")
+            self.labels[item] = cast_string[dtype](line[-1])
+            
             for n in range(self.n_inputs):
-                idx_low = find_nth(s, ",", n) + 1
-                idx_high = find_nth(s, ",", n + 1)
+                self.data[item * self.n_inputs + n] = cast_string[dtype](line[n])
 
-                self.data[i * self.n_inputs + n] = cast_string[dtype](s[idx_low:idx_high])
-
-            idx_low = find_nth(s, ",", self.n_inputs) + 1
-            self.labels[i] = cast_string[dtype](s[idx_low : idx_line - 1])
+            self.labels[item] = cast_string[dtype](line[-1])
 
         # Normalize data
         # TODO: redo when tensorutils tmean2 and tstd2 are implemented
