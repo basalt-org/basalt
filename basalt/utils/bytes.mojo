@@ -79,32 +79,26 @@ fn scalar_to_bytes[
 ](value: Scalar[Type]) -> Bytes[Size]:
     constrained[Size >= ScalarBytes, "Size must be at least ${ScalarBytes}"]()
 
-    var int_bytes = bitcast[DType.uint64](value.cast[expand_type[Type]()]())
+    var bits = bitcast[DType.uint64](value.cast[expand_type[Type]()]())
     var data = Bytes[Size]()
 
-    @parameter
-    fn copy_bytes[Index: Int]():
-        data[Index] = (int_bytes >> (Index * 8) & 0xFF).cast[DType.uint8]()
-
-    unroll[copy_bytes, ScalarBytes]()
+    @unroll
+    for i in range(ScalarBytes):
+        data[i] = (bits >> (i << 3)).cast[DType.uint8]()
 
     return data
 
 
-fn bytes_to_scalar[Type: DType](bytes: Bytes) -> Scalar[Type]:
-    constrained[
-        bytes.capacity >= ScalarBytes, "Size must be at least ${ScalarBytes}"
-    ]()
+fn bytes_to_scalar[Type: DType](data: Bytes) -> Scalar[Type]:
+    constrained[data.capacity >= ScalarBytes, "Size must be at least ${ScalarBytes}"]()
 
-    var int_bytes: UInt64 = 0
+    var bits: UInt64 = 0
 
-    @parameter
-    fn copy_bytes[Index: Int]():
-        int_bytes |= bytes[Index].cast[DType.uint64]() << (Index * 8)
+    @unroll
+    for i in range(ScalarBytes):
+        bits |= data[i].cast[DType.uint64]() << (i << 3)
 
-    unroll[copy_bytes, ScalarBytes]()
-
-    return bitcast[expand_type[Type]()](int_bytes).cast[Type]()
+    return bitcast[expand_type[Type]()](bits).cast[Type]()
 
 
 fn expand_type[Type: DType]() -> DType:
