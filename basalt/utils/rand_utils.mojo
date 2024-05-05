@@ -4,12 +4,10 @@ from algorithm import vectorize
 
 
 @always_inline
-fn rand_uniform[
-    dtype: DType
-](inout res: Tensor[dtype], low: Scalar[dtype], high: Scalar[dtype]):
+fn rand_uniform[Type: DType](inout res: Tensor[Type], low: Scalar[Type], high: Scalar[Type]):
     var scale = high - low
 
-    rand[dtype](res.data(), res.num_elements())
+    rand[Type](res.data(), res.num_elements())
 
     @parameter
     fn vecscale[nelts: Int](idx: Int):
@@ -19,8 +17,8 @@ fn rand_uniform[
 
 
 @always_inline
-fn rand_normal[dtype: DType](inout res: Tensor[dtype], mean: Float64, std: Float64):
-    randn[dtype](res.data(), res.num_elements(), mean, std**2)
+fn rand_normal[Type: DType](inout res: Tensor[Type], mean: Float64, std: Float64):
+    randn[Type](res.data(), res.num_elements(), mean, std**2)
 
 
 @register_passable("trivial")
