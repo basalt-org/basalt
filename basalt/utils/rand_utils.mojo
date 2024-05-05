@@ -1,4 +1,4 @@
-from basalt import Tensor, TensorShape
+from basalt import Tensor
 from random import rand, randn
 from algorithm import vectorize
 
@@ -7,22 +7,20 @@ from algorithm import vectorize
 fn rand_uniform[
     dtype: DType
 ](inout res: Tensor[dtype], low: Scalar[dtype], high: Scalar[dtype]):
-    rand[dtype](
-        res.data(), res.num_elements()
-    )  # Uniform initialize the tensor between 0 and 1
+    var scale = high - low
+
+    rand[dtype](res.data(), res.num_elements())
 
     @parameter
     fn vecscale[nelts: Int](idx: Int):
-        res.store[nelts](idx, res.load[nelts](idx) * (high - low) + low)
+        res.store[nelts](idx, res.load[nelts](idx).fma(scale, low))
 
     vectorize[vecscale, nelts](res.num_elements())
 
 
 @always_inline
 fn rand_normal[dtype: DType](inout res: Tensor[dtype], mean: Float64, std: Float64):
-    randn[dtype](
-        res.data(), res.num_elements(), mean, std**2
-    )  # Normal distribution tensor initialization
+    randn[dtype](res.data(), res.num_elements(), mean, std**2)
 
 
 @register_passable("trivial")
@@ -48,23 +46,17 @@ struct MersenneTwister:
         alias D: Int32 = 0xFFFFFFFF
 
         self.index = Self.N
-        self.state = StaticTuple[
-            Int32,
-            Self.N,
-        ]()
+        self.state = StaticTuple[Int32, Self.N]()
         self.state[0] = seed & D
 
         for i in range(1, Self.N):
-            self.state[i] = (
-                F * (self.state[i - 1] ^ (self.state[i - 1] >> (W - 2))) + i
-            ) & D
+            var prev = self.state[i - 1]
+            self.state[i] = (F * (prev ^ (prev >> (W - 2))) + i) & D
 
     fn next(inout self) -> Int32:
         if self.index >= Self.N:
             for i in range(Self.N):
-                var x = (self.state[i] & Self.UPPER_MASK) + (
-                    self.state[(i + 1) % Self.N] & Self.LOWER_MASK
-                )
+                var x = (self.state[i] & Self.UPPER_MASK) + (self.state[(i + 1) % Self.N] & Self.LOWER_MASK)
                 var xA = x >> 1
                 if x % 2 != 0:
                     xA ^= Self.MATRIX_A
