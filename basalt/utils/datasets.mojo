@@ -33,7 +33,7 @@ struct BostonHousing:
 
             for n in range(self.n_inputs):
                 self.data[item * self.n_inputs + n] = cast_string[dtype](line[n])
-                
+
         # Normalize data
         # TODO: redo when tensorutils tmean2 and tstd2 are implemented
         alias nelts = simdwidthof[dtype]()
