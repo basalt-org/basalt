@@ -76,11 +76,10 @@ struct MNIST:
 
         # Normalize data
         alias nelts = simdwidthof[dtype]()
-        var res = Tensor[dtype](self.data.shape())
 
         @parameter
         fn vecdiv[nelts: Int](idx: Int):
-            res.store[nelts](idx, div(self.data.load[nelts](idx), 255.0))
+            self.data.store[nelts](idx, div(self.data.load[nelts](idx), 255.0))
 
         vectorize[vecdiv, nelts](self.data.num_elements())
 
