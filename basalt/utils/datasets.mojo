@@ -28,10 +28,9 @@ struct BostonHousing:
 
         # Load data in Tensor
         for item in range(N):
-
             line = list_of_lines[item].split(",")
             self.labels[item] = cast_string[dtype](line[-1])
-            
+
             for n in range(self.n_inputs):
                 self.data[item * self.n_inputs + n] = cast_string[dtype](line[n])
 
