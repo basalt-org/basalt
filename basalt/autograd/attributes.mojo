@@ -19,11 +19,11 @@ struct AttributeType(Stringable):
     alias FLOATS = AttributeType(5, "FLOATS")
 
     var id: UInt8
-    var name: Bytes[16]
+    var name: Bytes[MAX_NAME_CHARS]
 
     fn __init__(inout self, id: UInt8, name: String):
         self.id = id
-        self.name = Bytes[16](name)
+        self.name = Bytes[MAX_NAME_CHARS](name)
 
     fn __init__(inout self, type: DType):
         if type.is_floating_point():
