@@ -87,30 +87,10 @@ fn read_file(file_path: String) raises -> String:
     return s
 
 
-fn num_lines(s: String) -> Int:
-    var count: Int = 0
-    for i in range(len(s)):
-        if s[i] == "\n":
-            count += 1
-    return count
-
-
 fn find_first(s: String, delimiter: String) -> Int:
     for i in range(len(s)):
         if s[i] == delimiter:
             return i
-    return -1
-
-
-fn find_nth(s: String, delimiter: String, n: Int) -> Int:
-    var count: Int = 0
-    if n == 0:
-        return -1
-    for i in range(len(s)):
-        if s[i] == delimiter:
-            count += 1
-            if count == n:
-                return i
     return -1
 
 
