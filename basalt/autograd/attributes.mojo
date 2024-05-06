@@ -118,13 +118,13 @@ struct Attribute(Stringable, CollectionElement):
             self.data[i] = value[i]
 
     @always_inline("nodebug")
-    fn __init__[Type: DType](inout self, name: String, value: Scalar[Type]):
-        constrained[Type.is_numeric(), "Attribute value must be numeric."]()
+    fn __init__[dtype: DType](inout self, name: String, value: Scalar[dtype]):
+        constrained[dtype.is_numeric(), "Attribute value must be numeric."]()
 
         self.data_shape = StaticIntTuple[MAX_RANK]()
         self.name = Bytes[MAX_NAME_CHARS](name)
-        self.data = scalar_to_bytes[Type, MAX_DATA_BYTES](value)
-        self.type = AttributeType(Type)
+        self.data = scalar_to_bytes[dtype, MAX_DATA_BYTES](value)
+        self.type = AttributeType(dtype)
         self.size = 1
 
     @always_inline("nodebug")
@@ -161,10 +161,10 @@ struct Attribute(Stringable, CollectionElement):
         return result
 
     @always_inline("nodebug")
-    fn to_scalar[Type: DType](self) -> Scalar[Type]:
-        constrained[Type.is_numeric(), "Attribute value must be numeric."]()
+    fn to_scalar[dtype: DType](self) -> Scalar[dtype]:
+        constrained[dtype.is_numeric(), "Attribute value must be numeric."]()
 
-        return bytes_to_scalar[Type](self.data)
+        return bytes_to_scalar[dtype](self.data)
 
     @always_inline("nodebug")
     fn to_int(self) -> Int:
