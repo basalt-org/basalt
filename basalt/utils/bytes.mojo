@@ -107,4 +107,8 @@ fn expand_type[Type: DType]() -> DType:
         return DType.float64
     elif Type.is_signed():
         return DType.int64
-    return DType.uint64
+    elif Type.is_integral():
+        return DType.uint64
+    
+    constrained[False, "Type must be numeric"]()
+    return DType.invalid
