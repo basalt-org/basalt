@@ -84,7 +84,11 @@ struct MNIST:
 
 
 
-struct CIFAR10(Sized):
+trait BaseDataset(Sized, Copyable, Movable):
+    fn __getitem__(self, idx: Int) raises -> Tuple[Tensor[dtype], Int]: ...
+
+
+struct CIFAR10(BaseDataset):
     var labels: List[Int]
     var file_paths: List[String]
     
@@ -108,6 +112,14 @@ struct CIFAR10(Sized):
             self.file_paths.append(file_dir / files[i])
             self.labels.append(label_dict[files[i].split("_")[1].split(".")[0]])
 
+    fn __copyinit__(inout self, other: CIFAR10):
+        self.labels = other.labels
+        self.file_paths = other.file_paths
+
+    # Do I need the ^ here?
+    fn __moveinit__(inout self, owned other: CIFAR10):
+        self.labels = other.labels^
+        self.file_paths = other.file_paths^
     
     fn __len__(self) -> Int:
         return len(self.file_paths)
@@ -118,15 +130,20 @@ struct CIFAR10(Sized):
         # Create Basalt tensor
         var data = Tensor[dtype](img.shape()[0], img.shape()[1], img.shape()[2])
 
-
+        # Differenttypes, so different SIMDwidth. 
+        # How to deal? 
+        """
         # Normalize data and copy from Mojo tensor to basalt tensor
         alias nelts = simdwidthof[dtype]()
 
         @parameter
-        fn vecdiv[nelts: Int](idx: Int):
-            data.store[nelts](idx, div(img.load[nelts](idx), 255.0).cast[dtype]())
+        fn vecdiv[nelts: Int](vec_index: Int):
+            data.store[nelts](vec_index, div(img.load[nelts](vec_index).cast[dtype](), 255.0))
 
         vectorize[vecdiv, nelts](img.num_elements())
+        """
+        for i in range(img.num_elements()):
+            data.store(i, img.load(i).cast[dtype]()/255.0)
 
         return Tuple(data, self.labels[idx]) 
 

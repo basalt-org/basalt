@@ -108,3 +108,68 @@ struct DataLoader:
             self._data_batch_shape,
             self._label_batch_shape,
         )
+
+
+struct CIFARDataLoader:
+    var dataset: CIFAR10 #BaseDataset
+    # The error I get is: "dynamic traits not supported yet, please use a compile time generic instead of 'BaseDataset'"
+    var batch_size: Int
+    var _current_index: Int
+    var _num_batches: Int
+    #var _data_batch_shape: TensorShape
+    #var _label_batch_shape: TensorShape
+
+    fn __init__(
+        inout self,
+        owned dataset: CIFAR10, #BaseDataset,
+        batch_size: Int,
+    ):
+        self.dataset = dataset^
+        self.batch_size = batch_size
+
+        # Number of batches to iter, NOTE: ignore the remainder for now
+        # var remainder = 1 if self.data.dim(0) % self.batch_size != 0 else 0
+        self._current_index = 0
+        self._num_batches = len(self.dataset) // self.batch_size  # + remainder
+
+
+    @always_inline
+    fn __len__(self) -> Int:
+        """
+        Returns the number of the batches left in the dataset.
+        """
+        return self._num_batches
+
+    fn __next__(inout self) raises -> Batch[dtype]:
+
+        var init_data = self.dataset[self._current_index]
+
+        var data = Tensor[dtype](self.batch_size, init_data[0].shape()[0], init_data[0].shape()[1], init_data[0].shape()[2])
+        var labels = Tensor[dtype](self.batch_size, 1) #len(init_data[1]))
+
+        var offset = 0
+        var imsize = init_data[0].num_elements()
+        for i in range(imsize):            
+            data[i] = init_data[0][i]
+
+
+        labels[0] = init_data[1]#.cast[dtype]()
+
+        offset += imsize
+
+        for i in range(1, self.batch_size):
+            var next_item = self.dataset[self._current_index + i]
+            for j in range(imsize):
+                data[j + offset] = next_item[0][j]
+            labels[i] = next_item[1]
+
+            offset += imsize
+
+        var temp_current_index = self._current_index
+        self._current_index += self.batch_size
+        self._num_batches -= 1
+
+        return Batch[dtype](
+            batch_data = data,
+            batch_labels = labels
+        )
