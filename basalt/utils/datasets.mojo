@@ -88,6 +88,11 @@ trait BaseDataset(Sized, Copyable, Movable):
     fn __getitem__(self, idx: Int) raises -> Tuple[Tensor[dtype], Int]: ...
 
 
+from tensor import TensorShape as _TensorShape
+
+
+
+
 struct CIFAR10(BaseDataset):
     var labels: List[Int]
     var file_paths: List[String]
@@ -126,6 +131,10 @@ struct CIFAR10(BaseDataset):
 
     fn __getitem__(self, idx: Int) raises -> Tuple[Tensor[dtype], Int]:
         var img = mimage.imread(self.file_paths[idx])
+
+        # This does not do the correct thing!
+        var imb_b = img.reshape(_TensorShape(3, 32, 32))
+        img = imb_b
 
         # Create Basalt tensor
         var data = Tensor[dtype](img.shape()[0], img.shape()[1], img.shape()[2])

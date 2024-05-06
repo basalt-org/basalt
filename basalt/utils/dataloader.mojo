@@ -4,7 +4,7 @@ from memory import memcpy
 
 from basalt import dtype, nelts
 from basalt import Tensor, TensorShape
-
+from basalt.utils.datasets import CIFAR10
 
 @value
 struct Batch[dtype: DType](CollectionElement):
@@ -109,7 +109,7 @@ struct DataLoader:
             self._label_batch_shape,
         )
 
-
+@value
 struct CIFARDataLoader:
     var dataset: CIFAR10 #BaseDataset
     # The error I get is: "dynamic traits not supported yet, please use a compile time generic instead of 'BaseDataset'"
@@ -139,6 +139,11 @@ struct CIFARDataLoader:
         Returns the number of the batches left in the dataset.
         """
         return self._num_batches
+
+    fn __iter__(self) -> Self:
+        # TODO: Starting the iterator requires to return (COPY!) the whole dataloader which containts the whole dataset
+        # Does this mean that the whole dataset is copied every epoch ?!
+        return self
 
     fn __next__(inout self) raises -> Batch[dtype]:
 
