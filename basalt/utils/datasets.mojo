@@ -1,10 +1,13 @@
 from algorithm import vectorize
 from math import div
+import os
+from pathlib import Path
 
 from basalt import dtype
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_op, tmean, tstd
 
+import mimage
 
 struct BostonHousing:
     alias n_inputs = 13
@@ -78,6 +81,55 @@ struct MNIST:
             self.data.store[nelts](idx, div(self.data.load[nelts](idx), 255.0))
 
         vectorize[vecdiv, nelts](self.data.num_elements())
+
+
+
+struct CIFAR10(Sized):
+    var labels: List[Int]
+    var file_paths: List[String]
+    
+
+    fn __init__(inout self, image_folder: String, label_file: String) raises:
+        self.labels = List[Int]()
+        self.file_paths = List[String]()
+
+        var label_dict = Dict[String, Int]()
+
+        with open(label_file, 'r') as f: 
+            var label_list = f.read().split("\n")
+            for i in range(len(label_list)):
+                label_dict[label_list[i]] = i
+        
+        var files = os.listdir(image_folder)
+        var file_dir = Path(image_folder)
+
+
+        for i in range(len(files)):
+            self.file_paths.append(file_dir / files[i])
+            self.labels.append(label_dict[files[i].split("_")[1].split(".")[0]])
+
+    
+    fn __len__(self) -> Int:
+        return len(self.file_paths)
+
+    fn __getitem__(self, idx: Int) raises -> Tuple[Tensor[dtype], Int]:
+        var img = mimage.imread(self.file_paths[idx])
+
+        # Create Basalt tensor
+        var data = Tensor[dtype](img.shape()[0], img.shape()[1], img.shape()[2])
+
+
+        # Normalize data and copy from Mojo tensor to basalt tensor
+        alias nelts = simdwidthof[dtype]()
+
+        @parameter
+        fn vecdiv[nelts: Int](idx: Int):
+            data.store[nelts](idx, div(img.load[nelts](idx), 255.0).cast[dtype]())
+
+        vectorize[vecdiv, nelts](img.num_elements())
+
+        return Tuple(data, self.labels[idx]) 
+
 
 
 fn read_file(file_path: String) raises -> String:

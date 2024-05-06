@@ -1,0 +1,3 @@
+[submodule "mimage"]
+	path = mimage
+	url = https://github.com/fnands/mimage.git
