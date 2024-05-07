@@ -1,93 +1,21 @@
 from basalt.nn import Model, Conv2D, Sigmoid
-from basalt.autograd import Graph
+from basalt.autograd import Graph, Symbol
 
 fn YoloV8(batch_size: Int) -> Graph:
     var g = Graph()
     var x = g.input(TensorShape(batch_size, 3, 640, 640))
 
-    var x_conv_1 = Conv2d(g, x, out_channels=16, kernel_size=(3, 3), padding=(1, 1), stride=(2, 2), dilation=(1, 1))
-    var x_sig_1 = Sigmoid(g, x_conv_1)
-    var x1 = g.op(OP.MUL, x_conv1, x_sig_1)
+    @parameter
+    fn CSM(x: Symbol, out_channels: Int, kernel_size: Int, padding: Int, stride: Int, dilation: Int) -> Symbol:
+        return g.op(
+            OP.MUL,
+            Conv2D(g, x, out_channels, kernel_size, padding, stride, dilation),
+            Sigmoid(g, conv),
+        )
 
-    var x_conv_2 = Conv2d(g, x1, out_channels=32, kernel_size=(3, 3), padding=(1, 1), stride=(2, 2), dilation=(1, 1))
-    var x_sig_2 = Sigmoid(g, x_conv_2)
-    var x2 = g.op(OP.MUL, x_conv2, x_sig_2)
-
-    var x_conv_3 = Conv2d(g, x2, out_channels=32, kernel_size=(1, 1), padding=(0, 0), stride=(1, 1), dilation=(1, 1))
-    var x_sig_3 = Sigmoid(g, x_conv_3)
-    var x3 = g.op(OP.MUL, x_conv3, x_sig_3)
-
-    var xy = g.split(x3, sections=List[Int](2, 2), dim=1)
-    var x_x = xy[0]
-    var x_y = xy[1]
-
-    var x_y_conv1 = Conv2d(g, x_y, out_channels=16, kernel_size=(3, 3), padding=(1, 1), stride=(1, 1), dilation=(1, 1))
-    var x_y_sig1 = Sigmoid(g, x_y_conv1)
-    var x_y1 = g.op(OP.MUL, x_y_conv1, x_y_sig1)
-
-    var x_y_conv2 = Conv2d(g, x_y1, out_channels=16, kernel_size=(3, 3), padding=(1, 1), stride=(1, 1), dilation=(1, 1))
-    var x_y_sig2 = Sigmoid(g, x_y_conv2)
-    var x_y2 = g.op(OP.MUL, x_y_conv2, x_y_sig2)
-
-    var x_y3 = g.op(OP.ADD, x_y, x_y2)
-
-    var z = g.concat(x_x, x_y3, dim=1)
-
-    var z_conv_1 = Conv2d(g, z, out_channels=32, kernel_size=(1, 1), padding=(0, 0), stride=(1, 1), dilation=(1, 1))
-    var z_sig_1 = Sigmoid(g, z_conv_1)
-    var z1 = g.op(OP.MUL, z_conv1, z_sig_1)
-
-    var z_conv_2 = Conv2d(g, z1, out_channels=64, kernel_size=(3, 3), padding=(1, 1), stride=(2, 2), dilation=(1, 1))
-    var z_sig_2 = Sigmoid(g, z_conv_2)
-    var z2 = g.op(OP.MUL, z_conv2, z_sig_2)
-
-    var z_conv_3 = Conv2d(g, z2, out_channels=64, kernel_size=(1, 1), padding=(0, 0), stride=(1, 1), dilation=(1, 1))
-    var z_sig_3 = Sigmoid(g, z_conv_3)
-    var z3 = g.op(OP.MUL, z_conv3, z_sig_3)
-
-    var zy = g.split(z3, sections=List[Int](2, 2), dim=1)
-    var z_x = zy[0]
-    var z_y = zy[1]
-
-    var z_y_conv1 = Conv2d(g, z_y, out_channels=32, kernel_size=(3, 3), padding=(1, 1), stride=(1, 1), dilation=(1, 1))
-    var z_y_sig1 = Sigmoid(g, z_y_conv1)
-    var z_y1 = g.op(OP.MUL, z_y_conv1, z_y_sig1)
-
-    var z_y_conv2 = Conv2d(g, z_y1, out_channels=32, kernel_size=(3, 3), padding=(1, 1), stride=(1, 1), dilation=(1, 1))
-    var z_y_sig2 = Sigmoid(g, z_y_conv2)
-    var z_y2 = g.op(OP.MUL, z_y_conv2, z_y_sig2)
-
-    var z_y3 = g.op(OP.ADD, z_y, z_y2)
-
-    var z_y_conv_3 = Conv2d(g, z_y3, out_channels=32, kernel_size=(3, 3), padding=(1, 1), stride=(1, 1), dilation=(1, 1))
-    var z_y_sig_3 = Sigmoid(g, z_y_conv_3)
-    var z_y4 = g.op(OP.MUL, z_y_conv_3, z_y_sig_3)
-
-    var z_y_conv_4 = Conv2d(g, z_y4, out_channels=32, kernel_size=(3, 3), padding=(1, 1), stride=(1, 1), dilation=(1, 1))
-    var z_y_sig_4 = Sigmoid(g, z_y_conv_4)
-    var z_y5 = g.op(OP.MUL, z_y_conv_4, z_y_sig_4)
-
-    var z_y6 = g.op(OP.ADD, z_y3, z_y5)
-
-    var z_y7 = g.concat(z_x, z_y3, z_y6, dim=1)
-
-    # NOTE: Good place for a marker, this is the first concat with 3 inputs in the graph (1/5th the way down)
-
-    var a_conv_1 = Conv2D(g, z_y7, out_channels=64, kernel_size=(1, 1), padding=(0, 0), stride=(1, 1), dilation=(1, 1))
-    var a_sig = Sigmoid(g, a_conv_1)   
-    var a1 = g.op(OP.MUL, a_conv_1, a_sig)
-
-    var a_conv_2 = Conv2D(g, a1, out_channels=128, kernel_size=(3, 3), padding=(1, 1), stride=(2, 2), dilation=(1, 1))
-    var a_sig_2 = Sigmoid(g, a_conv_2)
-    var a2 = g.op(OP.MUL, a_conv_2, a_sig_2)
-
-    var a_conv_3 = Conv2D(g, a2, out_channels=128, kernel_size=(1, 1), padding=(0, 0), stride=(1, 1), dilation=(1, 1))
-    var a_sig_3 = Sigmoid(g, a_conv_3)
-    var a3 = g.op(OP.MUL, a_conv_3, a_sig_3)
-
-    var a_xy = g.split(a3, sections=List[Int](2, 2), dim=1)
-    var a_x = a_xy[0]
-    var a_y = a_xy[1]
+    var x1 = CSM(x, 16, 3, 1, 2, 1)
+    var x2 = CSM(x1, 32, 3, 1, 2, 1)
+    var x3 = CSM(x2, 32, 1, 0, 1, 1)
 
     return g ^
 
