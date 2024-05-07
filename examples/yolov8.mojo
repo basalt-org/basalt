@@ -5,82 +5,36 @@ fn YoloV8(batch_size: Int) -> Graph:
     var g = Graph()
     var x = g.input(TensorShape(batch_size, 3, 640, 640))
 
+    # Adapted from https://private-user-images.githubusercontent.com/27466624/239739723-57391d0f-1848-4388-9f30-88c2fb79233f.jpg?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MTUxMTk0MDYsIm5iZiI6MTcxNTExOTEwNiwicGF0aCI6Ii8yNzQ2NjYyNC8yMzk3Mzk3MjMtNTczOTFkMGYtMTg0OC00Mzg4LTlmMzAtODhjMmZiNzkyMzNmLmpwZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNDA1MDclMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjQwNTA3VDIxNTgyNlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPTNlZTdkY2ZiMDA0Y2VlOGZkYjllN2FkYTQ1MTY5OWY1YzYwNjIxZDM4OTZiYWRiMGU5YWQxNzkyMTcwNGNmNTQmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JmFjdG9yX2lkPTAma2V5X2lkPTAmcmVwb19pZD0wIn0.0ocPCiokkivvk95bQCds6Nt0EblUrHZElycV311ImF4 
+
     @parameter
-    fn CSM(x: Symbol, out_channels: Int, kernel_size: Int, padding: Int, stride: Int, dilation: Int) -> Symbol:
-        return g.op(
-            OP.MUL,
-            Conv2D(g, x, out_channels, kernel_size, padding, stride, dilation),
-            Sigmoid(g, conv),
-        )
-
-    var x1 = CSM(x, 16, 3, 1, 2, 1)
-    var x2 = CSM(x1, 32, 3, 1, 2, 1)
-    var x3 = CSM(x2, 32, 1, 0, 1, 1)
-
-    var x_split_1 = g.split(x3, 2, 1)
-    var x1_x = x_split_1[0]
-    var x1_y = x_split_1[1]
+    fn Conv(x: Symbol, out_channels: Int, kernel_size: Int, padding: Int, stride: Int) -> Symbol:
+        # NOTE: This is functionally equivalent to the Conv2D -> BatchNorm2D -> SiLU (According to ONNX)
+        var conv = Conv2D(g, x, out_channels, kernel_size, padding, stride)
+        var sigmoid = Sigmoid(g, conv)
+        return g.op(OP.MUL, conv, sigmoid)
     
-    var x1_y1 = CSM(x1_y, 16, 3, 1, 1, 1)
-    var x1_y2 = CSM(x1_y1, 16, 3, 1, 1, 1)
-    var x1_y3 = g.op(OP.ADD, x1_y, x1_y2)
+    @parameter
+    fn C2f[shortcut: Bool](x: Symbol, out_channels: Int) -> Symbol: 
+        var conv = Conv(g, x, out_channels, 1, 0, 1)
+        var split = g.op(OP.SPLIT, conv1, 2, 1)
 
-    var x4 = g.concat(x1_x, x1_y, x1_y3, 1)
-    var x5 = CSM(x4, 32, 1, 0, 1, 1)
-    var x6 = CSM(x5, 64, 3, 1, 2, 1)
-    var x7 = CSM(x6, 64, 1, 0, 1, 1)
+        @parameter
+        fn Bottleneck[shortcut: Bool](c: Int) -> Symbol:
+            var conv1 = Conv(g, x, c, 3, 1, 1)
+            var conv2 = Conv(g, conv1, c, 3, 1, 1)
 
-    var x_split_2 = g.split(x7, 2, 1)
-    var x2_x = x_split_2[0]
-    var x2_y = x_split_2[1]
+            @parameter
+            if shortcut:
+                return g.op(OP.ADD, x, conv2)
+            return conv2
 
-    var x2_y1 = CSM(x2_y, 32, 3, 1, 1, 1)
-    var x2_y2 = CSM(x2_y1, 32, 3, 1, 1, 1)
-    var x2_y3 = g.op(OP.ADD, x2_y, x2_y2)
-    var x2_y4 = CSM(x2_y3, 32, 3, 1, 1, 1)
-    var x2_y5 = CSM(x2_y4, 32, 3, 1, 1, 1)
-    var x2_y6 = g.op(OP.ADD, x2_y3, x2_y5)
+        var y1 = Bottleneck[shortcut](split[0], out_channels // 2)
+        var y2 = Bottleneck[shortcut](split[1], out_channels // 2)
 
-    var x8 = g.concat(x2_x, x2_y, x2_y3, x2_y6, 1)
-    var x9 = CSM(x8, 64, 1, 0, 1, 1)
-    var x10 = CSM(x9, 128, 3, 1, 2, 1)
-    var x11 = CSM(x10, 128, 1, 0, 1, 1)
-
-    var x_split_3 = g.split(x11, 2, 1)
-    var x3_x = x_split_3[0]
-    var x3_y = x_split_3[1]
-
-    var x3_y1 = CSM(x3_y, 64, 3, 1, 1, 1)
-    var x3_y2 = CSM(x3_y1, 64, 3, 1, 1, 1)
-    var x3_y3 = g.op(OP.ADD, x3_y, x3_y2)
-    var x3_y4 = CSM(x3_y3, 64, 3, 1, 1, 1)
-    var x3_y5 = CSM(x3_y4, 64, 3, 1, 1, 1)
-    var x3_y6 = g.op(OP.ADD, x3_y3, x3_y5)
-
-    var x12 = g.concat(x3_x, x3_y, x3_y3, x3_y6, 1)
-    var x13 = CSM(x12, 128, 1, 0, 1, 1)
-    var x14 = CSM(x13, 256, 3, 1, 2, 1)
-    var x15 = CSM(x14, 256, 1, 0, 1, 1)
-    
-    var x_split_4 = g.split(x15, 2, 1)
-    var x4_x = x_split_4[0]
-    var x4_y = x_split_4[1]
-
-    var x4_y1 = CSM(x4_y, 128, 3, 1, 1, 1)
-    var x4_y2 = CSM(x4_y1, 128, 3, 1, 1, 1)
-    var x4_y3 = g.op(OP.ADD, x4_y, x4_y2)
-
-    var x16 = g.concat(x4_x, x4_y, x4_y3, 1)
-    var x17 = CSM(x16, 256, 1, 0, 1, 1)
-    var x18 = CSM(x17, 128, 1, 0, 1, 1)
-
-    var x19 = MaxPool2d(g, x18, 5, 1, 2, 1)
-    var x20 = MaxPool2d(g, x19, 5, 1, 2, 1)
-    var x21 = MaxPool2d(g, x20, 5, 1, 2, 1)
-    var x22 = g.concat(x18, x19, x20, x21, 1)
-    var x23 = CSM(x22, 256, 1, 0, 1, 1)
-
-    # NOTE: This is where the "Resize: 4" OP is
+        var concat = g.op(OP.CONCAT, y1, y2, 1)
+        
+        return Conv(concat, out_channels, 1, 0, 1)
  
     return g ^
 
