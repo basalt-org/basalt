@@ -296,7 +296,7 @@ struct SLICE:
         var step = slice[2]
 
         var new_shape = t1_shape
-        new_shape[dim] = max(0, (stop - start + abs(step) - 1) // abs(step))
+        new_shape[dim] = (abs(stop - start) + abs(step) - 1) // abs(step)
         return new_shape
 
     @staticmethod
@@ -319,7 +319,7 @@ struct SLICE:
             return N
         
         alias N = calc_N() # number of elements before slicing dimention
-        alias M = ((stop - start + abs(step) - 1) // abs(step)) # slicing dimention
+        alias M = (abs(stop - start) + abs(step) - 1) // abs(step) # slicing dimention
         alias K = strides[dim] # number of elements after slicing dimention
         
         alias strides = t1_shape.strides()

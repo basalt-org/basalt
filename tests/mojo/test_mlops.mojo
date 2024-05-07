@@ -377,6 +377,67 @@ fn test_SLICE_step() raises:
     ](t2, expected_2)
 
 
+fn test_SLICE_neg() raises:
+    alias slice = Slice(6, 1, -2)
+
+    # dim = 0
+    alias t0_shape = TensorShape(10, 2, 2)
+    var t0: Tensor[dtype] = Tensor[dtype](t0_shape)
+    for i in range(t0.num_elements()):
+        t0[i] = i
+
+    var expected_0 = Tensor[dtype](3, 2, 2)
+    for i in range(3):
+        for j in range(2):
+            for k in range(2):
+                expected_0[i*2*2 + j*2 + k] = StaticIntTuple[3](6, 4, 2)[i] * 2 * 2 + j * 2 + k
+
+    test_unary_op[
+        OP.SLICE, t0_shape, AttributeVector(
+            Attribute("slice", StaticIntTuple[3](slice.start, slice.end, slice.step)),
+            Attribute("dim", 0)
+        )
+    ](t0, expected_0)
+
+    # dim = 1
+    alias t1_shape = TensorShape(2, 10, 2)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    for i in range(t1.num_elements()):
+        t1[i] = i
+
+    var expected_1 = Tensor[dtype](2, 3, 2)
+    for i in range(2):
+        for j in range(3):
+            for k in range(2):
+                expected_1[i*3*2 + j*2 + k] = i * 10 * 2 + StaticIntTuple[3](6, 4, 2)[j] * 2 + k
+
+    test_unary_op[
+        OP.SLICE, t1_shape, AttributeVector(
+            Attribute("slice", StaticIntTuple[3](slice.start, slice.end, slice.step)),
+            Attribute("dim", 1)
+        )
+    ](t1, expected_1)
+
+    # dim = 2
+    alias t2_shape = TensorShape(2, 2, 10)
+    var t2: Tensor[dtype] = Tensor[dtype](t2_shape)
+    for i in range(t2.num_elements()):
+        t2[i] = i
+
+    var expected_2 = Tensor[dtype](2, 2, 3)
+    for i in range(2):
+        for j in range(2):
+            for k in range(3):
+                expected_2[i*2*3 + j*3 + k] = i * 2 * 10 + j * 10 + StaticIntTuple[3](6, 4, 2)[k]
+
+    test_unary_op[
+        OP.SLICE, t2_shape, AttributeVector(
+            Attribute("slice", StaticIntTuple[3](slice.start, slice.end, slice.step)),
+            Attribute("dim", 2)
+        )
+    ](t2, expected_2)
+
+
 fn main():
     try:
         test_SIGMOID()
@@ -387,6 +448,7 @@ fn main():
         test_UNSQUEEZE()
         test_SLICE()
         test_SLICE_step()
+        test_SLICE_neg()
     except e:
         print("[ERROR] Error in forward mlops")
         print(e)
