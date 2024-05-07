@@ -71,6 +71,24 @@ fn YoloV8(batch_size: Int) -> Graph:
 
     var z_y7 = g.concat(z_x, z_y3, z_y6, dim=1)
 
+    # NOTE: Good place for a marker, this is the first concat with 3 inputs in the graph (1/5th the way down)
+
+    var a_conv_1 = Conv2D(g, z_y7, out_channels=64, kernel_size=(1, 1), padding=(0, 0), stride=(1, 1), dilation=(1, 1))
+    var a_sig = Sigmoid(g, a_conv_1)   
+    var a1 = g.op(OP.MUL, a_conv_1, a_sig)
+
+    var a_conv_2 = Conv2D(g, a1, out_channels=128, kernel_size=(3, 3), padding=(1, 1), stride=(2, 2), dilation=(1, 1))
+    var a_sig_2 = Sigmoid(g, a_conv_2)
+    var a2 = g.op(OP.MUL, a_conv_2, a_sig_2)
+
+    var a_conv_3 = Conv2D(g, a2, out_channels=128, kernel_size=(1, 1), padding=(0, 0), stride=(1, 1), dilation=(1, 1))
+    var a_sig_3 = Sigmoid(g, a_conv_3)
+    var a3 = g.op(OP.MUL, a_conv_3, a_sig_3)
+
+    var a_xy = g.split(a3, sections=List[Int](2, 2), dim=1)
+    var a_x = a_xy[0]
+    var a_y = a_xy[1]
+
     return g ^
 
 
