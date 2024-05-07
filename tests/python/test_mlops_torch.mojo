@@ -37,6 +37,7 @@ fn torch_unary_op(
     try:
         var torch = Python.import_module("torch")
         var np = Python.import_module("numpy")
+        var py = Python.import_module("builtins")
 
         var input_1 = torch.from_numpy(to_numpy(input_1)).requires_grad_(True)
 
@@ -84,6 +85,11 @@ fn torch_unary_op(
                 expected = torch.reshape(input_1, attrs_tuple.value()[])
             else:
                 expected = torch.unsqueeze(input_1, 0)
+        elif op == OP.SLICE:
+            var attrs = attrs_tuple.value()[]
+            var indices = torch.tensor(py.range(attrs[0], attrs[1], attrs[2]))
+            var dim = attrs[3]
+            expected = torch.index_select(input_1, dim, indices)
         else:
             print("Error: op not supported (returning the value input_1): ", op)
             expected = input_1
@@ -302,6 +308,60 @@ fn test_UNSQUEEZE() raises:
     )
 
 
+fn test_SLICE() raises:
+    alias t1_shape = TensorShape(37, 63, 107)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    rand(t1.data(), t1.num_elements())
+
+    # dim = 0
+    alias slice_0 = Slice(5, 24, 3)
+    alias attrs_0 = AttributeVector(
+        Attribute("slice", StaticIntTuple[3](slice_0.start, slice_0.end, slice_0.step)),
+        Attribute("dim", 0)
+    )
+
+    alias ug_shape = TensorShape(7, 63, 107)
+    var ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    var attrs_tuple_0 = PythonObject((slice_0.start, slice_0.end, slice_0.step, 0))
+    var expected_and_grad = torch_unary_op(OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_0)
+    test_unary_op[OP.SLICE, t1_shape, attrs_0](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.SLICE, t1_shape, ug_shape, attrs_0](t1, ug, expected_and_grad.grad_1)
+
+    # dim = 1
+    alias slice_1 = Slice(10, 50, 5)
+    alias attrs_1 = AttributeVector(
+        Attribute("slice", StaticIntTuple[3](slice_1.start, slice_1.end, slice_1.step)),
+        Attribute("dim", 1)
+    )
+
+    alias ug_shape_1 = TensorShape(37, 8, 107)
+    ug = Tensor[dtype](ug_shape_1)
+    rand(ug.data(), ug.num_elements())
+
+    var attrs_tuple_1 = PythonObject((slice_1.start, slice_1.end, slice_1.step, 1))
+    expected_and_grad = torch_unary_op(OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_1)
+    test_unary_op[OP.SLICE, t1_shape, attrs_1](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_1, attrs_1](t1, ug, expected_and_grad.grad_1)
+
+    # dim = 2
+    alias slice_2 = Slice(99, 33, -7)
+    alias attrs_2 = AttributeVector(
+        Attribute("slice", StaticIntTuple[3](slice_2.start, slice_2.end, slice_2.step)),
+        Attribute("dim", 2)
+    )
+
+    alias ug_shape_2 = TensorShape(37, 63, 10)
+    ug = Tensor[dtype](ug_shape_2)
+    rand(ug.data(), ug.num_elements())
+
+    var attrs_tuple_2 = PythonObject((slice_2.start, slice_2.end, slice_2.step, 2))
+    expected_and_grad = torch_unary_op(OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_2)
+    test_unary_op[OP.SLICE, t1_shape, attrs_2](t1, expected_and_grad.expected)
+    test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_2, attrs_2](t1, ug, expected_and_grad.grad_1)
+
+
 fn main():
     print("Running mlops (compare with torch) tests")
     try:
@@ -311,6 +371,7 @@ fn main():
         test_CLIP()
         test_SQUEEZE()
         test_UNSQUEEZE()
+        test_SLICE()
     except e:
         print("[ERROR] Error in mlops (compare with torch)")
         print(e)
