@@ -5,7 +5,7 @@ from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUE
 from basalt.nn import Tensor, TensorShape
 from basalt.utils.tensorutils import fill
 
-from tests import assert_tensors_equal, test_unary_op, test_unary_op_backward
+from tests import assert_tensors_equal, test_unary_op, test_unary_op_backward, to_numpy
 
 
 fn test_SIGMOID() raises:
@@ -438,6 +438,77 @@ fn test_SLICE_neg() raises:
     ](t2, expected_2)
 
 
+fn test_backward_SLICE() raises:
+    # dim = 0 (step = 1)
+    alias slice_0 = Slice(1, 3, 1)
+    alias t0_shape = TensorShape(3, 4, 5)
+    var t0: Tensor[dtype] = Tensor[dtype](t0_shape)
+    fill(t0, 5.0)
+
+    alias ug0_shape = TensorShape(2, 4, 5)
+    var ug0: Tensor[dtype] = Tensor[dtype](ug0_shape)
+    fill(ug0, 1.0)
+
+    var expected_ug0 = Tensor[dtype](t0_shape)
+    for i in range(2):
+        for j in range(4):
+            for k in range(5):
+                expected_ug0[(i+1)*4*5 + j*5 + k] = 1.0
+
+    test_unary_op_backward[
+        OP.SLICE, t0_shape, ug0_shape, AttributeVector(
+            Attribute("slice", StaticIntTuple[3](slice_0.start, slice_0.end, slice_0.step)),
+            Attribute("dim", 0)
+        )
+    ](t0, ug0, expected_ug0)
+
+    # dim = 1 (step = 2)
+    alias slice_1 = Slice(1, 6, 2)
+    alias t1_shape = TensorShape(2, 10, 2)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    fill(t1, 5.0)
+
+    alias ug1_shape = TensorShape(2, 3, 2)
+    var ug1: Tensor[dtype] = Tensor[dtype](ug1_shape)
+    fill(ug1, 1.0)
+    
+    var expected_ug1 = Tensor[dtype](t1_shape)
+    for i in range(2):
+        for j in range(3):
+            for k in range(2):
+                expected_ug1[i*10*2 + (j*2 + 1)*2 + k] = 1.0
+
+    test_unary_op_backward[
+        OP.SLICE, t1_shape, ug1_shape, AttributeVector(
+            Attribute("slice", StaticIntTuple[3](slice_1.start, slice_1.end, slice_1.step)),
+            Attribute("dim", 1)
+        )
+    ](t1, ug1, expected_ug1)
+
+    # dim = 2 (step = -2)
+    alias slice_2 = Slice(6, 1, -2)
+    alias t2_shape = TensorShape(2, 2, 10)
+    var t2: Tensor[dtype] = Tensor[dtype](t2_shape)
+    fill(t2, 5.0)
+
+    alias ug2_shape = TensorShape(2, 2, 3)
+    var ug2: Tensor[dtype] = Tensor[dtype](ug2_shape)
+    fill(ug2, 1.0)
+
+    var expected_ug2 = Tensor[dtype](t2_shape)
+    for i in range(2):
+        for j in range(2):
+            for k in range(3):
+                expected_ug2[i*2*10 + j*10 + StaticIntTuple[3](6, 4, 2)[k]] = 1.0
+
+    test_unary_op_backward[
+        OP.SLICE, t2_shape, ug2_shape, AttributeVector(
+            Attribute("slice", StaticIntTuple[3](slice_2.start, slice_2.end, slice_2.step)),
+            Attribute("dim", 2)
+        )
+    ](t2, ug2, expected_ug2)
+
+
 fn main():
     try:
         test_SIGMOID()
@@ -454,14 +525,15 @@ fn main():
         print(e)
         return
 
-    # try:
-    #     test_backward_SIGMOID()
-    #     test_backward_RELU()
-    #     test_backward_TANH()
-    #     test_backward_CLIP()
-    #     test_backward_SQUEEZE()
-    #     test_backward_UNSQUEEZE()
-    # except e:
-    #     print("[ERROR] Error in backward mlops")
-    #     print(e)
-    #     return
+    try:
+        test_backward_SIGMOID()
+        test_backward_RELU()
+        test_backward_TANH()
+        test_backward_CLIP()
+        test_backward_SQUEEZE()
+        test_backward_UNSQUEEZE()
+        test_backward_SLICE()
+    except e:
+        print("[ERROR] Error in backward mlops")
+        print(e)
+        return

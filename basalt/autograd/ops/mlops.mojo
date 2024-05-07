@@ -299,6 +299,14 @@ struct SLICE:
         new_shape[dim] = (abs(stop - start) + abs(step) - 1) // abs(step)
         return new_shape
 
+    @parameter
+    @staticmethod
+    fn calc_N(dim: Int, t1_shape: TensorShape) -> Int:
+        var N = 1
+        for i in range(dim):
+            N *= t1_shape[i]
+        return N
+    
     @staticmethod
     fn forward[
         t1_shape: TensorShape,
@@ -310,17 +318,10 @@ struct SLICE:
         alias start = Self.adjust_boundary(slice[0], t1_shape[dim])
         alias stop = Self.adjust_boundary(slice[1], t1_shape[dim])
         alias step = slice[2]
-    
-        @parameter
-        fn calc_N() -> Int:
-            var N = 1
-            for i in range(dim):
-                N *= t1_shape[i]
-            return N
         
-        alias N = calc_N() # number of elements before slicing dimention
-        alias M = (abs(stop - start) + abs(step) - 1) // abs(step) # slicing dimention
-        alias K = strides[dim] # number of elements after slicing dimention
+        alias N = Self.calc_N(dim, t1_shape) # number of elements before slicing dimension
+        alias M = (abs(stop - start) + abs(step) - 1) // abs(step) # slicing dimension
+        alias K = strides[dim] # number of elements after slicing dimension
         
         alias strides = t1_shape.strides()
         alias offset = strides[dim - 1] if dim > 0 else t1_shape.num_elements()
@@ -346,4 +347,36 @@ struct SLICE:
         t1_shape: TensorShape,
         attributes: AttributeVector = AttributeVector(),
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
-        return Tensor[dtype](SLICE.result_shape(t1_shape, attributes))
+
+        alias slice = attributes["slice"].value().to_static[3]()
+        alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
+
+        alias start = Self.adjust_boundary(slice[0], t1_shape[dim])
+        alias stop = Self.adjust_boundary(slice[1], t1_shape[dim])
+        alias step = slice[2]
+        
+        alias N = Self.calc_N(dim, t1_shape) # number of elements before slicing dimension
+        alias M = (abs(stop - start) + abs(step) - 1) // abs(step) # slicing dimension
+        alias K = strides[dim] # number of elements after slicing dimension
+        
+        alias strides = t1_shape.strides()
+        alias offset = strides[dim - 1] if dim > 0 else t1_shape.num_elements()
+        alias stride = strides[dim] * step
+
+        var res_grad = Tensor[dtype](t1_shape)
+
+        @parameter
+        fn n_par(i: Int):
+            for j in range(M):
+
+                @parameter
+                fn vec_k[nelts: Int](k: Int):
+                    res_grad.store[nelts](
+                        i * offset + j * stride + k + start * K,
+                        ug.load[nelts](i * M * K + j * K + k)
+                    )
+                vectorize[vec_k, nelts, size = K]()
+
+        parallelize[n_par](N)
+
+        return res_grad ^
