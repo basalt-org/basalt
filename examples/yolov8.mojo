@@ -1,4 +1,4 @@
-from basalt.nn import Model, Conv2D, Sigmoid
+from basalt.nn import Model, Conv2D, Sigmoid, MaxPool2d
 from basalt.autograd import Graph, Symbol
 
 fn YoloV8(batch_size: Int) -> Graph:
@@ -73,8 +73,15 @@ fn YoloV8(batch_size: Int) -> Graph:
     var x16 = g.concat(x4_x, x4_y, x4_y3, 1)
     var x17 = CSM(x16, 256, 1, 0, 1, 1)
     var x18 = CSM(x17, 128, 1, 0, 1, 1)
-    # Maxpools
 
+    var x19 = MaxPool2d(g, x18, 5, 1, 2, 1)
+    var x20 = MaxPool2d(g, x19, 5, 1, 2, 1)
+    var x21 = MaxPool2d(g, x20, 5, 1, 2, 1)
+    var x22 = g.concat(x18, x19, x20, x21, 1)
+    var x23 = CSM(x22, 256, 1, 0, 1, 1)
+
+    # NOTE: This is where the "Resize: 4" OP is
+ 
     return g ^
 
 
