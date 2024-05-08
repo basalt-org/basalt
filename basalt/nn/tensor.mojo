@@ -134,9 +134,10 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
         self._shape = shape
 
     @always_inline("nodebug")
-    fn __init__(inout self, tensor: _Tensor[dtype]):
-        self._data = tensor.data()
+    fn __init__(inout self, owned tensor: _Tensor[dtype]):
+        self._data = DTypePointer[dtype].alloc(tensor.num_elements())
         self._shape = TensorShape(tensor.shape())
+        memcpy(self._data, tensor.data(), tensor.num_elements())
 
     @always_inline("nodebug")
     fn __moveinit__(inout self, owned other: Tensor[dtype]):
