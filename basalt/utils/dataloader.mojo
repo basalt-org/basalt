@@ -150,7 +150,7 @@ struct CIFARDataLoader:
         var init_data = self.dataset[self._current_index]
 
         var data = Tensor[dtype](self.batch_size, init_data[0].shape()[0], init_data[0].shape()[1], init_data[0].shape()[2])
-        var labels = Tensor[dtype](self.batch_size, 1) #len(init_data[1]))
+        var labels = Tensor[dtype](self.batch_size, 1)
 
         var offset = 0
         var imsize = init_data[0].num_elements()
@@ -158,7 +158,7 @@ struct CIFARDataLoader:
             data[i] = init_data[0][i]
 
 
-        labels[0] = init_data[1]#.cast[dtype]()
+        labels[0] = init_data[1]
 
         offset += imsize
 
