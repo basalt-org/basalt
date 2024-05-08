@@ -138,22 +138,15 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
         self._shape = shape
         
         memcpy(self._data, data, self._shape.num_elements())
+        _ = data
 
     @always_inline("nodebug")
     fn __init__(inout self, owned tensor: _Tensor[dtype]):
-        # NOTE: Remember to use _ = your_tensor that you passed, so there is no weird behavior in this function
         self._data = DTypePointer[dtype].alloc(tensor.num_elements())
         self._shape = tensor.shape()
 
-        # doing the simd_load inside a @parameter function, has a problem where we get trash values (owned causes weird behaviors with dtypepointers)
-        for i in range(
-            0, tensor.num_elements() - tensor.num_elements() % nelts, nelts
-        ):
-            self._data.store[width=nelts](i, tensor.load[width=nelts](i))
-        for i in range(
-            nelts * (tensor.num_elements() // nelts), tensor.num_elements()
-        ):
-            self._data[i] = tensor[i]
+        memcpy(self._data, tensor.data(), self._shape.num_elements())
+        _ = tensor
 
     @always_inline("nodebug")
     fn __moveinit__(inout self, owned other: Tensor[dtype]):
