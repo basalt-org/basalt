@@ -51,7 +51,7 @@ fn create_CNN(batch_size: Int) -> Graph:
     # var loss = nn.MSELoss(g, out, y_true)
     g.loss(loss)
 
-    return g ^
+    return g^
 
 
 fn main() raises:
@@ -78,9 +78,7 @@ fn main() raises:
         print(e)
         return
 
-    var training_loader = CIFARDataLoader(
-        dataset=train_data, batch_size=batch_size
-    )
+    var training_loader = CIFARDataLoader(dataset=train_data, batch_size=batch_size)
 
     print("Training started/")
     var start = now()
