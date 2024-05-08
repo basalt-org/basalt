@@ -136,7 +136,7 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
     @always_inline("nodebug")
     fn __init__(inout self, owned tensor: _Tensor[dtype]):
         self._data = tensor.data()
-        self._shape = tensor.shape()
+        self._shape = TensorShape(tensor.shape())
 
     @always_inline("nodebug")
     fn __moveinit__(inout self, owned other: Tensor[dtype]):

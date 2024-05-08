@@ -5,7 +5,7 @@ from pathlib import Path
 
 from basalt import dtype
 from basalt import Tensor, TensorShape
-from basalt.utils.tensorutils import elwise_op, tmean, tstd
+from basalt.utils.tensorutils import elwise_op, tmean, tstd, transpose
 
 import mimage
 
@@ -73,7 +73,7 @@ struct MNIST:
                 for j in range(self.data.shape()[3]):
                     self.data[item * 28 * 28 + i * 28 + j] = atol(line[i * 28 + j + 1])
 
-        # Normalize data
+        # Normalizeaddress_of data
         alias nelts = simdwidthof[dtype]()
 
         @parameter
@@ -130,29 +130,28 @@ struct CIFAR10(BaseDataset):
         return len(self.file_paths)
 
     fn __getitem__(self, idx: Int) raises -> Tuple[Tensor[dtype], Int]:
+        # Get image and cast to dtype
         var img = mimage.imread(self.file_paths[idx])
 
-        # This does not do the correct thing!
-        var imb_b = img.reshape(_TensorShape(3, 32, 32))
-        img = imb_b
+        
+        # TODO: use __init__ once memory issue resolved. 
+        #var basalt_tensor = Tensor(img.astype[dtype]())
+        var basalt_tensor = Tensor[dtype](img.shape()[0], img.shape()[1], img.shape()[2])
 
-        # Create Basalt tensor
-        var data = Tensor[dtype](img.shape()[0], img.shape()[1], img.shape()[2])
+        for i in range(img.num_elements()):
+            basalt_tensor[i] = img[i].cast[dtype]()
 
-        # Differenttypes, so different SIMDwidth. 
-        # How to deal? 
-        """
-        # Normalize data and copy from Mojo tensor to basalt tensor
+        var data = transpose(basalt_tensor, TensorShape(2, 0, 1))
+
+        # Normalize data 
         alias nelts = simdwidthof[dtype]()
 
         @parameter
         fn vecdiv[nelts: Int](vec_index: Int):
-            data.store[nelts](vec_index, div(img.load[nelts](vec_index).cast[dtype](), 255.0))
+            data.store[nelts](vec_index, div(data.load[nelts](vec_index), 255.0))
 
-        vectorize[vecdiv, nelts](img.num_elements())
-        """
-        for i in range(img.num_elements()):
-            data.store(i, img.load(i).cast[dtype]()/255.0)
+        vectorize[vecdiv, nelts](data.num_elements())
+
 
         return Tuple(data, self.labels[idx]) 
 

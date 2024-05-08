@@ -56,7 +56,7 @@ fn create_CNN(batch_size: Int) -> Graph:
 
 fn main() raises:
     alias num_epochs = 2
-    alias batch_size = 4
+    alias batch_size = 8
     alias learning_rate = 1e-3
 
     alias graph = create_CNN(batch_size)
@@ -71,8 +71,7 @@ fn main() raises:
     var train_data: CIFAR10
     try:
         # Training on test set for as smaller
-        var cifar_dir = String("/home/ferdi/Workspace/personal/cifar/test/")
-        train_data = CIFAR10(image_folder=cifar_dir, label_file="/home/ferdi/Workspace/personal/cifar/labels.txt")
+        train_data = CIFAR10(image_folder="./examples/data/cifar/train/", label_file="./examples/data/cifar/labels.txt")
         # _ = plot_image(train_data.data, 1)
     except e:
         print("Could not load data")
@@ -106,19 +105,19 @@ fn main() raises:
 
             epoch_loss += loss[0]
             num_batches += 1
-
-            print(
-                "Epoch [",
-                epoch + 1,
-                "/",
-                num_epochs,
-                "],\t Step [",
-                num_batches,
-                "/",
-                len(train_data) // batch_size,
-                "],\t Loss:",
-                epoch_loss / num_batches,
-            )
+            if num_batches % 100 == 0:
+                print(
+                    "Epoch [",
+                    epoch + 1,
+                    "/",
+                    num_epochs,
+                    "],\t Step [",
+                    num_batches,
+                    "/",
+                    len(train_data) // batch_size,
+                    "],\t Loss:",
+                    epoch_loss / num_batches,
+                )
 
         print("Epoch time: ", (now() - epoch_start) / 1e9, "seconds")
 

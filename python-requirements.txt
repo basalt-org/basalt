@@ -3,3 +3,4 @@ matplotlib==3.8.0
 pandas==2.1.1
 onnx
 netron
+imageio
