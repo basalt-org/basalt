@@ -1,7 +1,7 @@
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP, dtype
-
+# TODO: I dont love this style of imports, I will probably rework it to be more explicit later on
 from math import ceil
 
 
@@ -16,7 +16,7 @@ fn Conv(
     # NOTE: This is functionally equivalent to the Conv2D -> BatchNorm2D (removed in graph) -> SiLU (According to ONNX)
     var conv = nn.Conv2d(g, x, out_channels, kernel_size, padding, stride)
     var sigmoid = g.op(OP.SIGMOID, conv)
-    return g.op(OP.MUL, conv, sigmoid)  # silu
+    return g.op(OP.MUL, conv, sigmoid)
 
 
 fn C2f(
@@ -24,38 +24,39 @@ fn C2f(
     x: Symbol,
     out_channels: Int,
     n: Int,
+    shortcut: Bool
 ) -> Symbol:
     var conv = nn.Conv2d(g, x, out_channels, 1, 0, 1)
 
-    var split_sections = List[Int](out_channels // 2, out_channels // 2)
+    var split_size = out_channels // 2
+    var split_sections = List[Int](split_size, split_size)
     var split = g.split(conv, split_sections, dim=1)
 
     @parameter
     fn bottleneck(
         x: Symbol, out_channels: Int, shortcut: Bool = False
     ) -> Symbol:
-        var conv1 = Conv(g, x, split_sections[1], 1, 1, 1)
-        var conv2 = Conv(g, conv1, split_sections[1], 3, 1, 1)
+        var conv1 = Conv(g, x, split_size, 1, 1, 1)
+        var conv2 = Conv(g, conv1, split_size, 3, 1, 1)
 
         if shortcut:
             return g.op(OP.ADD, x, conv2)
         else:
             return conv2
 
-    var y1 = split[1]
-    var y2 = y1  # it will always be teh result of the first bottleneck
-    for i in range(n):
-        if i == 0:
-            y1 = bottleneck(y1, out_channels // 2, shortcut=True)
-        else:
-            y2 = bottleneck(y2, out_channels // 2, shortcut=True)
+    var y1 = bottleneck(split[1], split_size, shortcut)
+    var y2 = y1
+
+    # NOTE: This assumes n >= 1 (Could add a constrained for it later)
+    for i in range(1, n):
+        y2 = bottleneck(y2, split_size, shortcut)
 
     var y = g.concat(split[0], y1, y2, dim=1)
 
     return Conv(g, y, out_channels, 1, 0, 1)
 
 
-fn SPPF(inout g: Graph, x: Symbol, out_channels: Int, stride: Int) -> Symbol:
+fn SPPF(inout g: Graph, x: Symbol, out_channels: Int) -> Symbol:
     var conv = Conv(g, x, out_channels, 1, 0, 1)
 
     var maxpool2d_1 = nn.MaxPool2d(g, x, kernel_size=5, padding=2)
