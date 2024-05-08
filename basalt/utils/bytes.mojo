@@ -75,11 +75,11 @@ struct Bytes[capacity: Int](Stringable, CollectionElement, EqualityComparable):
 
 
 fn scalar_to_bytes[
-    Type: DType, Size: Int = ScalarBytes
-](value: Scalar[Type]) -> Bytes[Size]:
+    dtype: DType, Size: Int = ScalarBytes
+](value: Scalar[dtype]) -> Bytes[Size]:
     constrained[Size >= ScalarBytes, "Size must be at least ${ScalarBytes}"]()
 
-    var bits = bitcast[DType.uint64](value.cast[expand_type[Type]()]())
+    var bits = bitcast[DType.uint64](value.cast[expand_type[dtype]()]())
     var data = Bytes[Size]()
 
     @unroll
@@ -89,7 +89,7 @@ fn scalar_to_bytes[
     return data
 
 
-fn bytes_to_scalar[Type: DType](data: Bytes) -> Scalar[Type]:
+fn bytes_to_scalar[dtype: DType](data: Bytes) -> Scalar[dtype]:
     constrained[data.capacity >= ScalarBytes, "Size must be at least ${ScalarBytes}"]()
 
     var bits: UInt64 = 0
@@ -98,13 +98,17 @@ fn bytes_to_scalar[Type: DType](data: Bytes) -> Scalar[Type]:
     for i in range(ScalarBytes):
         bits |= data[i].cast[DType.uint64]() << (i << 3)
 
-    return bitcast[expand_type[Type]()](bits).cast[Type]()
+    return bitcast[expand_type[dtype]()](bits).cast[dtype]()
 
 
-fn expand_type[Type: DType]() -> DType:
+fn expand_type[dtype: DType]() -> DType:
     @parameter
-    if Type.is_floating_point():
+    if dtype.is_floating_point():
         return DType.float64
-    elif Type.is_signed():
+    elif dtype.is_signed():
         return DType.int64
-    return DType.uint64
+    elif dtype.is_integral():
+        return DType.uint64
+    
+    constrained[False, "Type must be numeric"]()
+    return DType.invalid

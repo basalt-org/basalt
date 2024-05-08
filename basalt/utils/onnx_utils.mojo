@@ -4,19 +4,19 @@ from collections import Set
 
 from basalt.nn.model import Parameters
 from basalt.nn.tensor import Tensor, TensorShape
-from basalt.autograd.attributes import Attribute, AttributeType, AttributeVector
+from basalt.autograd.attributes import Attribute, AttributeType
 from basalt.autograd.ops import OP
 
-# NOTE: Maybe we could create our own model representation and from there convert to onnx or others (well we already have it in reallity) (torch doesn't import onnx, need onnx2torch and it doesn't support operators like reshape)?
+# NOTE: Maybe we could create our own model representation and from there convert to onnx or others (well we already have it in reallity)
+# NOTE: Torch doesn't import onnx, need onnx2torch and it doesn't support operators like reshape?
 
-
-# --- Utils ---
-def to_numpy(tensor: Tensor) -> PythonObject:
+fn to_numpy(tensor: Tensor) raises -> PythonObject:
     var np = Python.import_module("numpy")
-    np.set_printoptions(4)
 
-    rank = tensor.rank()
+    np.set_printoptions(4)
+    var rank = tensor.rank()
     var pyarray: PythonObject = np.array([0])
+
     if rank == 1:
         pyarray = np.empty((tensor.dim(0)))
     elif rank == 2:

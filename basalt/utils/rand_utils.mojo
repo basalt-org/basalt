@@ -4,9 +4,7 @@ from algorithm import vectorize
 
 
 @always_inline
-fn rand_uniform[
-    dtype: DType
-](inout res: Tensor[dtype], low: Scalar[dtype], high: Scalar[dtype]):
+fn rand_uniform[dtype: DType](inout res: Tensor[dtype], low: Scalar[dtype], high: Scalar[dtype]):
     var scale = high - low
 
     rand[dtype](res.data(), res.num_elements())
