@@ -12,3 +12,5 @@ Makefile
 
 ./temp
 flamegraph.svg
+
+examples/data/yolov8n.onnx
