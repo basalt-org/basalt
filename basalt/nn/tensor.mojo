@@ -47,6 +47,13 @@ struct TensorShape(Stringable):
         self._shape = shape
 
     @always_inline("nodebug")
+    fn __init__(inout self, owned shape: _TensorShape):
+        self._rank = shape.rank()
+        self._shape = StaticIntTuple[MAX_RANK]()
+        for i in range(min(self._rank, MAX_RANK)):
+            self._shape[i] = shape[i]
+
+    @always_inline("nodebug")
     fn __getitem__(self, index: Int) -> Int:
         return self._shape[index if index >= 0 else self._rank + index]
 
@@ -125,6 +132,11 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
     fn __init__(inout self, owned data: DTypePointer[dtype], owned shape: TensorShape):
         self._data = data
         self._shape = shape
+
+    @always_inline("nodebug")
+    fn __init__(inout self, owned tensor: _Tensor[dtype]):
+        self._data = tensor.data()
+        self._shape = tensor.shape()
 
     @always_inline("nodebug")
     fn __moveinit__(inout self, owned other: Tensor[dtype]):
