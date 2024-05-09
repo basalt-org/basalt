@@ -6,7 +6,6 @@ from pathlib import Path
 from basalt import dtype
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_op, tmean, tstd, transpose
-
 import mimage
 
 struct BostonHousing:
@@ -133,14 +132,10 @@ struct CIFAR10(BaseDataset):
         # Get image and cast to dtype
         var img = mimage.imread(self.file_paths[idx])
 
-        
-        # TODO: use __init__ once memory issue resolved. 
-        #var basalt_tensor = Tensor(img.astype[dtype]())
-        var basalt_tensor = Tensor[dtype](img.shape()[0], img.shape()[1], img.shape()[2])
+        # Transform UInt8 MojoTensor into f32 BasaltTensor
+        var basalt_tensor = Tensor(img.astype[dtype]())
 
-        for i in range(img.num_elements()):
-            basalt_tensor[i] = img[i].cast[dtype]()
-
+        # Transpose to channels-first
         var data = transpose(basalt_tensor, TensorShape(2, 0, 1))
 
         # Normalize data 
