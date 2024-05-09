@@ -72,7 +72,7 @@ struct MNIST:
                 for j in range(self.data.shape()[3]):
                     self.data[item * 28 * 28 + i * 28 + j] = atol(line[i * 28 + j + 1])
 
-        # Normalizeaddress_of data
+        # Normalize data
         alias nelts = simdwidthof[dtype]()
 
         @parameter
