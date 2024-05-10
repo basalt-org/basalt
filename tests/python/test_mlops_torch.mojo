@@ -121,8 +121,8 @@ fn torch_unary_op(
             to_tensor(input_1.grad.numpy()),
         )
 
-    except:
-        print("Error importing torch")
+    except e:
+        print("Error importing torch", e)
         var d = Tensor[dtype](1)
         return torch_output_unary_op(d, d)
 
@@ -327,12 +327,12 @@ fn test_UNSQUEEZE() raises:
 
 
 fn test_SLICE() raises:
-    alias t1_shape = TensorShape(37, 63, 107)
+    alias t1_shape = TensorShape(430, 322, 317)
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
     rand(t1.data(), t1.num_elements())
 
     # dim = 0
-    alias slice_0 = Slice(5, 24, 3)
+    alias slice_0 = Slice(5, 200, 3)
     alias attrs_0 = AttributeVector(
         Attribute("starts", TensorShape(slice_0.start)),
         Attribute("ends", TensorShape(slice_0.end)),
@@ -340,7 +340,7 @@ fn test_SLICE() raises:
         Attribute("axes", TensorShape(0))
     )
 
-    alias ug_shape = TensorShape(7, 63, 107)
+    alias ug_shape = TensorShape(65, 322, 317)
     var ug = Tensor[dtype](ug_shape)
     rand(ug.data(), ug.num_elements())
 
@@ -350,7 +350,7 @@ fn test_SLICE() raises:
     test_unary_op_backward[OP.SLICE, t1_shape, ug_shape, attrs_0](t1, ug, expected_and_grad.grad_1)
 
     # dim = 1
-    alias slice_1 = Slice(10, 50, 5)
+    alias slice_1 = Slice(10, 311, 5)
     alias attrs_1 = AttributeVector(
         Attribute("starts", TensorShape(slice_1.start)),
         Attribute("ends", TensorShape(slice_1.end)),
@@ -358,7 +358,7 @@ fn test_SLICE() raises:
         Attribute("axes", TensorShape(1))
     )
 
-    alias ug_shape_1 = TensorShape(37, 8, 107)
+    alias ug_shape_1 = TensorShape(430, 60, 317)
     ug = Tensor[dtype](ug_shape_1)
     rand(ug.data(), ug.num_elements())
 
@@ -368,7 +368,7 @@ fn test_SLICE() raises:
     test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_1, attrs_1](t1, ug, expected_and_grad.grad_1)
 
     # dim = 2
-    alias slice_2 = Slice(99, 33, -7)
+    alias slice_2 = Slice(293, 33, -7)
     alias attrs_2 = AttributeVector(
         Attribute("starts", TensorShape(slice_2.start)),
         Attribute("ends", TensorShape(slice_2.end)),
@@ -376,7 +376,7 @@ fn test_SLICE() raises:
         Attribute("axes", TensorShape(2))
     )
 
-    alias ug_shape_2 = TensorShape(37, 63, 10)
+    alias ug_shape_2 = TensorShape(430, 322, 37)
     ug = Tensor[dtype](ug_shape_2)
     rand(ug.data(), ug.num_elements())
 
@@ -388,8 +388,8 @@ fn test_SLICE() raises:
     # Multiple dims
     
     # dim = 0, 1
-    alias slice_0_1 = Slice(5, 24, 3)
-    alias slice_1_1 = Slice(10, 50, 5)
+    alias slice_0_1 = Slice(23, 340, 3)
+    alias slice_1_1 = Slice(10, 250, 5)
 
     alias attrs_0_1 = AttributeVector(
         Attribute("starts", TensorShape(slice_0_1.start, slice_1_1.start)),
@@ -398,7 +398,7 @@ fn test_SLICE() raises:
         Attribute("axes", TensorShape(0, 1))
     )
 
-    alias ug_shape_0_1 = TensorShape(7, 8, 107)
+    alias ug_shape_0_1 = TensorShape(106, 48, 317)
     ug = Tensor[dtype](ug_shape_0_1)
     rand(ug.data(), ug.num_elements())
 
@@ -407,18 +407,19 @@ fn test_SLICE() raises:
     test_unary_op[OP.SLICE, t1_shape, attrs_0_1](t1, expected_and_grad.expected)
     test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_0_1, attrs_0_1](t1, ug, expected_and_grad.grad_1)
 
-    # dim = 0, 1
-    alias slice_0_2 = Slice(-24, -5, 3)
-    alias slice_1_2 = Slice(-10, -50, -5)
+    # dim = 0, 1, 2
+    alias slice_0_2 = Slice(-412, -5, 3)
+    alias slice_1_2 = Slice(-10, -182, -5)
+    alias slice_2_2 = Slice(293, 33, -7)
 
     alias attrs_0_2 = AttributeVector(
-        Attribute("starts", TensorShape(slice_0_2.start, slice_1_2.start)),
-        Attribute("ends", TensorShape(slice_0_2.end, slice_1_2.end)),
-        Attribute("steps", TensorShape(slice_0_2.step, slice_1_2.step)),
+        Attribute("starts", TensorShape(slice_0_2.start, slice_1_2.start, slice_2_2.start)),
+        Attribute("ends", TensorShape(slice_0_2.end, slice_1_2.end, slice_2_2.end)),
+        Attribute("steps", TensorShape(slice_0_2.step, slice_1_2.step, slice_2_2.step)),
         Attribute("axes", TensorShape(0, 1))
     )
 
-    alias ug_shape_0_2 = TensorShape(7, 8, 107)
+    alias ug_shape_0_2 = TensorShape(135, 34, 37)
     ug = Tensor[dtype](ug_shape_0_2)
     rand(ug.data(), ug.num_elements())
 

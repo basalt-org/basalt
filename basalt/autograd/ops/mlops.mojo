@@ -399,7 +399,7 @@ struct SLICE:
         for i in range(len(positions)):
             idx += positions[i] * strides[i]
 
-        # Copy the data
+        # Copy the data. P.S if the slice dimensions are small, this kernel can be slow (because the worst case for the while loop happens more times).
         for i in range(res_shape.num_elements()):
             res[i] = t1[idx]
 
