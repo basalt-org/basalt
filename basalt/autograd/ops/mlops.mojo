@@ -288,15 +288,39 @@ struct SLICE:
     
     @staticmethod
     fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
-        var slice = attributes["slice"].value().to_static[3]()
-        var dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
-
-        var start = Self.adjust_boundary(slice[0], t1_shape[dim])
-        var stop = Self.adjust_boundary(slice[1], t1_shape[dim])
-        var step = slice[2]
+        # Starts and ends have to be of the same size
+        var starts = attributes["starts"].value().to_shape()
+        var ends = attributes["ends"].value().to_shape()
+        var steps: TensorShape
+        if attributes["steps"]:
+            # steps can't be negative
+            # if provided steps, they then have to be of the same size as starts
+            steps = attributes["steps"].value().to_shape()
+        else:
+            var temp = List[Int]()
+            for i in range(starts.rank()):
+                temp.append(1)
+            steps = TensorShape(temp)
+        var axes: TensorShape
+        if attributes["axes"]:
+            # axes can't be negative
+            # if provided axes, they then have to be of the same size as starts
+            axes = attributes["axes"].value().to_shape()
+        else:
+            var temp = List[Int]()
+            for i in range(starts.rank()):
+                temp.append(i)
+            axes = TensorShape(temp)
 
         var new_shape = t1_shape
-        new_shape[dim] = (abs(stop - start) + abs(step) - 1) // abs(step)
+        for i in range(starts.rank()):
+            var axis = axes[i]
+            var step = steps[i]
+            var start = Self.adjust_boundary(starts[i], t1_shape[axis])
+            var stop = Self.adjust_boundary(ends[i], t1_shape[axis])
+
+            new_shape[axis] = (abs(stop - start) + abs(step) - 1) // abs(step)
+
         return new_shape
 
     @parameter
@@ -306,40 +330,91 @@ struct SLICE:
         for i in range(dim):
             N *= t1_shape[i]
         return N
+
+    @staticmethod
+    fn convert_attributes[t1_shape: TensorShape, attributes: AttributeVector]() -> Tuple[List[Int], List[Int], List[Int]]:
+        # t1_shape will always have the same rank to res
+        @parameter
+        fn convert_to_correct_positions[adjust_bound: Bool = False](inout end_result: List[Int], start_result: TensorShape, axes: TensorShape, default_value: Int, default_values: TensorShape = TensorShape()):
+            var j = 0
+            for i in range(t1_shape.rank()):
+                if axes.rank() > 0 and j < start_result.rank() and i == axes[j]:
+                    var temp = Self.adjust_boundary(start_result[j], t1_shape[axes[j]]) if adjust_bound else start_result[j]
+                    end_result.append(temp)
+                    j += 1
+                elif axes.rank() == 0 and j < start_result.rank():
+                    var temp = Self.adjust_boundary(start_result[j], t1_shape[j]) if adjust_bound else start_result[j]
+                    end_result.append(temp)
+                    j += 1
+                elif default_values.rank() > 0:
+                    end_result.append(default_values[i])
+                else:
+                    end_result.append(default_value)
+
+        # if provided axes, they then have to be of the same size as starts
+        alias axes = attributes["axes"].value().to_shape() if attributes["axes"] else TensorShape()
+        # if provided steps, they then have to be of the same size as starts
+        var steps = List[Int]()
+        @parameter
+        if attributes["steps"]:
+            alias steps_temp = attributes["steps"].value().to_shape()
+
+            convert_to_correct_positions(steps, steps_temp, axes, 1)
+        else:
+            for i in range(t1_shape.rank()):
+                steps.append(1)
+
+        # Starts and ends have to be of the same size. Ends has to always be bigger or equal if the steps are positive, else can be smaller
+        alias starts_temp = attributes["starts"].value().to_shape()
+        var starts = List[Int]()
+        convert_to_correct_positions[True](starts, starts_temp, axes, 0)
+        alias ends_temp = attributes["ends"].value().to_shape()
+        var ends = List[Int]()
+        convert_to_correct_positions[True](ends, ends_temp, axes, 0, t1_shape)
+
+        return steps, starts, ends
     
     @staticmethod
     fn forward[
         t1_shape: TensorShape,
         attributes: AttributeVector,
     ](inout res: Tensor[dtype], t1: Tensor[dtype]):
-        alias slice = attributes["slice"].value().to_static[3]()
-        alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
+        var attribute_values = Self.convert_attributes[t1_shape, attributes]()
+        var steps = attribute_values[0]
+        var starts = attribute_values[1]
+        var ends = attribute_values[2]
 
-        alias start = Self.adjust_boundary(slice[0], t1_shape[dim])
-        alias stop = Self.adjust_boundary(slice[1], t1_shape[dim])
-        alias step = slice[2]
-        
-        alias N = Self.calc_N(dim, t1_shape) # number of elements before slicing dimension
-        alias M = (abs(stop - start) + abs(step) - 1) // abs(step) # slicing dimension
-        alias K = strides[dim] # number of elements after slicing dimension
+        var res_shape = res.shape()
+        var res_strides = res_shape.strides()
         
         alias strides = t1_shape.strides()
-        alias offset = strides[dim - 1] if dim > 0 else t1_shape.num_elements()
-        alias stride = strides[dim] * step
 
-        @parameter
-        fn n_par(i: Int):
-            for j in range(M):
+        # Calculate the starting positions
+        var positions = List[Int]()
+        for i in range(t1_shape.rank()):
+            positions.append(starts[i])
 
-                @parameter
-                fn vec_k[nelts: Int](k: Int):
-                    res.store[nelts](
-                        i * M * K + j * K + k,
-                        t1.load[nelts](i * offset + j * stride + k + start * K)
-                    )
-                vectorize[vec_k, nelts, size = K]()
+        # Get the first position
+        var idx = 0
+        for i in range(len(positions)):
+            idx += positions[i] * strides[i]
 
-        parallelize[n_par](N)
+        # Copy the data
+        for i in range(res_shape.num_elements()):
+            res[i] = t1[idx]
+
+            # Get the new idx, 
+            var position = t1_shape.rank() - 1
+            while position >= 0:
+                idx += strides[position] * steps[position]
+                positions[position] += steps[position]
+
+                if (positions[position] < ends[position] and steps[position] > 0) or (positions[position] > ends[position] and steps[position] < 0):
+                    break
+
+                positions[position] = starts[position]
+                idx -= res_shape[position] * steps[position] * strides[position]
+                position -= 1
 
     @staticmethod
     fn backward[
@@ -347,36 +422,42 @@ struct SLICE:
         t1_shape: TensorShape,
         attributes: AttributeVector = AttributeVector(),
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
-
-        alias slice = attributes["slice"].value().to_static[3]()
-        alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
-
-        alias start = Self.adjust_boundary(slice[0], t1_shape[dim])
-        alias stop = Self.adjust_boundary(slice[1], t1_shape[dim])
-        alias step = slice[2]
-        
-        alias N = Self.calc_N(dim, t1_shape) # number of elements before slicing dimension
-        alias M = (abs(stop - start) + abs(step) - 1) // abs(step) # slicing dimension
-        alias K = strides[dim] # number of elements after slicing dimension
-        
-        alias strides = t1_shape.strides()
-        alias offset = strides[dim - 1] if dim > 0 else t1_shape.num_elements()
-        alias stride = strides[dim] * step
+        var attribute_values = Self.convert_attributes[t1_shape, attributes]()
+        var steps = attribute_values[0]
+        var starts = attribute_values[1]
+        var ends = attribute_values[2]
 
         var res_grad = Tensor[dtype](t1_shape)
 
-        @parameter
-        fn n_par(i: Int):
-            for j in range(M):
+        alias ug_strides = ug_shape.strides()
+        
+        alias strides = t1_shape.strides()
 
-                @parameter
-                fn vec_k[nelts: Int](k: Int):
-                    res_grad.store[nelts](
-                        i * offset + j * stride + k + start * K,
-                        ug.load[nelts](i * M * K + j * K + k)
-                    )
-                vectorize[vec_k, nelts, size = K]()
+        # Calculate the starting positions
+        var positions = List[Int]()
+        for i in range(t1_shape.rank()):
+            positions.append(starts[i])
 
-        parallelize[n_par](N)
+        # Get the first position
+        var idx = 0
+        for i in range(len(positions)):
+            idx += positions[i] * strides[i]
 
+        # Copy the data
+        for i in range(ug.num_elements()):
+            res_grad[idx] = ug[i]
+
+            # Get the new idx, 
+            var position = t1_shape.rank() - 1
+            while position >= 0:
+                idx += strides[position] * steps[position]
+                positions[position] += steps[position]
+
+                if (positions[position] < ends[position] and steps[position] > 0) or (positions[position] > ends[position] and steps[position] < 0):
+                    break
+
+                positions[position] = starts[position]
+                idx -= ug_shape[position] * steps[position] * strides[position]
+                position -= 1
+        
         return res_grad ^
