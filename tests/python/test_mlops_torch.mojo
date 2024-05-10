@@ -358,7 +358,7 @@ fn test_SLICE() raises:
         Attribute("axes", TensorShape(1))
     )
 
-    alias ug_shape_1 = TensorShape(430, 60, 317)
+    alias ug_shape_1 = TensorShape(430, 61, 317)
     ug = Tensor[dtype](ug_shape_1)
     rand(ug.data(), ug.num_elements())
 
@@ -376,7 +376,7 @@ fn test_SLICE() raises:
         Attribute("axes", TensorShape(2))
     )
 
-    alias ug_shape_2 = TensorShape(430, 322, 37)
+    alias ug_shape_2 = TensorShape(430, 322, 38)
     ug = Tensor[dtype](ug_shape_2)
     rand(ug.data(), ug.num_elements())
 
@@ -416,14 +416,14 @@ fn test_SLICE() raises:
         Attribute("starts", TensorShape(slice_0_2.start, slice_1_2.start, slice_2_2.start)),
         Attribute("ends", TensorShape(slice_0_2.end, slice_1_2.end, slice_2_2.end)),
         Attribute("steps", TensorShape(slice_0_2.step, slice_1_2.step, slice_2_2.step)),
-        Attribute("axes", TensorShape(0, 1))
+        Attribute("axes", TensorShape(0, 1, 2))
     )
 
-    alias ug_shape_0_2 = TensorShape(135, 34, 37)
+    alias ug_shape_0_2 = TensorShape(136, 35, 38)
     ug = Tensor[dtype](ug_shape_0_2)
     rand(ug.data(), ug.num_elements())
 
-    var attrs_tuple_0_2 = PythonObject((slice_0_2.start, slice_0_2.end, slice_0_2.step, 0, slice_1_2.start, slice_1_2.end, slice_1_2.step, 1))
+    var attrs_tuple_0_2 = PythonObject((slice_0_2.start, slice_0_2.end, slice_0_2.step, 0, slice_1_2.start, slice_1_2.end, slice_1_2.step, 1, slice_2_2.start, slice_2_2.end, slice_2_2.step, 2))
     expected_and_grad = torch_unary_op(OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_0_2)
     test_unary_op[OP.SLICE, t1_shape, attrs_0_2](t1, expected_and_grad.expected)
     test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_0_2, attrs_0_2](t1, ug, expected_and_grad.grad_1)
