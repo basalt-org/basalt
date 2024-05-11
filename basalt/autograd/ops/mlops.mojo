@@ -373,6 +373,83 @@ struct SLICE:
         convert_to_correct_positions[True](ends, ends_temp, axes, 0, t1_shape)
 
         return steps, starts, ends
+
+    @staticmethod
+    fn slice_kernel[backward_op: Bool = False](inout res: Tensor[dtype], t1: Tensor[dtype], main_shape: TensorShape, original_shape: TensorShape, t1_strides: StaticIntTuple[8], steps: List[Int], starts: List[Int], ends: List[Int]):
+        # Calculate the starting positions
+        var positions = List[Int]()
+        for i in range(t1.shape().rank()):
+            positions.append(starts[i])
+
+        
+        var res_shape = main_shape
+
+        # Get the dimensions for vectorization
+        var last_dims = 1
+        var positions_to_skip = 0
+        for i in range(main_shape.rank() - 1, -1, -1):
+            if steps[i] != 1 and i != main_shape.rank() - 1:
+                break
+            last_dims *= res_shape[i]
+            positions_to_skip += 1
+            if starts[i] != 0 or ends[i] != original_shape[i] or steps[i] != 1:
+                break
+        # Get the dimensions for the first loop
+        var first_dims = 1
+        var start_position = 0
+        for i in range(main_shape.rank() - positions_to_skip):
+            if steps[i] != 1 or starts[i] != 0 or ends[i] != original_shape[i]:
+                break
+            first_dims *= res_shape[i]
+            start_position += 1
+
+        # Get the first position
+        var idx = 0
+        for i in range(len(positions)):
+            idx += positions[i] * t1_strides[i]
+
+        # Copy the data. P.S if the slice dimensions are small, this kernel can be slow (because the worst case for the while loop happens more times).
+        var middle_dims = res_shape.num_elements() // last_dims // first_dims
+        for i in range(first_dims):
+            for j in range(middle_dims):
+                var position = res_shape.rank() - 1
+                # Work on the last dimensions
+                var temp_idx = idx
+                @parameter
+                fn v_slice[nelts: Int](k : Int):
+                    var idx_contiguous = i * middle_dims * last_dims + j * last_dims + k
+                    @parameter
+                    if not backward_op:
+                        if steps[position] == 1:
+                            res.store[nelts](idx_contiguous, t1.load[nelts](temp_idx))
+                        else:
+                            res.store[nelts](idx_contiguous, t1.data().offset(temp_idx).simd_strided_load[nelts](t1_strides[position] * steps[position]))
+                    else:
+                        if steps[position] == 1:
+                            res.store[nelts](temp_idx, t1.load[nelts](idx_contiguous))
+                        else:
+                            res.data().offset(temp_idx).simd_strided_store[nelts](t1.load[nelts](idx_contiguous), t1_strides[position] * steps[position])
+        
+                    temp_idx += steps[position] * t1_strides[position] * nelts
+
+                vectorize[v_slice, nelts](last_dims)
+
+                position -= positions_to_skip
+
+                # Get the new idx
+                while position >= start_position:
+                    idx += t1_strides[position] * steps[position]
+                    positions[position] += steps[position]
+
+                    if (positions[position] < ends[position] and steps[position] > 0) or (positions[position] > ends[position] and steps[position] < 0):
+                        break
+
+                    positions[position] = starts[position]
+                    idx -= res_shape[position] * steps[position] * t1_strides[position]
+                    position -= 1
+            
+            if start_position > 0:
+                idx += t1_strides[start_position - 1]
     
     @staticmethod
     fn forward[
@@ -389,32 +466,34 @@ struct SLICE:
         
         alias strides = t1_shape.strides()
 
-        # Calculate the starting positions
-        var positions = List[Int]()
-        for i in range(t1_shape.rank()):
-            positions.append(starts[i])
+        Self.slice_kernel(res, t1, res_shape, t1_shape, strides, steps, starts, ends)
 
-        # Get the first position
-        var idx = 0
-        for i in range(len(positions)):
-            idx += positions[i] * strides[i]
+        # # Calculate the starting positions
+        # var positions = List[Int]()
+        # for i in range(t1_shape.rank()):
+        #     positions.append(starts[i])
 
-        # Copy the data. P.S if the slice dimensions are small, this kernel can be slow (because the worst case for the while loop happens more times).
-        for i in range(res_shape.num_elements()):
-            res[i] = t1[idx]
+        # # Get the first position
+        # var idx = 0
+        # for i in range(len(positions)):
+        #     idx += positions[i] * strides[i]
 
-            # Get the new idx, 
-            var position = t1_shape.rank() - 1
-            while position >= 0:
-                idx += strides[position] * steps[position]
-                positions[position] += steps[position]
+        # # Copy the data. P.S if the slice dimensions are small, this kernel can be slow (because the worst case for the while loop happens more times).
+        # for i in range(res_shape.num_elements()):
+        #     res[i] = t1[idx]
 
-                if (positions[position] < ends[position] and steps[position] > 0) or (positions[position] > ends[position] and steps[position] < 0):
-                    break
+        #     # Get the new idx, 
+        #     var position = t1_shape.rank() - 1
+        #     while position >= 0:
+        #         idx += strides[position] * steps[position]
+        #         positions[position] += steps[position]
 
-                positions[position] = starts[position]
-                idx -= res_shape[position] * steps[position] * strides[position]
-                position -= 1
+        #         if (positions[position] < ends[position] and steps[position] > 0) or (positions[position] > ends[position] and steps[position] < 0):
+        #             break
+
+        #         positions[position] = starts[position]
+        #         idx -= res_shape[position] * steps[position] * strides[position]
+        #         position -= 1
 
     @staticmethod
     fn backward[
@@ -433,31 +512,33 @@ struct SLICE:
         
         alias strides = t1_shape.strides()
 
-        # Calculate the starting positions
-        var positions = List[Int]()
-        for i in range(t1_shape.rank()):
-            positions.append(starts[i])
+        Self.slice_kernel[True](res_grad, ug, ug_shape, t1_shape, strides, steps, starts, ends)
 
-        # Get the first position
-        var idx = 0
-        for i in range(len(positions)):
-            idx += positions[i] * strides[i]
+        # # Calculate the starting positions
+        # var positions = List[Int]()
+        # for i in range(t1_shape.rank()):
+        #     positions.append(starts[i])
 
-        # Copy the data
-        for i in range(ug.num_elements()):
-            res_grad[idx] = ug[i]
+        # # Get the first position
+        # var idx = 0
+        # for i in range(len(positions)):
+        #     idx += positions[i] * strides[i]
 
-            # Get the new idx, 
-            var position = t1_shape.rank() - 1
-            while position >= 0:
-                idx += strides[position] * steps[position]
-                positions[position] += steps[position]
+        # # Copy the data
+        # for i in range(ug.num_elements()):
+        #     res_grad[idx] = ug[i]
 
-                if (positions[position] < ends[position] and steps[position] > 0) or (positions[position] > ends[position] and steps[position] < 0):
-                    break
+        #     # Get the new idx, 
+        #     var position = t1_shape.rank() - 1
+        #     while position >= 0:
+        #         idx += strides[position] * steps[position]
+        #         positions[position] += steps[position]
 
-                positions[position] = starts[position]
-                idx -= ug_shape[position] * steps[position] * strides[position]
-                position -= 1
+        #         if (positions[position] < ends[position] and steps[position] > 0) or (positions[position] > ends[position] and steps[position] < 0):
+        #             break
+
+        #         positions[position] = starts[position]
+        #         idx -= ug_shape[position] * steps[position] * strides[position]
+        #         position -= 1
         
         return res_grad ^
