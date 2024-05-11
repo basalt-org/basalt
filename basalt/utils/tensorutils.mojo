@@ -48,14 +48,8 @@ fn broadcast_shapes(s1: TensorShape, s2: TensorShape) -> TensorShape:
     var ndim = max(s1.rank(), s2.rank())
     var diff = abs(s1.rank() - s2.rank())
 
-    var big: TensorShape
-    var small: TensorShape
-    if s1.rank() > s2.rank():
-        big = s1
-        small = s2
-    else:
-        big = s2
-        small = s1
+    var big = s1 if s1.rank() > s2.rank() else s2
+    var small = s2 if s1.rank() > s2.rank() else s1
 
     var res = StaticIntTuple[MAX_RANK](-1)
 
@@ -67,12 +61,7 @@ fn broadcast_shapes(s1: TensorShape, s2: TensorShape) -> TensorShape:
         elif a == 1 or b == 1:
             res[i] = a * b
         else:
-            # NOTE: consider assert and allow the function raises
-            var message: String = "[ERROR] Shapes " + str(s1) + " and " + str(
-                s2
-            ) + " cannot be broadcasted together."
-            print(message)
-            # raise Error(message)
+            print("[ERROR] Shapes " + str(s1) + " and " + str(s2) + " cannot be broadcasted together.")
 
     for i in range(diff - 1, -1, -1):
         res[i] = big[i]
@@ -91,9 +80,7 @@ fn broadcast_shapes(*s: TensorShape) -> TensorShape:
 
 
 @always_inline
-fn broadcast_calculate_strides[
-    size: Int, shape: TensorShape, broadcast_shape: TensorShape
-]() -> StaticIntTuple[size]:
+fn broadcast_calculate_strides[size: Int, shape: TensorShape, broadcast_shape: TensorShape]() -> StaticIntTuple[size]:
     alias shape_rank = shape.rank()
     alias diff = size - shape_rank
 
