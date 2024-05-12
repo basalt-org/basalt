@@ -1,4 +1,5 @@
 from testing import assert_equal, assert_true
+from collections.optional import OptionalReg
 
 from basalt.nn import TensorShape
 from basalt.autograd.attributes import Attribute
@@ -36,6 +37,15 @@ fn test_attribute_static_int_tuple() raises:
     alias a = Attribute(name="test", value=value)
 
     assert_true(a.to_static[7]() == value)
+
+fn test_attribute_slice() raises:
+    alias value = StaticTuple[OptionalReg[Int], 3](None, None, 2)
+    alias a = Attribute(name="test", value=value)
+
+    var slice = a.to_slice[3]()
+    assert_true(not slice[0].value())
+    assert_true(not slice[1].value())
+    assert_true(slice[2].value() == 2)
 
 
 fn test_attribute_scalar() raises:
@@ -124,6 +134,7 @@ fn main():
         test_attribute_tensor_shape()
         test_attribute_static_int_tuple()
         test_attribute_scalar()
+        test_attribute_slice()
     except e:
         print("[ERROR] Error in attributes")
         print(e)

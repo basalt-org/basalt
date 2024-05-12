@@ -87,7 +87,7 @@ struct Attribute(Stringable, CollectionElement):
     var type: AttributeType
     var size: Int
 
-    alias Null_Int = int(nan[DType.float64]())
+    alias Null_Int = -14052005
 
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: String):
@@ -122,7 +122,7 @@ struct Attribute(Stringable, CollectionElement):
             self.data[i] = value[i]
 
     @always_inline("nodebug")
-    fn __init__[N: Int](inout self, name: String, *values: OptionalReg[Int]):
+    fn __init__[N: Int](inout self, name: String, value: StaticTuple[OptionalReg[Int], N]):
         constrained[N < MAX_RANK, "Attribute rank must be less than MAX_RANK."]()
 
         self.data_shape = StaticIntTuple[MAX_RANK]()
@@ -131,9 +131,9 @@ struct Attribute(Stringable, CollectionElement):
         self.type = AttributeType.OPTIONAL_INTS
         self.size = N
 
-        for i in range(len(values)):
-            if values[i]:
-                self.data[i] = values[i].value()
+        for i in range(N):
+            if value[i]:
+                self.data[i] = value[i].value()
             else:
                 self.data[i] = 0
                 self.data_shape[i] = Self.Null_Int
