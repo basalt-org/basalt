@@ -1,4 +1,5 @@
 from collections import Optional, OptionalReg
+from math import nan
 
 from basalt.nn.tensor import Tensor, TensorShape, MAX_RANK
 from basalt.utils.bytes import Bytes, scalar_to_bytes, bytes_to_scalar
@@ -17,6 +18,7 @@ struct AttributeType(Stringable):
     alias STRING = AttributeType(3, "STRING")
     alias INTS = AttributeType(4, "INTS")
     alias FLOATS = AttributeType(5, "FLOATS")
+    alias OPTIONAL_INTS = AttributeType(6, "OPTIONAL_INTS")
 
     var id: UInt8
     var name: Bytes[MAX_NAME_CHARS]
@@ -85,6 +87,8 @@ struct Attribute(Stringable, CollectionElement):
     var type: AttributeType
     var size: Int
 
+    alias Null_Int = int(nan[DType.float64]())
+
     @always_inline("nodebug")
     fn __init__(inout self, name: String, value: String):
         self.data_shape = StaticIntTuple[MAX_RANK]()
@@ -116,6 +120,23 @@ struct Attribute(Stringable, CollectionElement):
 
         for i in range(self.size):
             self.data[i] = value[i]
+
+    @always_inline("nodebug")
+    fn __init__[N: Int](inout self, name: String, *values: OptionalReg[Int]):
+        constrained[N < MAX_RANK, "Attribute rank must be less than MAX_RANK."]()
+
+        self.data_shape = StaticIntTuple[MAX_RANK]()
+        self.name = Bytes[MAX_NAME_CHARS](name)
+        self.data = Bytes[MAX_DATA_BYTES]()
+        self.type = AttributeType.OPTIONAL_INTS
+        self.size = N
+
+        for i in range(len(values)):
+            if values[i]:
+                self.data[i] = values[i].value()
+            else:
+                self.data[i] = 0
+                self.data_shape[i] = Self.Null_Int
 
     @always_inline("nodebug")
     fn __init__[dtype: DType](inout self, name: String, value: Scalar[dtype]):
@@ -157,6 +178,17 @@ struct Attribute(Stringable, CollectionElement):
 
         for i in range(N):
             result[i] = int(self.data[i])
+
+        return result
+
+    @always_inline("nodebug")
+    fn to_slice[N: Int](self) -> StaticTuple[OptionalReg[Int], N]:
+        constrained[N < MAX_RANK, "Attribute rank must be less than MAX_RANK."]()
+
+        var result = StaticTuple[OptionalReg[Int], N]()
+
+        for i in range(N):
+            result[i] = OptionalReg[Int](int(self.data[i])) if self.data_shape[i] != Self.Null_Int else None
 
         return result
 
