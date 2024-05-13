@@ -287,49 +287,38 @@ struct SLICE:
         return max(min(s, dim_size), 0)
     
     @staticmethod
+    fn default_steps(t1_shape: TensorShape) -> TensorShape:
+        var steps = List[Int]()
+        for i in range(t1_shape.rank()):
+            steps.append(1)
+        return TensorShape(steps)
+    
+    @staticmethod
+    fn default_axes(t1_shape: TensorShape) -> TensorShape:
+        # NOTE: axes can't be negative
+        var axes = List[Int]()
+        for i in range(t1_shape.rank()):
+            axes.append(i)
+        return TensorShape(axes)
+
+    @staticmethod
     fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
         # Starts and ends have to be of the same size
         var starts = attributes["starts"].value().to_shape()
         var ends = attributes["ends"].value().to_shape()
-        var steps: TensorShape
-        if attributes["steps"]:
-            # steps can't be negative
-            # if provided steps, they then have to be of the same size as starts
-            steps = attributes["steps"].value().to_shape()
-        else:
-            var temp = List[Int]()
-            for i in range(starts.rank()):
-                temp.append(1)
-            steps = TensorShape(temp)
-        var axes: TensorShape
-        if attributes["axes"]:
-            # axes can't be negative
-            # if provided axes, they then have to be of the same size as starts
-            axes = attributes["axes"].value().to_shape()
-        else:
-            var temp = List[Int]()
-            for i in range(starts.rank()):
-                temp.append(i)
-            axes = TensorShape(temp)
+        var steps = attributes["steps"].value().to_shape() if attributes["steps"] else Self.default_steps(t1_shape)
+        var axes = attributes["axes"].value().to_shape() if attributes["axes"] else Self.default_axes(t1_shape)
 
         var new_shape = t1_shape
         for i in range(starts.rank()):
             var axis = axes[i]
-            var step = steps[i]
-            var start = Self.adjust_boundary(starts[i], t1_shape[axis])
-            var stop = Self.adjust_boundary(ends[i], t1_shape[axis])
-
-            new_shape[axis] = (abs(stop - start) + abs(step) - 1) // abs(step)
+            new_shape[axis] = len(range(
+                start = Self.adjust_boundary(starts[i], t1_shape[axis]),
+                end = Self.adjust_boundary(ends[i], t1_shape[axis]),
+                step = steps[i]
+            ))
 
         return new_shape
-
-    @parameter
-    @staticmethod
-    fn calc_N(dim: Int, t1_shape: TensorShape) -> Int:
-        var N = 1
-        for i in range(dim):
-            N *= t1_shape[i]
-        return N
 
     @staticmethod
     fn convert_attributes[t1_shape: TensorShape, attributes: AttributeVector]() -> Tuple[List[Int], List[Int], List[Int]]:
@@ -491,8 +480,6 @@ struct SLICE:
         var ends = attribute_values[2]
 
         var res_grad = Tensor[dtype](t1_shape)
-
-        alias ug_strides = ug_shape.strides()
         
         alias strides = t1_shape.strides()
 
