@@ -370,42 +370,48 @@ struct SLICE:
         idx: Int,
         idx_original: Int,
     ):
-
-        var strides = shape.strides()
-        var t1_strides = original_shape.strides()
+        alias strides = shape.strides()
+        alias t1_strides = original_shape.strides()
 
         var idx_temp = idx
         var idx_original_temp = starts[position] * t1_strides[position] + idx_original
 
         if position == last_position + 1:
-            var position = shape.rank() - 1
             # Work on the last dimensions
-            var temp_idx = idx_original_temp
+            alias position = shape.rank() - 1
+            alias stride = t1_strides[position] * steps[position]
+
             @parameter
             fn v_slice[nelts: Int](k : Int):
-                var idx_contiguous = idx_temp + k
+
                 @parameter
                 if not backward_op:
+                    @parameter
                     if steps[position] == 1:
-                        res.store[nelts](idx_contiguous, t1.load[nelts](temp_idx))
+                        res.store[nelts](idx_temp + k, t1.load[nelts](idx_original_temp))
                     else:
-                        res.store[nelts](idx_contiguous, t1.data().offset(temp_idx).simd_strided_load[nelts](t1_strides[position] * steps[position]))
+                        res.store[nelts](
+                            idx_temp + k,
+                            t1.data().offset(idx_original_temp).simd_strided_load[nelts](stride)
+                        )
                 else:
+                    @parameter
                     if steps[position] == 1:
-                        res.store[nelts](temp_idx, t1.load[nelts](idx_contiguous))
+                        res.store[nelts](idx_original_temp, t1.load[nelts](idx_temp + k))
                     else:
-                        res.data().offset(temp_idx).simd_strided_store[nelts](t1.load[nelts](idx_contiguous), t1_strides[position] * steps[position])
+                        res.data().offset(idx_original_temp).simd_strided_store[nelts](
+                            t1.load[nelts](idx_temp + k),
+                            stride
+                        )
     
-                temp_idx += steps[position] * t1_strides[position] * nelts
+                idx_original_temp += stride * nelts
 
             vectorize[v_slice, nelts](last_dims)
 
             return 
 
-        for i in range(shape[position]):
-            Self.recursive_iters_slice[
-                shape, original_shape, steps, starts, ends, backward_op
-            ](
+        for _ in range(shape[position]):
+            Self.recursive_iters_slice[shape, original_shape, steps, starts, ends, backward_op](
                 res, t1, last_dims, position + 1, last_position, idx_temp, idx_original_temp
             )
 
