@@ -1,5 +1,5 @@
-from algorithm import vectorize
-from math import exp, pow
+from algorithm import vectorize, parallelize
+from math import exp, pow, max, min, abs
 from math.limit import min_finite, max_finite
 
 from basalt import Tensor, TensorShape
@@ -276,4 +276,219 @@ struct UNSQUEEZE:
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
         var res_grad = Tensor[dtype](t1_shape)
         memcpy(res_grad.data(), ug.data(), ug.num_elements())
+        return res_grad ^
+
+
+struct SLICE:
+    @staticmethod
+    fn adjust_boundary(slice: Int, dim_size: Int) -> Int:
+        # Adjust negative indices & ensure they are within bounds.
+        var s = slice if slice >= 0 else dim_size + slice
+        return max(min(s, dim_size), 0)
+    
+    @staticmethod
+    fn default_starts(shape: TensorShape) -> List[Int]:
+        var starts = List[Int]()
+        for i in range(shape.rank()):
+            starts.append(0)
+        return starts^
+
+    @staticmethod
+    fn default_ends(shape: TensorShape) -> List[Int]:
+        var ends = List[Int]()
+        for i in range(shape.rank()):
+            ends.append(shape[i])
+        return ends^
+
+    @staticmethod
+    fn default_steps(shape: TensorShape) -> List[Int]:
+        var steps = List[Int]()
+        for i in range(shape.rank()):
+            steps.append(1)
+        return steps^
+    
+    @staticmethod
+    fn default_axes(shape: TensorShape) -> List[Int]:
+        # NOTE: axes can't be negative
+        var axes = List[Int]()
+        for i in range(shape.rank()):
+            axes.append(i)
+        return axes^
+
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        # NOTE: Starts and ends have to be of the same size
+        # NOTE: If axes not provided, starts and ends have to be of the same size as t1_shape
+        var starts = attributes["starts"].value().to_shape()
+        var ends = attributes["ends"].value().to_shape()
+        var steps = attributes["steps"].value().to_shape() if attributes["steps"] else Self.default_steps(starts)
+        var axes = attributes["axes"].value().to_shape() if attributes["axes"] else Self.default_axes(t1_shape)
+
+        var new_shape = t1_shape
+        for i in range(starts.rank()):
+            var axis = axes[i]
+            new_shape[axis] = len(range(
+                start = Self.adjust_boundary(starts[i], t1_shape[axis]),
+                end = Self.adjust_boundary(ends[i], t1_shape[axis]),
+                step = steps[i]
+            ))
+
+        return new_shape
+
+    @staticmethod
+    fn reorder_positions[id: Int](original: TensorShape, axes: TensorShape, t1_shape: TensorShape) -> List[Int]:
+        # Reorder the starts (id=0), ends (id=1) or steps (id=2) to match the order of the axes
+        var updated: List[Int]
+
+        @parameter
+        if id == 0: updated = Self.default_starts(t1_shape)
+        elif id == 1: updated = Self.default_ends(t1_shape)
+        else: updated = Self.default_steps(t1_shape)
+    
+        for i in range(axes.rank()):
+            var axis = axes[i]
+            updated[axis] = original[i] if id == 2 else Self.adjust_boundary(original[i], t1_shape[axis])
+
+        return updated^
+
+    # NOTE: For now you can't have recursive function as parameter functions.
+    # NOTE: From testing it seems a recursive function is almost the same speed as doing multiple nested for loops.
+    @staticmethod
+    fn recursive_iters_slice[
+        shape: TensorShape,
+        original_shape: TensorShape,
+        steps: List[Int],
+        starts: List[Int],
+        ends: List[Int],
+        backward_op: Bool = False
+    ](
+        inout res: Tensor[dtype],
+        t1: Tensor[dtype],
+        last_dims: Int,
+        position: Int, 
+        last_position: Int,
+        idx: Int,
+        idx_original: Int,
+    ):
+        alias strides = shape.strides()
+        alias t1_strides = original_shape.strides()
+
+        var idx_temp = idx
+        var idx_original_temp = starts[position] * t1_strides[position] + idx_original
+
+        if position == last_position + 1:
+            # Work on the last dimensions
+            alias position = shape.rank() - 1
+            alias stride = t1_strides[position] * steps[position]
+
+            @parameter
+            fn v_slice[nelts: Int](k : Int):
+
+                @parameter
+                if not backward_op:
+                    @parameter
+                    if steps[position] == 1:
+                        res.store[nelts](idx_temp + k, t1.load[nelts](idx_original_temp))
+                    else:
+                        res.store[nelts](
+                            idx_temp + k,
+                            t1.data().offset(idx_original_temp).simd_strided_load[nelts](stride)
+                        )
+                else:
+                    @parameter
+                    if steps[position] == 1:
+                        res.store[nelts](idx_original_temp, t1.load[nelts](idx_temp + k))
+                    else:
+                        res.data().offset(idx_original_temp).simd_strided_store[nelts](
+                            t1.load[nelts](idx_temp + k),
+                            stride
+                        )
+    
+                idx_original_temp += stride * nelts
+
+            vectorize[v_slice, nelts](last_dims)
+
+            return 
+
+        for _ in range(shape[position]):
+            Self.recursive_iters_slice[shape, original_shape, steps, starts, ends, backward_op](
+                res, t1, last_dims, position + 1, last_position, idx_temp, idx_original_temp
+            )
+
+            idx_temp += strides[position]
+            idx_original_temp += steps[position] * t1_strides[position]
+
+    @staticmethod
+    fn slice_kernel[
+        res_shape: TensorShape,
+        original_shape: TensorShape,
+        steps: List[Int],
+        starts: List[Int],
+        ends: List[Int],
+        backward_op: Bool = False
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        alias strides = original_shape.strides()
+        
+        # Get the dimensions for vectorization
+        var last_dims = 1
+        var positions_to_skip = 0
+        for i in range(res_shape.rank() - 1, -1, -1):
+            if steps[i] != 1 and i != res_shape.rank() - 1:
+                break
+            last_dims *= res_shape[i]
+            positions_to_skip += 1
+            if starts[i] != 0 or ends[i] != original_shape[i] or steps[i] != 1:
+                break
+        
+        # Get the dimensions for the first loop
+        var first_dims = 1
+        var start_position = 0
+        for i in range(res_shape.rank() - positions_to_skip):
+            if steps[i] != 1 or starts[i] != 0 or ends[i] != original_shape[i]:
+                break
+            first_dims *= res_shape[i]
+            start_position += 1
+
+        var middle_dims = res_shape.num_elements() // last_dims // first_dims
+        
+        @parameter
+        fn p_slice(i: Int):
+            Self.recursive_iters_slice[
+                res_shape, original_shape, steps, starts, ends, backward_op
+            ](
+                res, t1, last_dims, start_position, res_shape.rank() - 1 - positions_to_skip, 
+                i * middle_dims * last_dims, i * strides[start_position - 1]
+            )
+
+        parallelize[p_slice](first_dims)
+    
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        alias axes = attributes["axes"].value().to_shape() if attributes["axes"] else Self.default_axes(t1_shape)
+        alias starts = Self.reorder_positions[0](attributes["starts"].value().to_shape(), axes, t1_shape)
+        alias ends = Self.reorder_positions[1](attributes["ends"].value().to_shape(), axes, t1_shape)
+        alias steps = Self.reorder_positions[2](attributes["steps"].value().to_shape(), axes, t1_shape) if attributes["steps"] else Self.default_steps(t1_shape)
+
+        alias res_shape = Self.result_shape(t1_shape, attributes)
+
+        Self.slice_kernel[res_shape, t1_shape, steps, starts, ends, False](res, t1)
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        attributes: AttributeVector = AttributeVector(),
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        alias axes = attributes["axes"].value().to_shape() if attributes["axes"] else Self.default_axes(t1_shape)
+        alias starts = Self.reorder_positions[0](attributes["starts"].value().to_shape(), axes, t1_shape)
+        alias ends = Self.reorder_positions[1](attributes["ends"].value().to_shape(), axes, t1_shape)
+        alias steps = Self.reorder_positions[2](attributes["steps"].value().to_shape(), axes, t1_shape) if attributes["steps"] else Self.default_steps(t1_shape)
+
+        var res_grad = Tensor[dtype](t1_shape)
+        
+        Self.slice_kernel[ug_shape, t1_shape, steps, starts, ends, True](res_grad, ug)
+        
         return res_grad ^

@@ -176,43 +176,57 @@ fn test_ternary_op_backward[
     assert_tensors_equal["almost"](grad_3, grad_3_expected)
 
 
-def to_numpy(tensor: Tensor) -> PythonObject:
-    var np = Python.import_module("numpy")
-    np.set_printoptions(4)
+fn to_numpy(tensor: Tensor) -> PythonObject:
+    try:
+        var np = Python.import_module("numpy")
+    
+        np.set_printoptions(4)
 
-    rank = tensor.rank()
-    var pyarray: PythonObject = np.array([0])
-    if rank == 1:
-        pyarray = np.empty((tensor.dim(0)))
-    elif rank == 2:
-        pyarray = np.empty((tensor.dim(0), tensor.dim(1)))
-    elif rank == 3:
-        pyarray = np.empty((tensor.dim(0), tensor.dim(1), tensor.dim(2)))
-    elif rank == 4:
-        pyarray = np.empty((tensor.dim(0), tensor.dim(1), tensor.dim(2), tensor.dim(3)))
-    else:
-        print("Error: rank not supported: ", rank)
+        var rank = tensor.rank()
+        var dims = PythonObject([])
+        for i in range(rank):
+            dims.append(tensor.dim(i))
+        var pyarray: PythonObject = np.empty(dims, dtype=np.float32)
 
-    for i in range(tensor.num_elements()):
-        pyarray.itemset((i), tensor[i])
+        var pointer = int(pyarray.__array_interface__['data'][0].to_float64())
+        var pointer_d = DTypePointer[tensor.dtype](address=pointer)
+        memcpy(pointer_d, tensor.data(), tensor.num_elements())
 
-    return pyarray
+        _ = tensor
+    
+        return pyarray ^
+    except e:
+        print("Error in to numpy", e)
+        return PythonObject()
 
 
 fn to_tensor(np_array: PythonObject) raises -> Tensor[dtype]:
     var shape = List[Int]()
     for i in range(np_array.ndim):
         shape.append(int(np_array.shape[i].to_float64()))
+    if np_array.ndim == 0:
+        # When the numpy array is a scalar, you need or the reshape to a size 1 ndarray or do this, if not the memcpy gets a memory error (Maybe because it is a register value?).
+        var tensor = Tensor[dtype](TensorShape(1))
+        tensor[0] = np_array.to_float64().cast[dtype]()
+        return tensor ^
 
     var tensor = Tensor[dtype](TensorShape(shape))
 
-    # Calling ravel a lot of times is slow
-    var np_array_temp = np_array.ravel()
+    var np_array_2 = np_array.copy()
+    try:
+        var np = Python.import_module("numpy")
+        np_array_2 = np.float32(np_array_2)
+    except e:
+        print("Error in to tensor", e)
 
-    for i in range(tensor.num_elements()):
-        tensor[i] = np_array_temp[i].to_float64().cast[dtype]()
+    var pointer = int(np_array_2.__array_interface__['data'][0].to_float64())
+    var pointer_d = DTypePointer[tensor.dtype](address=pointer)
+    memcpy(tensor.data(), pointer_d, tensor.num_elements())
 
-    return tensor
+    _ = np_array_2
+    _ = np_array
+
+    return tensor ^
 
 
 fn create_graph_concat(
