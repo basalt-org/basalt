@@ -351,19 +351,20 @@ struct SLICE:
 
         return updated^
 
-    # For now you can't have recursive function as parameter functions. And from testing it seems a recursive function is almost the same speed as doing multiple nested for loops (if they aren't flattened, nested for loops can be flattened).
+    # NOTE: For now you can't have recursive function as parameter functions.
+    # NOTE: From testing it seems a recursive function is almost the same speed as doing multiple nested for loops.
     @staticmethod
     fn recursive_iters_slice[
-        backward_op: Bool = False,
+        shape: TensorShape,
+        original_shape: TensorShape,
+        steps: List[Int],
+        starts: List[Int],
+        ends: List[Int],
+        backward_op: Bool = False
     ](
         inout res: Tensor[dtype],
         t1: Tensor[dtype],
         last_dims: Int,
-        original_shape: TensorShape,
-        shape: TensorShape,
-        steps: List[Int],
-        starts: List[Int],
-        ends: List[Int],
         position: Int, 
         last_position: Int,
         idx: Int,
@@ -402,39 +403,56 @@ struct SLICE:
             return 
 
         for i in range(shape[position]):
-            Self.recursive_iters_slice[backward_op](res, t1, last_dims,original_shape, shape, steps, starts, ends, position + 1, last_position, idx_temp, idx_original_temp)
+            Self.recursive_iters_slice[
+                shape, original_shape, steps, starts, ends, backward_op
+            ](
+                res, t1, last_dims, position + 1, last_position, idx_temp, idx_original_temp
+            )
 
             idx_temp += strides[position]
             idx_original_temp += steps[position] * t1_strides[position]
 
     @staticmethod
-    fn slice_kernel[backward_op: Bool = False](inout res: Tensor[dtype], t1: Tensor[dtype], main_shape: TensorShape, original_shape: TensorShape, t1_strides: StaticIntTuple[8], steps: List[Int], starts: List[Int], ends: List[Int]):
+    fn slice_kernel[
+        res_shape: TensorShape,
+        original_shape: TensorShape,
+        steps: List[Int],
+        starts: List[Int],
+        ends: List[Int],
+        backward_op: Bool = False
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        alias strides = original_shape.strides()
+        
         # Get the dimensions for vectorization
         var last_dims = 1
         var positions_to_skip = 0
-        for i in range(main_shape.rank() - 1, -1, -1):
-            if steps[i] != 1 and i != main_shape.rank() - 1:
+        for i in range(res_shape.rank() - 1, -1, -1):
+            if steps[i] != 1 and i != res_shape.rank() - 1:
                 break
-            last_dims *= main_shape[i]
+            last_dims *= res_shape[i]
             positions_to_skip += 1
             if starts[i] != 0 or ends[i] != original_shape[i] or steps[i] != 1:
                 break
+        
         # Get the dimensions for the first loop
         var first_dims = 1
         var start_position = 0
-        for i in range(main_shape.rank() - positions_to_skip):
+        for i in range(res_shape.rank() - positions_to_skip):
             if steps[i] != 1 or starts[i] != 0 or ends[i] != original_shape[i]:
                 break
-            first_dims *= main_shape[i]
+            first_dims *= res_shape[i]
             start_position += 1
 
-
-        # Copy the data. P.S if the slice dimensions are small, this kernel can be slow (because the worst case for the while loop happens more times).
-        var middle_dims = main_shape.num_elements() // last_dims // first_dims
+        var middle_dims = res_shape.num_elements() // last_dims // first_dims
+        
         @parameter
         fn p_slice(i: Int):
-            Self.recursive_iters_slice[backward_op](res, t1, last_dims, original_shape, main_shape, steps, starts, ends, start_position, main_shape.rank() - 1 - positions_to_skip, 
-            i * middle_dims * last_dims, i * t1_strides[start_position - 1])
+            Self.recursive_iters_slice[
+                res_shape, original_shape, steps, starts, ends, backward_op
+            ](
+                res, t1, last_dims, start_position, res_shape.rank() - 1 - positions_to_skip, 
+                i * middle_dims * last_dims, i * strides[start_position - 1]
+            )
 
         parallelize[p_slice](first_dims)
     
@@ -449,11 +467,8 @@ struct SLICE:
         alias steps = Self.reorder_positions[2](attributes["steps"].value().to_shape(), axes, t1_shape) if attributes["steps"] else Self.default_steps(t1_shape)
 
         alias res_shape = Self.result_shape(t1_shape, attributes)
-        
-        alias strides = t1_shape.strides()
 
-        Self.slice_kernel(res, t1, res_shape, t1_shape, strides, steps, starts, ends)
-
+        Self.slice_kernel[res_shape, t1_shape, steps, starts, ends, False](res, t1)
 
     @staticmethod
     fn backward[
@@ -466,10 +481,8 @@ struct SLICE:
         alias ends = Self.reorder_positions[1](attributes["ends"].value().to_shape(), axes, t1_shape)
         alias steps = Self.reorder_positions[2](attributes["steps"].value().to_shape(), axes, t1_shape) if attributes["steps"] else Self.default_steps(t1_shape)
 
-        alias strides = t1_shape.strides()
-
         var res_grad = Tensor[dtype](t1_shape)
         
-        Self.slice_kernel[True](res_grad, ug, ug_shape, t1_shape, strides, steps, starts, ends)
+        Self.slice_kernel[ug_shape, t1_shape, steps, starts, ends, True](res_grad, ug)
         
         return res_grad ^
