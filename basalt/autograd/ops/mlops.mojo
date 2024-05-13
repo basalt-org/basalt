@@ -374,23 +374,71 @@ struct SLICE:
 
         return steps, starts, ends
 
+    # For now you can't have recursive function as parameter functions. And from testing it seems a recursive function is almost the same speed as doing multiple nested for loops (if they aren't flattened, nested for loops can be flattened).
+    @staticmethod
+    fn recursive_iters_slice[
+        backward_op: Bool = False,
+    ](
+        inout res: Tensor[dtype],
+        t1: Tensor[dtype],
+        last_dims: Int,
+        original_shape: TensorShape,
+        shape: TensorShape,
+        steps: List[Int],
+        starts: List[Int],
+        ends: List[Int],
+        position: Int, 
+        last_position: Int,
+        idx: Int,
+        idx_original: Int,
+    ):
+
+        var strides = shape.strides()
+        var t1_strides = original_shape.strides()
+
+        var idx_temp = idx
+        var idx_original_temp = starts[position] * t1_strides[position] + idx_original
+
+        if position == last_position + 1:
+            var position = shape.rank() - 1
+            # Work on the last dimensions
+            var temp_idx = idx_original_temp
+            @parameter
+            fn v_slice[nelts: Int](k : Int):
+                var idx_contiguous = idx_temp + k
+                @parameter
+                if not backward_op:
+                    if steps[position] == 1:
+                        res.store[nelts](idx_contiguous, t1.load[nelts](temp_idx))
+                    else:
+                        res.store[nelts](idx_contiguous, t1.data().offset(temp_idx).simd_strided_load[nelts](t1_strides[position] * steps[position]))
+                else:
+                    if steps[position] == 1:
+                        res.store[nelts](temp_idx, t1.load[nelts](idx_contiguous))
+                    else:
+                        res.data().offset(temp_idx).simd_strided_store[nelts](t1.load[nelts](idx_contiguous), t1_strides[position] * steps[position])
+    
+                temp_idx += steps[position] * t1_strides[position] * nelts
+
+            vectorize[v_slice, nelts](last_dims)
+
+            return 
+
+        for i in range(shape[position]):
+            Self.recursive_iters_slice[backward_op](res, t1, last_dims,original_shape, shape, steps, starts, ends, position + 1, last_position, idx_temp, idx_original_temp)
+
+            idx_temp += strides[position]
+            idx_original_temp += steps[position] * t1_strides[position]
+
     @staticmethod
     fn slice_kernel[backward_op: Bool = False](inout res: Tensor[dtype], t1: Tensor[dtype], main_shape: TensorShape, original_shape: TensorShape, t1_strides: StaticIntTuple[8], steps: List[Int], starts: List[Int], ends: List[Int]):
-        # Calculate the starting positions
-        var positions = List[Int]()
-        for i in range(t1.shape().rank()):
-            positions.append(starts[i])
-
-        
-        var res_shape = main_shape
-
         # Get the dimensions for vectorization
         var last_dims = 1
         var positions_to_skip = 0
         for i in range(main_shape.rank() - 1, -1, -1):
             if steps[i] != 1 and i != main_shape.rank() - 1:
                 break
-            last_dims *= res_shape[i]
+            last_dims *= main_shape[i]
             positions_to_skip += 1
             if starts[i] != 0 or ends[i] != original_shape[i] or steps[i] != 1:
                 break
@@ -400,56 +448,18 @@ struct SLICE:
         for i in range(main_shape.rank() - positions_to_skip):
             if steps[i] != 1 or starts[i] != 0 or ends[i] != original_shape[i]:
                 break
-            first_dims *= res_shape[i]
+            first_dims *= main_shape[i]
             start_position += 1
 
-        # Get the first position
-        var idx = 0
-        for i in range(len(positions)):
-            idx += positions[i] * t1_strides[i]
 
         # Copy the data. P.S if the slice dimensions are small, this kernel can be slow (because the worst case for the while loop happens more times).
-        var middle_dims = res_shape.num_elements() // last_dims // first_dims
-        for i in range(first_dims):
-            for j in range(middle_dims):
-                var position = res_shape.rank() - 1
-                # Work on the last dimensions
-                var temp_idx = idx
-                @parameter
-                fn v_slice[nelts: Int](k : Int):
-                    var idx_contiguous = i * middle_dims * last_dims + j * last_dims + k
-                    @parameter
-                    if not backward_op:
-                        if steps[position] == 1:
-                            res.store[nelts](idx_contiguous, t1.load[nelts](temp_idx))
-                        else:
-                            res.store[nelts](idx_contiguous, t1.data().offset(temp_idx).simd_strided_load[nelts](t1_strides[position] * steps[position]))
-                    else:
-                        if steps[position] == 1:
-                            res.store[nelts](temp_idx, t1.load[nelts](idx_contiguous))
-                        else:
-                            res.data().offset(temp_idx).simd_strided_store[nelts](t1.load[nelts](idx_contiguous), t1_strides[position] * steps[position])
-        
-                    temp_idx += steps[position] * t1_strides[position] * nelts
+        var middle_dims = main_shape.num_elements() // last_dims // first_dims
+        @parameter
+        fn p_slice(i: Int):
+            Self.recursive_iters_slice[backward_op](res, t1, last_dims, original_shape, main_shape, steps, starts, ends, start_position, main_shape.rank() - 1 - positions_to_skip, 
+            i * middle_dims * last_dims, i * t1_strides[start_position - 1])
 
-                vectorize[v_slice, nelts](last_dims)
-
-                position -= positions_to_skip
-
-                # Get the new idx
-                while position >= start_position:
-                    idx += t1_strides[position] * steps[position]
-                    positions[position] += steps[position]
-
-                    if (positions[position] < ends[position] and steps[position] > 0) or (positions[position] > ends[position] and steps[position] < 0):
-                        break
-
-                    positions[position] = starts[position]
-                    idx -= res_shape[position] * steps[position] * t1_strides[position]
-                    position -= 1
-            
-            if start_position > 0:
-                idx += t1_strides[start_position - 1]
+        parallelize[p_slice](first_dims)
     
     @staticmethod
     fn forward[
@@ -468,32 +478,6 @@ struct SLICE:
 
         Self.slice_kernel(res, t1, res_shape, t1_shape, strides, steps, starts, ends)
 
-        # # Calculate the starting positions
-        # var positions = List[Int]()
-        # for i in range(t1_shape.rank()):
-        #     positions.append(starts[i])
-
-        # # Get the first position
-        # var idx = 0
-        # for i in range(len(positions)):
-        #     idx += positions[i] * strides[i]
-
-        # # Copy the data. P.S if the slice dimensions are small, this kernel can be slow (because the worst case for the while loop happens more times).
-        # for i in range(res_shape.num_elements()):
-        #     res[i] = t1[idx]
-
-        #     # Get the new idx, 
-        #     var position = t1_shape.rank() - 1
-        #     while position >= 0:
-        #         idx += strides[position] * steps[position]
-        #         positions[position] += steps[position]
-
-        #         if (positions[position] < ends[position] and steps[position] > 0) or (positions[position] > ends[position] and steps[position] < 0):
-        #             break
-
-        #         positions[position] = starts[position]
-        #         idx -= res_shape[position] * steps[position] * strides[position]
-        #         position -= 1
 
     @staticmethod
     fn backward[
@@ -513,32 +497,5 @@ struct SLICE:
         alias strides = t1_shape.strides()
 
         Self.slice_kernel[True](res_grad, ug, ug_shape, t1_shape, strides, steps, starts, ends)
-
-        # # Calculate the starting positions
-        # var positions = List[Int]()
-        # for i in range(t1_shape.rank()):
-        #     positions.append(starts[i])
-
-        # # Get the first position
-        # var idx = 0
-        # for i in range(len(positions)):
-        #     idx += positions[i] * strides[i]
-
-        # # Copy the data
-        # for i in range(ug.num_elements()):
-        #     res_grad[idx] = ug[i]
-
-        #     # Get the new idx, 
-        #     var position = t1_shape.rank() - 1
-        #     while position >= 0:
-        #         idx += strides[position] * steps[position]
-        #         positions[position] += steps[position]
-
-        #         if (positions[position] < ends[position] and steps[position] > 0) or (positions[position] > ends[position] and steps[position] < 0):
-        #             break
-
-        #         positions[position] = starts[position]
-        #         idx -= ug_shape[position] * steps[position] * strides[position]
-        #         position -= 1
         
         return res_grad ^
