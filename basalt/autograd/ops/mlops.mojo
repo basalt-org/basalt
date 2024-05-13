@@ -287,26 +287,41 @@ struct SLICE:
         return max(min(s, dim_size), 0)
     
     @staticmethod
-    fn default_steps(t1_shape: TensorShape) -> TensorShape:
+    fn default_starts(shape: TensorShape) -> List[Int]:
+        var starts = List[Int]()
+        for i in range(shape.rank()):
+            starts.append(0)
+        return starts^
+
+    @staticmethod
+    fn default_ends(shape: TensorShape) -> List[Int]:
+        var ends = List[Int]()
+        for i in range(shape.rank()):
+            ends.append(shape[i])
+        return ends^
+
+    @staticmethod
+    fn default_steps(shape: TensorShape) -> List[Int]:
         var steps = List[Int]()
-        for i in range(t1_shape.rank()):
+        for i in range(shape.rank()):
             steps.append(1)
-        return TensorShape(steps)
+        return steps^
     
     @staticmethod
-    fn default_axes(t1_shape: TensorShape) -> TensorShape:
+    fn default_axes(shape: TensorShape) -> List[Int]:
         # NOTE: axes can't be negative
         var axes = List[Int]()
-        for i in range(t1_shape.rank()):
+        for i in range(shape.rank()):
             axes.append(i)
-        return TensorShape(axes)
+        return axes^
 
     @staticmethod
     fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
-        # Starts and ends have to be of the same size
+        # NOTE: Starts and ends have to be of the same size
+        # NOTE: If axes not provided, starts and ends have to be of the same size as t1_shape
         var starts = attributes["starts"].value().to_shape()
         var ends = attributes["ends"].value().to_shape()
-        var steps = attributes["steps"].value().to_shape() if attributes["steps"] else Self.default_steps(t1_shape)
+        var steps = attributes["steps"].value().to_shape() if attributes["steps"] else Self.default_steps(starts)
         var axes = attributes["axes"].value().to_shape() if attributes["axes"] else Self.default_axes(t1_shape)
 
         var new_shape = t1_shape
@@ -321,47 +336,20 @@ struct SLICE:
         return new_shape
 
     @staticmethod
-    fn convert_attributes[t1_shape: TensorShape, attributes: AttributeVector]() -> Tuple[List[Int], List[Int], List[Int]]:
-        # t1_shape will always have the same rank to res
+    fn reorder_positions[id: Int](original: TensorShape, axes: TensorShape, t1_shape: TensorShape) -> List[Int]:
+        # Reorder the starts (id=0), ends (id=1) or steps (id=2) to match the order of the axes
+        var updated: List[Int]
+
         @parameter
-        fn convert_to_correct_positions[adjust_bound: Bool = False](inout end_result: List[Int], start_result: TensorShape, axes: TensorShape, default_value: Int, default_values: TensorShape = TensorShape()):
-            var j = 0
-            for i in range(t1_shape.rank()):
-                if axes.rank() > 0 and j < start_result.rank() and i == axes[j]:
-                    var temp = Self.adjust_boundary(start_result[j], t1_shape[axes[j]]) if adjust_bound else start_result[j]
-                    end_result.append(temp)
-                    j += 1
-                elif axes.rank() == 0 and j < start_result.rank():
-                    var temp = Self.adjust_boundary(start_result[j], t1_shape[j]) if adjust_bound else start_result[j]
-                    end_result.append(temp)
-                    j += 1
-                elif default_values.rank() > 0:
-                    end_result.append(default_values[i])
-                else:
-                    end_result.append(default_value)
+        if id == 0: updated = Self.default_starts(t1_shape)
+        elif id == 1: updated = Self.default_ends(t1_shape)
+        else: updated = Self.default_steps(t1_shape)
+    
+        for i in range(axes.rank()):
+            var axis = axes[i]
+            updated[axis] = original[i] if id == 2 else Self.adjust_boundary(original[i], t1_shape[axis])
 
-        # if provided axes, they then have to be of the same size as starts
-        alias axes = attributes["axes"].value().to_shape() if attributes["axes"] else TensorShape()
-        # if provided steps, they then have to be of the same size as starts
-        var steps = List[Int]()
-        @parameter
-        if attributes["steps"]:
-            alias steps_temp = attributes["steps"].value().to_shape()
-
-            convert_to_correct_positions(steps, steps_temp, axes, 1)
-        else:
-            for i in range(t1_shape.rank()):
-                steps.append(1)
-
-        # Starts and ends have to be of the same size. Ends has to always be bigger or equal if the steps are positive, else can be smaller
-        alias starts_temp = attributes["starts"].value().to_shape()
-        var starts = List[Int]()
-        convert_to_correct_positions[True](starts, starts_temp, axes, 0)
-        alias ends_temp = attributes["ends"].value().to_shape()
-        var ends = List[Int]()
-        convert_to_correct_positions[True](ends, ends_temp, axes, 0, t1_shape)
-
-        return steps, starts, ends
+        return updated^
 
     # For now you can't have recursive function as parameter functions. And from testing it seems a recursive function is almost the same speed as doing multiple nested for loops (if they aren't flattened, nested for loops can be flattened).
     @staticmethod
@@ -455,13 +443,12 @@ struct SLICE:
         t1_shape: TensorShape,
         attributes: AttributeVector,
     ](inout res: Tensor[dtype], t1: Tensor[dtype]):
-        var attribute_values = Self.convert_attributes[t1_shape, attributes]()
-        var steps = attribute_values[0]
-        var starts = attribute_values[1]
-        var ends = attribute_values[2]
+        alias axes = attributes["axes"].value().to_shape() if attributes["axes"] else Self.default_axes(t1_shape)
+        alias starts = Self.reorder_positions[0](attributes["starts"].value().to_shape(), axes, t1_shape)
+        alias ends = Self.reorder_positions[1](attributes["ends"].value().to_shape(), axes, t1_shape)
+        alias steps = Self.reorder_positions[2](attributes["steps"].value().to_shape(), axes, t1_shape) if attributes["steps"] else Self.default_steps(t1_shape)
 
-        var res_shape = res.shape()
-        var res_strides = res_shape.strides()
+        alias res_shape = Self.result_shape(t1_shape, attributes)
         
         alias strides = t1_shape.strides()
 
@@ -474,15 +461,15 @@ struct SLICE:
         t1_shape: TensorShape,
         attributes: AttributeVector = AttributeVector(),
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
-        var attribute_values = Self.convert_attributes[t1_shape, attributes]()
-        var steps = attribute_values[0]
-        var starts = attribute_values[1]
-        var ends = attribute_values[2]
+        alias axes = attributes["axes"].value().to_shape() if attributes["axes"] else Self.default_axes(t1_shape)
+        alias starts = Self.reorder_positions[0](attributes["starts"].value().to_shape(), axes, t1_shape)
+        alias ends = Self.reorder_positions[1](attributes["ends"].value().to_shape(), axes, t1_shape)
+        alias steps = Self.reorder_positions[2](attributes["steps"].value().to_shape(), axes, t1_shape) if attributes["steps"] else Self.default_steps(t1_shape)
+
+        alias strides = t1_shape.strides()
 
         var res_grad = Tensor[dtype](t1_shape)
         
-        alias strides = t1_shape.strides()
-
         Self.slice_kernel[True](res_grad, ug, ug_shape, t1_shape, strides, steps, starts, ends)
         
         return res_grad ^
