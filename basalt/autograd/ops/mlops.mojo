@@ -567,4 +567,17 @@ struct INDEX:
         t1_shape: TensorShape,
         attributes: AttributeVector = AttributeVector(),
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
-        return Tensor[dtype]()
+        alias indeces = Self.to_indeces(t1_shape, attributes)
+        alias strides = t1_shape.strides()
+
+        var res_grad = Tensor[dtype](t1_shape)
+
+        var j = 0
+        for comb in product(indeces):
+            var flat_index = 0
+            for dim in range(t1_shape.rank()):
+                flat_index += comb[dim] * strides[dim]
+            res_grad[flat_index] += ug[j]
+            j += 1
+        
+        return res_grad^
