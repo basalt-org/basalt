@@ -592,31 +592,28 @@ struct INDEX:
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
         alias indeces = Self.to_indeces(t1_shape, attributes)
         alias strides = t1_shape.strides()
-        # alias total_length = len(product(indeces))
+        alias total_length = len(product(indeces))
 
         var res_grad = Tensor[dtype](t1_shape)
 
-        # @parameter
-        # fn vec_index[nelts: Int](i: Int):
+        @parameter
+        fn vec_index[nelts: Int](i: Int):
 
-        #     var offset = Self.map_indeces[nelts, strides, indeces](i)
-        #     res_grad.data().scatter(
-        #         offset,
-        #         res_grad.data().gather(offset) + ug.load[nelts](i),
-        #     )
-        
-        # vectorize[vec_index, nelts](total_length)
-        
-        # BUG: Edge case in vectorization:
-        # When the offset = [0, 2, 4, 0] and ug = [1, 1, 1, 1]
-        # It doesn't scatter to index 0 twice as it should be: res_grad[0] += 1 + 1
+            var offset = Self.map_indeces[nelts, strides, indeces](i)
+            
+            # res_grad.data().scatter(
+            #     offset,
+            #     res_grad.data().gather(offset) + ug.load[nelts](i),
+            # )
+            # BUG: Edge case in vectorization:
+            # When the offset = [0, 2, 4, 0] and ug = [1, 1, 1, 1]
+            # It doesn't scatter to index 0 twice as it should be: res_grad[0] += 1 + 1
+            
+            # Workaround
+            var u = ug.load[nelts](i)
+            for j in range(nelts):
+                res_grad[int(offset[j])] += u[j]
 
-        var j = 0
-        for comb in product(indeces):
-            var flat_index = 0
-            for dim in range(t1_shape.rank()):
-                flat_index += comb[dim] * strides[dim]
-            res_grad[flat_index] += ug[j]
-            j += 1
+        vectorize[vec_index, nelts](total_length)
 
         return res_grad^
