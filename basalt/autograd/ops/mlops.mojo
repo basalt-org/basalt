@@ -4,6 +4,7 @@ from math.limit import min_finite, max_finite
 
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_transform
+from basalt.utils.itertools import product
 from basalt.autograd.attributes import Attribute, AttributeVector
 
 
@@ -492,3 +493,78 @@ struct SLICE:
         Self.slice_kernel[ug_shape, t1_shape, steps, starts, ends, True](res_grad, ug)
         
         return res_grad ^
+
+
+struct INDEX:
+    @staticmethod
+    fn adjust_boundary(slice: Int, dim_size: Int) -> Int:
+        # Adjust negative indices & ensure they are within bounds.
+        var s = slice if slice >= 0 else dim_size + slice
+        return max(min(s, dim_size), 0)
+
+    @staticmethod
+    fn to_indeces(shape: TensorShape, attrs: AttributeVector) -> List[List[Int]]:
+        var SLICE_LITERALS = List[StringLiteral]("dim_0s", "dim_1s", "dim_2s", "dim_3s", "dim_4s", "dim_5s", "dim_6s", "dim_7s")
+        var INDEX_LITERALS = List[StringLiteral]("dim_0i", "dim_1i", "dim_2i", "dim_3i", "dim_4i", "dim_5i", "dim_6i", "dim_7i")
+
+        var indeces = List[List[Int]]()
+        for dim in range(shape.rank()):
+            var temp = List[Int]()
+            
+            # Option 1: Slice
+            if attrs[SLICE_LITERALS[dim]]:
+                var slice = attrs[SLICE_LITERALS[dim]].value().to_shape()
+                var step = slice[2] if slice.rank() == 3 else 1
+                for i in range(
+                    start=Self.adjust_boundary(slice[0], shape[dim]),
+                    end=Self.adjust_boundary(slice[1], shape[dim]),
+                    step=step
+                ):
+                    temp.append(i)
+
+            # Option 2: Indeces
+            elif attrs[INDEX_LITERALS[dim]]:
+                var indeces = attrs[INDEX_LITERALS[dim]].value().to_shape()
+                for i in range(indeces.rank()):
+                    temp.append(indeces[i])
+
+            # All indeces
+            else:
+                for i in range(shape[dim]):
+                    temp.append(i)
+
+            indeces.append(temp)
+        
+        return indeces ^
+
+    @staticmethod
+    fn result_shape(shape: TensorShape, attrs: AttributeVector) -> TensorShape:
+        var indeces = Self.to_indeces(shape, attrs)
+        var new_shape = List[Int]()
+        for i in range(shape.rank()):
+            new_shape.append(len(indeces[i]))
+        return TensorShape(new_shape)
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        alias indeces = Self.to_indeces(t1_shape, attributes)
+        alias strides = t1_shape.strides()
+
+        var j = 0
+        for comb in product(indeces):
+            var flat_index = 0
+            for dim in range(t1_shape.rank()):
+                flat_index += comb[dim] * strides[dim]
+            res[j] = t1[flat_index]
+            j += 1
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        attributes: AttributeVector = AttributeVector(),
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        return Tensor[dtype]()
