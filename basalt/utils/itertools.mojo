@@ -2,16 +2,14 @@
 @value
 struct _ProductIterator(Sized):
     var lists: List[List[Int]]
-    var indeces: List[Int]
+    var _current: Int
     var _iters: Int
 
     @always_inline("nodebug")
     fn __init__(inout self, lists: List[List[Int]]):
         self.lists = lists
-        self.indeces = List[Int]()
-        for i in range(len(lists)):
-            self.indeces.append(0)
-        
+        self._current = 0
+
         self._iters = 1
         for lst in self.lists:
             self._iters *= len(lst[])
@@ -26,20 +24,24 @@ struct _ProductIterator(Sized):
 
     @always_inline("nodebug")
     fn __next__(inout self) -> List[Int]:
-        var res = List[Int]()
-        for i in range(len(self.lists)):
-            res.append(self.lists[i][self.indeces[i]])
-        self._increment_indeces()
+        self._current += 1
         self._iters -= 1
-        return res ^
+        return self._get_combination(self._current - 1)
 
     @always_inline("nodebug")
-    fn _increment_indeces(inout self):
-        for i in reversed(range(len(self.indeces))):
-            self.indeces[i] += 1
-            if self.indeces[i] < len(self.lists[i]):
-                break
-            self.indeces[i] = 0
+    fn _get_combination(self, current: Int) -> List[Int]:
+        var combination = List[Int]()
+        var count = current
+        for i in reversed(range(len(self.lists))):
+            var index = count % len(self.lists[i])
+            combination.append(self.lists[i][index])
+            count //= len(self.lists[i])
+        combination._reverse()
+        return combination ^
+
+    @always_inline("nodebug")
+    fn __getitem__(self, index: Int) -> List[Int]:
+        return self._get_combination(index)
 
 
 @always_inline("nodebug")
