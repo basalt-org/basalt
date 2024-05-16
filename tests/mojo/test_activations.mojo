@@ -10,6 +10,7 @@ from basalt.nn import (
     ReLU,
     Sigmoid,
     Tanh,
+    Threshold,
 )
 from basalt.autograd import Graph, Symbol
 from basalt.utils.tensorutils import fill
@@ -19,6 +20,12 @@ from tests import assert_tensors_equal
 
 alias Activation = fn (inout g: Graph, input: Symbol) -> Symbol
 alias AxisActivation = fn (inout g: Graph, input: Symbol, axis: Int) -> Symbol
+alias ThresholdActivation = fn (
+    inout g: Graph,
+    input: Symbol,
+    threshold: Scalar[dtype],
+    value: Scalar[dtype],
+) -> Symbol
 
 
 fn create_graph[
@@ -30,7 +37,7 @@ fn create_graph[
     var x = g.input(shape)
     var activation = func(g, x, axis)
     g.out(activation)
-    return g ^
+    return g^
 
 
 fn create_graph[shape: TensorShape, func: Activation]() -> Graph:
@@ -38,7 +45,36 @@ fn create_graph[shape: TensorShape, func: Activation]() -> Graph:
     var x = g.input(shape)
     var activation = func(g, x)
     g.out(activation)
-    return g ^
+    return g^
+
+
+fn create_graph[
+    shape: TensorShape,
+    func: ThresholdActivation,
+    threshold: Scalar[dtype],
+    value: Scalar[dtype],
+]() -> Graph:
+    var g = Graph()
+    var x = g.input(shape)
+    var activation = func(g, x, threshold, value)
+    g.out(activation)
+    return g^
+
+
+fn test_graph[
+    shape: TensorShape,
+    func: ThresholdActivation,
+    nodes: Int,
+    threshold: Scalar[dtype],
+    value: Scalar[dtype],
+](input: Tensor[dtype], expected: Tensor[dtype]) raises:
+    alias graph = create_graph[shape, func, threshold, value]()
+
+    var model = Model[graph](inference_only=True)
+    var res = model.inference(input)[0]
+
+    assert_tensors_equal["almost"](res, expected)
+    assert_equal(len(graph.nodes), nodes)
 
 
 fn test_graph[
@@ -56,6 +92,7 @@ fn test_graph[
     assert_equal(len(graph.nodes), nodes)
 
 
+# TODO: All these overloads feel redundant. Find a way to condense them
 fn test_graph[
     shape: TensorShape,
     func: Activation,
@@ -68,6 +105,26 @@ fn test_graph[
 
     assert_tensors_equal["almost", "Tensor equality failed"](res, expected)
     assert_equal(len(graph.nodes), nodes, "Node count failed")
+
+
+fn test_THRESHOLD() raises:
+    alias shape = TensorShape(2, 3)
+    alias nodes = 1
+
+    alias THRESHOLD = 3
+    alias VALUE = 2
+
+    var input = Tensor[dtype](shape)
+
+    for i in range(6):
+        input[i] = i
+
+    var expected = Tensor[dtype](shape)
+
+    for i in range(6):
+        expected[i] = i if i > THRESHOLD else VALUE
+
+    test_graph[shape, Threshold, nodes, THRESHOLD, VALUE](input, expected)
 
 
 fn test_SOFTMAX() raises:

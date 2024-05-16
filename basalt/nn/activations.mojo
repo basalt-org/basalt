@@ -2,7 +2,21 @@ from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
 from basalt.autograd.attributes import Attribute, AttributeVector
 
+
 # '''Activation functions.'''
+fn Threshold(
+    inout g: Graph,
+    input: Symbol,
+    threshold: Scalar[dtype],
+    value: Scalar[dtype],
+) -> Symbol:
+    return g.op(
+        OP.THRESHOLD,
+        input,
+        attributes=AttributeVector(
+            Attribute("threshold", threshold), Attribute("value", value)
+        ),
+    )
 
 
 fn ReLU(inout g: Graph, input: Symbol) -> Symbol:
