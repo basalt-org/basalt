@@ -54,14 +54,14 @@ struct THRESHOLD:
         ]()
 
         @always_inline
-        fn threshold[
+        fn threshold_bw[
             type: DType, simd_width: Int
         ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
             return (x > x.splat(THRESHOLD.cast[type]())).select[type](1, 0)
 
         var res_grad = Tensor[dtype](t1_shape)
 
-        elwise_transform[threshold](res_grad, t1)
+        elwise_transform[threshold_bw](res_grad, t1)
 
         return res_grad^
 
