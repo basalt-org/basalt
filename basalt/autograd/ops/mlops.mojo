@@ -31,9 +31,10 @@ struct THRESHOLD:
         fn threshold[
             type: DType, simd_width: Int
         ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
-            return (x > x.splat(THRESHOLD.cast[type]())).select[type](
-                x, VALUE.cast[type]()
-            )  # Feels like using AttributeVector made this unnecessarily complicated
+            alias casted_threshold = THRESHOLD.cast[type]()
+            alias casted_value = VALUE.cast[type]()
+
+            return (x > x.splat(casted_threshold)).select[type](x, casted_value)
 
         elwise_transform[threshold](res, t1)
 
