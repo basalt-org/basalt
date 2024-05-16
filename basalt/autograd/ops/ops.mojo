@@ -370,7 +370,7 @@ fn backward_op[
     elif op == OP.RESHAPE:
         res_grad = RESHAPE.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.THRESHOLD:
-        res_grad = THRESHOLD.backward[ug_shape, t1_shape](ug, t1)
+        res_grad = THRESHOLD.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.SIGMOID:
         res_grad = SIGMOID.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.RELU:
