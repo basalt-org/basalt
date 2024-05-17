@@ -31,6 +31,21 @@ fn Tanh(inout g: Graph, input: Symbol) -> Symbol:
     return g.op(OP.TANH, input)
 
 
+fn Hardtanh(
+    inout g: Graph,
+    input: Symbol,
+    min_val: Scalar[dtype],
+    max_val: Scalar[dtype],
+) -> Symbol:
+    return g.op(
+        OP.HARDTANH,
+        input,
+        attributes=AttributeVector(
+            Attribute("min_val", min_val), Attribute("max_val", max_val)
+        ),
+    )
+
+
 fn Softmax(inout g: Graph, input: Symbol, axis: Int) -> Symbol:
     # softmax: exp(x_i) / sum(exp(x_j))
     # stable softmax: exp(x_i - max(x_j)) / sum(exp(x_j - max(x_j)))

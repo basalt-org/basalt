@@ -10,6 +10,7 @@ from basalt.nn import (
     ReLU,
     Sigmoid,
     Tanh,
+    Hardtanh,
     Threshold,
 )
 from basalt.autograd import Graph, Symbol
@@ -208,13 +209,43 @@ fn test_TANH() raises:
     test_graph[shape, Tanh, nodes](input, expected)
 
 
+fn test_HARDTANH() raises:
+    alias shape = TensorShape(3, 3)
+    alias nodes = 1
+
+    alias MIN_VAL = -2
+    alias MAX_VAL = 2
+
+    var input = Tensor[dtype](shape)
+
+    for i in range(9):
+        input[i] = i - 4
+
+    var expected = Tensor[dtype](shape)
+
+    for j in range(0, 9):
+        var i = j - 4
+        if i < MIN_VAL:
+            expected[j] = MIN_VAL
+
+        elif i > MAX_VAL:
+            expected[j] = MAX_VAL
+
+        else:
+            expected[j] = i
+
+    test_graph[shape, Hardtanh, nodes, MIN_VAL, MAX_VAL](input, expected)
+
+
 fn main():
     try:
+        test_THRESHOLD()
         test_SOFTMAX()
         test_LOGSOFTMAX()
         test_RELU()
         test_SIGMOID()
         test_TANH()
+        test_HARDTANH()
     except e:
         print("[ERROR] Error in activations")
         print(e)
