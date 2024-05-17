@@ -323,9 +323,7 @@ struct POW:
 
             @parameter
             fn vec_pow_bw_x[nelts: Int](i: Int):
-                res_grad.store[nelts](
-                    i, a * (t1.load[nelts](i) ** (a - 1)) * ug.load[nelts](i)
-                )
+                res_grad.store[nelts](i, a * ((t1.load[nelts](i) + epsilon) ** (a - 1)) * ug.load[nelts](i))
 
             vectorize[vec_pow_bw_x, nelts](t1_shape.num_elements())
 
