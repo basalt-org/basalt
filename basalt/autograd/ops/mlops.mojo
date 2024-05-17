@@ -507,8 +507,11 @@ struct INDEX:
         var SLICE_LITERALS = List[StringLiteral]("dim_0s", "dim_1s", "dim_2s", "dim_3s", "dim_4s", "dim_5s", "dim_6s", "dim_7s")
         var INDEX_LITERALS = List[StringLiteral]("dim_0i", "dim_1i", "dim_2i", "dim_3i", "dim_4i", "dim_5i", "dim_6i", "dim_7i")
 
+        var rank = shape.rank()
         var indeces = List[List[Int]]()
-        for dim in range(shape.rank()):
+        indeces.reserve(rank)
+        
+        for dim in range(rank):
             var temp = List[Int]()
             
             # Option 1: Slice
@@ -540,8 +543,10 @@ struct INDEX:
     @staticmethod
     fn result_shape(shape: TensorShape, attrs: AttributeVector) -> TensorShape:
         var indeces = Self.to_indeces(shape, attrs)
+        var rank = shape.rank()
         var new_shape = List[Int]()
-        for i in range(shape.rank()):
+        new_shape.reserve(rank)
+        for i in range(rank):
             new_shape.append(len(indeces[i]))
         return TensorShape(new_shape)
 
