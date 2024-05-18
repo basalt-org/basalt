@@ -6,6 +6,7 @@ from basalt import Tensor, TensorShape
 from basalt.nn.tensor import MAX_RANK
 from basalt.utils.tensorutils import *
 from basalt.autograd.attributes import Attribute, AttributeVector
+from basalt.autograd.ops.matmul import dot, dot_transpose_t1, dot_transpose_t2
 
 """
 Implement forward and backward operations for basic tensor manipulations.
