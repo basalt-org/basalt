@@ -15,7 +15,7 @@ from .basics import (
     TRANSPOSE,
     FMA,
 )
-from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE, SLICE
+from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE, SLICE, ACOS, COS
 from .dynamics import CONCAT, SPLIT
 from .conv import CONV2D
 from .pool import MAXPOOL2D
@@ -61,6 +61,8 @@ struct OP(Stringable):
     alias CONCAT = OP(23, "CONCAT", dynamic=True)
     alias SPLIT = OP(24, "SPLIT", dynamic=True)
     alias SLICE = OP(25, "SLICE")
+    alias ACOS = OP(26, "ACOS")
+    alias COS = OP(27, "COS")
 
     var id: UInt8
     var name: Bytes[16]
@@ -135,6 +137,10 @@ fn static_result_shape(
         return UNSQUEEZE.result_shape(t1_shape, attributes)
     elif op == OP.SLICE:
         return SLICE.result_shape(t1_shape, attributes)
+    elif op == OP.ACOS:
+        return ACOS.result_shape(t1_shape)
+    elif op == OP.COS:
+        return COS.result_shape(t1_shape)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1)
@@ -237,6 +243,10 @@ fn forward_op[
         RELU.forward[t1_shape](res, t1)
     elif op == OP.TANH:
         TANH.forward[t1_shape](res, t1)
+    elif op == OP.ACOS:
+        ACOS.forward[t1_shape](res, t1)
+    elif op == OP.COS:
+        COS.forward[t1_shape](res, t1)
     elif op == OP.TRANSPOSE:
         TRANSPOSE.forward[t1_shape, attributes](res, t1)
     elif op == OP.MAXPOOL2D:
@@ -349,6 +359,10 @@ fn backward_op[
         res_grad = RELU.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.TANH:
         res_grad = TANH.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.ACOS:
+        res_grad = ACOS.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.COS:
+        res_grad = COS.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.TRANSPOSE:
         res_grad = TRANSPOSE.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.MAXPOOL2D:

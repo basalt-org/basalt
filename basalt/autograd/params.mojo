@@ -29,6 +29,7 @@ struct Param(CollectionElement, Stringable):
         # Supported initializers:
         #   "random_uniform", lower_bound, upper_bound
         #   "random_normal", mean, std
+        #   "arange"
         #   #TODO: "kaiming_uniform", mode, nonlinearity
         #   #TODO: "kaiming_normal", mode, nonlinearity
         self.initializer = Attribute("initializer", initializer)

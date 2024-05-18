@@ -16,6 +16,14 @@ fn Sigmoid(inout g: Graph, input: Symbol) -> Symbol:
 fn Tanh(inout g: Graph, input: Symbol) -> Symbol:
     return g.op(OP.TANH, input)
 
+fn Acos(inout g: Graph, input: Symbol) -> Symbol:
+    return g.op(OP.ACOS, input)
+
+
+fn Cos(inout g: Graph, input: Symbol) -> Symbol:
+    return g.op(OP.COS, input)
+
+
 
 fn Softmax(inout g: Graph, input: Symbol, axis: Int) -> Symbol:
     # softmax: exp(x_i) / sum(exp(x_j))

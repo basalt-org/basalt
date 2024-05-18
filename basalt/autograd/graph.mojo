@@ -125,6 +125,22 @@ struct Graph:
         self.nodes.append(Node(OP.CONCAT, inputs, List[Symbol](res), attributes))
         return res
 
+    fn concat(inout self, operand: Symbol, times: Int, dim: Int = 0) -> Symbol:
+        # NOTE: Concat could fit into g.op() given a different static_result_shape is called
+        var attributes = AttributeVector(Attribute("dim", dim))
+
+        var res_shape = dynamic_result_shape(OP.CONCAT, operand, attributes)[0]
+        var res = Symbol(
+            self.symbol_count, dtype, res_shape, self.result_trainable(operand)
+        )
+        self.symbol_count += 1
+
+        var inputs = List[Symbol]()
+        for i in range(times):
+            inputs.append(operand)
+        self.nodes.append(Node(OP.CONCAT, inputs, List[Symbol](res), attributes))
+        return res
+
     fn split(
         inout self, operand: Symbol, sections: List[Int], dim: Int = 0
     ) -> List[Symbol]:

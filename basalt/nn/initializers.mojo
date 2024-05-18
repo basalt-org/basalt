@@ -1,4 +1,5 @@
-from math import sqrt
+from math import sqrt, iota
+from algorithm import vectorize
 
 from basalt import dtype
 from basalt import Tensor, TensorShape
@@ -19,6 +20,16 @@ fn initialize_tensor(
         var std = data[1].cast[DType.float64]()
         var t = Tensor[dtype](shape)
         rand_normal(t, mean=mean, std=std)
+        return t
+    elif type == "arange":
+        var t = Tensor[dtype](shape)
+
+        @parameter
+        fn vec_arange[nelts: Int](i: Int):
+            t.store[nelts](i, iota[dtype, nelts]() + i)
+
+        vectorize[vec_arange, nelts](t.num_elements())
+
         return t
     # elif type == "kaiming_uniform":
     #     # mode, nonlinearity

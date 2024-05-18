@@ -1,5 +1,5 @@
 from algorithm import vectorize, parallelize
-from math import exp, pow, max, min, abs
+from math import exp, pow, max, min, abs, acos, sqrt, cos, sin
 from math.limit import min_finite, max_finite
 
 from basalt import Tensor, TensorShape
@@ -145,6 +145,96 @@ struct TANH:
             )
 
         vectorize[vec_tanh_bw, nelts](ug_shape.num_elements())
+
+        return res_grad ^
+
+struct ACOS:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape) -> TensorShape:
+        return t1_shape
+
+    @staticmethod
+    @always_inline
+    fn acos[
+        type: DType, simd_width: Int
+    ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+        return acos(x)
+
+    @staticmethod
+    @always_inline
+    fn acos_bw[
+        type: DType, simd_width: Int
+    ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+        return -1 / sqrt(1 - x ** 2)
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        """Forward operation of tanh."""
+        elwise_transform[Self.acos](res, t1)
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of tanh."""
+        # d(tanh(x))/dx = 1 - tanh(x) ** 2
+        var res_grad = Tensor[dtype](ug_shape)
+
+        @parameter
+        fn vec_acos_bw[nelts: Int](idx: Int):
+            res_grad.store[nelts](
+                idx, Self.acos_bw(t1.load[nelts](idx)) * ug.load[nelts](idx)
+            )
+
+        vectorize[vec_acos_bw, nelts](ug_shape.num_elements())
+
+        return res_grad ^
+
+struct COS:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape) -> TensorShape:
+        return t1_shape
+
+    @staticmethod
+    @always_inline
+    fn cos[
+        type: DType, simd_width: Int
+    ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+        return cos(x)
+
+    @staticmethod
+    @always_inline
+    fn cos_bw[
+        type: DType, simd_width: Int
+    ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+        return -sin(x)
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        """Forward operation of tanh."""
+        elwise_transform[Self.cos](res, t1)
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of tanh."""
+        # d(tanh(x))/dx = 1 - tanh(x) ** 2
+        var res_grad = Tensor[dtype](ug_shape)
+
+        @parameter
+        fn vec_cos_bw[nelts: Int](idx: Int):
+            res_grad.store[nelts](
+                idx, Self.cos_bw(t1.load[nelts](idx)) * ug.load[nelts](idx)
+            )
+
+        vectorize[vec_cos_bw, nelts](ug_shape.num_elements())
 
         return res_grad ^
 
