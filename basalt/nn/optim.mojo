@@ -1,9 +1,10 @@
 from math import add, mul, div, sqrt, sub
-from algorithm import vectorize, parallelize
+from algorithm import vectorize
 
 from .model import Parameters
 from basalt import Graph, Tensor, TensorShape
 from basalt.utils.collection import Collection
+from basalt.utils.parallel import parallelize
 
 
 fn get_trainable_parameters(g: Graph) -> List[Symbol]:

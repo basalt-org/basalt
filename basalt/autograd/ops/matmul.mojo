@@ -1,5 +1,6 @@
 from basalt.utils.tensorutils import transpose_2D
-from algorithm import vectorize, parallelize
+from algorithm import vectorize
+from basalt.utils.parallel import parallelize
 
 
 @always_inline
