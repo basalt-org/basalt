@@ -50,12 +50,10 @@ struct Collection:
         return self.size
 
     @always_inline("nodebug")
-    fn reserve(inout self, size: Int):
-        self._realloc(size)
-
-    @always_inline("nodebug")
-    fn reserve_additional(inout self, size: Int):
-        self._realloc(self.size + size)
+    fn reserve(inout self, capacity: Int):
+        self.data = UnsafePointer[Tensor[dtype]].alloc(capacity)
+        self.symbols = DTypePointer[DType.uint32].alloc(capacity)
+        self.capacity = capacity
 
     @always_inline("nodebug")
     fn _realloc(inout self, new_capacity: Int):

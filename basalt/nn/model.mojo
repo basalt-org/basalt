@@ -38,15 +38,26 @@ fn n_inference_nodes(g: Graph) -> OptionalReg[Int]:
                 return i + 1
     return None
 
+fn n_tensors(g: Graph) -> Int:
+    var num_inputs = len(g.inputs)
+    var num_params = len(g.params)
+    var num_nodes = len(g.nodes)
+    var num_node_outputs = 0
+
+    for i in range(num_nodes):
+        num_node_outputs += len(g.nodes[i].outputs)
+
+    return num_inputs + num_params + num_node_outputs
+
 
 @value
 struct Parameters:
     var tensors: Collection
     var grads: Collection
 
-    fn __init__(inout self):
-        self.tensors = Collection()
-        self.grads = Collection()
+    fn __init__(inout self, *, capacity: Int = 0):
+        self.tensors = Collection(capacity = capacity)
+        self.grads = Collection(capacity = capacity)
 
 
 struct Model[
@@ -57,7 +68,11 @@ struct Model[
     var perf_metrics: PerfMetrics
 
     fn __init__(inout self, inference_only: Bool = False):
-        self.parameters = Parameters()
+        alias param_count = n_tensors(g)
+
+        self.parameters = Parameters(capacity = param_count)
+
+        # Capacity is g.inputs + g.params + g.node[.].outputs
 
         @parameter
         if DEBUG == 1:
@@ -66,7 +81,6 @@ struct Model[
             self.perf_metrics = PerfMetrics()
 
         # NOTE: These could be further optimized by combining into one method to save called to len()
-        self.reserve_memory()
         self.allocate_tensor_memory()
         self.allocate_grad_memory()
 
@@ -305,19 +319,6 @@ struct Model[
                 self.perf_metrics.end_backward_pass(i)
 
         unroll[bw_unroll, g.nodes.size]()
-
-    fn reserve_memory(inout self):
-        var input_len = len(g.inputs)
-        var param_len = len(g.params)
-        var output_nodes = len(g.nodes)
-        var output_len = 0
-
-        for i in range(len(g.nodes)):
-            output_len += len(g.nodes[i].outputs)
-
-        var size = input_len + param_len + output_len
-        self.parameters.tensors.reserve(size)
-        self.parameters.grads.reserve(size)
 
     fn allocate_tensor_memory(inout self):
         for i in range(len(g.inputs)):
