@@ -65,6 +65,7 @@ struct Model[
         else:
             self.perf_metrics = PerfMetrics()
 
+        self.reserve_memory()
         self.allocate_tensor_memory()
         self.allocate_grad_memory()
 
@@ -303,6 +304,19 @@ struct Model[
                 self.perf_metrics.end_backward_pass(i)
 
         unroll[bw_unroll, g.nodes.size]()
+
+    fn reserve_memory(inout self):
+        var input_len = len(g.inputs)
+        var param_len = len(g.params)
+        var output_nodes = len(g.nodes)
+        var output_len = 0
+
+        for i in range(len(g.nodes)):
+            output_len += len(g.nodes[i].outputs)
+
+        var size = input_len + param_len + output_len
+        self.parameters.tensors.reserve(size)
+        self.parameters.grads.reserve(size)
 
     fn allocate_tensor_memory(inout self):
         for i in range(len(g.inputs)):
