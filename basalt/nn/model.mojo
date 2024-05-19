@@ -65,6 +65,7 @@ struct Model[
         else:
             self.perf_metrics = PerfMetrics()
 
+        # NOTE: These could be further optimized by combining into one method to save called to len()
         self.reserve_memory()
         self.allocate_tensor_memory()
         self.allocate_grad_memory()
