@@ -6,32 +6,12 @@ from basalt.nn.model import Parameters
 from basalt.nn.tensor import Tensor, TensorShape
 from basalt.autograd.attributes import Attribute, AttributeType
 from basalt.autograd.ops import OP
+from basalt.autograd.graph import Node
+
+from .tensor_creation_utils import to_numpy, copy_np_data
 
 # NOTE: Maybe we could create our own model representation and from there convert to onnx or others (well we already have it in reallity)
 # NOTE: Torch doesn't import onnx, need onnx2torch and it doesn't support operators like reshape?
-
-fn to_numpy(tensor: Tensor) raises -> PythonObject:
-    var np = Python.import_module("numpy")
-
-    np.set_printoptions(4)
-    var rank = tensor.rank()
-    var pyarray: PythonObject = np.array([0])
-
-    if rank == 1:
-        pyarray = np.empty((tensor.dim(0)))
-    elif rank == 2:
-        pyarray = np.empty((tensor.dim(0), tensor.dim(1)))
-    elif rank == 3:
-        pyarray = np.empty((tensor.dim(0), tensor.dim(1), tensor.dim(2)))
-    elif rank == 4:
-        pyarray = np.empty((tensor.dim(0), tensor.dim(1), tensor.dim(2), tensor.dim(3)))
-    else:
-        print("Error: rank not supported: ", rank)
-
-    for i in range(tensor.num_elements()):
-        pyarray.itemset((i), tensor[i])
-
-    return pyarray
 
 
 fn make_onnx_attribute(op: OP, attr: Attribute) raises -> PythonObject:
@@ -68,9 +48,7 @@ fn make_onnx_attribute(op: OP, attr: Attribute) raises -> PythonObject:
         else:
             raise Error("Unsupported attribute name for operator " + str(op))
 
-    if (op == OP.CONV2D and attr_name) == "pads" or (
-        op == OP.MAXPOOL2D and attr_name
-    ) == "pads":
+    if (op == OP.CONV2D or op == OP.MAXPOOL2D) and attr_name == "pads":
         # Special case for pads in conv and maxpool, onnx wants pads to be [x1_begin, x2_begin…x1_end, x2_end,…],
         attr_value.append(attr_value[0])
         attr_value.append(attr_value[1])
@@ -190,13 +168,86 @@ fn load_onnx_model(
                         + data_shape
                     )
 
-            var data = data_np.flatten()
-
-            # It would be better to use memcpy here
-            for j in range(len(data)):
-                model_parameters.tensors[g.params.symbols[i]][j] = data[j].to_float64()
+            copy_np_data(model_parameters.tensors[g.params.symbols[i]], data_np)
         else:
             raise Error("Unsupported data type")
+
+
+fn create_attributes_and_constant_inputs(node: Node, node_number: Int) raises -> (List[PythonObject], List[PythonObject]):
+    var onnx = Python.import_module("onnx")
+    var np = Python.import_module("numpy")
+
+    var attributes = List[PythonObject]()
+    var inputs = List[PythonObject]()
+
+    for i in range(len(node.attributes)):
+        var attr = node.attributes[i]
+
+        @parameter
+        fn to_np_array(attr: Attribute) raises -> PythonObject:
+            if not attr.type == AttributeType.INTS:
+                raise Error("Attribute is not a shape")
+
+            var values_np: PythonObject
+            if attr.type == AttributeType.INTS:
+                var shape = attr.to_shape()
+                values_np = PythonObject([])
+                for j in range(shape.rank()):
+                    values_np.append(shape[j])
+            elif attr.type == AttributeType.FLOAT:
+                values_np = attr.to_scalar[DType.float64]()
+            elif attr.type == AttributeType.INT:
+                values_np = attr.to_int()
+            else:
+                raise Error("Unsupported attribute type")
+
+            var np_array = np.array(values_np, dtype=np.int64)
+
+            return onnx.numpy_helper.from_array(np_array)
+        
+        # Special cases where attributes are considered as inputs, so we create Constant inputs
+        if node.operator == OP.RESHAPE:
+            if str(attr.name) == "shape":
+                var outputs = PythonObject([])
+                outputs.append(str(node.operator) + "_" + str(attr.name) + "_" + str(node_number))
+                var temp_node = onnx.helper.make_node(
+                    op_type="Constant",
+                    inputs=[],
+                    outputs=outputs,
+                    value=to_np_array(attr),
+                )
+
+                inputs.append(temp_node)
+        elif node.operator == OP.CLIP:
+            if str(attr.name) == "min" or str(attr.name) == "max":
+                var outputs = PythonObject([])
+                outputs.append(str(node.operator) + "_" + str(attr.name) + "_" + str(node_number))
+                var temp_node = onnx.helper.make_node(
+                    op_type="Constant",
+                    inputs=[],
+                    outputs=outputs,
+                    value=to_np_array(attr),
+                )
+
+                inputs.append(temp_node)
+        elif node.operator == OP.SQUEEZE or node.operator == OP.UNSQUEEZE:
+            if str(attr.name) == "dims":
+                var outputs = PythonObject([])
+                outputs.append(str(node.operator) + "_" + str(attr.name) + "_" + str(node_number))
+                var temp_node = onnx.helper.make_node(
+                    op_type="Constant",
+                    inputs=[],
+                    outputs=outputs,
+                    value=to_np_array(attr),
+                )
+
+                inputs.append(temp_node)
+        else:
+            var attr_value = make_onnx_attribute(node.operator, attr)
+
+            attributes.append(attr_value)
+
+    return (attributes, inputs)
 
 
 fn export_onnx_model(model_path: Path, model_parameters: Parameters, g: Graph) raises:
@@ -261,6 +312,14 @@ fn export_onnx_model(model_path: Path, model_parameters: Parameters, g: Graph) r
                 var onnx_output = onnx_helper.make_tensor_value_info(name, dtype, shape)
                 graph.value_info.append(onnx_output)
 
+        # Process attributes
+        var attributes_and_inputs = create_attributes_and_constant_inputs(node, i)
+        var attributes = attributes_and_inputs[0]
+        var inputs_constant = attributes_and_inputs[1]
+        for j in range(len(inputs_constant)):
+            inputs.append(inputs_constant[j].output[0])
+            graph.node.append(inputs_constant[j])
+
         # Create onnx node
         var onnx_node = onnx_helper.make_node(
             op_type,
@@ -268,33 +327,8 @@ fn export_onnx_model(model_path: Path, model_parameters: Parameters, g: Graph) r
             outputs,
             name,
         )
-
-        # Process attributes
-        for j in range(len(node.attributes)):
-            var attr = node.attributes[j]
-            var attr_value = make_onnx_attribute(node.operator, attr)
-
-            # Special case for reshape, shape in reshape is not an attribute, instead it is an input because they can be dynamic
-            if not node.operator == OP.RESHAPE:
-                onnx_node.attribute.append(attr_value)
-
-        # Special case for reshape, shape in reshape is not an attribute, instead it is an input because they can be dynamic (it can be the result of another operator, don't know why)
-        if node.operator == OP.RESHAPE:
-            var shape = node.attributes[0].to_shape()
-            var list_shape = PythonObject([])
-            for j in range(shape.rank()):
-                list_shape.append(shape[j])
-
-            graph.initializer.append(
-                onnx_helper.make_tensor(
-                    name=name + "_shape",
-                    data_type=onnx.TensorProto.INT64,
-                    dims=(shape.rank(),),
-                    vals=list_shape,
-                )
-            )
-
-            onnx_node.input.append(name + "_shape")
+        for attribute in attributes:
+            onnx_node.attribute.append(attribute[])
 
         graph.node.append(onnx_node)
 
