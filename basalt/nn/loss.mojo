@@ -16,6 +16,18 @@ fn MSELoss(
 
     return mean_loss
 
+fn MAELoss(
+    inout g: Graph,
+    y_pred: Symbol,
+    y_true: Symbol
+) -> Symbol:
+    # 1 / N * sum(abs(outputs - targets))
+    var diff = g.op(OP.SUB, y_true, y_pred)
+    var abs = g.op(OP.ABS, y_true, y_pred)
+    var mean_loss = g.op(OP.MEAN, abs)
+
+    return mean_loss
+
 
 fn CrossEntropyLoss(
     inout g: Graph,

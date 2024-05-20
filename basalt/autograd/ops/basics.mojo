@@ -771,3 +771,37 @@ struct FMA:
             return res_grad ^
         else:
             return ug
+
+@value
+struct ABS:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape) -> TensorShape:
+        return t1_shape
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        @parameter
+        fn vec_abs[nelts: Int](i: Int):
+            res.store[nelts](i, abs(t1.load[nelts](i)))
+
+        vectorize[vec_abs, nelts, size = t1_shape.num_elements()]()
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        # d/dx abs = -1 if x < 0, 0 at 0, and 1 when x > 0
+        var res_grad = Tensor[dtype](ug_shape)
+
+        @parameter
+        fn vec_abs_bw[nelts: Int](i: Int):
+            var t1_val = t1.load[nelts](i)
+            var grad_val = -1 if t1_val < 0 else 0 if t1_val == 0 else 1
+            res_grad.store[nelts](i, grad_val * ug.load[nelts](i))
+
+        vectorize[vec_abs_bw, nelts, size = ug_shape.num_elements()]()
+
+        return res_grad ^

@@ -14,6 +14,7 @@ from .basics import (
     RESHAPE,
     TRANSPOSE,
     FMA,
+    ABS
 )
 from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE, SLICE
 from .dynamics import CONCAT, SPLIT
@@ -61,6 +62,7 @@ struct OP(Stringable):
     alias CONCAT = OP(23, "CONCAT", dynamic=True)
     alias SPLIT = OP(24, "SPLIT", dynamic=True)
     alias SLICE = OP(25, "SLICE")
+    alias ABS = OP(26, "ABS")
 
     var id: UInt8
     var name: Bytes[16]
@@ -135,6 +137,8 @@ fn static_result_shape(
         return UNSQUEEZE.result_shape(t1_shape, attributes)
     elif op == OP.SLICE:
         return SLICE.result_shape(t1_shape, attributes)
+    elif op == OP.ABS:
+        return ABS.result_shape(t1_shape)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1)
@@ -249,6 +253,8 @@ fn forward_op[
         UNSQUEEZE.forward[t1_shape, attributes](res, t1)
     elif op == OP.SLICE:
         SLICE.forward[t1_shape, attributes](res, t1)
+    elif op == OP.ABS:
+        ABS.forward[t1_shape](res, t1)
     else:
         print("[ERROR] Operator not found.")
 
@@ -361,6 +367,8 @@ fn backward_op[
         res_grad = UNSQUEEZE.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.SLICE:
         res_grad = SLICE.backward[ug_shape, t1_shape, attributes](ug, t1)
+    elif op == OP.ABS:
+        res_grad = ABS.backward[ug_shape, t1_shape](ug, t1)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1)
