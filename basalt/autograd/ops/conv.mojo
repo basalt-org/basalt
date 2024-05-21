@@ -1,6 +1,5 @@
 from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
-from basalt.utils.tensorutils import dot, dot_transpose_t1, dot_transpose_t2
 
 from algorithm import parallelize, vectorize, tile
 from math import divmod

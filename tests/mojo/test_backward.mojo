@@ -157,10 +157,15 @@ fn test_POW() raises:
     fill(temp, (2**2) * log[dtype, 1](2))
     expected_grad2[0] = tsum(temp)
 
-    test_binary_op_backward[OP.POW, t1_shape, t2_shape, ug_shape](
-        t1, t2, ug, expected_grad1, expected_grad2
-    )
+    test_binary_op_backward[OP.POW, t1_shape, t2_shape, ug_shape](t1, t2, ug, expected_grad1, expected_grad2)
 
+    fill(t1, 0.0)
+    fill(t2, 0)
+    fill(ug, 1.0)
+    fill(expected_grad1, 0.0)
+    fill(expected_grad2, 0.0)
+
+    test_binary_op_backward[OP.POW, t1_shape, t2_shape, ug_shape](t1, t2, ug, expected_grad1, expected_grad2)
 
 fn test_SUM() raises:
     alias t1_shape = TensorShape(2, 3)

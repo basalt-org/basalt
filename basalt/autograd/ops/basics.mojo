@@ -6,6 +6,7 @@ from basalt import Tensor, TensorShape
 from basalt.nn.tensor import MAX_RANK
 from basalt.utils.tensorutils import *
 from basalt.autograd.attributes import Attribute, AttributeVector
+from basalt.autograd.ops.matmul import dot, dot_transpose_t1, dot_transpose_t2
 
 """
 Implement forward and backward operations for basic tensor manipulations.
@@ -323,9 +324,7 @@ struct POW:
 
             @parameter
             fn vec_pow_bw_x[nelts: Int](i: Int):
-                res_grad.store[nelts](
-                    i, a * (t1.load[nelts](i) ** (a - 1)) * ug.load[nelts](i)
-                )
+                res_grad.store[nelts](i, a * ((t1.load[nelts](i) + epsilon) ** (a - 1)) * ug.load[nelts](i))
 
             vectorize[vec_pow_bw_x, nelts](t1_shape.num_elements())
 
