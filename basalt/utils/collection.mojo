@@ -1,8 +1,7 @@
 from math import max, divmod
-from math.bit import ctlz
-from memory.unsafe_pointer import UnsafePointer, move_from_pointee, initialize_pointee_copy, initialize_pointee_move, destroy_pointee
+from memory.unsafe_pointer import UnsafePointer, initialize_pointee_move, destroy_pointee
 
-from basalt import Tensor, TensorShape, Symbol
+from basalt import Tensor, Symbol
 
 
 struct Collection(CollectionElement, Sized):
