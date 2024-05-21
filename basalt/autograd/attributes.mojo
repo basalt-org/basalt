@@ -115,7 +115,7 @@ struct Attribute(Stringable, CollectionElement):
         self.size = N
 
         for i in range(self.size):
-            self.data[i] = value[i]
+            self.data_shape[i] = value[i]
 
     @always_inline("nodebug")
     fn __init__[dtype: DType](inout self, name: String, value: Scalar[dtype]):
@@ -156,7 +156,7 @@ struct Attribute(Stringable, CollectionElement):
         var result = StaticIntTuple[N]()
 
         for i in range(N):
-            result[i] = int(self.data[i])
+            result[i] = int(self.data_shape[i])
 
         return result
 
