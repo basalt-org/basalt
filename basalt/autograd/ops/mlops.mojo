@@ -162,6 +162,61 @@ struct RELU:
         return res_grad^
 
 
+struct LEAKYRELU:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape) -> TensorShape:
+        return t1_shape
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        """Forward operation of leaky_relu."""
+
+        fn leaky_relu[
+            type: DType,
+            simd_width: Int,
+        ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+            var negative_slope = attributes["negative_slope"].value().to_scalar[
+                type
+            ]()
+            return (x > 0).select(x, x * negative_slope)
+
+        elwise_transform[leaky_relu](res, t1)
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of leaky_relu."""
+
+        @always_inline
+        fn leaky_relu_bw[
+            type: DType, simd_width: Int
+        ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+            var negative_slope = attributes["negative_slope"].value().to_scalar[
+                type
+            ]()
+
+            return (x > 0).select[type](1, negative_slope)
+
+        var res_grad = Tensor[dtype](ug_shape)
+
+        @parameter
+        fn vec_leaky_relu_bw[nelts: Int](idx: Int):
+            res_grad.store[nelts](
+                idx,
+                leaky_relu_bw(t1.load[nelts](idx)) * ug.load[nelts](idx),
+            )
+
+        vectorize[vec_leaky_relu_bw, nelts](ug_shape.num_elements())
+
+        return res_grad^
+
+
 struct TANH:
     @staticmethod
     fn result_shape(t1_shape: TensorShape) -> TensorShape:

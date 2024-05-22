@@ -19,6 +19,7 @@ from .mlops import (
     THRESHOLD,
     SIGMOID,
     RELU,
+    LEAKYRELU,
     TANH,
     HARDTANH,
     CLIP,
@@ -73,6 +74,7 @@ struct OP(Stringable):
     alias SLICE = OP(25, "SLICE")
     alias THRESHOLD = OP(26, "THRESHOLD")
     alias HARDTANH = OP(27, "HARDTANH")
+    alias LEAKYRELU = OP(28, "LEAKYRELU")
 
     var id: UInt8
     var name: Bytes[16]
@@ -141,6 +143,8 @@ fn static_result_shape(
         return SIGMOID.result_shape(t1_shape)
     elif op == OP.RELU:
         return RELU.result_shape(t1_shape)
+    elif op == OP.LEAKYRELU:
+        return LEAKYRELU.result_shape(t1_shape)
     elif op == OP.TANH:
         return TANH.result_shape(t1_shape)
     elif op == OP.HARDTANH:
@@ -259,6 +263,8 @@ fn forward_op[
         SIGMOID.forward[t1_shape](res, t1)
     elif op == OP.RELU:
         RELU.forward[t1_shape](res, t1)
+    elif op == OP.LEAKYRELU:
+        LEAKYRELU.forward[t1_shape, attributes](res, t1)
     elif op == OP.TANH:
         TANH.forward[t1_shape](res, t1)
     elif op == OP.HARDTANH:
@@ -381,6 +387,8 @@ fn backward_op[
         res_grad = SIGMOID.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.RELU:
         res_grad = RELU.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.LEAKYRELU:
+        res_grad = LEAKYRELU.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.TANH:
         res_grad = TANH.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.HARDTANH:
