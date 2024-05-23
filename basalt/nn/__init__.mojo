@@ -10,6 +10,7 @@ from .activations import (
     Softmax,
     LogSoftmax,
     ReLU,
+    LeakyReLU,
     Sigmoid,
     Tanh,
     Hardtanh,
