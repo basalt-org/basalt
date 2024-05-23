@@ -189,6 +189,38 @@ fn test_backward_TANH() raises:
     test_unary_op_backward[OP.TANH, t1_shape, ug_shape](t1, ug, expected_grad)
 
 
+fn test_HARDTANH() raises:
+    alias t1_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+
+    var expected = Tensor[dtype](2, 3)
+    fill(expected, 0.0)
+
+    test_unary_op[
+        OP.HARDTANH,
+        t1_shape,
+        AttributeVector(Attribute("min_val", -3), Attribute("max_val", 3)),
+    ](t1, expected)
+
+
+fn test_backward_HARDTANH() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias ug_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    fill(ug, 5.0)
+
+    var expected_grad = Tensor[dtype](2, 3)
+    fill(expected_grad, 0)  # 5 > 3, so slope is 0.
+
+    test_unary_op_backward[
+        OP.HARDTANH,
+        t1_shape,
+        ug_shape,
+        AttributeVector(Attribute("min_val", -3), Attribute("max_val", 3)),
+    ](t1, ug, expected_grad)
+
+
 fn test_CLIP() raises:
     alias t1_shape = TensorShape(2, 3)
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
