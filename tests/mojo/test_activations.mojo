@@ -8,6 +8,7 @@ from basalt.nn import (
     Softmax,
     LogSoftmax,
     ReLU,
+    LeakyReLU,
     Sigmoid,
     Tanh,
     Hardtanh,
@@ -21,6 +22,9 @@ from tests import assert_tensors_equal
 
 alias Activation = fn (inout g: Graph, input: Symbol) -> Symbol
 alias AxisActivation = fn (inout g: Graph, input: Symbol, axis: Int) -> Symbol
+alias LeakyReLUActivation = fn (
+    inout g: Graph, input: Symbol, negative_slope: Scalar[dtype]
+) -> Symbol
 alias ThresholdActivation = fn (
     inout g: Graph,
     input: Symbol,
@@ -37,6 +41,18 @@ fn create_graph[
     var g = Graph()
     var x = g.input(shape)
     var activation = func(g, x, axis)
+    g.out(activation)
+    return g^
+
+
+fn create_graph[
+    shape: TensorShape,
+    func: LeakyReLUActivation,
+    negative_slope: Scalar[dtype],
+]() -> Graph:
+    var g = Graph()
+    var x = g.input(shape)
+    var activation = func(g, x, negative_slope)
     g.out(activation)
     return g^
 
@@ -85,6 +101,21 @@ fn test_graph[
     axis: Int,
 ](input: Tensor[dtype], expected: Tensor[dtype]) raises:
     alias graph = create_graph[shape, func, axis]()
+
+    var model = Model[graph](inference_only=True)
+    var res = model.inference(input)[0]
+
+    assert_tensors_equal["almost"](res, expected)
+    assert_equal(len(graph.nodes), nodes)
+
+
+fn test_graph[
+    shape: TensorShape,
+    func: LeakyReLUActivation,
+    nodes: Int,
+    negative_slope: Scalar[dtype],
+](input: Tensor[dtype], expected: Tensor[dtype]) raises:
+    alias graph = create_graph[shape, func, negative_slope]()
 
     var model = Model[graph](inference_only=True)
     var res = model.inference(input)[0]
@@ -181,6 +212,25 @@ fn test_RELU() raises:
         expected[i] = 3 if i < 3 else 0
 
     test_graph[shape, ReLU, nodes](input, expected)
+
+
+fn test_LEAKYRELU() raises:
+    alias negative_slope = 0.1
+
+    alias shape = TensorShape(2, 3)
+    alias nodes = 1
+
+    var input = Tensor[dtype](shape)
+
+    for i in range(6):
+        input[i] = i - 3
+
+    var expected = Tensor[dtype](shape)
+
+    for i in range(6):
+        expected[i] = i - 3 if i - 3 > 0 else negative_slope * (i - 3)
+
+    test_graph[shape, LeakyReLU, nodes, negative_slope](input, expected)
 
 
 fn test_SIGMOID() raises:
