@@ -1,11 +1,59 @@
 from basalt import dtype, nelts
 from basalt.autograd import OP
 from basalt.autograd.attributes import AttributeVector, Attribute
-from basalt.autograd.ops.mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE
+from basalt.autograd.ops.mlops import (
+    SIGMOID,
+    RELU,
+    THRESHOLD,
+    LEAKYRELU,
+    TANH,
+    HARDTANH,
+    CLIP,
+    SQUEEZE,
+    UNSQUEEZE,
+)
 from basalt.nn import Tensor, TensorShape
 from basalt.utils.tensorutils import fill
 
-from tests import assert_tensors_equal, test_unary_op, test_unary_op_backward, to_numpy
+from tests import (
+    assert_tensors_equal,
+    test_unary_op,
+    test_unary_op_backward,
+    to_numpy,
+)
+
+
+fn test_THRESHOLD() raises:
+    alias t1_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    fill(t1, 4.0)
+
+    var expected = Tensor[dtype](2, 3)
+    fill(expected, 4.0)
+
+    test_unary_op[
+        OP.THRESHOLD,
+        t1_shape,
+        AttributeVector(Attribute("threshold", 3), Attribute("value", 2)),
+    ](t1, expected)
+
+
+fn test_backward_THRESHOLD() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias ug_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    fill(ug, 2.0)
+
+    var expected_grad = Tensor[dtype](2, 3)
+    fill(expected_grad, 0)
+
+    test_unary_op_backward[
+        OP.THRESHOLD,
+        t1_shape,
+        ug_shape,
+        AttributeVector(Attribute("threshold", 3), Attribute("value", 2)),
+    ](t1, ug, expected_grad)
 
 
 fn test_SIGMOID() raises:
