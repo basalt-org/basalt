@@ -119,6 +119,53 @@ fn test_backward_RELU() raises:
     test_unary_op_backward[OP.RELU, t1_shape, ug_shape](t1, ug, expected_grad)
 
 
+fn test_LEAKYRELU() raises:
+    alias t1_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    # TODO: When tensors can do slices, this could be changed to two fill functions.
+    for i in range(3):
+        t1[i] = 3
+    for i in range(3, 6):
+        t1[i] = -3
+
+    var expected = Tensor[dtype](2, 3)
+    for i in range(3):
+        expected[i] = 3
+    for i in range(3, 6):
+        expected[i] = -0.3
+
+    test_unary_op[
+        OP.LEAKYRELU,
+        t1_shape,
+        AttributeVector(Attribute("negative_slope", 0.1)),
+    ](t1, expected)
+
+
+fn test_backward_LEAKYRELU() raises:
+    alias t1_shape = TensorShape(2, 3)
+    alias ug_shape = TensorShape(2, 3)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
+    for i in range(3):
+        t1[i] = 3
+    for i in range(3, 6):
+        t1[i] = -3
+    fill(ug, 5.0)
+
+    var expected_grad = Tensor[dtype](2, 3)
+    for i in range(3):
+        expected_grad[i] = 1 * 5.0
+    for i in range(3, 6):
+        expected_grad[i] = 0.1 * 5.0
+
+    test_unary_op_backward[
+        OP.LEAKYRELU,
+        t1_shape,
+        ug_shape,
+        AttributeVector(Attribute("negative_slope", 0.1)),
+    ](t1, ug, expected_grad)
+
+
 fn test_TANH() raises:
     alias t1_shape = TensorShape(2, 3)
     var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
