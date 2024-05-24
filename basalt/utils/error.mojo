@@ -1,0 +1,9 @@
+@nonmaterializable(RuntimeException)
+struct CompileException:
+    ...
+
+struct RuntimeException:
+    ...
+
+struct RuntimeError:
+    ...
