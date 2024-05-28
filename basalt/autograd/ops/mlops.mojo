@@ -617,3 +617,85 @@ struct INDEX:
         vectorize[vec_index, nelts](total_length)
 
         return res_grad^
+
+
+struct UPSAMPLE:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        var scales = attributes["scales"].value().to_shape()
+        var mode = attributes["mode"].value().to_string()
+
+        var new_shape = List[Int]()
+        for i in range(0, t1_shape.rank()):
+            if i < 2:
+                new_shape.append(t1_shape[i])
+            else:
+                new_shape.append(t1_shape[i] * scales[i - 2])
+
+        return TensorShape(new_shape)
+
+    @staticmethod
+    fn recursive_iter[pos_shape: Int, shape: TensorShape, scales: TensorShape](inout res: Tensor[dtype], t1: Tensor[dtype], strides_res: StaticIntTuple[8], index_t1: Int, index_res: Int):
+        alias end_pos = shape.rank() - 1
+        alias strides = shape.strides()
+
+        @parameter
+        if pos_shape >= end_pos:
+            @parameter
+            fn v_iter[nelts: Int](i: Int):
+                var values = t1.load[nelts](index_t1 + i)
+
+                var offset_res = index_res + i * scales[end_pos - 2]
+                for j in range(nelts * scales[pos_shape - 2]):
+                    var temp = j // scales[pos_shape - 2]
+
+                    res[offset_res + j] = values[temp]
+
+            vectorize[v_iter, nelts](shape[pos_shape])
+            
+            return
+        else:
+            for i in range(shape[pos_shape] * scales[pos_shape - 2]):
+                var temp_i = i // scales[pos_shape - 2]
+                var temp_index_t1 = temp_i * strides[pos_shape] + index_t1
+                var temp_index_res = i * strides_res[pos_shape] + index_res
+
+                Self.recursive_iter[pos_shape + 1, shape, scales](res, t1, strides_res, temp_index_t1, temp_index_res)
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        # Input is [N, C, D in, H in, W in], N is batch size and C is number of channels. Ranks 3-D, 4-D or 5-D tensors.
+        alias scales = attributes["scales"].value().to_shape() # Has to match input size (the last dimensions D, H and W) or just be one value
+        alias mode = attributes["mode"].value().to_string()
+
+        alias strides = t1_shape.strides()
+        alias total_length = t1_shape.num_elements()
+
+        alias first_loop = total_length // strides[1]
+
+        var strides_res = res.strides()
+
+        @parameter
+        if mode == "nearest":
+            @parameter
+            fn p_iter(i: Int):
+                var offset = i * strides[1]
+                var offset_res = i * strides_res[1]
+                
+                Self.recursive_iter[2, t1_shape, scales](
+                    res, t1, strides_res, offset, offset_res)
+
+            parallelize[p_iter](first_loop)
+        else:
+            pass
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        attributes: AttributeVector = AttributeVector(),
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        return t1

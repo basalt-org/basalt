@@ -679,6 +679,48 @@ fn test_INDEX_backward() raises:
     print(expected)
 
 
+fn test_UPSAMPLE() raises:
+    alias t1_shape = TensorShape(2, 3, 5)
+    var t = Tensor[dtype](t1_shape)
+    for i in range(t.num_elements()):
+        t[i] = i
+
+    var expected = Tensor[dtype](2, 3, 10)
+    for i in range(2):
+        for j in range(3):
+            for k in range(5):
+                for l in range(2):
+                    expected[i*3*10 + j*10 + k*2 + l] = t[i*3*5 + j*5 + k]
+
+    test_unary_op[
+        OP.UPSAMPLE, t1_shape, AttributeVector(
+            Attribute("scales", TensorShape(2)),
+            Attribute("mode", "nearest")
+        )
+    ](t, expected)
+
+
+    alias t2_shape = TensorShape(1, 1, 2, 2)
+    t = Tensor[dtype](t2_shape)
+    for i in range(t.num_elements()):
+        t[i] = i
+
+    expected = Tensor[dtype](1, 1, 4, 6)
+    for i in range(1):
+        for j in range(1):
+            for k in range(4):
+                for l in range(6):
+                    var pos = i*1*2*2 + j*2*2 + (k // 2) * 2 + (l // 3)
+                    expected[i*1*4*6 + j*4*6 + k*6 + l] = t[pos]
+    
+    test_unary_op[
+        OP.UPSAMPLE, t2_shape, AttributeVector(
+            Attribute("scales", TensorShape(2, 3)),
+            Attribute("mode", "nearest")
+        )
+    ](t, expected)
+
+
 fn main():
     try:
         # test_SIGMOID()
@@ -691,7 +733,8 @@ fn main():
         # test_SLICE_step()
         # test_SLICE_neg()
         # test_SLICE_multiple_axes()
-        test_INDEX()
+        # test_INDEX()
+        test_UPSAMPLE()
     except e:
         print("[ERROR] Error in forward mlops")
         print(e)
@@ -706,7 +749,8 @@ fn main():
         # test_backward_UNSQUEEZE()
         # test_backward_SLICE()
         # test_backward_SLICE_multiple_axes()
-        test_INDEX_backward()
+        # test_INDEX_backward()
+        pass
     except e:
         print("[ERROR] Error in backward mlops")
         print(e)

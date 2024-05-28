@@ -15,7 +15,7 @@ from .basics import (
     TRANSPOSE,
     FMA,
 )
-from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE, SLICE, INDEX
+from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE, SLICE, INDEX, UPSAMPLE
 from .dynamics import CONCAT, SPLIT
 from .conv import CONV2D
 from .pool import MAXPOOL2D
@@ -62,6 +62,7 @@ struct OP(Stringable):
     alias SPLIT = OP(24, "SPLIT", dynamic=True)
     alias SLICE = OP(25, "SLICE")
     alias INDEX = OP(26, "INDEX")
+    alias UPSAMPLE = OP(27, "UPSAMPLE")
 
     var id: UInt8
     var name: Bytes[16]
@@ -138,6 +139,8 @@ fn static_result_shape(
         return SLICE.result_shape(t1_shape, attributes)
     elif op == OP.INDEX:
         return INDEX.result_shape(t1_shape, attributes)
+    elif op == OP.UPSAMPLE:
+        return UPSAMPLE.result_shape(t1_shape, attributes)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1)
@@ -254,6 +257,8 @@ fn forward_op[
         SLICE.forward[t1_shape, attributes](res, t1)
     elif op == OP.INDEX:
         INDEX.forward[t1_shape, attributes](res, t1)
+    elif op == OP.UPSAMPLE:
+        UPSAMPLE.forward[t1_shape, attributes](res, t1)
     else:
         print("[ERROR] Operator not found.")
 
