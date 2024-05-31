@@ -610,10 +610,14 @@ struct INDEX:
             #     offset,
             #     res_grad.data().gather(offset) + ug.load[nelts](i),
             # )
-            # BUG: Edge case in vectorization:
-            # When the offset = [0, 2, 4, 0] and ug = [1, 1, 1, 1]
-            # It doesn't scatter to index 0 twice as it should be: res_grad[0] += 1 + 1
             
+            # NOTE: Scatter (reduce SUM) required
+            # When the offset = [0, 2, 4, 0] and ug = [1, 1, 1, 1]
+            # The standard scatter will overwrite the values with overlapping indices.
+            # It doesn't accumulate index 0 twice as it should be: res_grad[0] += 1 + 1
+            # cfr. https://github.com/ml-explore/mlx/blob/main/mlx/backend/common/indexing.cpp#L256-L258
+            # cfr. https://github.com/modularml/mojo/blob/main/stdlib/src/sys/intrinsics.mojo#L903
+
             # Workaround
             var u = ug.load[nelts](i)
             for j in range(nelts):

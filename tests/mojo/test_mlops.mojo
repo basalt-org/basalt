@@ -620,8 +620,6 @@ fn test_backward_SLICE_multiple_axes() raises:
     ](t1, ug, expected_ug)
 
 
-from basalt.autograd.ops.mlops import INDEX
-
 fn test_INDEX() raises:
     alias t1_shape = TensorShape(2, 3, 5)
     var t = Tensor[dtype](t1_shape)
@@ -645,8 +643,6 @@ fn test_INDEX() raises:
             attr_2,
         )
     ](t, expected)
-
-    print(expected)
 
 
 fn test_INDEX_backward() raises:
@@ -676,21 +672,19 @@ fn test_INDEX_backward() raises:
         )
     ](t, ug, expected)
 
-    print(expected)
-
 
 fn main():
     try:
-        # test_SIGMOID()
-        # test_RELU()
-        # test_TANH()
-        # test_CLIP()
-        # test_SQUEEZE()
-        # test_UNSQUEEZE()
-        # test_SLICE()
-        # test_SLICE_step()
-        # test_SLICE_neg()
-        # test_SLICE_multiple_axes()
+        test_SIGMOID()
+        test_RELU()
+        test_TANH()
+        test_CLIP()
+        test_SQUEEZE()
+        test_UNSQUEEZE()
+        test_SLICE()
+        test_SLICE_step()
+        test_SLICE_neg()
+        test_SLICE_multiple_axes()
         test_INDEX()
     except e:
         print("[ERROR] Error in forward mlops")
@@ -698,14 +692,14 @@ fn main():
         return
 
     try:
-        # test_backward_SIGMOID()
-        # test_backward_RELU()
-        # test_backward_TANH()
-        # test_backward_CLIP()
-        # test_backward_SQUEEZE()
-        # test_backward_UNSQUEEZE()
-        # test_backward_SLICE()
-        # test_backward_SLICE_multiple_axes()
+        test_backward_SIGMOID()
+        test_backward_RELU()
+        test_backward_TANH()
+        test_backward_CLIP()
+        test_backward_SQUEEZE()
+        test_backward_UNSQUEEZE()
+        test_backward_SLICE()
+        test_backward_SLICE_multiple_axes()
         test_INDEX_backward()
     except e:
         print("[ERROR] Error in backward mlops")
