@@ -54,6 +54,12 @@ fn torch_unary_op(
             )
         elif op == OP.TANH:
             expected = torch.tanh(input_1)
+        elif op == OP.HARDTANH:
+            expected = torch.nn.functional.hardtanh(
+                input_1,
+                min_val=attrs.value()["min_val"].value().to_scalar[dtype](),
+                max_val=attrs.value()["max_val"].value().to_scalar[dtype](),
+            )
         elif op == OP.CLIP:
             var min_attr = attrs.value()["min"]
             var max_attr = attrs.value()["max"]
@@ -207,6 +213,29 @@ fn test_TANH() raises:
     test_unary_op_backward[OP.TANH, t1_shape, ug_shape](
         t1, ug, expected_and_grad.grad_1
     )
+
+
+fn test_HARDTANH() raises:
+    alias t1_shape = TensorShape(37, 63, 107)
+    alias ug_shape = TensorShape(37, 63, 107)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    rand(t1.data(), t1.num_elements())
+
+    var ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    var expected_and_grad = torch_unary_op(OP.HARDTANH, t1, ug)
+    test_unary_op[
+        OP.HARDTANH,
+        t1_shape,
+        AttributeVector(Attribute("min_val", -3), Attribute("max_val", 3)),
+    ](t1, expected_and_grad.expected)
+    test_unary_op_backward[
+        OP.HARDTANH,
+        t1_shape,
+        ug_shape,
+        AttributeVector(Attribute("min_val", -3), Attribute("max_val", 3)),
+    ](t1, ug, expected_and_grad.grad_1)
 
 
 fn test_CLIP() raises:
