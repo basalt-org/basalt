@@ -3,9 +3,9 @@ from testing import assert_equal, assert_almost_equal
 from math import sqrt, exp, round, add, sub, mul, div
 
 from basalt import dtype, nelts
+from basalt.autograd.ops.matmul import dot
 from basalt.utils.tensorutils import (
     fill,
-    dot,
     elwise_transform,
     elwise_pow,
     elwise_op,

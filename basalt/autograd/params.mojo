@@ -19,10 +19,8 @@ struct Param(CollectionElement, Stringable):
         self.data = data
         self.initializer = None
 
-    fn __init__(inout self, a: Scalar[dtype]):
-        var data = List[Scalar[dtype]]()
-        data.append(a)
-        self.data = data
+    fn __init__(inout self, data: Scalar[dtype]):
+        self.data = List[Scalar[dtype]](data)
         self.initializer = None
 
     fn __init__(inout self, initializer: String, *args: Scalar[dtype]):

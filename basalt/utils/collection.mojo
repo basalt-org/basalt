@@ -1,7 +1,7 @@
-from math import max
-from memory.unsafe_pointer import UnsafePointer, move_from_pointee, initialize_pointee_copy, initialize_pointee_move, destroy_pointee
+from math import max, divmod
+from memory.unsafe_pointer import UnsafePointer, initialize_pointee_move, destroy_pointee
 
-from basalt import Tensor, TensorShape, Symbol
+from basalt import Tensor, Symbol
 
 
 struct Collection(CollectionElement, Sized):
@@ -108,10 +108,29 @@ struct Collection(CollectionElement, Sized):
     fn get_index(self, symbol_name: UInt32) -> Int:
         """
         Returns the index of the tensor with the given symbol name.
-        """
-        for i in range(self.size):
-            if self.symbols[i] == symbol_name:
-                return i
+        """        
+        alias factor = 8
+        # 2 -> 5.32s MNIST
+        # 4 -> 4.95s MNIST
+        # 8 -> 4.85s MNIST
+        # 16 -> 5.19s MNIST
+        # NOTE: This ideally should just be a hashmap
+
+        for i in range(0, self.size, factor):
+            var elems = self.symbols.load[width=factor](i) == symbol_name
+
+            for j in range(factor):
+                if elems[j]: 
+                    return i + j
+
+        var split = divmod(self.size, factor)
+
+        for i in range(split[1]):
+            var index = split[0] + i
+            
+            if self.symbols[index] == symbol_name:
+                return index
+
         return -1
 
     @always_inline("nodebug")
