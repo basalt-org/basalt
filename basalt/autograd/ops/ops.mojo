@@ -15,7 +15,7 @@ from .basics import (
     TRANSPOSE,
     FMA,
 )
-from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE, SLICE
+from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE, SLICE, INDEX
 from .dynamics import CONCAT, SPLIT
 from .conv import CONV2D
 from .pool import MAXPOOL2D
@@ -61,6 +61,7 @@ struct OP(Stringable):
     alias CONCAT = OP(23, "CONCAT", dynamic=True)
     alias SPLIT = OP(24, "SPLIT", dynamic=True)
     alias SLICE = OP(25, "SLICE")
+    alias INDEX = OP(26, "INDEX")
 
     var id: UInt8
     var name: Bytes[16]
@@ -135,6 +136,8 @@ fn static_result_shape(
         return UNSQUEEZE.result_shape(t1_shape, attributes)
     elif op == OP.SLICE:
         return SLICE.result_shape(t1_shape, attributes)
+    elif op == OP.INDEX:
+        return INDEX.result_shape(t1_shape, attributes)
     else:
         print("[ERROR] Operator not found.")
         return TensorShape(-1)
@@ -249,6 +252,8 @@ fn forward_op[
         UNSQUEEZE.forward[t1_shape, attributes](res, t1)
     elif op == OP.SLICE:
         SLICE.forward[t1_shape, attributes](res, t1)
+    elif op == OP.INDEX:
+        INDEX.forward[t1_shape, attributes](res, t1)
     else:
         print("[ERROR] Operator not found.")
 
@@ -361,6 +366,8 @@ fn backward_op[
         res_grad = UNSQUEEZE.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.SLICE:
         res_grad = SLICE.backward[ug_shape, t1_shape, attributes](ug, t1)
+    elif op == OP.INDEX:
+        res_grad = INDEX.backward[ug_shape, t1_shape, attributes](ug, t1)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1)

@@ -620,32 +620,93 @@ fn test_backward_SLICE_multiple_axes() raises:
     ](t1, ug, expected_ug)
 
 
+from basalt.autograd.ops.mlops import INDEX
+
+fn test_INDEX() raises:
+    alias t1_shape = TensorShape(2, 3, 5)
+    var t = Tensor[dtype](t1_shape)
+    for i in range(t.num_elements()):
+        t[i] = i
+
+    # t[:, [0, 0], 0:5:2]
+    # TODO: need for a list attribute as this only supports to specify indeces of MAX_RANK
+    alias attr_1 = Attribute("dim_1i", TensorShape(0, 0))
+    alias attr_2 = Attribute("dim_2s", TensorShape(0, 5, 2))
+
+    var expected = Tensor[dtype](2, 2, 3)
+    for i in range(2):
+        for j in range(2):
+            for k in range(3):
+                expected[i*2*3 + j*3 + k] = i * 3 * 5 + k * 2
+
+    test_unary_op[
+        OP.INDEX, t1_shape, AttributeVector(
+            attr_1,
+            attr_2,
+        )
+    ](t, expected)
+
+    print(expected)
+
+
+fn test_INDEX_backward() raises:
+    alias t1_shape = TensorShape(2, 3, 5)
+    var t = Tensor[dtype](t1_shape)
+    for i in range(t.num_elements()):
+        t[i] = i
+
+    alias attr_1 = Attribute("dim_1i", TensorShape(0, 0))
+    alias attr_2 = Attribute("dim_2s", TensorShape(0, 5, 2))
+
+    alias ug_shape = TensorShape(2, 2, 3)
+    var ug = Tensor[dtype](ug_shape)
+    fill(ug, 1.0)
+
+    var expected = Tensor[dtype](t1_shape)
+    for i in range(2):
+        for j in range(2):
+            for k in range(3):
+                # NOTE: `+=` because selected indeces [0, 0] can repeat
+                expected[i * 3 * 5 + k * 2] += 1.0 
+
+    test_unary_op_backward[
+        OP.INDEX, t1_shape, ug_shape, AttributeVector(
+            attr_1,
+            attr_2,
+        )
+    ](t, ug, expected)
+
+    print(expected)
+
+
 fn main():
     try:
-        test_SIGMOID()
-        test_RELU()
-        test_TANH()
-        test_CLIP()
-        test_SQUEEZE()
-        test_UNSQUEEZE()
-        test_SLICE()
-        test_SLICE_step()
-        test_SLICE_neg()
-        test_SLICE_multiple_axes()
+        # test_SIGMOID()
+        # test_RELU()
+        # test_TANH()
+        # test_CLIP()
+        # test_SQUEEZE()
+        # test_UNSQUEEZE()
+        # test_SLICE()
+        # test_SLICE_step()
+        # test_SLICE_neg()
+        # test_SLICE_multiple_axes()
+        test_INDEX()
     except e:
         print("[ERROR] Error in forward mlops")
         print(e)
         return
 
     try:
-        test_backward_SIGMOID()
-        test_backward_RELU()
-        test_backward_TANH()
-        test_backward_CLIP()
-        test_backward_SQUEEZE()
-        test_backward_UNSQUEEZE()
-        test_backward_SLICE()
-        test_backward_SLICE_multiple_axes()
+        # test_backward_SIGMOID()
+        # test_backward_RELU()
+        # test_backward_TANH()
+        # test_backward_CLIP()
+        # test_backward_SQUEEZE()
+        # test_backward_UNSQUEEZE()
+        # test_backward_SLICE()
+        # test_backward_SLICE_multiple_axes()
+        test_INDEX_backward()
     except e:
         print("[ERROR] Error in backward mlops")
         print(e)
