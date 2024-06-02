@@ -68,6 +68,11 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
         return None
 
     @always_inline("nodebug")
+    fn append(inout self, attribute: Attribute):
+        self.attributes[self.size] = attribute
+        self.size += 1
+
+    @always_inline("nodebug")
     fn __str__(self) -> String:
         var s: String = "["
         for i in range(self.size):

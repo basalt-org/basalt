@@ -4,6 +4,7 @@ from math.limit import min_finite, max_finite
 
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_transform
+from basalt.utils.itertools import product
 from basalt.autograd.attributes import Attribute, AttributeVector
 
 
@@ -492,3 +493,209 @@ struct SLICE:
         Self.slice_kernel[ug_shape, t1_shape, steps, starts, ends, True](res_grad, ug)
         
         return res_grad ^
+
+
+struct INDEX:
+    @staticmethod
+    fn adjust_boundary(slice: Int, dim_size: Int) -> Int:
+        # Adjust negative indices & ensure they are within bounds.
+        var s = slice if slice >= 0 else dim_size + slice
+        return max(min(s, dim_size), 0)
+
+    @staticmethod
+    fn to_indeces(shape: TensorShape, attrs: AttributeVector) -> List[List[Int]]:
+        var SLICE_LITERALS = List[StringLiteral]("dim_0s", "dim_1s", "dim_2s", "dim_3s", "dim_4s", "dim_5s", "dim_6s", "dim_7s")
+        var INDEX_LITERALS = List[StringLiteral]("dim_0i", "dim_1i", "dim_2i", "dim_3i", "dim_4i", "dim_5i", "dim_6i", "dim_7i")
+
+        var indeces = List[List[Int]]()
+        for dim in range(shape.rank()):
+            var temp = List[Int]()
+            
+            # Option 1: Slice
+            if attrs[SLICE_LITERALS[dim]]:
+                var slice = attrs[SLICE_LITERALS[dim]].value().to_shape()
+                var step = slice[2] if slice.rank() == 3 else 1
+                for i in range(
+                    start=Self.adjust_boundary(slice[0], shape[dim]),
+                    end=Self.adjust_boundary(slice[1], shape[dim]),
+                    step=step
+                ):
+                    temp.append(i)
+
+            # Option 2: Indeces
+            elif attrs[INDEX_LITERALS[dim]]:
+                var indeces = attrs[INDEX_LITERALS[dim]].value().to_shape()
+                for i in range(indeces.rank()):
+                    temp.append(indeces[i])
+
+            # All indeces
+            else:
+                for i in range(shape[dim]):
+                    temp.append(i)
+
+            indeces.append(temp)
+        
+        return indeces ^
+
+    @staticmethod
+    fn result_shape(shape: TensorShape, attrs: AttributeVector) -> TensorShape:
+        var indeces = Self.to_indeces(shape, attrs)
+        var new_shape = List[Int]()
+        for i in range(shape.rank()):
+            new_shape.append(len(indeces[i]))
+        return TensorShape(new_shape)
+
+    @staticmethod
+    fn map_indeces[
+        nelts: Int,
+        strides: TensorShape,
+        indeces: List[List[Int]],
+    ](idx: Int) -> SIMD[DType.int64, nelts]:
+        alias indeces_product = product(indeces)
+
+        var temp = SIMD[DType.int64, nelts]()
+        for i in range(idx, idx + nelts):
+            var comb = indeces_product[i]
+            var flat_index = 0
+
+            for dim in range(len(comb)):
+                flat_index += comb[dim] * strides[dim]
+
+            temp[i % nelts] = flat_index
+
+        return temp
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        alias indeces = Self.to_indeces(t1_shape, attributes)
+        alias strides = t1_shape.strides()
+        alias total_length = len(product(indeces))
+
+        @parameter
+        fn vec_index[nelts: Int](i: Int):
+
+            res.store[nelts](i,
+                t1.data().gather(Self.map_indeces[nelts, strides, indeces](i))
+            )
+
+        vectorize[vec_index, nelts](total_length)
+
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        attributes: AttributeVector = AttributeVector(),
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        alias indeces = Self.to_indeces(t1_shape, attributes)
+        alias strides = t1_shape.strides()
+        alias total_length = len(product(indeces))
+
+        var res_grad = Tensor[dtype](t1_shape)
+
+        @parameter
+        fn vec_index[nelts: Int](i: Int):
+
+            var offset = Self.map_indeces[nelts, strides, indeces](i)
+            
+            # res_grad.data().scatter(
+            #     offset,
+            #     res_grad.data().gather(offset) + ug.load[nelts](i),
+            # )
+            # BUG: Edge case in vectorization:
+            # When the offset = [0, 2, 4, 0] and ug = [1, 1, 1, 1]
+            # It doesn't scatter to index 0 twice as it should be: res_grad[0] += 1 + 1
+            
+            # Workaround
+            var u = ug.load[nelts](i)
+            for j in range(nelts):
+                res_grad[int(offset[j])] += u[j]
+
+        vectorize[vec_index, nelts](total_length)
+
+        return res_grad^
+
+
+struct UPSAMPLE:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+        var scales = attributes["scales"].value().to_shape()
+        var mode = attributes["mode"].value().to_string()
+
+        var new_shape = List[Int]()
+        for i in range(0, t1_shape.rank()):
+            if i < 2:
+                new_shape.append(t1_shape[i])
+            else:
+                new_shape.append(t1_shape[i] * scales[i - 2])
+
+        return TensorShape(new_shape)
+
+    @staticmethod
+    fn recursive_iter[pos_shape: Int, shape: TensorShape, scales: TensorShape](inout res: Tensor[dtype], t1: Tensor[dtype], strides_res: StaticIntTuple[8], index_t1: Int, index_res: Int):
+        alias end_pos = shape.rank() - 1
+        alias strides = shape.strides()
+
+        @parameter
+        if pos_shape >= end_pos:
+            @parameter
+            fn v_iter[nelts: Int](i: Int):
+                var values = t1.load[nelts](index_t1 + i)
+
+                var offset_res = index_res + i * scales[end_pos - 2]
+                for j in range(nelts * scales[pos_shape - 2]):
+                    var temp = j // scales[pos_shape - 2]
+
+                    res[offset_res + j] = values[temp]
+
+            vectorize[v_iter, nelts](shape[pos_shape])
+            
+            return
+        else:
+            for i in range(shape[pos_shape] * scales[pos_shape - 2]):
+                var temp_i = i // scales[pos_shape - 2]
+                var temp_index_t1 = temp_i * strides[pos_shape] + index_t1
+                var temp_index_res = i * strides_res[pos_shape] + index_res
+
+                Self.recursive_iter[pos_shape + 1, shape, scales](res, t1, strides_res, temp_index_t1, temp_index_res)
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        # Input is [N, C, D in, H in, W in], N is batch size and C is number of channels. Ranks 3-D, 4-D or 5-D tensors.
+        alias scales = attributes["scales"].value().to_shape() # Has to match input size (the last dimensions D, H and W) or just be one value
+        alias mode = attributes["mode"].value().to_string()
+
+        alias strides = t1_shape.strides()
+        alias total_length = t1_shape.num_elements()
+
+        alias first_loop = total_length // strides[1]
+
+        var strides_res = res.strides()
+
+        @parameter
+        if mode == "nearest":
+            @parameter
+            fn p_iter(i: Int):
+                var offset = i * strides[1]
+                var offset_res = i * strides_res[1]
+                
+                Self.recursive_iter[2, t1_shape, scales](
+                    res, t1, strides_res, offset, offset_res)
+
+            parallelize[p_iter](first_loop)
+        else:
+            pass
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        attributes: AttributeVector = AttributeVector(),
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        return t1
