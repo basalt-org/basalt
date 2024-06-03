@@ -295,11 +295,9 @@ fn main() raises:
     var constant_values = get_constant_values_from_onnx_model("./examples/data/yolov8n.onnx")
 
     Python.add_to_path("./examples")
-    var get_image = Python.import_module("yolo_v8_utils")
-
-    var image_tensor = to_tensor(get_image.get_image('./examples/data/bus.jpg'))
-
+    var yolo_utils = Python.import_module("yolo_v8_utils")
+    var image_tensor = to_tensor(yolo_utils.get_model_input('./examples/data/bus.jpg'))
 
     var res = model.inference(image_tensor, constant_values[0], constant_values[1], constant_values[2])
 
-    get_image.draw_bounding_box_yolo("bus.jpg", to_numpy(res[0]))
+    yolo_utils.draw_bbox_from_image("./examples/data/bus.jpg", to_numpy(res[0]))
