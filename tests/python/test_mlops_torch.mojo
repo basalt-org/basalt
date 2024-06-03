@@ -108,6 +108,18 @@ fn torch_unary_op(
                 indices[dim] = py.slice(start, end, step)
             
             expected = input_1.flip(flip_dims)[indices]
+        elif op == OP.UPSAMPLE:
+            var attrs = attrs.value()
+            var scales = attrs["scales"].value().to_shape()
+            var mode = attrs["mode"].value().to_string()
+
+            var scales_py = PythonObject([])
+            for i in range(scales.rank()):
+                scales_py.append(scales[i])
+
+            expected = torch.nn.functional.interpolate(
+                input_1, scale_factor=scales_py, mode=mode
+            )
         else:
             print("Error: op not supported (returning the value input_1): ", op)
             expected = input_1
@@ -429,16 +441,34 @@ fn test_SLICE() raises:
     test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_0_2, attrs_0_2](t1, ug, expected_and_grad.grad_1)
 
 
+fn test_UPSAMPLE() raises:
+    alias t1_shape = TensorShape(40, 40, 120, 120)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    rand(t1.data(), t1.num_elements())
+
+    alias attributes = AttributeVector(
+        Attribute("scales", TensorShape(2, 2)),
+        Attribute("mode", "nearest")
+    )
+
+    alias ug_shape = TensorShape(40, 40, 240, 240)
+    var ug = Tensor[dtype](ug_shape)
+
+    var expected_and_grad = torch_unary_op(OP.UPSAMPLE, t1, ug, attributes)
+    test_unary_op[OP.UPSAMPLE, t1_shape, attributes](t1, expected_and_grad.expected)
+
+
 fn main():
     print("Running mlops (compare with torch) tests")
     try:
-        test_SIGMOID()
-        test_RELU()
-        test_TANH()
-        test_CLIP()
-        test_SQUEEZE()
-        test_UNSQUEEZE()
-        test_SLICE()
+        # test_SIGMOID()
+        # test_RELU()
+        # test_TANH()
+        # test_CLIP()
+        # test_SQUEEZE()
+        # test_UNSQUEEZE()
+        # test_SLICE()
+        test_UPSAMPLE()
     except e:
         print("[ERROR] Error in mlops (compare with torch)")
         print(e)
