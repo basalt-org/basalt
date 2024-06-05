@@ -1,6 +1,7 @@
 from python.python import Python
 from collections import OptionalReg
 from testing import assert_equal, assert_almost_equal
+from algorithm import vectorize
 
 from basalt import dtype
 from basalt.autograd import Graph, OP
@@ -20,13 +21,24 @@ fn assert_tensors_equal[
         mode == "exact" or mode == "almost", "Mode must be either 'exact' or 'almost'"
     ]()
 
+    alias nelts = simdwidthof[dtype]()
+
     assert_equal(t1.shape(), t2.shape(), "Tensor shape mismatch")
 
-    for i in range(t1.num_elements()):
+    @parameter
+    fn v_iter[nelts: Int](i: Int) raises:
+        @parameter
         if mode == "almost":
-            assert_almost_equal(t1[i], t2[i], rtol=1e-5, atol=1e-5, msg=msg)
+            assert_almost_equal(t1.load[nelts](i), t2.load[nelts](i), rtol=1e-5, atol=1e-5, msg=msg)
         else:
-            assert_equal(t1[i], t2[i], msg=msg)
+            assert_equal(t1.load[nelts](i), t2.load[nelts](i), msg=msg)
+
+    for i in range(0, t1.num_elements() - nelts + 1, nelts):
+        v_iter[nelts](i)
+
+    # Check the remaining elements
+    for i in range(nelts * (t1.num_elements() // nelts), t1.num_elements()):
+        v_iter[1](i)
 
 
 fn test_unary_op[
