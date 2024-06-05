@@ -1,6 +1,7 @@
 from algorithm import vectorize, parallelize
-from math import exp, pow, max, min, abs
+from math import exp, pow, max, min, abs, ceil, floor
 from math.limit import min_finite, max_finite
+from memory import stack_allocation
 
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_transform
@@ -667,30 +668,136 @@ struct UPSAMPLE:
         t1_shape: TensorShape,
         attributes: AttributeVector,
     ](inout res: Tensor[dtype], t1: Tensor[dtype]):
-        # Input is [N, C, D in, H in, W in], N is batch size and C is number of channels. Ranks 3-D, 4-D or 5-D tensors.
-        alias scales = attributes["scales"].value().to_shape() # Has to match input size (the last dimensions D, H and W) or just be one value
+        # Input is [N, C, D in, H in, W in], N is batch size and C is number of channels. Ranks 3-D, 4-D or 5-D tensors (only works on the spatial dimensions).
+        alias scales = attributes["scales"].value().to_shape() # Has to match spatial input dims (the last dimensions D, H and W)
         alias mode = attributes["mode"].value().to_string()
-
-        alias strides = t1_shape.strides()
-        alias total_length = t1_shape.num_elements()
-
-        alias first_loop = total_length // strides[1]
-
-        var strides_res = res.strides()
+        # alias align_corners = attributes["align_corners"].value().to_bool() if attributes["align_corners"] else false
 
         @parameter
-        if mode == "nearest":
-            @parameter
-            fn p_iter(i: Int):
-                var offset = i * strides[1]
-                var offset_res = i * strides_res[1]
-                
-                Self.recursive_iter[2, t1_shape, scales](
-                    res, t1, strides_res, offset, offset_res)
+        fn get_coordination_mode() -> String:
+            if mode == "linear":
+                return "half_pixel"
+            else:
+                return "asymmetric"
+        alias coordination_transforamtion = get_coordination_mode()
 
-            parallelize[p_iter](first_loop)
-        else:
-            pass
+        alias strides = t1_shape.strides()
+        var strides_res = res.strides()
+        
+        var res_shape = res.shape()
+
+        alias first_loop = t1_shape[0] * t1_shape[1]
+
+        @always_inline
+        fn pos_asymmetric(pos: Int, scale: Int) -> Int:
+            return pos // scale
+        
+        @always_inline
+        fn pos_half_pixel(pos: Int, scale: Int) -> Float64:
+            return max(0.0, (pos + 0.5) / scale - 0.5)
+
+
+        @parameter
+        @always_inline
+        fn get_value_interpolate[size: Int](
+            indeces_t1: StaticTuple[Float64, size],
+            index_t1_sum: Float64
+        ) -> SIMD[t1.dtype, 1]:
+            @parameter
+            if mode == "nearest":
+                return t1[int(index_t1_sum)]
+            elif mode == "linear":
+                var t1_pos_floor = floor(indeces_t1[1])
+                var t1_pos_ceil = min(ceil(indeces_t1[1]), t1_shape[2] - 1)
+
+                var v1 = t1[int(indeces_t1[0]) + int(t1_pos_floor)]
+                var v2 = t1[int(indeces_t1[0]) + int(t1_pos_ceil)]
+
+                return v1 + (v2 - v1) * (indeces_t1[1] - t1_pos_floor)
+            else:
+                return 0
+
+        @always_inline
+        fn get_t1_position(
+            pos: Int, scale: Int, dim: Int
+        ) -> Float64:
+            @parameter
+            if coordination_transforamtion == "asymmetric":
+                return pos_asymmetric(pos, scale)
+            elif coordination_transforamtion == "half_pixel":
+                return pos_half_pixel(pos, scale)
+            else:
+                return 0
+
+        @parameter
+        fn p_iter(i: Int):
+            var offset_t1 = i * strides[1]
+            var offset_res = i * strides_res[1]
+    
+            @parameter
+            if t1_shape.rank() == 3:
+                var positions_t1 = StaticTuple[Float64, 2](0)
+                var positions_res = StaticIntTuple[2](0)
+
+                positions_res[0] = offset_res
+                positions_t1[0] = offset_t1
+        
+                @parameter
+                fn v_iter[nelts: Int](j: Int):
+                    positions_res[1] = j
+
+                    var index_res = positions_res[0] + positions_res[1]
+                    var values = res.load[nelts](index_res)
+
+                    for k in range(nelts):
+                        positions_t1[1] = get_t1_position(j + k, scales[scales.rank() - 1], 0)
+
+                        values[k] = get_value_interpolate(
+                            positions_t1, 
+                            positions_t1[0] + positions_t1[1])
+
+                    res.store[nelts](index_res, values)
+
+                
+                vectorize[v_iter, nelts](res_shape[res.rank() - 1])
+            elif t1_shape.rank() == 4:
+                var positions_t1 = StaticTuple[Float64, 3](0)
+                var positions_res = StaticIntTuple[3](0)
+
+                positions_res[0] = offset_res
+                positions_t1[0] = offset_t1
+
+                for j in range(res_shape[2]):
+                    positions_res[1] = j * strides_res[2]
+                    positions_t1[1] = get_t1_position(j, scales[0], 0) * strides[2]
+            
+                    @parameter
+                    fn v_iter_1[nelts: Int](k: Int):
+                        positions_res[2] = k
+
+                        var index_res = positions_res[0] + positions_res[1] + positions_res[2]
+                        var values = res.load[nelts](index_res)
+
+                        for l in range(nelts):
+                            positions_t1[2] = get_t1_position(k + l, scales[scales.rank() - 1], 1)
+
+                            values[l] = get_value_interpolate(
+                                positions_t1, 
+                                positions_t1[0] + positions_t1[1] + positions_t1[2])
+
+                        res.store[nelts](index_res, values)
+                    
+                    vectorize[v_iter_1, nelts](res_shape[res.rank() - 1])
+
+            elif t1_shape.rank() == 5:
+                for j in range(res.shape()[2]):
+                    for k in range(res.shape()[3]):
+                        pass
+            else:
+                # Error
+                pass    
+
+        parallelize[p_iter](first_loop)
 
     @staticmethod
     fn backward[

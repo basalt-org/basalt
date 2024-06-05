@@ -442,20 +442,43 @@ fn test_SLICE() raises:
 
 
 fn test_UPSAMPLE() raises:
-    alias t1_shape = TensorShape(40, 40, 120, 120)
-    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    alias t1_shape = TensorShape(41, 41, 43)
+    var t1 = Tensor[dtype](t1_shape)
     rand(t1.data(), t1.num_elements())
 
     alias attributes = AttributeVector(
-        Attribute("scales", TensorShape(2, 2)),
-        Attribute("mode", "nearest")
+        Attribute("scales", TensorShape(3)),
+        Attribute("mode", "linear")
     )
 
-    alias ug_shape = TensorShape(40, 40, 240, 240)
+    alias ug_shape = TensorShape(41, 41, 129)
     var ug = Tensor[dtype](ug_shape)
 
     var expected_and_grad = torch_unary_op(OP.UPSAMPLE, t1, ug, attributes)
     test_unary_op[OP.UPSAMPLE, t1_shape, attributes](t1, expected_and_grad.expected)
+
+    alias attributes_2 = AttributeVector(
+        Attribute("scales", TensorShape(3)),
+        Attribute("mode", "nearest")
+    )
+
+    expected_and_grad = torch_unary_op(OP.UPSAMPLE, t1, ug, attributes_2)
+    test_unary_op[OP.UPSAMPLE, t1_shape, attributes_2](t1, expected_and_grad.expected)
+
+    alias t1_shape_1 = TensorShape(40, 40, 120, 120)
+    t1 = Tensor[dtype](t1_shape_1)
+    rand(t1.data(), t1.num_elements())
+
+    alias attributes_3 = AttributeVector(
+        Attribute("scales", TensorShape(2, 3)),
+        Attribute("mode", "nearest")
+    )
+
+    alias ug_shape_1 = TensorShape(40, 40, 240, 360)
+    ug = Tensor[dtype](ug_shape_1)
+
+    expected_and_grad = torch_unary_op(OP.UPSAMPLE, t1, ug, attributes_3)
+    test_unary_op[OP.UPSAMPLE, t1_shape_1, attributes_3](t1, expected_and_grad.expected)
 
 
 fn main():
