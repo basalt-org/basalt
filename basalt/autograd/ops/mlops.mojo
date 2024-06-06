@@ -729,6 +729,7 @@ struct UPSAMPLE:
             else:
                 return 0
 
+        # it is possble to use gather, the only problem is to be able to create a simd arange (vectorized if it is with a for loop it is the same probably). (And from tests it seems to be slower, maybe because i do a lot of casts and because the arange of positions is not vectorized)
         @parameter
         fn p_iter(i: Int):
             var offset_t1 = i * strides[1]
@@ -790,9 +791,36 @@ struct UPSAMPLE:
                     vectorize[v_iter_1, nelts](res_shape[res.rank() - 1])
 
             elif t1_shape.rank() == 5:
+                var positions_t1 = StaticTuple[Float64, 4](0)
+                var positions_res = StaticIntTuple[4](0)
+
+                positions_res[0] = offset_res
+                positions_t1[0] = offset_t1
+
                 for j in range(res.shape()[2]):
+                    positions_res[1] = j * strides_res[2]
+                    positions_t1[1] = get_t1_position(j, scales[0], 0) * strides[2]
                     for k in range(res.shape()[3]):
-                        pass
+                        positions_res[2] = k * strides_res[3]
+                        positions_t1[2] = get_t1_position(k, scales[1], 1) * strides[3]
+                        
+                        @parameter
+                        fn v_iter_2[nelts: Int](l: Int):
+                            positions_res[3] = l
+
+                            var index_res = positions_res[0] + positions_res[1] + positions_res[2] + positions_res[3]
+                            var values = res.load[nelts](index_res)
+
+                            for m in range(nelts):
+                                positions_t1[3] = get_t1_position(l + m, scales[scales.rank() - 1], 2)
+
+                                values[m] = get_value_interpolate(
+                                    positions_t1, 
+                                    positions_t1[0] + positions_t1[1] + positions_t1[2] + positions_t1[3])
+
+                            res.store[nelts](index_res, values)
+                        
+                        vectorize[v_iter_2, nelts](res_shape[res.rank() - 1])
             else:
                 # Error
                 pass    
