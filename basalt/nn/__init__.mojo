@@ -13,6 +13,4 @@ from .activations import (
     LeakyReLU,
     Sigmoid,
     Tanh,
-    Hardtanh,
-    Threshold,
 )

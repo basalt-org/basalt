@@ -16,12 +16,10 @@ from .basics import (
     FMA,
 )
 from .mlops import (
-    THRESHOLD,
     SIGMOID,
     RELU,
     LEAKYRELU,
     TANH,
-    HARDTANH,
     CLIP,
     SQUEEZE,
     UNSQUEEZE,
@@ -72,8 +70,6 @@ struct OP(Stringable):
     alias CONCAT = OP(23, "CONCAT", dynamic=True)
     alias SPLIT = OP(24, "SPLIT", dynamic=True)
     alias SLICE = OP(25, "SLICE")
-    alias THRESHOLD = OP(26, "THRESHOLD")
-    alias HARDTANH = OP(27, "HARDTANH")
     alias LEAKYRELU = OP(28, "LEAKYRELU")
 
     var id: UInt8
@@ -137,8 +133,6 @@ fn static_result_shape(
         return FLATTEN.result_shape(t1_shape)
     elif op == OP.RESHAPE:
         return RESHAPE.result_shape(t1_shape, attributes)
-    elif op == OP.THRESHOLD:
-        return THRESHOLD.result_shape(t1_shape)
     elif op == OP.SIGMOID:
         return SIGMOID.result_shape(t1_shape)
     elif op == OP.RELU:
@@ -147,8 +141,6 @@ fn static_result_shape(
         return LEAKYRELU.result_shape(t1_shape)
     elif op == OP.TANH:
         return TANH.result_shape(t1_shape)
-    elif op == OP.HARDTANH:
-        return HARDTANH.result_shape(t1_shape)
     elif op == OP.TRANSPOSE:
         return TRANSPOSE.result_shape(t1_shape, attributes)
     elif op == OP.MAXPOOL2D:
@@ -257,8 +249,6 @@ fn forward_op[
         FLATTEN.forward[t1_shape](res, t1)
     elif op == OP.RESHAPE:
         RESHAPE.forward[t1_shape](res, t1)
-    elif op == OP.THRESHOLD:
-        THRESHOLD.forward[t1_shape, attributes](res, t1)
     elif op == OP.SIGMOID:
         SIGMOID.forward[t1_shape](res, t1)
     elif op == OP.RELU:
@@ -267,8 +257,6 @@ fn forward_op[
         LEAKYRELU.forward[t1_shape, attributes](res, t1)
     elif op == OP.TANH:
         TANH.forward[t1_shape](res, t1)
-    elif op == OP.HARDTANH:
-        HARDTANH.forward[t1_shape, attributes](res, t1)
     elif op == OP.TRANSPOSE:
         TRANSPOSE.forward[t1_shape, attributes](res, t1)
     elif op == OP.MAXPOOL2D:
@@ -381,8 +369,6 @@ fn backward_op[
         res_grad = FLATTEN.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.RESHAPE:
         res_grad = RESHAPE.backward[ug_shape, t1_shape](ug, t1)
-    elif op == OP.THRESHOLD:
-        res_grad = THRESHOLD.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.SIGMOID:
         res_grad = SIGMOID.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.RELU:
@@ -391,8 +377,6 @@ fn backward_op[
         res_grad = LEAKYRELU.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.TANH:
         res_grad = TANH.backward[ug_shape, t1_shape](ug, t1)
-    elif op == OP.HARDTANH:
-        res_grad = HARDTANH.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.TRANSPOSE:
         res_grad = TRANSPOSE.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.MAXPOOL2D:

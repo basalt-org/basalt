@@ -4,10 +4,8 @@ from basalt.autograd.attributes import AttributeVector, Attribute
 from basalt.autograd.ops.mlops import (
     SIGMOID,
     RELU,
-    THRESHOLD,
     LEAKYRELU,
     TANH,
-    HARDTANH,
     CLIP,
     SQUEEZE,
     UNSQUEEZE,
@@ -21,39 +19,6 @@ from tests import (
     test_unary_op_backward,
     to_numpy,
 )
-
-
-fn test_THRESHOLD() raises:
-    alias t1_shape = TensorShape(2, 3)
-    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
-    fill(t1, 4.0)
-
-    var expected = Tensor[dtype](2, 3)
-    fill(expected, 4.0)
-
-    test_unary_op[
-        OP.THRESHOLD,
-        t1_shape,
-        AttributeVector(Attribute("threshold", 3), Attribute("value", 2)),
-    ](t1, expected)
-
-
-fn test_backward_THRESHOLD() raises:
-    alias t1_shape = TensorShape(2, 3)
-    alias ug_shape = TensorShape(2, 3)
-    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
-    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
-    fill(ug, 2.0)
-
-    var expected_grad = Tensor[dtype](2, 3)
-    fill(expected_grad, 0)
-
-    test_unary_op_backward[
-        OP.THRESHOLD,
-        t1_shape,
-        ug_shape,
-        AttributeVector(Attribute("threshold", 3), Attribute("value", 2)),
-    ](t1, ug, expected_grad)
 
 
 fn test_SIGMOID() raises:
@@ -189,38 +154,6 @@ fn test_backward_TANH() raises:
     fill(expected_grad, 5.0 * 1.0)  # 1.0 = d(tanh(0))/dx = 1 - tanh(0)^2
 
     test_unary_op_backward[OP.TANH, t1_shape, ug_shape](t1, ug, expected_grad)
-
-
-fn test_HARDTANH() raises:
-    alias t1_shape = TensorShape(2, 3)
-    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
-
-    var expected = Tensor[dtype](2, 3)
-    fill(expected, 0.0)
-
-    test_unary_op[
-        OP.HARDTANH,
-        t1_shape,
-        AttributeVector(Attribute("min_val", -3), Attribute("max_val", 3)),
-    ](t1, expected)
-
-
-fn test_backward_HARDTANH() raises:
-    alias t1_shape = TensorShape(2, 3)
-    alias ug_shape = TensorShape(2, 3)
-    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
-    var ug: Tensor[dtype] = Tensor[dtype](ug_shape)
-    fill(ug, 5.0)
-
-    var expected_grad = Tensor[dtype](2, 3)
-    fill(expected_grad, 0)  # 5 > 3, so slope is 0.
-
-    test_unary_op_backward[
-        OP.HARDTANH,
-        t1_shape,
-        ug_shape,
-        AttributeVector(Attribute("min_val", -3), Attribute("max_val", 3)),
-    ](t1, ug, expected_grad)
 
 
 fn test_CLIP() raises:

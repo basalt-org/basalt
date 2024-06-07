@@ -7,65 +7,6 @@ from basalt.utils.tensorutils import elwise_transform
 from basalt.autograd.attributes import Attribute, AttributeVector
 
 
-struct THRESHOLD:
-    @staticmethod
-    fn result_shape(t1_shape: TensorShape) -> TensorShape:
-        return t1_shape
-
-    @staticmethod
-    fn forward[
-        t1_shape: TensorShape,
-        attributes: AttributeVector,
-    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
-        """Forward pass for threshold."""
-
-        alias THRESHOLD: Scalar[dtype] = attributes[
-            "threshold"
-        ].value().to_scalar[dtype]()
-
-        alias VALUE: Scalar[dtype] = attributes["value"].value().to_scalar[
-            dtype
-        ]()
-
-        @always_inline
-        fn threshold[
-            type: DType, simd_width: Int
-        ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
-            alias casted_threshold = THRESHOLD.cast[type]()
-            alias casted_value = VALUE.cast[type]()
-
-            return (x > x.splat(casted_threshold)).select[type](x, casted_value)
-
-        elwise_transform[threshold](res, t1)
-
-    @staticmethod
-    fn backward[
-        ug_shape: TensorShape,
-        t1_shape: TensorShape,
-        attributes: AttributeVector,
-    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
-        """Backward pass for threshold."""
-        alias THRESHOLD: Scalar[dtype] = attributes[
-            "threshold"
-        ].value().to_scalar[dtype]()
-
-        alias VALUE: Scalar[dtype] = attributes["value"].value().to_scalar[
-            dtype
-        ]()
-
-        @always_inline
-        fn threshold_bw[
-            type: DType, simd_width: Int
-        ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
-            return (x > x.splat(THRESHOLD.cast[type]())).select[type](1, 0)
-
-        var res_grad = Tensor[dtype](t1_shape)
-
-        elwise_transform[threshold_bw](res_grad, t1)
-
-        return res_grad^
-
-
 @value
 struct SIGMOID:
     @staticmethod
@@ -259,72 +200,6 @@ struct TANH:
             )
 
         vectorize[vec_tanh_bw, nelts](ug_shape.num_elements())
-
-        return res_grad^
-
-
-struct HARDTANH:
-    @staticmethod
-    fn result_shape(t1_shape: TensorShape) -> TensorShape:
-        return t1_shape
-
-    @staticmethod
-    fn forward[
-        t1_shape: TensorShape,
-        attributes: AttributeVector,
-    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
-        """Forward pass for hard tanh."""
-
-        alias MIN_VAL: Scalar[dtype] = attributes["min_val"].value().to_scalar[
-            dtype
-        ]()
-
-        alias MAX_VAL: Scalar[dtype] = attributes["max_val"].value().to_scalar[
-            dtype
-        ]()
-
-        @always_inline
-        fn hardtanh[
-            type: DType, simd_width: Int
-        ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
-            alias casted_min = MIN_VAL.cast[type]()
-            alias casted_max = MAX_VAL.cast[type]()
-
-            var x_or_min = (x > x.splat(casted_min)).select[type](x, casted_min)
-
-            return (x_or_min < x_or_min.splat(casted_max)).select[type](
-                x_or_min, casted_max
-            )
-
-        elwise_transform[hardtanh](res, t1)
-
-    @staticmethod
-    fn backward[
-        ug_shape: TensorShape,
-        t1_shape: TensorShape,
-        attributes: AttributeVector,
-    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
-        """Backward pass for hard tanh."""
-        alias MIN_VAL: Scalar[dtype] = attributes["min_val"].value().to_scalar[
-            dtype
-        ]()
-
-        alias MAX_VAL: Scalar[dtype] = attributes["max_val"].value().to_scalar[
-            dtype
-        ]()
-
-        @always_inline
-        fn hardtanh_bw[
-            type: DType, simd_width: Int
-        ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
-            return (
-                x > x.splat(MIN_VAL.cast[type]())
-                and x < x.splat(MAX_VAL.cast[type]())
-            ).select[type](1, 0)
-
-        var res_grad = Tensor[dtype](t1_shape)
-
-        elwise_transform[hardtanh_bw](res_grad, t1)
 
         return res_grad^
 

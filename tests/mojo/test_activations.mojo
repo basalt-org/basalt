@@ -11,8 +11,6 @@ from basalt.nn import (
     LeakyReLU,
     Sigmoid,
     Tanh,
-    Hardtanh,
-    Threshold,
 )
 from basalt.autograd import Graph, Symbol
 from basalt.utils.tensorutils import fill
@@ -24,12 +22,6 @@ alias Activation = fn (inout g: Graph, input: Symbol) -> Symbol
 alias AxisActivation = fn (inout g: Graph, input: Symbol, axis: Int) -> Symbol
 alias LeakyReLUActivation = fn (
     inout g: Graph, input: Symbol, negative_slope: Scalar[dtype]
-) -> Symbol
-alias ThresholdActivation = fn (
-    inout g: Graph,
-    input: Symbol,
-    threshold: Scalar[dtype],
-    value: Scalar[dtype],
 ) -> Symbol
 
 
@@ -63,35 +55,6 @@ fn create_graph[shape: TensorShape, func: Activation]() -> Graph:
     var activation = func(g, x)
     g.out(activation)
     return g^
-
-
-fn create_graph[
-    shape: TensorShape,
-    func: ThresholdActivation,
-    threshold: Scalar[dtype],
-    value: Scalar[dtype],
-]() -> Graph:
-    var g = Graph()
-    var x = g.input(shape)
-    var activation = func(g, x, threshold, value)
-    g.out(activation)
-    return g^
-
-
-fn test_graph[
-    shape: TensorShape,
-    func: ThresholdActivation,
-    nodes: Int,
-    threshold: Scalar[dtype],
-    value: Scalar[dtype],
-](input: Tensor[dtype], expected: Tensor[dtype]) raises:
-    alias graph = create_graph[shape, func, threshold, value]()
-
-    var model = Model[graph](inference_only=True)
-    var res = model.inference(input)[0]
-
-    assert_tensors_equal["almost"](res, expected)
-    assert_equal(len(graph.nodes), nodes)
 
 
 fn test_graph[
@@ -137,26 +100,6 @@ fn test_graph[
 
     assert_tensors_equal["almost", "Tensor equality failed"](res, expected)
     assert_equal(len(graph.nodes), nodes, "Node count failed")
-
-
-fn test_THRESHOLD() raises:
-    alias shape = TensorShape(2, 3)
-    alias nodes = 1
-
-    alias THRESHOLD = 3
-    alias VALUE = 2
-
-    var input = Tensor[dtype](shape)
-
-    for i in range(6):
-        input[i] = i
-
-    var expected = Tensor[dtype](shape)
-
-    for i in range(6):
-        expected[i] = i if i > THRESHOLD else VALUE
-
-    test_graph[shape, Threshold, nodes, THRESHOLD, VALUE](input, expected)
 
 
 fn test_SOFTMAX() raises:
@@ -259,43 +202,13 @@ fn test_TANH() raises:
     test_graph[shape, Tanh, nodes](input, expected)
 
 
-fn test_HARDTANH() raises:
-    alias shape = TensorShape(3, 3)
-    alias nodes = 1
-
-    alias MIN_VAL = -2
-    alias MAX_VAL = 2
-
-    var input = Tensor[dtype](shape)
-
-    for i in range(9):
-        input[i] = i - 4
-
-    var expected = Tensor[dtype](shape)
-
-    for j in range(0, 9):
-        var i = j - 4
-        if i < MIN_VAL:
-            expected[j] = MIN_VAL
-
-        elif i > MAX_VAL:
-            expected[j] = MAX_VAL
-
-        else:
-            expected[j] = i
-
-    test_graph[shape, Hardtanh, nodes, MIN_VAL, MAX_VAL](input, expected)
-
-
 fn main():
     try:
-        test_THRESHOLD()
         test_SOFTMAX()
         test_LOGSOFTMAX()
         test_RELU()
         test_SIGMOID()
         test_TANH()
-        test_HARDTANH()
     except e:
         print("[ERROR] Error in activations")
         print(e)

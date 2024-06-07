@@ -4,21 +4,6 @@ from basalt.autograd.attributes import Attribute, AttributeVector
 
 
 # '''Activation functions.'''
-fn Threshold(
-    inout g: Graph,
-    input: Symbol,
-    threshold: Scalar[dtype],
-    value: Scalar[dtype],
-) -> Symbol:
-    return g.op(
-        OP.THRESHOLD,
-        input,
-        attributes=AttributeVector(
-            Attribute("threshold", threshold), Attribute("value", value)
-        ),
-    )
-
-
 fn ReLU(inout g: Graph, input: Symbol) -> Symbol:
     return g.op(OP.RELU, input)
 
@@ -39,21 +24,6 @@ fn Sigmoid(inout g: Graph, input: Symbol) -> Symbol:
 
 fn Tanh(inout g: Graph, input: Symbol) -> Symbol:
     return g.op(OP.TANH, input)
-
-
-fn Hardtanh(
-    inout g: Graph,
-    input: Symbol,
-    min_val: Scalar[dtype],
-    max_val: Scalar[dtype],
-) -> Symbol:
-    return g.op(
-        OP.HARDTANH,
-        input,
-        attributes=AttributeVector(
-            Attribute("min_val", min_val), Attribute("max_val", max_val)
-        ),
-    )
 
 
 fn Softmax(inout g: Graph, input: Symbol, axis: Int) -> Symbol:
