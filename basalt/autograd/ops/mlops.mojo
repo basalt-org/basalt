@@ -675,7 +675,7 @@ struct UPSAMPLE:
 
         @parameter
         fn get_coordination_mode() -> String:
-            if mode == "linear":
+            if mode == "linear" or mode == "bilinear":
                 return "half_pixel"
             else:
                 return "asymmetric"
@@ -700,12 +700,16 @@ struct UPSAMPLE:
         @parameter
         @always_inline
         fn get_value_interpolate[size: Int](
-            indeces_t1: StaticTuple[Float64, size],
-            index_t1_sum: Float64
+            indeces_t1: StaticTuple[Float64, size]
         ) -> SIMD[t1.dtype, 1]:
             @parameter
             if mode == "nearest":
-                return t1[int(index_t1_sum)]
+                var indeces_t1_sum = indeces_t1[0]
+                @unroll
+                for i in range(1, size):
+                    indeces_t1_sum += indeces_t1[i] * strides[i + 1]
+
+                return t1[int(indeces_t1_sum)]
             elif mode == "linear":
                 var t1_pos_floor = floor(indeces_t1[1])
                 var t1_pos_ceil = min(ceil(indeces_t1[1]), t1_shape[2] - 1)
@@ -714,6 +718,25 @@ struct UPSAMPLE:
                 var v2 = t1[int(indeces_t1[0]) + int(t1_pos_ceil)]
 
                 return v1 + (v2 - v1) * (indeces_t1[1] - t1_pos_floor)
+            elif mode == "bilinear":
+                var t1_pos_floor_y = floor(indeces_t1[1])
+                var t1_pos_ceil_y = min(ceil(indeces_t1[1]), t1_shape[2] - 1)
+
+                var t1_pos_floor_x = floor(indeces_t1[2])
+                var t1_pos_ceil_x = min(ceil(indeces_t1[2]), t1_shape[3] - 1)
+
+                var v1 = t1[int(indeces_t1[0]) + int(t1_pos_floor_y) * strides[2] + int(t1_pos_floor_x) * strides[3]]
+                var v2 = t1[int(indeces_t1[0]) + int(t1_pos_floor_y) * strides[2] + int(t1_pos_ceil_x) * strides[3]]
+                var v3 = t1[int(indeces_t1[0]) + int(t1_pos_ceil_y) * strides[2] + int(t1_pos_floor_x) * strides[3]]
+                var v4 = t1[int(indeces_t1[0]) + int(t1_pos_ceil_y) * strides[2] + int(t1_pos_ceil_x) * strides[3]]
+
+                var wy = indeces_t1[1] - t1_pos_floor_y
+                var wx = indeces_t1[2] - t1_pos_floor_x
+
+                var top_interp = v1 + (v2 - v1) * wx
+                var bottom_interp = v3 + (v4 - v3) * wx
+    
+                return top_interp + (bottom_interp - top_interp) * wy
             else:
                 return 0
 
@@ -753,9 +776,7 @@ struct UPSAMPLE:
                     for k in range(nelts):
                         positions_t1[1] = get_t1_position(j + k, scales[scales.rank() - 1], 0)
 
-                        values[k] = get_value_interpolate(
-                            positions_t1, 
-                            positions_t1[0] + positions_t1[1])
+                        values[k] = get_value_interpolate(positions_t1)
 
                     res.store[nelts](index_res, values)
 
@@ -770,7 +791,7 @@ struct UPSAMPLE:
 
                 for j in range(res_shape[2]):
                     positions_res[1] = j * strides_res[2]
-                    positions_t1[1] = get_t1_position(j, scales[0], 0) * strides[2]
+                    positions_t1[1] = get_t1_position(j, scales[0], 0)
             
                     @parameter
                     fn v_iter_1[nelts: Int](k: Int):
@@ -782,9 +803,7 @@ struct UPSAMPLE:
                         for l in range(nelts):
                             positions_t1[2] = get_t1_position(k + l, scales[scales.rank() - 1], 1)
 
-                            values[l] = get_value_interpolate(
-                                positions_t1, 
-                                positions_t1[0] + positions_t1[1] + positions_t1[2])
+                            values[l] = get_value_interpolate(positions_t1)
 
                         res.store[nelts](index_res, values)
                     
@@ -799,10 +818,10 @@ struct UPSAMPLE:
 
                 for j in range(res.shape()[2]):
                     positions_res[1] = j * strides_res[2]
-                    positions_t1[1] = get_t1_position(j, scales[0], 0) * strides[2]
+                    positions_t1[1] = get_t1_position(j, scales[0], 0)
                     for k in range(res.shape()[3]):
                         positions_res[2] = k * strides_res[3]
-                        positions_t1[2] = get_t1_position(k, scales[1], 1) * strides[3]
+                        positions_t1[2] = get_t1_position(k, scales[1], 1)
                         
                         @parameter
                         fn v_iter_2[nelts: Int](l: Int):
@@ -814,9 +833,7 @@ struct UPSAMPLE:
                             for m in range(nelts):
                                 positions_t1[3] = get_t1_position(l + m, scales[scales.rank() - 1], 2)
 
-                                values[m] = get_value_interpolate(
-                                    positions_t1, 
-                                    positions_t1[0] + positions_t1[1] + positions_t1[2] + positions_t1[3])
+                                values[m] = get_value_interpolate(positions_t1)
 
                             res.store[nelts](index_res, values)
                         

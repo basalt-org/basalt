@@ -466,7 +466,7 @@ fn test_UPSAMPLE() raises:
     expected_and_grad = torch_unary_op(OP.UPSAMPLE, t1, ug, attributes_2)
     test_unary_op[OP.UPSAMPLE, t1_shape, attributes_2](t1, expected_and_grad.expected)
 
-    alias t1_shape_1 = TensorShape(40, 40, 120, 120)
+    alias t1_shape_1 = TensorShape(20, 20, 120, 120)
     t1 = Tensor[dtype](t1_shape_1)
     rand(t1.data(), t1.num_elements())
 
@@ -475,18 +475,26 @@ fn test_UPSAMPLE() raises:
         Attribute("mode", "nearest")
     )
 
-    alias ug_shape_1 = TensorShape(40, 40, 240, 360)
+    alias ug_shape_1 = TensorShape(20, 20, 240, 360)
     ug = Tensor[dtype](ug_shape_1)
     rand(ug.data(), ug.num_elements())
 
     expected_and_grad = torch_unary_op(OP.UPSAMPLE, t1, ug, attributes_3)
     test_unary_op[OP.UPSAMPLE, t1_shape_1, attributes_3](t1, expected_and_grad.expected)
 
+    alias attributes_4 = AttributeVector(
+        Attribute("scales", TensorShape(2, 3)),
+        Attribute("mode", "bilinear")
+    )
+
+    expected_and_grad = torch_unary_op(OP.UPSAMPLE, t1, ug, attributes_4)
+    test_unary_op[OP.UPSAMPLE, t1_shape_1, attributes_4](t1, expected_and_grad.expected)
+
     alias t1_shape_2 = TensorShape(5, 5, 10, 20, 60)
     t1 = Tensor[dtype](t1_shape_2)
     rand(t1.data(), t1.num_elements())
 
-    alias attributes_4 = AttributeVector(
+    alias attributes_5 = AttributeVector(
         Attribute("scales", TensorShape(2, 3, 4)),
         Attribute("mode", "nearest")
     )
@@ -495,8 +503,8 @@ fn test_UPSAMPLE() raises:
     ug = Tensor[dtype](ug_shape_2)
     rand(ug.data(), ug.num_elements())
 
-    expected_and_grad = torch_unary_op(OP.UPSAMPLE, t1, ug, attributes_4)
-    test_unary_op[OP.UPSAMPLE, t1_shape_2, attributes_4](t1, expected_and_grad.expected)
+    expected_and_grad = torch_unary_op(OP.UPSAMPLE, t1, ug, attributes_5)
+    test_unary_op[OP.UPSAMPLE, t1_shape_2, attributes_5](t1, expected_and_grad.expected)
 
 
 fn main():
