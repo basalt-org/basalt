@@ -1,6 +1,7 @@
 from math import log, exp
 from algorithm import vectorize
 from memory import memcpy
+from utils.numerics import isinf
 
 from basalt import Tensor, TensorShape
 from basalt.nn.tensor import MAX_RANK
@@ -318,7 +319,9 @@ struct POW:
         # d(x^y) / dx = y * x^(y-1)
         # d(x^y) / dy = sum( x^y * log(x) )
         var res_grad: Tensor[dtype]
-        var a = int(t2[0])
+        var a = t2[0]
+
+        alias epsilon = 1e-12
 
         @parameter
         if tensor_id == 0:
@@ -331,13 +334,18 @@ struct POW:
             vectorize[vec_pow_bw_x, nelts](t1_shape.num_elements())
 
         else:
+            # Gradient of the exponent
             res_grad = Tensor[dtype](t2_shape)  # t2_shape == TensorShape(1)
 
             @parameter
             fn vec_pow_bw_y[nelts: Int](i: Int):
+                # the case when the value passed to log is 0.0
+                var temp_log = log(t1.load[nelts](i))
+                var temp_log_is_inf = isinf(temp_log)
+                temp_log = temp_log_is_inf.select(0, temp_log)
                 res_grad[0] += (
                     (t1.load[nelts](i) ** a)
-                    * log(t1.load[nelts](i))
+                    * temp_log
                     * ug.load[nelts](i)
                 ).reduce_add()
 
