@@ -1,6 +1,7 @@
 from basalt import Tensor
 from random import rand, randn
 from algorithm import vectorize
+from utils.static_tuple import StaticTuple
 
 
 @always_inline
@@ -71,4 +72,4 @@ struct MersenneTwister:
         return y
 
     fn next_ui8(inout self) -> UInt8:
-        return self.next().value & 0xFF
+        return self.next().value & int(0xFF)

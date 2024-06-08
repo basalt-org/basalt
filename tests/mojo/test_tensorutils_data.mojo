@@ -1,8 +1,10 @@
-from math import add
-
 from basalt import dtype, nelts
 from basalt.nn import Tensor, TensorShape
 from basalt.utils.tensorutils import fill, elwise_op
+
+@always_inline
+fn add[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return x + y
 
 
 fn generate_tensor(*shape: Int) -> Tensor[dtype]:

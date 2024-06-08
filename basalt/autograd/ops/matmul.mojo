@@ -18,7 +18,7 @@ fn calculate_block[
 
     for k in range(K):
 
-        @unroll
+        @parameter
         for m in range(BLOCK_M):
 
             @parameter

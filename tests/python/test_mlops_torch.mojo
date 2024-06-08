@@ -1,5 +1,5 @@
 from random import rand
-from math.limit import min_finite, max_finite
+from utils.numerics import min_finite, max_finite
 from collections.optional import OptionalReg, Optional
 from python.python import Python
 from python.object import PythonObject

@@ -1,4 +1,5 @@
 from collections import Optional, OptionalReg
+from utils.static_tuple import StaticTuple
 
 from basalt.nn.tensor import Tensor, TensorShape, MAX_RANK
 from basalt.utils.bytes import Bytes, scalar_to_bytes, bytes_to_scalar
@@ -47,7 +48,7 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn __init__(inout self, *attributes: Attribute):
-        self.attributes = StaticTuple[Attribute, MAX_ATTRS]()
+        self.attributes = StaticTuple[Attribute, MAX_ATTRS](Attribute("", ""))
         self.size = len(attributes)
         for i in range(self.size):
             self.attributes[i] = attributes[i]

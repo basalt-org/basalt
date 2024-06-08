@@ -1,4 +1,4 @@
-from math import add, sub, mul, div, log, exp
+from math import log, exp
 from algorithm import vectorize
 from memory import memcpy
 
@@ -7,6 +7,23 @@ from basalt.nn.tensor import MAX_RANK
 from basalt.utils.tensorutils import *
 from basalt.autograd.attributes import Attribute, AttributeVector
 from basalt.autograd.ops.matmul import dot, dot_transpose_t1, dot_transpose_t2
+
+@always_inline
+fn add[dtype: DType, simd_width: Int](a: SIMD[dtype, simd_width], b: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return a + b
+
+@always_inline
+fn sub[dtype: DType, simd_width: Int](a: SIMD[dtype, simd_width], b: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return a - b
+
+@always_inline
+fn mul[dtype: DType, simd_width: Int](a: SIMD[dtype, simd_width], b: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return a * b
+
+@always_inline
+fn div[dtype: DType, simd_width: Int](a: SIMD[dtype, simd_width], b: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return a / b
+
 
 """
 Implement forward and backward operations for basic tensor manipulations.

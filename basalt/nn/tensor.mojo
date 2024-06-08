@@ -1,4 +1,3 @@
-from math import min
 from testing import assert_true
 from algorithm import vectorize
 
@@ -145,7 +144,7 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
         self._data = DTypePointer[dtype].alloc(tensor.num_elements())
         self._shape = tensor.shape()
 
-        memcpy(self._data, tensor.data(), self._shape.num_elements())
+        memcpy(self._data, tensor.unsafe_ptr(), self._shape.num_elements())
         _ = tensor
 
     @always_inline("nodebug")

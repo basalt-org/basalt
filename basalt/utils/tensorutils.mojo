@@ -1,12 +1,40 @@
 from sys.info import num_physical_cores
-from algorithm import vectorize, parallelize, swap
+from algorithm import vectorize, parallelize
 from memory import memset_zero, memset, stack_allocation
-from math import sqrt, pow, equal, max, min, add, div, divmod, abs
+from math import sqrt
 from random import rand
+from utils.numerics import min_finite, max_finite
 
 from basalt import Tensor, TensorShape
 from basalt.nn.tensor import MAX_RANK
 
+
+@always_inline
+fn add[dtype: DType, simd_width: Int](
+    x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]
+) -> SIMD[dtype, simd_width]:
+    return x + y
+
+@always_inline
+fn sub[dtype: DType, simd_width: Int](
+    x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]
+) -> SIMD[dtype, simd_width]:
+    return x - y
+
+@always_inline
+fn mul[dtype: DType, simd_width: Int](
+    x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]
+) -> SIMD[dtype, simd_width]:
+    return x * y
+
+@always_inline
+fn div[dtype: DType, simd_width: Int](
+    x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]
+) -> SIMD[dtype, simd_width]:
+    return x / y
+
+
+# ---- Start -----
 
 @always_inline
 fn fill[dtype: DType](inout t: Tensor[dtype], val: Scalar[dtype]):
@@ -472,13 +500,13 @@ fn _reduce_max[
 
 @always_inline
 fn tmax(t: Tensor[dtype]) -> Scalar[dtype]:
-    var starting_value = math.limit.min_finite[dtype]()
+    var starting_value = min_finite[dtype]()
     return reduce[max, _reduce_max](t, starting_value)
 
 
 @always_inline
 fn tmax(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
-    var starting_value = math.limit.min_finite[dtype]()
+    var starting_value = min_finite[dtype]()
     reduce[max, _reduce_max](res, t, axis, starting_value)
 
 

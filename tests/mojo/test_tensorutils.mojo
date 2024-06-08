@@ -1,6 +1,27 @@
 from random import rand
 from testing import assert_equal, assert_almost_equal
-from math import sqrt, exp, round, add, sub, mul, div
+from math import sqrt, exp
+
+@always_inline
+fn add[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return x + y
+
+@always_inline
+fn sub[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return x - y
+
+@always_inline
+fn mul[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return x * y
+
+@always_inline
+fn div[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return x / y
+
+@always_inline
+fn round_simd[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return round(x)
+
 
 from basalt import dtype, nelts
 from basalt.autograd.ops.matmul import dot
@@ -81,7 +102,7 @@ fn test_elwise_transform() raises:
     assert_tensors_equal(B_res, C)
 
     var C_res = Tensor[dtype](2, 10)
-    elwise_transform[round](C_res, C)
+    elwise_transform[round_simd](C_res, C)
     assert_tensors_equal(C_res, D)
 
 

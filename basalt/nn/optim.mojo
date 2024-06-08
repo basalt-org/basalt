@@ -1,9 +1,25 @@
-from math import add, mul, div, sqrt, sub
+from math import sqrt
 from algorithm import vectorize, parallelize
 
 from .model import Parameters
 from basalt import Graph, Tensor, TensorShape
 from basalt.utils.collection import Collection
+
+@always_inline
+fn add[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return x + y
+
+@always_inline
+fn sub[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return x - y
+
+@always_inline
+fn mul[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return x * y
+
+@always_inline
+fn div[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
+    return x / y
 
 
 fn get_trainable_parameters(g: Graph) -> List[Symbol]:
@@ -22,7 +38,7 @@ fn get_trainable_parameters(g: Graph) -> List[Symbol]:
 
 struct Adam[
     g: Graph,
-    mutability: __mlir_type.i1,
+    mutability: Bool,
     lifetime: AnyLifetime[mutability].type,
     trainable_parameters: List[Symbol] = get_trainable_parameters(g),
 ]:
@@ -74,15 +90,15 @@ struct Adam[
 
             @parameter
             fn v_step[nelts: Int](j: Int):
-                var momentum_grads = self.momentum_grads[param].load[nelts](j)
-                var rms_grads = self.rms_grads[param].load[nelts](j)
-                var grads = self.parameters[].grads[param].load[nelts](j)
-                var params = self.parameters[].tensors[param].load[nelts](j)
+                var momentum_grads = self.momentum_grads[param][].load[nelts](j)
+                var rms_grads = self.rms_grads[param][].load[nelts](j)
+                var grads = self.parameters[].grads[param][].load[nelts](j)
+                var params = self.parameters[].tensors[param][].load[nelts](j)
 
                 # Momentum beta 1
                 # f1 = beta1 * momentum + (1 - beta1) * grad
                 momentum_grads = self.beta1 * momentum_grads + (1 - self.beta1) * grads
-                self.momentum_grads[param].store[nelts](j, momentum_grads)
+                self.momentum_grads[param][].store[nelts](j, momentum_grads)
 
                 # Bias correction
                 # f2 = f1 / (1 - beta1 ** iter)
@@ -91,7 +107,7 @@ struct Adam[
                 # RMS beta 2
                 # f1 = beta2 * rms + (1 - beta2) * grad ** 2
                 rms_grads = self.beta2 * rms_grads + (1 - self.beta2) * grads * grads
-                self.rms_grads[param].store[nelts](j, rms_grads)
+                self.rms_grads[param][].store[nelts](j, rms_grads)
 
                 # Bias correction
                 # f2 = f1 / (1 - beta2 ** iter)
@@ -101,7 +117,7 @@ struct Adam[
                 params = params - self.lr * (
                     momentum_grads / (sqrt(rms_grads) + self.epsilon)
                 )
-                self.parameters[].tensors[param].store[nelts](j, params)
+                self.parameters[].tensors[param][].store[nelts](j, params)
 
             vectorize[v_step, 1](param.shape.num_elements())
 

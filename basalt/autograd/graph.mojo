@@ -40,7 +40,7 @@ struct Graph:
         self.symbol_count += 1
 
         if data is not None:
-            self.params.put(symbol, data.take())
+            self.params.put(symbol, data.value()[])
         else:
             self.params.put(symbol)
 
