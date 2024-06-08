@@ -1,9 +1,13 @@
 from algorithm import vectorize
-from math import div
 
 from basalt import dtype
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_op, tmean, tstd
+
+
+@always_inline
+fn div[dtype: DType, simd_width: Int](a: SIMD[dtype, simd_width], b: Scalar[dtype]) -> SIMD[dtype, simd_width]:
+    return a / b
 
 
 struct BostonHousing:
