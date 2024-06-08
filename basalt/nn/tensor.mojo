@@ -13,40 +13,34 @@ struct TensorShape(Stringable):
     var _rank: Int
     var _shape: StaticIntTuple[MAX_RANK]
 
-    @always_inline("nodebug")
     fn __init__(inout self, *shape: Int):
         self._rank = len(shape)
         self._shape = StaticIntTuple[MAX_RANK]()
         for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shape[i]
 
-    @always_inline("nodebug")
     fn __init__(inout self, shapes: VariadicList[Int]):
         self._rank = len(shapes)
         self._shape = StaticIntTuple[MAX_RANK]()
         for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shapes[i]
 
-    @always_inline("nodebug")
     fn __init__(inout self, shape: List[Int]):
         self._rank = len(shape)
         self._shape = StaticIntTuple[MAX_RANK]()
         for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shape[i]
 
-    @always_inline("nodebug")
     fn __init__[num: Int](inout self, shape: StaticIntTuple[num]):
         self._rank = num
         self._shape = StaticIntTuple[MAX_RANK]()
         for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shape[i]
 
-    @always_inline("nodebug")
     fn __init__(inout self, rank: Int, shape: StaticIntTuple[MAX_RANK]):
         self._rank = rank
         self._shape = shape
 
-    @always_inline("nodebug")
     fn __init__(inout self, owned shape: _TensorShape):
         self._rank = shape.rank()
         self._shape = StaticIntTuple[MAX_RANK]()
@@ -116,19 +110,16 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
     var _data: DTypePointer[dtype]
     var _shape: TensorShape
 
-    @always_inline("nodebug")
     fn __init__(inout self, *dims: Int):
         self._shape = TensorShape(dims)
         self._data = DTypePointer[dtype].alloc(self._shape.num_elements())
         memset_zero(self._data, self._shape.num_elements())
 
-    @always_inline("nodebug")
     fn __init__(inout self, owned shape: TensorShape):
         self._data = DTypePointer[dtype].alloc(shape.num_elements())
         memset_zero(self._data, shape.num_elements())
         self._shape = shape
 
-    @always_inline("nodebug")
     fn __init__(
         inout self, owned data: DTypePointer[dtype], owned shape: TensorShape
     ):
@@ -139,7 +130,6 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
         memcpy(self._data, data, self._shape.num_elements())
         _ = data
 
-    @always_inline("nodebug")
     fn __init__(inout self, owned tensor: _Tensor[dtype]):
         self._data = DTypePointer[dtype].alloc(tensor.num_elements())
         self._shape = tensor.shape()
@@ -147,12 +137,10 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
         memcpy(self._data, tensor.unsafe_ptr(), self._shape.num_elements())
         _ = tensor
 
-    @always_inline("nodebug")
     fn __moveinit__(inout self, owned other: Tensor[dtype]):
         self._data = other._data
         self._shape = other._shape
 
-    @always_inline("nodebug")
     fn __copyinit__(inout self, other: Tensor[dtype]):
         # print("[WARNING] Copying tensor")
         self._data = DTypePointer[dtype].alloc(other._shape.num_elements())
