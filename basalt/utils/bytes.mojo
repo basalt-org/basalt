@@ -34,6 +34,7 @@ struct Bytes[capacity: Int](Stringable, CollectionElement, EqualityComparable):
     fn __len__(self) -> Int:
         return capacity
 
+    @always_inline("nodebug")
     fn __setitem__(inout self, index: Int, value: UInt8):
         self.data[index] = value
 
