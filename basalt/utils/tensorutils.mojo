@@ -7,31 +7,7 @@ from utils.numerics import min_finite, max_finite
 
 from basalt import Tensor, TensorShape
 from basalt.nn.tensor import MAX_RANK
-
-
-@always_inline
-fn add[dtype: DType, simd_width: Int](
-    x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]
-) -> SIMD[dtype, simd_width]:
-    return x + y
-
-@always_inline
-fn sub[dtype: DType, simd_width: Int](
-    x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]
-) -> SIMD[dtype, simd_width]:
-    return x - y
-
-@always_inline
-fn mul[dtype: DType, simd_width: Int](
-    x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]
-) -> SIMD[dtype, simd_width]:
-    return x * y
-
-@always_inline
-fn div[dtype: DType, simd_width: Int](
-    x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]
-) -> SIMD[dtype, simd_width]:
-    return x / y
+from basalt.utils.math_util import add, sub, mul, div
 
 
 # ---- Start -----

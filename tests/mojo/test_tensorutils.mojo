@@ -2,27 +2,6 @@ from random import rand
 from testing import assert_equal, assert_almost_equal
 from math import sqrt, exp
 
-@always_inline
-fn add[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-    return x + y
-
-@always_inline
-fn sub[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-    return x - y
-
-@always_inline
-fn mul[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-    return x * y
-
-@always_inline
-fn div[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-    return x / y
-
-@always_inline
-fn round_simd[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-    return round(x)
-
-
 from basalt import dtype, nelts
 from basalt.autograd.ops.matmul import dot
 from basalt.utils.tensorutils import (
@@ -41,6 +20,7 @@ from basalt.utils.tensorutils import (
     transpose,
 )
 from basalt.nn import Tensor, TensorShape
+from basalt.utils.math_util import add, sub, mul, div, round_simd
 
 from tests import assert_tensors_equal
 

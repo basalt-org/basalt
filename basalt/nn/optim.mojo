@@ -4,22 +4,7 @@ from algorithm import vectorize, parallelize
 from .model import Parameters
 from basalt import Graph, Tensor, TensorShape
 from basalt.utils.collection import Collection
-
-@always_inline
-fn add[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-    return x + y
-
-@always_inline
-fn sub[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-    return x - y
-
-@always_inline
-fn mul[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-    return x * y
-
-@always_inline
-fn div[dtype: DType, simd_width: Int](x: SIMD[dtype, simd_width], y: SIMD[dtype, simd_width]) -> SIMD[dtype, simd_width]:
-    return x / y
+from basalt.utils.math_util import add, sub, mul, div
 
 
 fn get_trainable_parameters(g: Graph) -> List[Symbol]:
