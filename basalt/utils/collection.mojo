@@ -133,16 +133,16 @@ struct Collection(CollectionElement, Sized):
         return -1
 
     fn __getitem__(
-        self: Reference[Self, _, _],
+        inout self,
         symbol: Symbol,
-    ) -> Reference[Tensor[dtype], self.is_mutable, self.lifetime]:
+    ) -> ref[__lifetime_of(self)] Tensor[dtype]:
         """
         Returns a reference to the tensor with the given symbol.
         """
-        var index = self[].get_index(symbol.name)
+        var index = self.get_index(symbol.name)
 
 
-        return (self[].data + index)[0]
+        return (self.data + index)[0]
 
     @always_inline("nodebug")
     fn clear(inout self):

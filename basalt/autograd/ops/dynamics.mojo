@@ -33,7 +33,7 @@ struct CONCAT:
     fn forward[attributes: AttributeVector](
         inputs: List[Symbol],
         outputs: List[Symbol],
-        parameters: Parameters,
+        inout parameters: Parameters,
     ):
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
@@ -47,10 +47,10 @@ struct CONCAT:
         for i in range(n_chunks):
             for j in range(len(inputs)):
                 memcpy(
-                    parameters.tensors[outputs[0]][].data()
+                    parameters.tensors[outputs[0]].data()
                     + i * chunk_offsets[len(inputs)]
                     + chunk_offsets[j],
-                    parameters.tensors[inputs[j]][].data() + i * chunks[j],
+                    parameters.tensors[inputs[j]].data() + i * chunks[j],
                     chunks[j],
                 )
 
@@ -58,7 +58,7 @@ struct CONCAT:
     fn backward[input_id: Int, attributes: AttributeVector](
         inputs: List[Symbol],
         outputs: List[Symbol],
-        parameters: Parameters,
+        inout parameters: Parameters,
     ) -> Tensor[dtype]:
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
@@ -73,7 +73,7 @@ struct CONCAT:
         for i in range(n_chunks):
             memcpy(
                 res_grad.data() + i * chunks[input_id],
-                parameters.grads[outputs[0]][].data()
+                parameters.grads[outputs[0]].data()
                 + i * chunk_offsets[len(inputs)]
                 + chunk_offsets[input_id],
                 chunks[input_id],
@@ -113,7 +113,7 @@ struct SPLIT:
     fn forward[attributes: AttributeVector](
         inputs: List[Symbol],
         outputs: List[Symbol],
-        parameters: Parameters,
+        inout parameters: Parameters,
     ):
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         alias sections = attributes["sections"].value().to_shape()
@@ -128,8 +128,8 @@ struct SPLIT:
         for i in range(n_chunks):
             for j in range(len(outputs)):
                 memcpy(
-                    parameters.tensors[outputs[j]][].data() + i * chunks[j],
-                    parameters.tensors[inputs[0]][].data()
+                    parameters.tensors[outputs[j]].data() + i * chunks[j],
+                    parameters.tensors[inputs[0]].data()
                     + i * chunk_offsets[len(outputs)]
                     + chunk_offsets[j],
                     chunks[j],
@@ -139,7 +139,7 @@ struct SPLIT:
     fn backward[input_id: Int, attributes: AttributeVector](
         inputs: List[Symbol],
         outputs: List[Symbol],
-        parameters: Parameters,
+        inout parameters: Parameters,
     ) -> Tensor[dtype]:
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         alias sections = attributes["sections"].value().to_shape()
@@ -159,7 +159,7 @@ struct SPLIT:
                     res_grad.data()
                     + i * chunk_offsets[len(outputs)]
                     + chunk_offsets[j],
-                    parameters.grads[outputs[j]][].data() + i * chunks[j],
+                    parameters.grads[outputs[j]].data() + i * chunks[j],
                     chunks[j],
                 )
 

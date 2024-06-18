@@ -46,8 +46,8 @@ fn test_get_tensor_reference() raises:
     fill(t1_expected, 1)
     fill(t2_expected, 2)
 
-    assert_tensors_equal(c[s1][], t1_expected)
-    assert_tensors_equal(c[s2][], t2_expected)
+    assert_tensors_equal(c[s1], t1_expected)
+    assert_tensors_equal(c[s2], t2_expected)
 
 
 fn test_resize_collection() raises:
@@ -88,9 +88,9 @@ fn test_resize_collection() raises:
     fill(t2_expected, 2)
     fill(t3_expected, 3)
 
-    assert_tensors_equal(c[s1][], t1_expected)
-    assert_tensors_equal(c[s2][], t2_expected)
-    assert_tensors_equal(c[s3][], t3_expected)
+    assert_tensors_equal(c[s1], t1_expected)
+    assert_tensors_equal(c[s2], t2_expected)
+    assert_tensors_equal(c[s3], t3_expected)
 
 
 fn test_set_zero() raises:
@@ -111,13 +111,13 @@ fn test_set_zero() raises:
     var t2_expected = Tensor[dtype](s2.shape)
     fill(t1_expected, 1)
     fill(t2_expected, 2)
-    assert_tensors_equal(c[s1][], t1_expected)
-    assert_tensors_equal(c[s2][], t2_expected)
+    assert_tensors_equal(c[s1], t1_expected)
+    assert_tensors_equal(c[s2], t2_expected)
 
     c.set_zero()
 
-    assert_tensors_equal(c[s1][], Tensor[dtype](t1_shape))
-    assert_tensors_equal(c[s2][], Tensor[dtype](t2_shape))
+    assert_tensors_equal(c[s1], Tensor[dtype](t1_shape))
+    assert_tensors_equal(c[s2], Tensor[dtype](t2_shape))
 
 
 fn test_operate_on_reference() raises:
@@ -139,16 +139,16 @@ fn test_operate_on_reference() raises:
             res[i] = t1[i]
 
     for i in range(1, 10):
-        some_operation[res_shape, t1_shape](c[sr][], c[s1][])
-        fill(c[s1][], i)
+        some_operation[res_shape, t1_shape](c[sr], c[s1])
+        fill(c[s1], i)
 
         var res_expected = Tensor[dtype](res_shape)
         var t1_expected = Tensor[dtype](t1_shape)
         fill(res_expected, i - 1)
         fill(t1_expected, i)
 
-        assert_tensors_equal(c[sr][], res_expected)
-        assert_tensors_equal(c[s1][], t1_expected)
+        assert_tensors_equal(c[sr], res_expected)
+        assert_tensors_equal(c[s1], t1_expected)
 
 
 fn main() raises:

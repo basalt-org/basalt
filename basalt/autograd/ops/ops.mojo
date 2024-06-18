@@ -303,7 +303,7 @@ fn forward_op[
 ](
     inputs: List[Symbol],
     outputs: List[Symbol],
-    parameters: Parameters,
+    inout parameters: Parameters,
 ):
     """
     Forward pass for dynamic operators.
@@ -455,7 +455,7 @@ fn backward_op[
     inputs: List[Symbol],
     outputs: List[Symbol],
     inout grad: Tensor[dtype],
-    parameters: Parameters,
+    inout parameters: Parameters,
 ):
     """
     Backward pass for dynamic operators.

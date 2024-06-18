@@ -21,13 +21,14 @@ fn get_trainable_parameters(g: Graph) -> List[Symbol]:
     return trainable_parameters ^
 
 
+@value
 struct Adam[
+    lifetime: MutableLifetime, # using mutability and anylifetime, seems to give problem for now because the the reference can't now for sure if the lifetime is mutable or not
+    //,
     g: Graph,
-    mutability: Bool,
-    lifetime: AnyLifetime[mutability].type,
     trainable_parameters: List[Symbol] = get_trainable_parameters(g),
 ]:
-    var parameters: Reference[Parameters, mutability, lifetime]
+    var parameters: Reference[Parameters, True, lifetime]
 
     var lr: Scalar[dtype]
     var beta1: Scalar[dtype]
@@ -40,7 +41,7 @@ struct Adam[
 
     fn __init__(
         inout self,
-        parameters: Reference[Parameters, mutability, lifetime],
+        parameters: Reference[Parameters, True, lifetime],
         lr: Scalar[dtype] = 0.001,
         beta1: Scalar[dtype] = 0.9,
         beta2: Scalar[dtype] = 0.999,
@@ -75,15 +76,15 @@ struct Adam[
 
             @parameter
             fn v_step[nelts: Int](j: Int):
-                var momentum_grads = self.momentum_grads[param][].load[nelts](j)
-                var rms_grads = self.rms_grads[param][].load[nelts](j)
-                var grads = self.parameters[].grads[param][].load[nelts](j)
-                var params = self.parameters[].tensors[param][].load[nelts](j)
+                var momentum_grads = self.momentum_grads[param].load[nelts](j)
+                var rms_grads = self.rms_grads[param].load[nelts](j)
+                var grads = self.parameters[].grads[param].load[nelts](j)
+                var params = self.parameters[].tensors[param].load[nelts](j)
 
                 # Momentum beta 1
                 # f1 = beta1 * momentum + (1 - beta1) * grad
                 momentum_grads = self.beta1 * momentum_grads + (1 - self.beta1) * grads
-                self.momentum_grads[param][].store[nelts](j, momentum_grads)
+                self.momentum_grads[param].store[nelts](j, momentum_grads)
 
                 # Bias correction
                 # f2 = f1 / (1 - beta1 ** iter)
@@ -92,7 +93,7 @@ struct Adam[
                 # RMS beta 2
                 # f1 = beta2 * rms + (1 - beta2) * grad ** 2
                 rms_grads = self.beta2 * rms_grads + (1 - self.beta2) * grads * grads
-                self.rms_grads[param][].store[nelts](j, rms_grads)
+                self.rms_grads[param].store[nelts](j, rms_grads)
 
                 # Bias correction
                 # f2 = f1 / (1 - beta2 ** iter)
@@ -102,7 +103,7 @@ struct Adam[
                 params = params - self.lr * (
                     momentum_grads / (sqrt(rms_grads) + self.epsilon)
                 )
-                self.parameters[].tensors[param][].store[nelts](j, params)
+                self.parameters[].tensors[param].store[nelts](j, params)
 
             vectorize[v_step, 1](param.shape.num_elements())
 

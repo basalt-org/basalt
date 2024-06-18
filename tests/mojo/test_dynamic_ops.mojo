@@ -59,13 +59,13 @@ fn test_CONCAT_0() raises:
 
     # Extracting the gradients
     assert_tensors_equal["almost"](
-        model.parameters.grads[graph.nodes[0].inputs[0]][], grad1_expected
+        model.parameters.grads[graph.nodes[0].inputs[0]], grad1_expected
     )
     assert_tensors_equal["almost"](
-        model.parameters.grads[graph.nodes[0].inputs[1]][], grad2_expected
+        model.parameters.grads[graph.nodes[0].inputs[1]], grad2_expected
     )
     assert_tensors_equal["almost"](
-        model.parameters.grads[graph.nodes[0].inputs[2]][], grad3_expected
+        model.parameters.grads[graph.nodes[0].inputs[2]], grad3_expected
     )
 
 
@@ -120,13 +120,13 @@ fn test_CONCAT_1() raises:
 
     # Extracting the gradients
     assert_tensors_equal["almost"](
-        model.parameters.grads[graph.nodes[0].inputs[0]][], grad1_expected
+        model.parameters.grads[graph.nodes[0].inputs[0]], grad1_expected
     )
     assert_tensors_equal["almost"](
-        model.parameters.grads[graph.nodes[0].inputs[1]][], grad2_expected
+        model.parameters.grads[graph.nodes[0].inputs[1]], grad2_expected
     )
     assert_tensors_equal["almost"](
-        model.parameters.grads[graph.nodes[0].inputs[2]][], grad3_expected
+        model.parameters.grads[graph.nodes[0].inputs[2]], grad3_expected
     )
 
 
@@ -180,13 +180,13 @@ fn test_CONCAT_2() raises:
     fill(grad3_expected, 3.0)
 
     assert_tensors_equal["almost"](
-        model.parameters.grads[graph.nodes[0].inputs[0]][], grad1_expected
+        model.parameters.grads[graph.nodes[0].inputs[0]], grad1_expected
     )
     assert_tensors_equal["almost"](
-        model.parameters.grads[graph.nodes[0].inputs[1]][], grad2_expected
+        model.parameters.grads[graph.nodes[0].inputs[1]], grad2_expected
     )
     assert_tensors_equal["almost"](
-        model.parameters.grads[graph.nodes[0].inputs[2]][], grad3_expected
+        model.parameters.grads[graph.nodes[0].inputs[2]], grad3_expected
     )
 
 
@@ -242,7 +242,7 @@ fn test_SPLIT_0() raises:
                     grad_expected[i * 5 * 6 + j * 6 + k] = 3.0
 
     assert_tensors_equal["almost"](
-        model.parameters.grads[graph.nodes[0].inputs[0]][], grad_expected
+        model.parameters.grads[graph.nodes[0].inputs[0]], grad_expected
     )
 
 
@@ -298,7 +298,7 @@ fn test_SPLIT_1() raises:
                     grad_expected[i * 5 * 6 + j * 6 + k] = 3.0
 
     assert_tensors_equal["almost"](
-        model.parameters.grads[graph.nodes[0].inputs[0]][], grad_expected
+        model.parameters.grads[graph.nodes[0].inputs[0]], grad_expected
     )
 
 
@@ -354,7 +354,7 @@ fn test_SPLIT_2() raises:
                     grad_expected[i * 5 * 6 + j * 6 + k] = 3.0
 
     assert_tensors_equal["almost"](
-        model.parameters.grads[graph.nodes[0].inputs[0]][], grad_expected
+        model.parameters.grads[graph.nodes[0].inputs[0]], grad_expected
     )
 
 
