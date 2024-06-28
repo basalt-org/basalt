@@ -43,10 +43,15 @@ fn torch_unary_op(
 
         var expected: PythonObject
 
-        if op == OP.SIGMOID:
+        elif op == OP.SIGMOID:
             expected = torch.sigmoid(input_1)
         elif op == OP.RELU:
             expected = torch.relu(input_1)
+        elif op == OP.LEAKYRELU:
+            expected = torch.nn.functional.leaky_relu(
+                input_1,
+                attrs.value()["negative_slope"].value().to_scalar[dtype](),
+            )
         elif op == OP.TANH:
             expected = torch.tanh(input_1)
         elif op == OP.CLIP:
@@ -65,7 +70,9 @@ fn torch_unary_op(
                 var dim = attrs["dims"]
 
                 if dim:
-                    expected = torch.squeeze(input_1, dim=dim.value().to_shape()[0])
+                    expected = torch.squeeze(
+                        input_1, dim=dim.value().to_shape()[0]
+                    )
                 else:
                     expected = torch.squeeze(input_1)
             elif attrs_tuple:
@@ -78,7 +85,9 @@ fn torch_unary_op(
                 var dim = attrs["dims"]
 
                 if dim:
-                    expected = torch.unsqueeze(input_1, dim=dim.value().to_shape()[0])
+                    expected = torch.unsqueeze(
+                        input_1, dim=dim.value().to_shape()[0]
+                    )
                 else:
                     expected = torch.unsqueeze(input_1, 0)
             elif attrs_tuple:
@@ -102,11 +111,11 @@ fn torch_unary_op(
 
                 if step < 0:
                     flip_dims.append(dim)
-                    step = step *- 1
+                    step = step * -1
                     end, start = (end + 1) * -1, (start + 1) * -1
 
                 indices[dim] = py.slice(start, end, step)
-            
+
             expected = input_1.flip(flip_dims)[indices]
         else:
             print("Error: op not supported (returning the value input_1): ", op)
@@ -159,6 +168,31 @@ fn test_RELU() raises:
     )
 
 
+fn test_LEAKYRELU() raises:
+    alias t1_shape = TensorShape(37, 63, 107)
+    alias ug_shape = TensorShape(37, 63, 107)
+    var t1: Tensor[dtype] = Tensor[dtype](t1_shape)
+    rand(t1.data(), t1.num_elements())
+
+    var ug = Tensor[dtype](ug_shape)
+    rand(ug.data(), ug.num_elements())
+
+    var expected_and_grad = torch_unary_op(
+        OP.LEAKYRELU, t1, ug, AttributeVector(Attribute("negative_slope", 0.1))
+    )
+    test_unary_op[
+        OP.LEAKYRELU,
+        t1_shape,
+        AttributeVector(Attribute("negative_slope", 0.1)),
+    ](t1, expected_and_grad.expected)
+    test_unary_op_backward[
+        OP.LEAKYRELU,
+        t1_shape,
+        ug_shape,
+        AttributeVector(Attribute("negative_slope", 0.1)),
+    ](t1, ug, expected_and_grad.grad_1)
+
+
 fn test_TANH() raises:
     alias t1_shape = TensorShape(37, 63, 107)
     alias ug_shape = TensorShape(37, 63, 107)
@@ -193,23 +227,27 @@ fn test_CLIP() raises:
 
     # Clip with min
     alias min_attr = Attribute("min", 0.3333)
-    expected_and_grad = torch_unary_op(OP.CLIP, t1, ug, AttributeVector(min_attr))
+    expected_and_grad = torch_unary_op(
+        OP.CLIP, t1, ug, AttributeVector(min_attr)
+    )
     test_unary_op[OP.CLIP, t1_shape, AttributeVector(min_attr)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, AttributeVector(min_attr)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.CLIP, t1_shape, ug_shape, AttributeVector(min_attr)
+    ](t1, ug, expected_and_grad.grad_1)
 
     # Clip with max
     alias max_attr = Attribute("max", 0.6666)
-    expected_and_grad = torch_unary_op(OP.CLIP, t1, ug, AttributeVector(max_attr))
+    expected_and_grad = torch_unary_op(
+        OP.CLIP, t1, ug, AttributeVector(max_attr)
+    )
     test_unary_op[OP.CLIP, t1_shape, AttributeVector(max_attr)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, AttributeVector(max_attr)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.CLIP, t1_shape, ug_shape, AttributeVector(max_attr)
+    ](t1, ug, expected_and_grad.grad_1)
 
     # Clip with min and max
     expected_and_grad = torch_unary_op(
@@ -249,9 +287,9 @@ fn test_SQUEEZE() raises:
     test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(dim)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.SQUEEZE, t1_shape, ug_shape_1, AttributeVector(dim)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.SQUEEZE, t1_shape, ug_shape_1, AttributeVector(dim)
+    ](t1, ug, expected_and_grad.grad_1)
 
     alias ug_shape_2 = TensorShape(20, 28, 1)
     ug = Tensor[dtype](ug_shape_2)
@@ -259,13 +297,15 @@ fn test_SQUEEZE() raises:
 
     alias dim_2 = Attribute("dims", TensorShape(1))
 
-    expected_and_grad = torch_unary_op(OP.SQUEEZE, t1, ug, AttributeVector(dim_2))
+    expected_and_grad = torch_unary_op(
+        OP.SQUEEZE, t1, ug, AttributeVector(dim_2)
+    )
     test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(dim_2)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.SQUEEZE, t1_shape, ug_shape_2, AttributeVector(dim_2)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.SQUEEZE, t1_shape, ug_shape_2, AttributeVector(dim_2)
+    ](t1, ug, expected_and_grad.grad_1)
 
     # Squeeze with multiple dims
     ug = Tensor[dtype](ug_shape)
@@ -282,9 +322,9 @@ fn test_SQUEEZE() raises:
     test_unary_op[OP.SQUEEZE, t1_shape, AttributeVector(dims)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.SQUEEZE, t1_shape, ug_shape, AttributeVector(dims)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.SQUEEZE, t1_shape, ug_shape, AttributeVector(dims)
+    ](t1, ug, expected_and_grad.grad_1)
 
 
 fn test_UNSQUEEZE() raises:
@@ -298,13 +338,15 @@ fn test_UNSQUEEZE() raises:
 
     alias dim = Attribute("dims", TensorShape(1))
 
-    var expected_and_grad = torch_unary_op(OP.UNSQUEEZE, t1, ug, AttributeVector(dim))
+    var expected_and_grad = torch_unary_op(
+        OP.UNSQUEEZE, t1, ug, AttributeVector(dim)
+    )
     test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(dim)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.UNSQUEEZE, t1_shape, ug_shape, AttributeVector(dim)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.UNSQUEEZE, t1_shape, ug_shape, AttributeVector(dim)
+    ](t1, ug, expected_and_grad.grad_1)
 
     # Unsqueeze with multiple dims
     alias ug_shape_2 = TensorShape(20, 1, 28, 1)
@@ -321,9 +363,9 @@ fn test_UNSQUEEZE() raises:
     test_unary_op[OP.UNSQUEEZE, t1_shape, AttributeVector(dims)](
         t1, expected_and_grad.expected
     )
-    test_unary_op_backward[OP.UNSQUEEZE, t1_shape, ug_shape_2, AttributeVector(dims)](
-        t1, ug, expected_and_grad.grad_1
-    )
+    test_unary_op_backward[
+        OP.UNSQUEEZE, t1_shape, ug_shape_2, AttributeVector(dims)
+    ](t1, ug, expected_and_grad.grad_1)
 
 
 fn test_SLICE() raises:
@@ -337,17 +379,23 @@ fn test_SLICE() raises:
         Attribute("starts", TensorShape(slice_0.start)),
         Attribute("ends", TensorShape(slice_0.end)),
         Attribute("steps", TensorShape(slice_0.step)),
-        Attribute("axes", TensorShape(0))
+        Attribute("axes", TensorShape(0)),
     )
 
     alias ug_shape = TensorShape(65, 322, 317)
     var ug = Tensor[dtype](ug_shape)
     rand(ug.data(), ug.num_elements())
 
-    var attrs_tuple_0 = PythonObject((slice_0.start, slice_0.end, slice_0.step, 0))
-    var expected_and_grad = torch_unary_op(OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_0)
+    var attrs_tuple_0 = PythonObject(
+        (slice_0.start, slice_0.end, slice_0.step, 0)
+    )
+    var expected_and_grad = torch_unary_op(
+        OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_0
+    )
     test_unary_op[OP.SLICE, t1_shape, attrs_0](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.SLICE, t1_shape, ug_shape, attrs_0](t1, ug, expected_and_grad.grad_1)
+    test_unary_op_backward[OP.SLICE, t1_shape, ug_shape, attrs_0](
+        t1, ug, expected_and_grad.grad_1
+    )
 
     # dim = 1
     alias slice_1 = Slice(10, 311, 5)
@@ -355,17 +403,23 @@ fn test_SLICE() raises:
         Attribute("starts", TensorShape(slice_1.start)),
         Attribute("ends", TensorShape(slice_1.end)),
         Attribute("steps", TensorShape(slice_1.step)),
-        Attribute("axes", TensorShape(1))
+        Attribute("axes", TensorShape(1)),
     )
 
     alias ug_shape_1 = TensorShape(430, 61, 317)
     ug = Tensor[dtype](ug_shape_1)
     rand(ug.data(), ug.num_elements())
 
-    var attrs_tuple_1 = PythonObject((slice_1.start, slice_1.end, slice_1.step, 1))
-    expected_and_grad = torch_unary_op(OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_1)
+    var attrs_tuple_1 = PythonObject(
+        (slice_1.start, slice_1.end, slice_1.step, 1)
+    )
+    expected_and_grad = torch_unary_op(
+        OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_1
+    )
     test_unary_op[OP.SLICE, t1_shape, attrs_1](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_1, attrs_1](t1, ug, expected_and_grad.grad_1)
+    test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_1, attrs_1](
+        t1, ug, expected_and_grad.grad_1
+    )
 
     # dim = 2
     alias slice_2 = Slice(293, 33, -7)
@@ -373,20 +427,26 @@ fn test_SLICE() raises:
         Attribute("starts", TensorShape(slice_2.start)),
         Attribute("ends", TensorShape(slice_2.end)),
         Attribute("steps", TensorShape(slice_2.step)),
-        Attribute("axes", TensorShape(2))
+        Attribute("axes", TensorShape(2)),
     )
 
     alias ug_shape_2 = TensorShape(430, 322, 38)
     ug = Tensor[dtype](ug_shape_2)
     rand(ug.data(), ug.num_elements())
 
-    var attrs_tuple_2 = PythonObject((slice_2.start, slice_2.end, slice_2.step, 2))
-    expected_and_grad = torch_unary_op(OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_2)
+    var attrs_tuple_2 = PythonObject(
+        (slice_2.start, slice_2.end, slice_2.step, 2)
+    )
+    expected_and_grad = torch_unary_op(
+        OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_2
+    )
     test_unary_op[OP.SLICE, t1_shape, attrs_2](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_2, attrs_2](t1, ug, expected_and_grad.grad_1)
+    test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_2, attrs_2](
+        t1, ug, expected_and_grad.grad_1
+    )
 
     # Multiple dims
-    
+
     # dim = 0, 1
     alias slice_0_1 = Slice(23, 340, 3)
     alias slice_1_1 = Slice(10, 250, 5)
@@ -395,17 +455,32 @@ fn test_SLICE() raises:
         Attribute("starts", TensorShape(slice_0_1.start, slice_1_1.start)),
         Attribute("ends", TensorShape(slice_0_1.end, slice_1_1.end)),
         Attribute("steps", TensorShape(slice_0_1.step, slice_1_1.step)),
-        Attribute("axes", TensorShape(0, 1))
+        Attribute("axes", TensorShape(0, 1)),
     )
 
     alias ug_shape_0_1 = TensorShape(106, 48, 317)
     ug = Tensor[dtype](ug_shape_0_1)
     rand(ug.data(), ug.num_elements())
 
-    var attrs_tuple_0_1 = PythonObject((slice_0_1.start, slice_0_1.end, slice_0_1.step, 0, slice_1_1.start, slice_1_1.end, slice_1_1.step, 1))
-    expected_and_grad = torch_unary_op(OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_0_1)
+    var attrs_tuple_0_1 = PythonObject(
+        (
+            slice_0_1.start,
+            slice_0_1.end,
+            slice_0_1.step,
+            0,
+            slice_1_1.start,
+            slice_1_1.end,
+            slice_1_1.step,
+            1,
+        )
+    )
+    expected_and_grad = torch_unary_op(
+        OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_0_1
+    )
     test_unary_op[OP.SLICE, t1_shape, attrs_0_1](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_0_1, attrs_0_1](t1, ug, expected_and_grad.grad_1)
+    test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_0_1, attrs_0_1](
+        t1, ug, expected_and_grad.grad_1
+    )
 
     # dim = 0, 1, 2
     alias slice_0_2 = Slice(-412, -5, 3)
@@ -413,20 +488,46 @@ fn test_SLICE() raises:
     alias slice_2_2 = Slice(293, 33, -7)
 
     alias attrs_0_2 = AttributeVector(
-        Attribute("starts", TensorShape(slice_0_2.start, slice_1_2.start, slice_2_2.start)),
-        Attribute("ends", TensorShape(slice_0_2.end, slice_1_2.end, slice_2_2.end)),
-        Attribute("steps", TensorShape(slice_0_2.step, slice_1_2.step, slice_2_2.step)),
-        Attribute("axes", TensorShape(0, 1, 2))
+        Attribute(
+            "starts",
+            TensorShape(slice_0_2.start, slice_1_2.start, slice_2_2.start),
+        ),
+        Attribute(
+            "ends", TensorShape(slice_0_2.end, slice_1_2.end, slice_2_2.end)
+        ),
+        Attribute(
+            "steps", TensorShape(slice_0_2.step, slice_1_2.step, slice_2_2.step)
+        ),
+        Attribute("axes", TensorShape(0, 1, 2)),
     )
 
     alias ug_shape_0_2 = TensorShape(136, 35, 38)
     ug = Tensor[dtype](ug_shape_0_2)
     rand(ug.data(), ug.num_elements())
 
-    var attrs_tuple_0_2 = PythonObject((slice_0_2.start, slice_0_2.end, slice_0_2.step, 0, slice_1_2.start, slice_1_2.end, slice_1_2.step, 1, slice_2_2.start, slice_2_2.end, slice_2_2.step, 2))
-    expected_and_grad = torch_unary_op(OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_0_2)
+    var attrs_tuple_0_2 = PythonObject(
+        (
+            slice_0_2.start,
+            slice_0_2.end,
+            slice_0_2.step,
+            0,
+            slice_1_2.start,
+            slice_1_2.end,
+            slice_1_2.step,
+            1,
+            slice_2_2.start,
+            slice_2_2.end,
+            slice_2_2.step,
+            2,
+        )
+    )
+    expected_and_grad = torch_unary_op(
+        OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_0_2
+    )
     test_unary_op[OP.SLICE, t1_shape, attrs_0_2](t1, expected_and_grad.expected)
-    test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_0_2, attrs_0_2](t1, ug, expected_and_grad.grad_1)
+    test_unary_op_backward[OP.SLICE, t1_shape, ug_shape_0_2, attrs_0_2](
+        t1, ug, expected_and_grad.grad_1
+    )
 
 
 fn main():
