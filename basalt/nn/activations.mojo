@@ -2,11 +2,20 @@ from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
 from basalt.autograd.attributes import Attribute, AttributeVector
 
+
 # '''Activation functions.'''
-
-
 fn ReLU(inout g: Graph, input: Symbol) -> Symbol:
     return g.op(OP.RELU, input)
+
+
+fn LeakyReLU(
+    inout g: Graph, input: Symbol, negative_slope: Scalar[dtype]
+) -> Symbol:
+    return g.op(
+        OP.LEAKYRELU,
+        input,
+        attributes=AttributeVector(Attribute("negative_slope", negative_slope)),
+    )
 
 
 fn Sigmoid(inout g: Graph, input: Symbol) -> Symbol:

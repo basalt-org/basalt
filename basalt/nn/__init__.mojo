@@ -6,4 +6,11 @@ from .layers.conv import Conv2d
 from .layers.pool import MaxPool2d
 
 from .loss import MSELoss, CrossEntropyLoss
-from .activations import Softmax, LogSoftmax, ReLU, Sigmoid, Tanh
+from .activations import (
+    Softmax,
+    LogSoftmax,
+    ReLU,
+    LeakyReLU,
+    Sigmoid,
+    Tanh,
+)

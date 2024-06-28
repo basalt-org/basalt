@@ -368,7 +368,7 @@ struct Model[
         except e:
             print("Error loading model data:", e)
 
-    fn export_model(self, model_path: String):
+    fn export_model(inout self, model_path: String):
         var path = Path(model_path)
         print("Exporting model to:", path)
 
