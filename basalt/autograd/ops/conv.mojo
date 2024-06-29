@@ -1,7 +1,8 @@
 from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
+from basalt.utils.parallel import parallelize
 
-from algorithm import parallelize, vectorize, tile
+from algorithm import vectorize, tile
 from math import divmod
 from utils.loop import unroll
 

@@ -1,11 +1,12 @@
 from sys.info import num_physical_cores
-from algorithm import vectorize, parallelize, swap
+from algorithm import vectorize, swap
 from memory import memset_zero, memset, stack_allocation
 from math import sqrt, pow, equal, max, min, add, div, divmod, abs
 from random import rand
 
 from basalt import Tensor, TensorShape
 from basalt.nn.tensor import MAX_RANK
+from basalt.utils.parallel import parallelize
 
 
 @always_inline
