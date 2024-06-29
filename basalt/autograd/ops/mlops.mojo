@@ -474,7 +474,9 @@ struct SLICE:
                     else:
                         res.store[nelts](
                             idx_temp + k,
-                            t1.data().offset(idx_original_temp).simd_strided_load[width=nelts](stride)
+                            t1.data()
+                            .offset(idx_original_temp)
+                            .simd_strided_load[nelts](stride),
                         )
                 else:
 
