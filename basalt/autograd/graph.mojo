@@ -39,13 +39,13 @@ struct Graph:
         var symbol = Symbol(self.symbol_count, dtype, shape, trainable)
         self.symbol_count += 1
 
-        if data is not None:
-            self.params.put(symbol, data.take())
-        else:
-            self.params.put(symbol)
-
         if is_input:
             self.inputs.append(symbol)
+        else:
+            if data is not None:
+                self.params.put(symbol, data.value()[])
+            else:
+                self.params.put(symbol)
 
         return symbol
 

@@ -1,4 +1,4 @@
-from math.limit import neginf
+from utils.numerics import min_or_neg_inf
 
 from basalt import Tensor, TensorShape
 from basalt.autograd.attributes import AttributeVector
@@ -48,7 +48,7 @@ struct MAXPOOL2D:
             for in_ch in range(input_shape[1]):
                 for x in range(output_shape[2]):
                     for y in range(output_shape[3]):
-                        var max_val: Scalar[dtype] = neginf[dtype]()
+                        var max_val: Scalar[dtype] = min_or_neg_inf[dtype]()
                         var ix_base = x * stride[0] - padding[0]
                         var iy_base = y * stride[1] - padding[1]
                         for kx in range(kernel_size[0]):
@@ -107,7 +107,7 @@ struct MAXPOOL2D:
             for in_ch in range(input_shape[1]):
                 for x in range(ug_shape[2]):
                     for y in range(ug_shape[3]):
-                        var max_val: Scalar[dtype] = neginf[dtype]()
+                        var max_val: Scalar[dtype] = min_or_neg_inf[dtype]()
                         var max_idx: Int = -1
                         var ix_base = x * stride[0] - padding[0]
                         var iy_base = y * stride[1] - padding[1]

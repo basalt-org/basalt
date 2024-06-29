@@ -1,8 +1,7 @@
-from math import add
-
 from basalt import dtype, nelts
 from basalt.nn import Tensor, TensorShape
 from basalt.utils.tensorutils import fill, elwise_op
+from basalt.utils.math_util import add
 
 
 fn generate_tensor(*shape: Int) -> Tensor[dtype]:

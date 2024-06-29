@@ -1,6 +1,6 @@
 from algorithm import vectorize, parallelize
-from math import exp, pow, max, min, abs
-from math.limit import min_finite, max_finite
+from math import exp
+from utils.numerics import min_finite, max_finite
 
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_transform
@@ -482,13 +482,12 @@ struct SLICE:
 
                     @parameter
                     if steps[position] == 1:
-                        res.store[nelts](
-                            idx_original_temp, t1.load[nelts](idx_temp + k)
-                        )
+                        res.store[nelts](idx_original_temp, t1.load[nelts](idx_temp + k))
                     else:
-                        res.data().offset(idx_original_temp).simd_strided_store[
-                            nelts
-                        ](t1.load[nelts](idx_temp + k), stride)
+                        res.data().offset(idx_original_temp).simd_strided_store[width=nelts](
+                            t1.load[nelts](idx_temp + k),
+                            stride
+                        )
 
                 idx_original_temp += stride * nelts
 

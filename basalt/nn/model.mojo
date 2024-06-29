@@ -80,7 +80,7 @@ struct Model[
 
     # TODO: remove when ability to concatenate graphs (modules)
     # Removes the need for splitting in forward and inference mode
-    fn forward(inout self, *t_inputs: Tensor[dtype]) -> Tensor[dtype]:
+    fn forward(inout self, *t_inputs: Tensor[dtype]) -> ref[__lifetime_of(self)] Tensor[dtype]:
         # NOTE: Important detail here is that the order of the inputs must be the same as the order the inputs were defined in the graph.
         # Example: If you were te define the y_true before the x when creating the graph
         #
@@ -117,7 +117,7 @@ struct Model[
 
         # 2. Loop over all nodes and execute forward operations
         @parameter
-        fn fw_unroll[i: Int]():
+        for i in range(num_nodes):
             alias op = g.nodes[i].operator
             alias attrs = g.nodes[i].attributes
 
@@ -169,8 +169,6 @@ struct Model[
             if DEBUG == 1:
                 self.perf_metrics.end_forward_pass(i)
 
-        unroll[fw_unroll, num_nodes]()
-
     fn backward(inout self, *upper_grads: Tensor[dtype]):
         """
         Main entrypoint of backward pass.
@@ -191,7 +189,7 @@ struct Model[
 
         # 2. Loop over all nodes in reverse order and execute backward operations
         @parameter
-        fn bw_unroll[i: Int]():
+        for i in range(g.nodes.size):
             alias reverse_i = g.nodes.size - i - 1
             alias op = g.nodes[reverse_i].operator
             alias attrs = g.nodes[reverse_i].attributes
@@ -206,7 +204,7 @@ struct Model[
             if op.dynamic:
 
                 @parameter
-                fn unroll_dynamic[j: Int]():
+                for j in range(num_operands):
                     @parameter
                     if g.nodes[reverse_i].inputs[j].trainable:
                         backward_op[j, op, attrs](
@@ -215,9 +213,6 @@ struct Model[
                             self.parameters.grads[g.nodes[reverse_i].inputs[j]],
                             self.parameters,
                         )
-
-                unroll[unroll_dynamic, num_operands]()
-
             else:
                 # Statically known shapes and number of operands
                 alias out = g.nodes[reverse_i].outputs[0]  # or upper_grad symbol
@@ -302,8 +297,6 @@ struct Model[
             if DEBUG == 1:
                 self.perf_metrics.end_backward_pass(i)
 
-        unroll[bw_unroll, g.nodes.size]()
-
     fn allocate_tensor_memory(inout self):
         for i in range(len(g.inputs)):
             self.parameters.tensors.append(
@@ -375,7 +368,7 @@ struct Model[
         except e:
             print("Error loading model data:", e)
 
-    fn export_model(self, model_path: String):
+    fn export_model(inout self, model_path: String):
         var path = Path(model_path)
         print("Exporting model to:", path)
 

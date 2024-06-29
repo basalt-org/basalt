@@ -1,5 +1,5 @@
 from random import rand
-from math.limit import min_finite, max_finite
+from utils.numerics import min_finite, max_finite
 from collections.optional import OptionalReg, Optional
 from python.python import Python
 from python.object import PythonObject
@@ -43,7 +43,7 @@ fn torch_unary_op(
 
         var expected: PythonObject
 
-        elif op == OP.SIGMOID:
+        if op == OP.SIGMOID:
             expected = torch.sigmoid(input_1)
         elif op == OP.RELU:
             expected = torch.relu(input_1)
@@ -178,7 +178,7 @@ fn test_LEAKYRELU() raises:
     rand(ug.data(), ug.num_elements())
 
     var expected_and_grad = torch_unary_op(
-        OP.LEAKYRELU, t1, ug, AttributeVector(Attribute("negative_slope", 0.1))
+        OP.LEAKYRELU, t1, ug, AttributeVector(Attribute("negative_slope", Float32(0.1)))
     )
     test_unary_op[
         OP.LEAKYRELU,
@@ -535,6 +535,7 @@ fn main():
     try:
         test_SIGMOID()
         test_RELU()
+        test_LEAKYRELU()
         test_TANH()
         test_CLIP()
         test_SQUEEZE()

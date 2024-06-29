@@ -1,6 +1,6 @@
 from random import rand
 from python import Python
-from math.limit import max_finite
+from utils.numerics import max_finite
 from testing import assert_almost_equal
 
 from basalt import dtype

@@ -1,4 +1,3 @@
-from math import max, divmod
 from memory.unsafe_pointer import UnsafePointer, initialize_pointee_move, destroy_pointee
 
 from basalt import Tensor, Symbol
@@ -133,20 +132,17 @@ struct Collection(CollectionElement, Sized):
 
         return -1
 
-    @always_inline("nodebug")
-    fn __refitem__[
-        mutability: __mlir_type.i1,
-        lifetime: AnyLifetime[mutability].type,
-    ](
-        self: Reference[Self, mutability, lifetime]._mlir_type,
+    fn __getitem__(
+        inout self,
         symbol: Symbol,
-    ) -> Reference[Tensor[dtype], mutability, lifetime]:
+    ) -> ref[__lifetime_of(self)] Tensor[dtype]:
         """
         Returns a reference to the tensor with the given symbol.
         """
-        var index = Reference(self)[].get_index(symbol.name)
+        var index = self.get_index(symbol.name)
 
-        return (Reference(self)[].data + index)[]
+
+        return (self.data + index)[0]
 
     @always_inline("nodebug")
     fn clear(inout self):

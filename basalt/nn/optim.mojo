@@ -1,9 +1,10 @@
-from math import add, mul, div, sqrt, sub
+from math import sqrt
 from algorithm import vectorize, parallelize
 
 from .model import Parameters
 from basalt import Graph, Tensor, TensorShape
 from basalt.utils.collection import Collection
+from basalt.utils.math_util import add, sub, mul, div
 
 
 fn get_trainable_parameters(g: Graph) -> List[Symbol]:
@@ -20,13 +21,14 @@ fn get_trainable_parameters(g: Graph) -> List[Symbol]:
     return trainable_parameters ^
 
 
+@value
 struct Adam[
+    lifetime: MutableLifetime, # using mutability and anylifetime, seems to give problem for now because the the reference can't now for sure if the lifetime is mutable or not
+    //,
     g: Graph,
-    mutability: __mlir_type.i1,
-    lifetime: AnyLifetime[mutability].type,
     trainable_parameters: List[Symbol] = get_trainable_parameters(g),
 ]:
-    var parameters: Reference[Parameters, mutability, lifetime]
+    var parameters: Reference[Parameters, True, lifetime]
 
     var lr: Scalar[dtype]
     var beta1: Scalar[dtype]
@@ -39,7 +41,7 @@ struct Adam[
 
     fn __init__(
         inout self,
-        parameters: Reference[Parameters, mutability, lifetime],
+        parameters: Reference[Parameters, True, lifetime],
         lr: Scalar[dtype] = 0.001,
         beta1: Scalar[dtype] = 0.9,
         beta2: Scalar[dtype] = 0.999,

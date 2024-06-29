@@ -207,6 +207,7 @@ fn main():
         test_SOFTMAX()
         test_LOGSOFTMAX()
         test_RELU()
+        test_LEAKYRELU()
         test_SIGMOID()
         test_TANH()
     except e:

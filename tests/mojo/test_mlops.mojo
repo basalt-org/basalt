@@ -810,6 +810,7 @@ fn main():
     try:
         test_SIGMOID()
         test_RELU()
+        test_LEAKYRELU()
         test_TANH()
         test_CLIP()
         test_SQUEEZE()
@@ -826,6 +827,7 @@ fn main():
     try:
         test_backward_SIGMOID()
         test_backward_RELU()
+        test_backward_LEAKYRELU()
         test_backward_TANH()
         test_backward_CLIP()
         test_backward_SQUEEZE()
