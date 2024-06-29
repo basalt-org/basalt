@@ -1,10 +1,12 @@
 from algorithm import vectorize
 from math import div
+import os
+from pathlib import Path
 
 from basalt import dtype
 from basalt import Tensor, TensorShape
-from basalt.utils.tensorutils import elwise_op, tmean, tstd
-
+from basalt.utils.tensorutils import elwise_op, tmean, tstd, transpose
+import mimage
 
 struct BostonHousing:
     alias n_inputs = 13
@@ -78,6 +80,76 @@ struct MNIST:
             self.data.store[nelts](idx, div(self.data.load[nelts](idx), 255.0))
 
         vectorize[vecdiv, nelts](self.data.num_elements())
+
+
+
+trait BaseDataset(Sized, Copyable, Movable):
+    fn __getitem__(self, idx: Int) raises -> Tuple[Tensor[dtype], Int]: ...
+
+
+from tensor import TensorShape as _TensorShape
+
+
+
+
+struct CIFAR10(BaseDataset):
+    var labels: List[Int]
+    var file_paths: List[String]
+    
+
+    fn __init__(inout self, image_folder: String, label_file: String) raises:
+        self.labels = List[Int]()
+        self.file_paths = List[String]()
+
+        var label_dict = Dict[String, Int]()
+
+        with open(label_file, 'r') as f: 
+            var label_list = f.read().split("\n")
+            for i in range(len(label_list)):
+                label_dict[label_list[i]] = i
+        
+        var files = os.listdir(image_folder)
+        var file_dir = Path(image_folder)
+
+
+        for i in range(len(files)):
+            self.file_paths.append(file_dir / files[i])
+            self.labels.append(label_dict[files[i].split("_")[1].split(".")[0]])
+
+    fn __copyinit__(inout self, other: CIFAR10):
+        self.labels = other.labels
+        self.file_paths = other.file_paths
+
+    # Do I need the ^ here?
+    fn __moveinit__(inout self, owned other: CIFAR10):
+        self.labels = other.labels^
+        self.file_paths = other.file_paths^
+    
+    fn __len__(self) -> Int:
+        return len(self.file_paths)
+
+    fn __getitem__(self, idx: Int) raises -> Tuple[Tensor[dtype], Int]:
+        # Get image and cast to dtype
+        var img = mimage.imread(self.file_paths[idx])
+
+        # Transform UInt8 MojoTensor into f32 BasaltTensor
+        var basalt_tensor = Tensor(img.astype[dtype]())
+
+        # Transpose to channels-first
+        var data = transpose(basalt_tensor, TensorShape(2, 0, 1))
+
+        # Normalize data 
+        alias nelts = simdwidthof[dtype]()
+
+        @parameter
+        fn vecdiv[nelts: Int](vec_index: Int):
+            data.store[nelts](vec_index, div(data.load[nelts](vec_index), 255.0))
+
+        vectorize[vecdiv, nelts](data.num_elements())
+
+
+        return Tuple(data, self.labels[idx]) 
+
 
 
 fn read_file(file_path: String) raises -> String:
