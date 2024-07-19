@@ -5,7 +5,8 @@ from basalt.autograd.attributes import AttributeVector, Attribute
 from basalt.utils.tensor_creation_utils import to_tensor, to_numpy
 
 from python import Python
-from math import ceil, max
+from math import ceil
+from utils.static_tuple import StaticTuple
 
 
 fn Conv(

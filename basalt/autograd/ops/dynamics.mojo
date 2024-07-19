@@ -33,7 +33,7 @@ struct CONCAT:
     fn forward[attributes: AttributeVector](
         inputs: List[Symbol],
         outputs: List[Symbol],
-        parameters: Parameters,
+        inout parameters: Parameters,
     ):
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
@@ -58,7 +58,7 @@ struct CONCAT:
     fn backward[input_id: Int, attributes: AttributeVector](
         inputs: List[Symbol],
         outputs: List[Symbol],
-        parameters: Parameters,
+        inout parameters: Parameters,
     ) -> Tensor[dtype]:
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         var n_chunks = Self.calc_chunks(inputs[0].shape, dim)
@@ -113,7 +113,7 @@ struct SPLIT:
     fn forward[attributes: AttributeVector](
         inputs: List[Symbol],
         outputs: List[Symbol],
-        parameters: Parameters,
+        inout parameters: Parameters,
     ):
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         alias sections = attributes["sections"].value().to_shape()
@@ -139,7 +139,7 @@ struct SPLIT:
     fn backward[input_id: Int, attributes: AttributeVector](
         inputs: List[Symbol],
         outputs: List[Symbol],
-        parameters: Parameters,
+        inout parameters: Parameters,
     ) -> Tensor[dtype]:
         alias dim = attributes["dim"].value().to_int() if attributes["dim"] else 0
         alias sections = attributes["sections"].value().to_shape()

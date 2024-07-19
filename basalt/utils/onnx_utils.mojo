@@ -163,9 +163,9 @@ fn load_onnx_model(
                         "Shape mismatch for tensor "
                         + str(i)
                         + ". Expected shape: "
-                        + model_tensor_shape
+                        + str(model_tensor_shape)
                         + ", got shape: "
-                        + data_shape
+                        + str(data_shape)
                     )
 
             copy_np_data(model_parameters.tensors[g.params.symbols[i]], data_np)
@@ -250,7 +250,7 @@ fn create_attributes_and_constant_inputs(node: Node, node_number: Int) raises ->
     return (attributes, inputs)
 
 
-fn export_onnx_model(model_path: Path, model_parameters: Parameters, g: Graph) raises:
+fn export_onnx_model(model_path: Path, inout model_parameters: Parameters, g: Graph) raises:
     # Create onnx model with data and nodes
     var onnx = Python.import_module("onnx")
     var onnx_helper = Python.import_module("onnx.helper")
@@ -289,7 +289,7 @@ fn export_onnx_model(model_path: Path, model_parameters: Parameters, g: Graph) r
         var op_type = make_onnx_operator_type(node.operator)
         var inputs = PythonObject([])
         var outputs = PythonObject([])
-        var name = str(node.operator) + "_node" + i
+        var name = str(node.operator) + "_node" + str(i)
 
         for j in range(len(node.inputs)):
             inputs.append(str(node.inputs[j].name))

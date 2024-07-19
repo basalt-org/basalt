@@ -7,4 +7,11 @@ from .layers.pool import MaxPool2d
 from .layers.upsample import Upsample
 
 from .loss import MSELoss, CrossEntropyLoss
-from .activations import Softmax, LogSoftmax, ReLU, Sigmoid, Tanh
+from .activations import (
+    Softmax,
+    LogSoftmax,
+    ReLU,
+    LeakyReLU,
+    Sigmoid,
+    Tanh,
+)

@@ -1,5 +1,6 @@
 from math import nan
-from math.limit import inf
+from utils.numerics import inf
+from utils.static_tuple import StaticTuple
 
 alias ScalarBytes = DType.uint64.sizeof()
 
@@ -12,22 +13,18 @@ struct Bytes[capacity: Int](Stringable, CollectionElement, EqualityComparable):
 
     var data: StaticTuple[UInt8, capacity]
 
-    @always_inline("nodebug")
     fn __init__(inout self):
-        var data = StaticTuple[UInt8, capacity]()
+        var data = StaticTuple[UInt8, capacity](0)
 
-        @unroll
         for i in range(capacity):
             data[i] = 0
 
         self.data = data
 
-    @always_inline("nodebug")
     fn __init__(inout self, s: String):
-        var data = StaticTuple[UInt8, capacity]()
+        var data = StaticTuple[UInt8, capacity](0)
         var length = len(s)
 
-        @unroll
         for i in range(capacity):
             data[i] = ord(s[i]) if i < length else 0
 
@@ -47,7 +44,6 @@ struct Bytes[capacity: Int](Stringable, CollectionElement, EqualityComparable):
 
     @always_inline("nodebug")
     fn __eq__(self, other: Self) -> Bool:
-        @unroll
         for i in range(capacity):
             if self[i] != other[i]:
                 return False
@@ -55,7 +51,6 @@ struct Bytes[capacity: Int](Stringable, CollectionElement, EqualityComparable):
 
     @always_inline("nodebug")
     fn __ne__(self, other: Self) -> Bool:
-        @unroll
         for i in range(capacity):
             if self[i] != other[i]:
                 return True
@@ -65,7 +60,6 @@ struct Bytes[capacity: Int](Stringable, CollectionElement, EqualityComparable):
     fn __str__(self) -> String:
         var result: String = ""
 
-        @unroll
         for i in range(capacity):
             var val = self[i]
             if val != 0:
@@ -82,7 +76,6 @@ fn scalar_to_bytes[
     var bits = bitcast[DType.uint64](value.cast[expand_type[dtype]()]())
     var data = Bytes[Size]()
 
-    @unroll
     for i in range(ScalarBytes):
         data[i] = (bits >> (i << 3)).cast[DType.uint8]()
 
@@ -94,7 +87,6 @@ fn bytes_to_scalar[dtype: DType](data: Bytes) -> Scalar[dtype]:
 
     var bits: UInt64 = 0
 
-    @unroll
     for i in range(ScalarBytes):
         bits |= data[i].cast[DType.uint64]() << (i << 3)
 

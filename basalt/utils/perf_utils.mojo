@@ -1,5 +1,4 @@
 from time import now
-from math import min
 from memory import memset
 
 from basalt.autograd.node import Node
@@ -7,10 +6,10 @@ from basalt.autograd.node import Node
 
 @always_inline("nodebug")
 fn fit_string[num: Int](s: String) -> String:
-    var data = DTypePointer[DType.int8]().alloc(num + 1)
+    var data = DTypePointer[DType.uint8]().alloc(num + 1)
     var copy_len = min(num, len(s))
 
-    memcpy(data, s._as_ptr(), copy_len)
+    memcpy(data, s.unsafe_uint8_ptr(), copy_len)
     memset(data + copy_len, ord(" "), num - copy_len)
     data[num] = 0
 
@@ -20,11 +19,11 @@ fn fit_string[num: Int](s: String) -> String:
 @always_inline("nodebug")
 fn truncate_decimals[num: Int](s: String) -> String:
     try:
-        var parts = s.split(delimiter=".")
+        var parts = s.split(".")
         var truncated = parts[0]
 
         if len(parts) > 1:
-            var decimal_parts = parts[1].split(delimiter="e")
+            var decimal_parts = parts[1].split("e")
             truncated += "." + fit_string[num](decimal_parts[0])
 
             if len(decimal_parts) > 1:
@@ -125,7 +124,7 @@ struct PerfMetrics:
         print(header)
 
         var header_length = len(header)
-        var seperator = DTypePointer[DType.int8]().alloc(header_length + 1)
+        var seperator = DTypePointer[DType.uint8]().alloc(header_length + 1)
         
         memset(seperator, ord("-"), header_length)
         seperator[header_length] = 0
@@ -146,11 +145,11 @@ struct PerfMetrics:
             var print_value = (
                 fit_string[5](str(i))
                 + "| "
-                + fit_string[15](value.node.operator)
+                + fit_string[15](str(value.node.operator))
                 + "| "
-                + fit_string[20](truncate_decimals[4](time))
+                + fit_string[20](truncate_decimals[4](str(time)))
                 + "| "
-                + fit_string[20](truncate_decimals[3](percentage) + " %")
+                + fit_string[20](truncate_decimals[3](str(percentage)) + " %")
                 + "| "
             )
 

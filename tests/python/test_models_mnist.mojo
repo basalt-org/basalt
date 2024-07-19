@@ -120,7 +120,7 @@ fn run_mojo[
     )
 
     var model = Model[graph]()
-    var optim = optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
+    var optim = optim.Adam[graph](model.parameters, lr=learning_rate)
 
     var losses = List[Scalar[dtype]]()
 

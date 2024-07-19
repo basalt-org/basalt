@@ -36,7 +36,7 @@ struct _ProductIterator(Sized):
             var index = count % len(self.lists[i])
             combination.append(self.lists[i][index])
             count //= len(self.lists[i])
-        combination._reverse()
+        combination.reverse()
         return combination ^
 
     @always_inline("nodebug")

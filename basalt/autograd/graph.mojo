@@ -43,7 +43,7 @@ struct Graph:
             self.inputs.append(symbol)
         else:
             if data is not None:
-                self.params.put(symbol, data.take())
+                self.params.put(symbol, data.value()[])
             else:
                 self.params.put(symbol)
 

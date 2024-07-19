@@ -1,6 +1,6 @@
 from random import rand
 from python import Python
-from math.limit import max_finite
+from utils.numerics import max_finite
 from testing import assert_almost_equal
 
 from basalt import dtype
@@ -81,7 +81,7 @@ fn run_mojo[
     )
 
     var model = Model[graph]()
-    var optim = optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
+    var optim = optim.Adam[graph](model.parameters, lr=learning_rate)
 
     var losses = List[Scalar[dtype]]()
 

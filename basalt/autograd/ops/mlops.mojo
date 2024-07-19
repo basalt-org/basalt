@@ -1,7 +1,7 @@
 from algorithm import vectorize, parallelize
-from math import exp, pow, max, min, abs, ceil, floor
-from math.limit import min_finite, max_finite
-from memory import stack_allocation
+from math import exp, floor, ceil
+from utils.numerics import min_finite, max_finite
+from utils.static_tuple import StaticTuple
 
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_transform
@@ -54,7 +54,7 @@ struct SIGMOID:
 
         vectorize[vec_sigmoid_bw, nelts](ug_shape.num_elements())
 
-        return res_grad ^
+        return res_grad^
 
 
 struct RELU:
@@ -102,7 +102,62 @@ struct RELU:
 
         vectorize[vec_relu_bw, nelts](ug_shape.num_elements())
 
-        return res_grad ^
+        return res_grad^
+
+
+struct LEAKYRELU:
+    @staticmethod
+    fn result_shape(t1_shape: TensorShape) -> TensorShape:
+        return t1_shape
+
+    @staticmethod
+    fn forward[
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+        """Forward operation of leaky_relu."""
+
+        fn leaky_relu[
+            type: DType,
+            simd_width: Int,
+        ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+            var negative_slope = attributes["negative_slope"].value().to_scalar[
+                type
+            ]()
+            return (x > 0).select(x, x * negative_slope)
+
+        elwise_transform[leaky_relu](res, t1)
+
+    @staticmethod
+    fn backward[
+        ug_shape: TensorShape,
+        t1_shape: TensorShape,
+        attributes: AttributeVector,
+    ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
+        """Backward operation of leaky_relu."""
+
+        @always_inline
+        fn leaky_relu_bw[
+            type: DType, simd_width: Int
+        ](x: SIMD[type, simd_width]) -> SIMD[type, simd_width]:
+            var negative_slope = attributes["negative_slope"].value().to_scalar[
+                type
+            ]()
+
+            return (x > 0).select[type](1, negative_slope)
+
+        var res_grad = Tensor[dtype](ug_shape)
+
+        @parameter
+        fn vec_leaky_relu_bw[nelts: Int](idx: Int):
+            res_grad.store[nelts](
+                idx,
+                leaky_relu_bw(t1.load[nelts](idx)) * ug.load[nelts](idx),
+            )
+
+        vectorize[vec_leaky_relu_bw, nelts](ug_shape.num_elements())
+
+        return res_grad^
 
 
 struct TANH:
@@ -148,7 +203,7 @@ struct TANH:
 
         vectorize[vec_tanh_bw, nelts](ug_shape.num_elements())
 
-        return res_grad ^
+        return res_grad^
 
 
 struct CLIP:
@@ -166,12 +221,12 @@ struct CLIP:
         alias min_attr = attributes["min"]
         alias max_attr = attributes["max"]
 
-        var min_val = min_attr.value().to_scalar[dtype]() if min_attr else min_finite[
+        var min_val = min_attr.value().to_scalar[
             dtype
-        ]()
-        var max_val = max_attr.value().to_scalar[dtype]() if max_attr else max_finite[
+        ]() if min_attr else min_finite[dtype]()
+        var max_val = max_attr.value().to_scalar[
             dtype
-        ]()
+        ]() if max_attr else max_finite[dtype]()
 
         @parameter
         fn vec_clip[nelts: Int](i: Int):
@@ -189,12 +244,12 @@ struct CLIP:
         alias min_attr = attributes["min"]
         alias max_attr = attributes["max"]
 
-        var min_val = min_attr.value().to_scalar[dtype]() if min_attr else min_finite[
+        var min_val = min_attr.value().to_scalar[
             dtype
-        ]()
-        var max_val = max_attr.value().to_scalar[dtype]() if max_attr else max_finite[
+        ]() if min_attr else min_finite[dtype]()
+        var max_val = max_attr.value().to_scalar[
             dtype
-        ]()
+        ]() if max_attr else max_finite[dtype]()
 
         var res_grad = Tensor[dtype](t_shape)
 
@@ -203,17 +258,21 @@ struct CLIP:
             var val = t.load[nelts](i)
             res_grad.store[nelts](
                 i,
-                ((val >= min_val) * (val <= max_val)).select(ug.load[nelts](i), 0),
+                ((val >= min_val) * (val <= max_val)).select(
+                    ug.load[nelts](i), 0
+                ),
             )
 
         vectorize[vec_clip_bw, nelts, size = t_shape.num_elements()]()
 
-        return res_grad ^
+        return res_grad^
 
 
 struct SQUEEZE:
     @staticmethod
-    fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+    fn result_shape(
+        t1_shape: TensorShape, attributes: AttributeVector
+    ) -> TensorShape:
         var dim = attributes["dims"]
         var dims_to_squeeze = dim.value().to_shape() if dim else TensorShape()
 
@@ -241,12 +300,14 @@ struct SQUEEZE:
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
         var res_grad = Tensor[dtype](t1_shape)
         memcpy(res_grad.data(), ug.data(), ug.num_elements())
-        return res_grad ^
+        return res_grad^
 
 
 struct UNSQUEEZE:
     @staticmethod
-    fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+    fn result_shape(
+        t1_shape: TensorShape, attributes: AttributeVector
+    ) -> TensorShape:
         var dim = attributes["dims"]
         var dims_to_squeeze = dim.value().to_shape() if dim else TensorShape()
 
@@ -278,7 +339,7 @@ struct UNSQUEEZE:
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
         var res_grad = Tensor[dtype](t1_shape)
         memcpy(res_grad.data(), ug.data(), ug.num_elements())
-        return res_grad ^
+        return res_grad^
 
 
 struct SLICE:
@@ -287,7 +348,7 @@ struct SLICE:
         # Adjust negative indices & ensure they are within bounds.
         var s = slice if slice >= 0 else dim_size + slice
         return max(min(s, dim_size), 0)
-    
+
     @staticmethod
     fn default_starts(shape: TensorShape) -> List[Int]:
         var starts = List[Int]()
@@ -308,7 +369,7 @@ struct SLICE:
         for i in range(shape.rank()):
             steps.append(1)
         return steps^
-    
+
     @staticmethod
     fn default_axes(shape: TensorShape) -> List[Int]:
         # NOTE: axes can't be negative
@@ -318,38 +379,55 @@ struct SLICE:
         return axes^
 
     @staticmethod
-    fn result_shape(t1_shape: TensorShape, attributes: AttributeVector) -> TensorShape:
+    fn result_shape(
+        t1_shape: TensorShape, attributes: AttributeVector
+    ) -> TensorShape:
         # NOTE: Starts and ends have to be of the same size
         # NOTE: If axes not provided, starts and ends have to be of the same size as t1_shape
         var starts = attributes["starts"].value().to_shape()
         var ends = attributes["ends"].value().to_shape()
-        var steps = attributes["steps"].value().to_shape() if attributes["steps"] else Self.default_steps(starts)
-        var axes = attributes["axes"].value().to_shape() if attributes["axes"] else Self.default_axes(t1_shape)
+        var steps = attributes["steps"].value().to_shape() if attributes[
+            "steps"
+        ] else Self.default_steps(starts)
+        var axes = attributes["axes"].value().to_shape() if attributes[
+            "axes"
+        ] else Self.default_axes(t1_shape)
 
         var new_shape = t1_shape
         for i in range(starts.rank()):
             var axis = axes[i]
-            new_shape[axis] = len(range(
-                start = Self.adjust_boundary(starts[i], t1_shape[axis]),
-                end = Self.adjust_boundary(ends[i], t1_shape[axis]),
-                step = steps[i]
-            ))
+            new_shape[axis] = len(
+                range(
+                    start=Self.adjust_boundary(starts[i], t1_shape[axis]),
+                    end=Self.adjust_boundary(ends[i], t1_shape[axis]),
+                    step=steps[i],
+                )
+            )
 
         return new_shape
 
     @staticmethod
-    fn reorder_positions[id: Int](original: TensorShape, axes: TensorShape, t1_shape: TensorShape) -> List[Int]:
+    fn reorder_positions[
+        id: Int
+    ](original: TensorShape, axes: TensorShape, t1_shape: TensorShape) -> List[
+        Int
+    ]:
         # Reorder the starts (id=0), ends (id=1) or steps (id=2) to match the order of the axes
         var updated: List[Int]
 
         @parameter
-        if id == 0: updated = Self.default_starts(t1_shape)
-        elif id == 1: updated = Self.default_ends(t1_shape)
-        else: updated = Self.default_steps(t1_shape)
-    
+        if id == 0:
+            updated = Self.default_starts(t1_shape)
+        elif id == 1:
+            updated = Self.default_ends(t1_shape)
+        else:
+            updated = Self.default_steps(t1_shape)
+
         for i in range(axes.rank()):
             var axis = axes[i]
-            updated[axis] = original[i] if id == 2 else Self.adjust_boundary(original[i], t1_shape[axis])
+            updated[axis] = original[i] if id == 2 else Self.adjust_boundary(
+                original[i], t1_shape[axis]
+            )
 
         return updated^
 
@@ -362,12 +440,12 @@ struct SLICE:
         steps: List[Int],
         starts: List[Int],
         ends: List[Int],
-        backward_op: Bool = False
+        backward_op: Bool = False,
     ](
         inout res: Tensor[dtype],
         t1: Tensor[dtype],
         last_dims: Int,
-        position: Int, 
+        position: Int,
         last_position: Int,
         idx: Int,
         idx_original: Int,
@@ -376,7 +454,9 @@ struct SLICE:
         alias t1_strides = original_shape.strides()
 
         var idx_temp = idx
-        var idx_original_temp = starts[position] * t1_strides[position] + idx_original
+        var idx_original_temp = starts[position] * t1_strides[
+            position
+        ] + idx_original
 
         if position == last_position + 1:
             # Work on the last dimensions
@@ -384,37 +464,50 @@ struct SLICE:
             alias stride = t1_strides[position] * steps[position]
 
             @parameter
-            fn v_slice[nelts: Int](k : Int):
-
+            fn v_slice[nelts: Int](k: Int):
                 @parameter
                 if not backward_op:
+
                     @parameter
                     if steps[position] == 1:
-                        res.store[nelts](idx_temp + k, t1.load[nelts](idx_original_temp))
+                        res.store[nelts](
+                            idx_temp + k, t1.load[nelts](idx_original_temp)
+                        )
                     else:
                         res.store[nelts](
                             idx_temp + k,
-                            t1.data().offset(idx_original_temp).simd_strided_load[nelts](stride)
+                            t1.data()
+                            .offset(idx_original_temp)
+                            .simd_strided_load[nelts](stride),
                         )
                 else:
+
                     @parameter
                     if steps[position] == 1:
                         res.store[nelts](idx_original_temp, t1.load[nelts](idx_temp + k))
                     else:
-                        res.data().offset(idx_original_temp).simd_strided_store[nelts](
+                        res.data().offset(idx_original_temp).simd_strided_store[width=nelts](
                             t1.load[nelts](idx_temp + k),
                             stride
                         )
-    
+
                 idx_original_temp += stride * nelts
 
             vectorize[v_slice, nelts](last_dims)
 
-            return 
+            return
 
         for _ in range(shape[position]):
-            Self.recursive_iters_slice[shape, original_shape, steps, starts, ends, backward_op](
-                res, t1, last_dims, position + 1, last_position, idx_temp, idx_original_temp
+            Self.recursive_iters_slice[
+                shape, original_shape, steps, starts, ends, backward_op
+            ](
+                res,
+                t1,
+                last_dims,
+                position + 1,
+                last_position,
+                idx_temp,
+                idx_original_temp,
             )
 
             idx_temp += strides[position]
@@ -427,10 +520,10 @@ struct SLICE:
         steps: List[Int],
         starts: List[Int],
         ends: List[Int],
-        backward_op: Bool = False
+        backward_op: Bool = False,
     ](inout res: Tensor[dtype], t1: Tensor[dtype]):
         alias strides = original_shape.strides()
-        
+
         # Get the dimensions for vectorization
         var last_dims = 1
         var positions_to_skip = 0
@@ -441,7 +534,7 @@ struct SLICE:
             positions_to_skip += 1
             if starts[i] != 0 or ends[i] != original_shape[i] or steps[i] != 1:
                 break
-        
+
         # Get the dimensions for the first loop
         var first_dims = 1
         var start_position = 0
@@ -452,31 +545,46 @@ struct SLICE:
             start_position += 1
 
         var middle_dims = res_shape.num_elements() // last_dims // first_dims
-        
+
         @parameter
         fn p_slice(i: Int):
             Self.recursive_iters_slice[
                 res_shape, original_shape, steps, starts, ends, backward_op
             ](
-                res, t1, last_dims, start_position, res_shape.rank() - 1 - positions_to_skip, 
-                i * middle_dims * last_dims, i * strides[start_position - 1]
+                res,
+                t1,
+                last_dims,
+                start_position,
+                res_shape.rank() - 1 - positions_to_skip,
+                i * middle_dims * last_dims,
+                i * strides[start_position - 1],
             )
 
         parallelize[p_slice](first_dims)
-    
+
     @staticmethod
     fn forward[
         t1_shape: TensorShape,
         attributes: AttributeVector,
     ](inout res: Tensor[dtype], t1: Tensor[dtype]):
-        alias axes = attributes["axes"].value().to_shape() if attributes["axes"] else Self.default_axes(t1_shape)
-        alias starts = Self.reorder_positions[0](attributes["starts"].value().to_shape(), axes, t1_shape)
-        alias ends = Self.reorder_positions[1](attributes["ends"].value().to_shape(), axes, t1_shape)
-        alias steps = Self.reorder_positions[2](attributes["steps"].value().to_shape(), axes, t1_shape) if attributes["steps"] else Self.default_steps(t1_shape)
+        alias axes = attributes["axes"].value().to_shape() if attributes[
+            "axes"
+        ] else Self.default_axes(t1_shape)
+        alias starts = Self.reorder_positions[0](
+            attributes["starts"].value().to_shape(), axes, t1_shape
+        )
+        alias ends = Self.reorder_positions[1](
+            attributes["ends"].value().to_shape(), axes, t1_shape
+        )
+        alias steps = Self.reorder_positions[2](
+            attributes["steps"].value().to_shape(), axes, t1_shape
+        ) if attributes["steps"] else Self.default_steps(t1_shape)
 
         alias res_shape = Self.result_shape(t1_shape, attributes)
 
-        Self.slice_kernel[res_shape, t1_shape, steps, starts, ends, False](res, t1)
+        Self.slice_kernel[res_shape, t1_shape, steps, starts, ends, False](
+            res, t1
+        )
 
     @staticmethod
     fn backward[
@@ -484,10 +592,18 @@ struct SLICE:
         t1_shape: TensorShape,
         attributes: AttributeVector = AttributeVector(),
     ](ug: Tensor[dtype], t1: Tensor[dtype]) -> Tensor[dtype]:
-        alias axes = attributes["axes"].value().to_shape() if attributes["axes"] else Self.default_axes(t1_shape)
-        alias starts = Self.reorder_positions[0](attributes["starts"].value().to_shape(), axes, t1_shape)
-        alias ends = Self.reorder_positions[1](attributes["ends"].value().to_shape(), axes, t1_shape)
-        alias steps = Self.reorder_positions[2](attributes["steps"].value().to_shape(), axes, t1_shape) if attributes["steps"] else Self.default_steps(t1_shape)
+        alias axes = attributes["axes"].value().to_shape() if attributes[
+            "axes"
+        ] else Self.default_axes(t1_shape)
+        alias starts = Self.reorder_positions[0](
+            attributes["starts"].value().to_shape(), axes, t1_shape
+        )
+        alias ends = Self.reorder_positions[1](
+            attributes["ends"].value().to_shape(), axes, t1_shape
+        )
+        alias steps = Self.reorder_positions[2](
+            attributes["steps"].value().to_shape(), axes, t1_shape
+        ) if attributes["steps"] else Self.default_steps(t1_shape)
 
         var res_grad = Tensor[dtype](t1_shape)
         
@@ -705,7 +821,7 @@ struct UPSAMPLE:
             @parameter
             if mode == "nearest":
                 var indeces_t1_sum = indeces_t1[0]
-                @unroll
+                @parameter
                 for i in range(1, size):
                     indeces_t1_sum += indeces_t1[i] * strides[i + 1]
 

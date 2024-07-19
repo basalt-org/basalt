@@ -15,7 +15,7 @@ from .basics import (
     TRANSPOSE,
     FMA,
 )
-from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE, SLICE, INDEX, UPSAMPLE
+from .mlops import SIGMOID, RELU, TANH, CLIP, SQUEEZE, UNSQUEEZE, SLICE, INDEX, UPSAMPLE, LEAKYRELU
 from .dynamics import CONCAT, SPLIT
 from .conv import CONV2D
 from .pool import MAXPOOL2D
@@ -63,6 +63,7 @@ struct OP(Stringable):
     alias SLICE = OP(25, "SLICE")
     alias INDEX = OP(26, "INDEX")
     alias UPSAMPLE = OP(27, "UPSAMPLE")
+    alias LEAKYRELU = OP(28, "LEAKYRELU")
 
     var id: UInt8
     var name: Bytes[16]
@@ -89,10 +90,16 @@ fn static_result_shape(
     if len(operands) == 1:
         return static_result_shape(op, operands[0].shape, attributes)
     elif len(operands) == 2:
-        return static_result_shape(op, operands[0].shape, operands[1].shape, attributes)
+        return static_result_shape(
+            op, operands[0].shape, operands[1].shape, attributes
+        )
     elif len(operands) == 3:
         return static_result_shape(
-            op, operands[0].shape, operands[1].shape, operands[2].shape, attributes
+            op,
+            operands[0].shape,
+            operands[1].shape,
+            operands[2].shape,
+            attributes,
         )
     else:
         print("Error: Invalid number of operands")
@@ -123,6 +130,8 @@ fn static_result_shape(
         return SIGMOID.result_shape(t1_shape)
     elif op == OP.RELU:
         return RELU.result_shape(t1_shape)
+    elif op == OP.LEAKYRELU:
+        return LEAKYRELU.result_shape(t1_shape)
     elif op == OP.TANH:
         return TANH.result_shape(t1_shape)
     elif op == OP.TRANSPOSE:
@@ -241,6 +250,8 @@ fn forward_op[
         SIGMOID.forward[t1_shape](res, t1)
     elif op == OP.RELU:
         RELU.forward[t1_shape](res, t1)
+    elif op == OP.LEAKYRELU:
+        LEAKYRELU.forward[t1_shape, attributes](res, t1)
     elif op == OP.TANH:
         TANH.forward[t1_shape](res, t1)
     elif op == OP.TRANSPOSE:
@@ -264,7 +275,10 @@ fn forward_op[
 
 
 fn forward_op[
-    op: OP, t1_shape: TensorShape, t2_shape: TensorShape, attributes: AttributeVector
+    op: OP,
+    t1_shape: TensorShape,
+    t2_shape: TensorShape,
+    attributes: AttributeVector,
 ](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype]):
     """
     Forward pass for binary operators.
@@ -293,14 +307,21 @@ fn forward_op[
     t2_shape: TensorShape,
     t3_shape: TensorShape,
     attributes: AttributeVector,
-](inout res: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], t3: Tensor[dtype]):
+](
+    inout res: Tensor[dtype],
+    t1: Tensor[dtype],
+    t2: Tensor[dtype],
+    t3: Tensor[dtype],
+):
     """
     Forward pass for ternary operators.
     """
 
     @parameter
     if op == OP.CONV2D:
-        CONV2D.forward[t1_shape, t2_shape, t3_shape, attributes](res, t1, t2, t3)
+        CONV2D.forward[t1_shape, t2_shape, t3_shape, attributes](
+            res, t1, t2, t3
+        )
     elif op == OP.FMA:
         FMA.forward[t1_shape, t2_shape, t3_shape](res, t1, t2, t3)
     else:
@@ -313,7 +334,7 @@ fn forward_op[
 ](
     inputs: List[Symbol],
     outputs: List[Symbol],
-    parameters: Parameters,
+    inout parameters: Parameters,
 ):
     """
     Forward pass for dynamic operators.
@@ -357,6 +378,8 @@ fn backward_op[
         res_grad = SIGMOID.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.RELU:
         res_grad = RELU.backward[ug_shape, t1_shape](ug, t1)
+    elif op == OP.LEAKYRELU:
+        res_grad = LEAKYRELU.backward[ug_shape, t1_shape, attributes](ug, t1)
     elif op == OP.TANH:
         res_grad = TANH.backward[ug_shape, t1_shape](ug, t1)
     elif op == OP.TRANSPOSE:
@@ -387,7 +410,12 @@ fn backward_op[
     t1_shape: TensorShape,
     t2_shape: TensorShape,
     attributes: AttributeVector,
-](ug: Tensor[dtype], t1: Tensor[dtype], t2: Tensor[dtype], inout grad: Tensor[dtype]):
+](
+    ug: Tensor[dtype],
+    t1: Tensor[dtype],
+    t2: Tensor[dtype],
+    inout grad: Tensor[dtype],
+):
     """
     Backward pass for binary operators.
     """
@@ -395,17 +423,29 @@ fn backward_op[
 
     @parameter
     if op == OP.ADD:
-        res_grad = ADD.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = ADD.backward[tensor_id, ug_shape, t1_shape, t2_shape](
+            ug, t1, t2
+        )
     elif op == OP.SUB:
-        res_grad = SUB.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = SUB.backward[tensor_id, ug_shape, t1_shape, t2_shape](
+            ug, t1, t2
+        )
     elif op == OP.MUL:
-        res_grad = MUL.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = MUL.backward[tensor_id, ug_shape, t1_shape, t2_shape](
+            ug, t1, t2
+        )
     elif op == OP.DIV:
-        res_grad = DIV.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = DIV.backward[tensor_id, ug_shape, t1_shape, t2_shape](
+            ug, t1, t2
+        )
     elif op == OP.POW:
-        res_grad = POW.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = POW.backward[tensor_id, ug_shape, t1_shape, t2_shape](
+            ug, t1, t2
+        )
     elif op == OP.DOT:
-        res_grad = DOT.backward[tensor_id, ug_shape, t1_shape, t2_shape](ug, t1, t2)
+        res_grad = DOT.backward[tensor_id, ug_shape, t1_shape, t2_shape](
+            ug, t1, t2
+        )
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)
@@ -449,9 +489,9 @@ fn backward_op[
             tensor_id, ug_shape, t1_shape, t2_shape, t3_shape, attributes
         ](ug, t1, t2, t3)
     elif op == OP.FMA:
-        res_grad = FMA.backward[tensor_id, ug_shape, t1_shape, t2_shape, t3_shape](
-            ug, t1, t2, t3
-        )
+        res_grad = FMA.backward[
+            tensor_id, ug_shape, t1_shape, t2_shape, t3_shape
+        ](ug, t1, t2, t3)
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)
@@ -467,7 +507,7 @@ fn backward_op[
     inputs: List[Symbol],
     outputs: List[Symbol],
     inout grad: Tensor[dtype],
-    parameters: Parameters,
+    inout parameters: Parameters,
 ):
     """
     Backward pass for dynamic operators.
@@ -475,9 +515,13 @@ fn backward_op[
     var res_grad: Tensor[dtype]
 
     if op == OP.CONCAT:
-        res_grad = CONCAT.backward[input_id, attributes](inputs, outputs, parameters)
+        res_grad = CONCAT.backward[input_id, attributes](
+            inputs, outputs, parameters
+        )
     elif op == OP.SPLIT:
-        res_grad = SPLIT.backward[input_id, attributes](inputs, outputs, parameters)
+        res_grad = SPLIT.backward[input_id, attributes](
+            inputs, outputs, parameters
+        )
     else:
         print("[ERROR] Operator not found.")
         res_grad = Tensor[dtype](-1, -1)

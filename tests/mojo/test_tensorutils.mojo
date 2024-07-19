@@ -1,6 +1,6 @@
 from random import rand
 from testing import assert_equal, assert_almost_equal
-from math import sqrt, exp, round, add, sub, mul, div
+from math import sqrt, exp
 
 from basalt import dtype, nelts
 from basalt.autograd.ops.matmul import dot
@@ -20,6 +20,7 @@ from basalt.utils.tensorutils import (
     transpose,
 )
 from basalt.nn import Tensor, TensorShape
+from basalt.utils.math_util import add, sub, mul, div, round_simd
 
 from tests import assert_tensors_equal
 
@@ -81,7 +82,7 @@ fn test_elwise_transform() raises:
     assert_tensors_equal(B_res, C)
 
     var C_res = Tensor[dtype](2, 10)
-    elwise_transform[round](C_res, C)
+    elwise_transform[round_simd](C_res, C)
     assert_tensors_equal(C_res, D)
 
 

@@ -1,7 +1,7 @@
 import sys
 from time.time import now
 from python.python import Python
-from math import max
+from utils.static_tuple import StaticTuple
 
 from yolov8 import YoloV8, get_constant_values_from_onnx_model
 

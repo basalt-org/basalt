@@ -39,12 +39,14 @@ fn to_tensor(np_array: PythonObject) raises -> Tensor[dtype]:
 
     var tensor = Tensor[dtype](TensorShape(shape))
 
-    var np_array_2 = np_array.copy()
+    var np_array_2: PythonObject
     try:
         var np = Python.import_module("numpy")
-        np_array_2 = np.float32(np_array_2)
+        # copy is also necessary for ops like slices to make them contiguous instead of references.
+        np_array_2 = np.float32(np_array.copy())
     except e:
-        print("Error in to tensor", e)
+        np_array_2 = np_array.copy()
+        print("Error in to_tensor", e)
 
     var pointer = int(np_array_2.__array_interface__["data"][0].to_float64())
     var pointer_d = DTypePointer[tensor.dtype](address=pointer)
@@ -56,13 +58,15 @@ fn to_tensor(np_array: PythonObject) raises -> Tensor[dtype]:
     return tensor^
 
 
-fn copy_np_data(tensor: Tensor, np_array: PythonObject) raises:
-    var np_array_2 = np_array.copy()
+fn copy_np_data(inout tensor: Tensor, np_array: PythonObject) raises:
+    var np_array_2: PythonObject
     try:
         var np = Python.import_module("numpy")
-        np_array_2 = np.float32(np_array_2)
+        # copy is also necessary for ops like slices to make them contiguous instead of references.
+        np_array_2 = np.float32(np_array.copy())
     except e:
-        print("Error in to tensor", e)
+        np_array_2 = np_array.copy()
+        print("Error in to_tensor", e)
 
     var pointer = int(np_array_2.__array_interface__["data"][0].to_float64())
     var pointer_d = DTypePointer[tensor.dtype](address=pointer)
