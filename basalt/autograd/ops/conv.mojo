@@ -3,6 +3,8 @@ from basalt.autograd.attributes import AttributeVector
 
 from algorithm import parallelize, vectorize, tile
 from utils.loop import unroll
+from utils.index import StaticIntTuple
+from memory import memset_zero
 
 
 @always_inline
@@ -104,7 +106,7 @@ struct CONV2D:
         alias outputs_strides = output_shape.strides()
         alias col_strides = col_shape.strides()
 
-        var col_ptr = DTypePointer[dtype].alloc(col_shape.num_elements())
+        var col_ptr = UnsafePointer[Scalar[dtype]].alloc(col_shape.num_elements())
         memset_zero(col_ptr, col_shape.num_elements())
 
         @parameter

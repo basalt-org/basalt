@@ -28,7 +28,7 @@ struct Adam[
     g: Graph,
     trainable_parameters: List[Symbol] = get_trainable_parameters(g),
 ]:
-    var parameters: Reference[Parameters, True, lifetime]
+    var parameters: Reference[Parameters, lifetime]
 
     var lr: Scalar[dtype]
     var beta1: Scalar[dtype]
@@ -41,7 +41,7 @@ struct Adam[
 
     fn __init__(
         inout self,
-        parameters: Reference[Parameters, True, lifetime],
+        parameters: Reference[Parameters, lifetime],
         lr: Scalar[dtype] = 0.001,
         beta1: Scalar[dtype] = 0.9,
         beta2: Scalar[dtype] = 0.999,

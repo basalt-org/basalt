@@ -2,6 +2,8 @@ from basalt import Symbol
 from basalt.nn.model import Parameters
 from ..attributes import AttributeVector
 
+from memory import memcpy
+
 
 struct CONCAT:
     @staticmethod

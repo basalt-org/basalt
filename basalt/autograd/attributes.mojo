@@ -1,5 +1,6 @@
 from collections import Optional, OptionalReg
 from utils.static_tuple import StaticTuple
+from utils.index import StaticIntTuple
 
 from basalt.nn.tensor import Tensor, TensorShape, MAX_RANK
 from basalt.utils.bytes import Bytes, scalar_to_bytes, bytes_to_scalar
@@ -29,7 +30,7 @@ struct AttributeType(Stringable):
     fn __init__(inout self, type: DType):
         if type.is_floating_point():
             self = AttributeType.FLOAT
-        elif type.is_bool():
+        elif type == DType.bool:
             self = AttributeType.BOOL
         else:
             self = AttributeType.INT

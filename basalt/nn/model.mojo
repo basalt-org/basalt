@@ -310,11 +310,11 @@ struct Model[
             var par: Tensor[dtype]
             if p_init.initializer:
                 # 1. Specific parameter initialization defined
-                var initializer_attr = p_init.initializer.value()[]
+                var initializer_attr = p_init.initializer.value()
                 par = initialize_tensor(
                     shape=p.shape,
                     type=initializer_attr.to_string(),
-                    data=p_init.data.value()[],
+                    data=p_init.data.value(),
                 )
             elif p_init.data:
                 # 2. Parameter initialized with data only

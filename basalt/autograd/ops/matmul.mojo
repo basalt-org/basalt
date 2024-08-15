@@ -1,20 +1,23 @@
 from basalt.utils.tensorutils import transpose_2D
+
 from algorithm import vectorize, parallelize
+from memory import memset_zero, stack_allocation
+from sys.info import simdwidthof
 
 
 @always_inline
 fn calculate_block[
     M: Int, N: Int, K: Int, BLOCK_M: Int, BLOCK_N: Int, nelts: Int
 ](
-    res: DTypePointer[dtype],
-    t1: DTypePointer[dtype],
-    t2: DTypePointer[dtype],
+    res: UnsafePointer[Scalar[dtype]],
+    t1: UnsafePointer[Scalar[dtype]],
+    t2: UnsafePointer[Scalar[dtype]],
     bm: Int,
     bn: Int,
 ):
     # Compute tile
     var acc = stack_allocation[BLOCK_M * BLOCK_N, dtype]()
-    memset_zero[dtype](acc, BLOCK_M * BLOCK_N)
+    memset_zero(acc, BLOCK_M * BLOCK_N)
 
     for k in range(K):
 
@@ -25,8 +28,7 @@ fn calculate_block[
             fn inner_n[nelts: Int](n: Int):
                 acc.store[width=nelts](
                     m * BLOCK_N + n,
-                    SIMD[dtype, nelts]
-                    .splat(t1[(bm + m) * K + k])
+                    SIMD[dtype, nelts](t1[(bm + m) * K + k])
                     .fma(
                         t2.load[width=nelts](k * N + (bn + n)),
                         acc.load[width=nelts](m * BLOCK_N + n),
@@ -59,7 +61,7 @@ fn dot[
 @always_inline
 fn dot[
     t1_shape: TensorShape, t2_shape: TensorShape
-](res: DTypePointer[dtype], t1: DTypePointer[dtype], t2: DTypePointer[dtype]):
+](res: UnsafePointer[Scalar[dtype]], t1: UnsafePointer[Scalar[dtype]], t2: UnsafePointer[Scalar[dtype]]):
     alias M = t1_shape[0]  # t1[0]
     alias K = t1_shape[1]  # t1[1], t2[0]
     alias N = t2_shape[1]  # t2[1]
@@ -117,14 +119,14 @@ fn dot[
 
 fn dot_transpose_t2[
     A_shape: TensorShape, B_shape: TensorShape
-](inout C: DTypePointer[dtype], A: DTypePointer[dtype], B: DTypePointer[dtype]):
+](inout C: UnsafePointer[Scalar[dtype]], A: UnsafePointer[Scalar[dtype]], B: UnsafePointer[Scalar[dtype]]):
     dot[A_shape, TensorShape(B_shape[1], B_shape[0])](C, A, transpose_2D[B_shape](B))
 
 
 fn dot_transpose_t2[
     A_shape: TensorShape, B_shape: TensorShape
 ](inout C: Tensor[dtype], A: Tensor[dtype], B: Tensor[dtype]):
-    memset_zero[dtype](C.data(), C.num_elements())
+    memset_zero(C.data(), C.num_elements())
 
     dot[A_shape, TensorShape(B_shape[1], B_shape[0])](C, A, transpose_2D[B_shape](B))
 
@@ -150,7 +152,7 @@ fn dot_transpose_t2[
 fn dot_transpose_t1[
     A_shape: TensorShape, B_shape: TensorShape
 ](inout C: Tensor[dtype], A: Tensor[dtype], B: Tensor[dtype]):
-    memset_zero[dtype](C.data(), C.num_elements())
+    memset_zero(C.data(), C.num_elements())
 
     dot[TensorShape(A_shape[1], A_shape[0]), B_shape](C, transpose_2D[A_shape](A), B)
 

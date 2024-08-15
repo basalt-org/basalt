@@ -1,6 +1,7 @@
 from algorithm import vectorize, parallelize
 from math import exp
 from utils.numerics import min_finite, max_finite
+from memory import memcpy
 
 from basalt import Tensor, TensorShape
 from basalt.utils.tensorutils import elwise_transform
@@ -228,7 +229,7 @@ struct CLIP:
 
         @parameter
         fn vec_clip[nelts: Int](i: Int):
-            res.store[nelts](i, t.load[nelts](i).min(max_val).max(min_val))
+            res.store[nelts](i, max(min(t.load[nelts](i), max_val), min_val))
 
         vectorize[vec_clip, nelts, size = t_shape.num_elements()]()
 
@@ -476,7 +477,7 @@ struct SLICE:
                             idx_temp + k,
                             t1.data()
                             .offset(idx_original_temp)
-                            .simd_strided_load[nelts](stride),
+                            .simd_strided_load[width=nelts](stride),
                         )
                 else:
 

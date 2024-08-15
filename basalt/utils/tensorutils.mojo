@@ -4,6 +4,7 @@ from memory import memset_zero, memset, stack_allocation
 from math import sqrt
 from random import rand
 from utils.numerics import min_finite, max_finite
+from utils.index import StaticIntTuple
 
 from basalt import Tensor, TensorShape
 from basalt.nn.tensor import MAX_RANK
@@ -16,7 +17,7 @@ from basalt.utils.math_util import add, sub, mul, div
 fn fill[dtype: DType](inout t: Tensor[dtype], val: Scalar[dtype]):
     @parameter
     fn fill_vec[nelts: Int](idx: Int):
-        t.store[nelts](idx, t.load[nelts](idx).splat(val))
+        t.store[nelts](idx, val)
 
     vectorize[fill_vec, nelts](t.num_elements())
 
@@ -31,7 +32,7 @@ fn get_real_index[
     var linear_index = i
 
     @parameter
-    fn unroll_dims[dim: Int]():
+    for dim in range(size):
         alias j = size - 1 - dim
         alias stride_value = strides_shape[j]
         alias shape_value = broadcast_shape[j]
@@ -40,8 +41,6 @@ fn get_real_index[
 
         index_res += divmod_index[1] * stride_value
         linear_index = divmod_index[0]
-
-    unroll[unroll_dims, size]()
 
     return index_res
 
@@ -260,7 +259,7 @@ fn transpose_2D[t_shape: TensorShape](t: Tensor[dtype]) -> Tensor[dtype]:
     fn proc_row(i: Int):
         @parameter
         fn proc_column[nelts: Int](j: Int):
-            t_new.data().offset(j * t_shape[0] + i).simd_strided_store[nelts](
+            t_new.data().offset(j * t_shape[0] + i).simd_strided_store[width=nelts](
                 t.load[nelts](i * t_shape[1] + j), stride
             )
 
@@ -272,8 +271,8 @@ fn transpose_2D[t_shape: TensorShape](t: Tensor[dtype]) -> Tensor[dtype]:
 
 
 @always_inline
-fn transpose_2D[t_shape: TensorShape](t: DTypePointer[dtype]) -> DTypePointer[dtype]:
-    var t_new = DTypePointer[dtype].alloc(t_shape[1] * t_shape[0])
+fn transpose_2D[t_shape: TensorShape](t: UnsafePointer[Scalar[dtype]]) -> UnsafePointer[Scalar[dtype]]:
+    var t_new = UnsafePointer[Scalar[dtype]].alloc(t_shape[1] * t_shape[0])
 
     alias stride = t_shape[0]
 
@@ -281,7 +280,7 @@ fn transpose_2D[t_shape: TensorShape](t: DTypePointer[dtype]) -> DTypePointer[dt
     fn proc_row(i: Int):
         @parameter
         fn proc_column[nelts: Int](j: Int):
-            t_new.offset(j * t_shape[0] + i).simd_strided_store[nelts](
+            t_new.offset(j * t_shape[0] + i).simd_strided_store[width=nelts](
                 t.load[width=nelts](i * t_shape[1] + j), stride
             )
 
@@ -357,11 +356,11 @@ fn reduce[
             if _nelts == 1:
                 m[0] = op(
                     m[0],
-                    t.data().offset(index).simd_strided_load[_nelts](strides[axis])[0],
+                    t.data().offset(index).simd_strided_load[width=_nelts](strides[axis])[0],
                 )
             else:
                 m = op(
-                    m, t.data().offset(index).simd_strided_load[nelts](strides[axis])
+                    m, t.data().offset(index).simd_strided_load[width=nelts](strides[axis])
                 )
 
         vectorize[axisreduce, nelts](t.dim(axis))
@@ -588,7 +587,7 @@ fn transpose(inout res: Tensor[dtype], t: Tensor[dtype], axes: TensorShape):
 
                 new_index += index * transposed_strides[k]
 
-            res.data().offset(new_index).simd_strided_store[nelts](
+            res.data().offset(new_index).simd_strided_store[width=nelts](
                 t.load[nelts](original_index),
                 transposed_strides[position_of_last_rank_new_shape],
             )

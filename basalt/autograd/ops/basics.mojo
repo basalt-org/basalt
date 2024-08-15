@@ -449,7 +449,7 @@ struct MEAN:
         # d(mean(t)) / dt = 1 / t.num_elements()
         var res_grad = Tensor[dtype](t_shape)
 
-        var grad: Scalar[dtype] = 1.0 / t_shape.num_elements()
+        var grad: Scalar[dtype] = (1.0 / t_shape.num_elements()).cast[dtype]()
 
         grad = (
             grad * ug[0]
@@ -471,7 +471,7 @@ struct MEAN:
         # d(mean(t)) / dt = 1 / t.dim(axis)
         var res_grad = Tensor[dtype](t_shape)
 
-        var grad: Scalar[dtype] = 1.0 / t_shape[axis]
+        var grad: Scalar[dtype] = (1.0 / t_shape[axis]).cast[dtype]()
 
         fill(res_grad, grad)
 
