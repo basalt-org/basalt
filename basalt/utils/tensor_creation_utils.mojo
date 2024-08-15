@@ -1,4 +1,5 @@
-from python import Python
+from python import Python, PythonObject
+from memory import memcpy
 
 # maybe this functions should be from the Tensor struct (like tensor.to_numpy()) and tensor.__init__(np_array: PythonObject) to create a tensor from a numpy array and tensor.copy_np_data(np_array: PythonObject) to copy the numpy array to the tensor.
 
@@ -15,8 +16,7 @@ fn to_numpy(tensor: Tensor) -> PythonObject:
             dims.append(tensor.dim(i))
         var pyarray: PythonObject = np.empty(dims, dtype=np.float32)
 
-        var pointer = int(pyarray.__array_interface__["data"][0].to_float64())
-        var pointer_d = DTypePointer[tensor.dtype](address=pointer)
+        var pointer_d = pyarray.__array_interface__["data"][0].unsafe_get_as_pointer[dtype]()
         memcpy(pointer_d, tensor.data(), tensor.num_elements())
 
         _ = tensor
@@ -48,8 +48,7 @@ fn to_tensor(np_array: PythonObject) raises -> Tensor[dtype]:
         np_array_2 = np_array.copy()
         print("Error in to_tensor", e)
 
-    var pointer = int(np_array_2.__array_interface__["data"][0].to_float64())
-    var pointer_d = DTypePointer[tensor.dtype](address=pointer)
+    var pointer_d = np_array_2.__array_interface__["data"][0].unsafe_get_as_pointer[dtype]()
     memcpy(tensor.data(), pointer_d, tensor.num_elements())
 
     _ = np_array_2
@@ -68,8 +67,7 @@ fn copy_np_data(inout tensor: Tensor, np_array: PythonObject) raises:
         np_array_2 = np_array.copy()
         print("Error in to_tensor", e)
 
-    var pointer = int(np_array_2.__array_interface__["data"][0].to_float64())
-    var pointer_d = DTypePointer[tensor.dtype](address=pointer)
+    var pointer_d = np_array_2.__array_interface__["data"][0].unsafe_get_as_pointer[dtype]()
     memcpy(tensor.data(), pointer_d, tensor.num_elements())
 
     _ = np_array_2

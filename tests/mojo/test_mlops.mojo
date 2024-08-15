@@ -1,3 +1,5 @@
+from utils.index import StaticIntTuple
+
 from basalt import dtype, nelts
 from basalt.autograd import OP
 from basalt.autograd.attributes import AttributeVector, Attribute
@@ -219,7 +221,7 @@ fn test_backward_CLIP() raises:
     var expected_min = Tensor[dtype](2, 3)
     for i in range(6):
         var val = Scalar[dtype](i - 3)
-        expected_min[i] = 5.0 if (val > -1.1) else 0.0
+        expected_min[i] = (5.0 if (val > -1.1) else 0.0).cast[dtype]()
     test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, min_attr](
         t1, ug, expected_min
     )
@@ -229,7 +231,7 @@ fn test_backward_CLIP() raises:
     var expected_max = Tensor[dtype](2, 3)
     for i in range(6):
         var val = Scalar[dtype](i - 3)
-        expected_max[i] = 5.0 if (val < 1.1) else 0.0
+        expected_max[i] = (5.0 if (val < 1.1) else 0.0).cast[dtype]()
     test_unary_op_backward[OP.CLIP, t1_shape, ug_shape, max_attr](
         t1, ug, expected_max
     )
@@ -370,8 +372,8 @@ fn test_SLICE() raises:
         OP.SLICE,
         t1_shape,
         AttributeVector(
-            Attribute("starts", TensorShape(slice.start)),
-            Attribute("ends", TensorShape(slice.end)),
+            Attribute("starts", TensorShape(slice.start.value())),
+            Attribute("ends", TensorShape(slice.end.value())),
             Attribute("steps", TensorShape(slice.step)),
             Attribute("axes", TensorShape(0)),
         ),
@@ -388,8 +390,8 @@ fn test_SLICE() raises:
         OP.SLICE,
         t1_shape,
         AttributeVector(
-            Attribute("starts", TensorShape(slice.start)),
-            Attribute("ends", TensorShape(slice.end)),
+            Attribute("starts", TensorShape(slice.start.value())),
+            Attribute("ends", TensorShape(slice.end.value())),
             Attribute("steps", TensorShape(slice.step)),
             Attribute("axes", TensorShape(1)),
         ),
@@ -406,8 +408,8 @@ fn test_SLICE() raises:
         OP.SLICE,
         t1_shape,
         AttributeVector(
-            Attribute("starts", TensorShape(slice.start)),
-            Attribute("ends", TensorShape(slice.end)),
+            Attribute("starts", TensorShape(slice.start.value())),
+            Attribute("ends", TensorShape(slice.end.value())),
             Attribute("steps", TensorShape(slice.step)),
             Attribute("axes", TensorShape(2)),
         ),
@@ -435,8 +437,8 @@ fn test_SLICE_step() raises:
         OP.SLICE,
         t0_shape,
         AttributeVector(
-            Attribute("starts", TensorShape(slice.start)),
-            Attribute("ends", TensorShape(slice.end)),
+            Attribute("starts", TensorShape(slice.start.value())),
+            Attribute("ends", TensorShape(slice.end.value())),
             Attribute("steps", TensorShape(slice.step)),
             Attribute("axes", TensorShape(0)),
         ),
@@ -460,8 +462,8 @@ fn test_SLICE_step() raises:
         OP.SLICE,
         t1_shape,
         AttributeVector(
-            Attribute("starts", TensorShape(slice.start)),
-            Attribute("ends", TensorShape(slice.end)),
+            Attribute("starts", TensorShape(slice.start.value())),
+            Attribute("ends", TensorShape(slice.end.value())),
             Attribute("steps", TensorShape(slice.step)),
             Attribute("axes", TensorShape(1)),
         ),
@@ -485,8 +487,8 @@ fn test_SLICE_step() raises:
         OP.SLICE,
         t2_shape,
         AttributeVector(
-            Attribute("starts", TensorShape(slice.start)),
-            Attribute("ends", TensorShape(slice.end)),
+            Attribute("starts", TensorShape(slice.start.value())),
+            Attribute("ends", TensorShape(slice.end.value())),
             Attribute("steps", TensorShape(slice.step)),
             Attribute("axes", TensorShape(2)),
         ),
@@ -514,8 +516,8 @@ fn test_SLICE_neg() raises:
         OP.SLICE,
         t0_shape,
         AttributeVector(
-            Attribute("starts", TensorShape(slice.start)),
-            Attribute("ends", TensorShape(slice.end)),
+            Attribute("starts", TensorShape(slice.start.value())),
+            Attribute("ends", TensorShape(slice.end.value())),
             Attribute("steps", TensorShape(slice.step)),
             Attribute("axes", TensorShape(0)),
         ),
@@ -539,8 +541,8 @@ fn test_SLICE_neg() raises:
         OP.SLICE,
         t1_shape,
         AttributeVector(
-            Attribute("starts", TensorShape(slice.start)),
-            Attribute("ends", TensorShape(slice.end)),
+            Attribute("starts", TensorShape(slice.start.value())),
+            Attribute("ends", TensorShape(slice.end.value())),
             Attribute("steps", TensorShape(slice.step)),
             Attribute("axes", TensorShape(1)),
         ),
@@ -564,8 +566,8 @@ fn test_SLICE_neg() raises:
         OP.SLICE,
         t2_shape,
         AttributeVector(
-            Attribute("starts", TensorShape(slice.start)),
-            Attribute("ends", TensorShape(slice.end)),
+            Attribute("starts", TensorShape(slice.start.value())),
+            Attribute("ends", TensorShape(slice.end.value())),
             Attribute("steps", TensorShape(slice.step)),
             Attribute("axes", TensorShape(2)),
         ),
@@ -598,10 +600,10 @@ fn test_SLICE_multiple_axes() raises:
         AttributeVector(
             Attribute(
                 "starts",
-                TensorShape(slice_0.start, slice_1.start, slice_2.start),
+                TensorShape(slice_0.start.value(), slice_1.start.value(), slice_2.start.value()),
             ),
             Attribute(
-                "ends", TensorShape(slice_0.end, slice_1.end, slice_2.end)
+                "ends", TensorShape(slice_0.end.value(), slice_1.end.value(), slice_2.end.value())
             ),
             Attribute(
                 "steps", TensorShape(slice_0.step, slice_1.step, slice_2.step)
@@ -640,16 +642,16 @@ fn test_SLICE_multiple_axes() raises:
             Attribute(
                 "starts",
                 TensorShape(
-                    slice_2_1.start,
-                    slice_2_2.start,
-                    slice_2_3.start,
-                    slice_2_4.start,
+                    slice_2_1.start.value(),
+                    slice_2_2.start.value(),
+                    slice_2_3.start.value(),
+                    slice_2_4.start.value(),
                 ),
             ),
             Attribute(
                 "ends",
                 TensorShape(
-                    slice_2_1.end, slice_2_2.end, slice_2_3.end, slice_2_4.end
+                    slice_2_1.end.value(), slice_2_2.end.value(), slice_2_3.end.value(), slice_2_4.end.value()
                 ),
             ),
             Attribute(
@@ -687,8 +689,8 @@ fn test_backward_SLICE() raises:
         t0_shape,
         ug0_shape,
         AttributeVector(
-            Attribute("starts", TensorShape(slice_0.start)),
-            Attribute("ends", TensorShape(slice_0.end)),
+            Attribute("starts", TensorShape(slice_0.start.value())),
+            Attribute("ends", TensorShape(slice_0.end.value())),
             Attribute("steps", TensorShape(slice_0.step)),
             Attribute("axes", TensorShape(0)),
         ),
@@ -715,8 +717,8 @@ fn test_backward_SLICE() raises:
         t1_shape,
         ug1_shape,
         AttributeVector(
-            Attribute("starts", TensorShape(slice_1.start)),
-            Attribute("ends", TensorShape(slice_1.end)),
+            Attribute("starts", TensorShape(slice_1.start.value())),
+            Attribute("ends", TensorShape(slice_1.end.value())),
             Attribute("steps", TensorShape(slice_1.step)),
             Attribute("axes", TensorShape(1)),
         ),
@@ -745,8 +747,8 @@ fn test_backward_SLICE() raises:
         t2_shape,
         ug2_shape,
         AttributeVector(
-            Attribute("starts", TensorShape(slice_2.start)),
-            Attribute("ends", TensorShape(slice_2.end)),
+            Attribute("starts", TensorShape(slice_2.start.value())),
+            Attribute("ends", TensorShape(slice_2.end.value())),
             Attribute("steps", TensorShape(slice_2.step)),
             Attribute("axes", TensorShape(2)),
         ),
@@ -794,10 +796,10 @@ fn test_backward_SLICE_multiple_axes() raises:
         AttributeVector(
             Attribute(
                 "starts",
-                TensorShape(slice_0.start, slice_1.start, slice_2.start),
+                TensorShape(slice_0.start.value(), slice_1.start.value(), slice_2.start.value()),
             ),
             Attribute(
-                "ends", TensorShape(slice_0.end, slice_1.end, slice_2.end)
+                "ends", TensorShape(slice_0.end.value(), slice_1.end.value(), slice_2.end.value())
             ),
             Attribute(
                 "steps", TensorShape(slice_0.step, slice_1.step, slice_2.step)
