@@ -259,7 +259,7 @@ fn transpose_2D[t_shape: TensorShape](t: Tensor[dtype]) -> Tensor[dtype]:
     fn proc_row(i: Int):
         @parameter
         fn proc_column[nelts: Int](j: Int):
-            t_new.data().offset(j * t_shape[0] + i).simd_strided_store[width=nelts](
+            t_new.data().offset(j * t_shape[0] + i).strided_store[width=nelts](
                 t.load[nelts](i * t_shape[1] + j), stride
             )
 
@@ -280,7 +280,7 @@ fn transpose_2D[t_shape: TensorShape](t: UnsafePointer[Scalar[dtype]]) -> Unsafe
     fn proc_row(i: Int):
         @parameter
         fn proc_column[nelts: Int](j: Int):
-            t_new.offset(j * t_shape[0] + i).simd_strided_store[width=nelts](
+            t_new.offset(j * t_shape[0] + i).strided_store[width=nelts](
                 t.load[width=nelts](i * t_shape[1] + j), stride
             )
 
@@ -356,11 +356,11 @@ fn reduce[
             if _nelts == 1:
                 m[0] = op(
                     m[0],
-                    t.data().offset(index).simd_strided_load[width=_nelts](strides[axis])[0],
+                    t.data().offset(index).strided_load[width=_nelts](strides[axis])[0],
                 )
             else:
                 m = op(
-                    m, t.data().offset(index).simd_strided_load[width=nelts](strides[axis])
+                    m, t.data().offset(index).strided_load[width=nelts](strides[axis])
                 )
 
         vectorize[axisreduce, nelts](t.dim(axis))
@@ -587,7 +587,7 @@ fn transpose(inout res: Tensor[dtype], t: Tensor[dtype], axes: TensorShape):
 
                 new_index += index * transposed_strides[k]
 
-            res.data().offset(new_index).simd_strided_store[width=nelts](
+            res.data().offset(new_index).strided_store[width=nelts](
                 t.load[nelts](original_index),
                 transposed_strides[position_of_last_rank_new_shape],
             )
