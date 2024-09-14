@@ -477,7 +477,7 @@ struct SLICE:
                             idx_temp + k,
                             t1.data()
                             .offset(idx_original_temp)
-                            .simd_strided_load[width=nelts](stride),
+                            .strided_load[width=nelts](stride),
                         )
                 else:
 
@@ -485,7 +485,7 @@ struct SLICE:
                     if steps[position] == 1:
                         res.store[nelts](idx_original_temp, t1.load[nelts](idx_temp + k))
                     else:
-                        res.data().offset(idx_original_temp).simd_strided_store[width=nelts](
+                        res.data().offset(idx_original_temp).strided_store[width=nelts](
                             t1.load[nelts](idx_temp + k),
                             stride
                         )
