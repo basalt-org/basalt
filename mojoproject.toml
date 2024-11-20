@@ -7,6 +7,9 @@ platforms = ["osx-arm64", "linux-64"]
 version = "0.1.0"
 
 [tasks]
+test = { cmd = "magic run mojo test -I . tests" }
+test_mojo = { cmd = "magic run mojo test -I . tests/mojo" }
+test_python = { cmd = "magic run mojo test -I . tests/python" }
 
 [dependencies]
 max = ">=24.5.0,<25"

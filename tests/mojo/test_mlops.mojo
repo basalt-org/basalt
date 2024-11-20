@@ -1,4 +1,4 @@
-from utils.index import StaticIntTuple
+from utils.index import IndexList
 
 from basalt import dtype, nelts
 from basalt.autograd import OP
@@ -374,7 +374,7 @@ fn test_SLICE() raises:
         AttributeVector(
             Attribute("starts", TensorShape(slice.start.value())),
             Attribute("ends", TensorShape(slice.end.value())),
-            Attribute("steps", TensorShape(slice.step)),
+            Attribute("steps", TensorShape(slice.step.value())),
             Attribute("axes", TensorShape(0)),
         ),
     ](t1, expected_0)
@@ -392,7 +392,7 @@ fn test_SLICE() raises:
         AttributeVector(
             Attribute("starts", TensorShape(slice.start.value())),
             Attribute("ends", TensorShape(slice.end.value())),
-            Attribute("steps", TensorShape(slice.step)),
+            Attribute("steps", TensorShape(slice.step.value())),
             Attribute("axes", TensorShape(1)),
         ),
     ](t1, expected_1)
@@ -410,7 +410,7 @@ fn test_SLICE() raises:
         AttributeVector(
             Attribute("starts", TensorShape(slice.start.value())),
             Attribute("ends", TensorShape(slice.end.value())),
-            Attribute("steps", TensorShape(slice.step)),
+            Attribute("steps", TensorShape(slice.step.value())),
             Attribute("axes", TensorShape(2)),
         ),
     ](t1, expected_2)
@@ -439,7 +439,7 @@ fn test_SLICE_step() raises:
         AttributeVector(
             Attribute("starts", TensorShape(slice.start.value())),
             Attribute("ends", TensorShape(slice.end.value())),
-            Attribute("steps", TensorShape(slice.step)),
+            Attribute("steps", TensorShape(slice.step.value())),
             Attribute("axes", TensorShape(0)),
         ),
     ](t0, expected_0)
@@ -464,7 +464,7 @@ fn test_SLICE_step() raises:
         AttributeVector(
             Attribute("starts", TensorShape(slice.start.value())),
             Attribute("ends", TensorShape(slice.end.value())),
-            Attribute("steps", TensorShape(slice.step)),
+            Attribute("steps", TensorShape(slice.step.value())),
             Attribute("axes", TensorShape(1)),
         ),
     ](t1, expected_1)
@@ -489,7 +489,7 @@ fn test_SLICE_step() raises:
         AttributeVector(
             Attribute("starts", TensorShape(slice.start.value())),
             Attribute("ends", TensorShape(slice.end.value())),
-            Attribute("steps", TensorShape(slice.step)),
+            Attribute("steps", TensorShape(slice.step.value())),
             Attribute("axes", TensorShape(2)),
         ),
     ](t2, expected_2)
@@ -509,7 +509,7 @@ fn test_SLICE_neg() raises:
         for j in range(2):
             for k in range(2):
                 expected_0[i * 2 * 2 + j * 2 + k] = (
-                    StaticIntTuple[3](6, 4, 2)[i] * 2 * 2 + j * 2 + k
+                    IndexList[3](6, 4, 2)[i] * 2 * 2 + j * 2 + k
                 )
 
     test_unary_op[
@@ -518,7 +518,7 @@ fn test_SLICE_neg() raises:
         AttributeVector(
             Attribute("starts", TensorShape(slice.start.value())),
             Attribute("ends", TensorShape(slice.end.value())),
-            Attribute("steps", TensorShape(slice.step)),
+            Attribute("steps", TensorShape(slice.step.value())),
             Attribute("axes", TensorShape(0)),
         ),
     ](t0, expected_0)
@@ -534,7 +534,7 @@ fn test_SLICE_neg() raises:
         for j in range(3):
             for k in range(2):
                 expected_1[i * 3 * 2 + j * 2 + k] = (
-                    i * 10 * 2 + StaticIntTuple[3](6, 4, 2)[j] * 2 + k
+                    i * 10 * 2 + IndexList[3](6, 4, 2)[j] * 2 + k
                 )
 
     test_unary_op[
@@ -543,7 +543,7 @@ fn test_SLICE_neg() raises:
         AttributeVector(
             Attribute("starts", TensorShape(slice.start.value())),
             Attribute("ends", TensorShape(slice.end.value())),
-            Attribute("steps", TensorShape(slice.step)),
+            Attribute("steps", TensorShape(slice.step.value())),
             Attribute("axes", TensorShape(1)),
         ),
     ](t1, expected_1)
@@ -559,7 +559,7 @@ fn test_SLICE_neg() raises:
         for j in range(2):
             for k in range(3):
                 expected_2[i * 2 * 3 + j * 3 + k] = (
-                    i * 2 * 10 + j * 10 + StaticIntTuple[3](6, 4, 2)[k]
+                    i * 2 * 10 + j * 10 + IndexList[3](6, 4, 2)[k]
                 )
 
     test_unary_op[
@@ -568,7 +568,7 @@ fn test_SLICE_neg() raises:
         AttributeVector(
             Attribute("starts", TensorShape(slice.start.value())),
             Attribute("ends", TensorShape(slice.end.value())),
-            Attribute("steps", TensorShape(slice.step)),
+            Attribute("steps", TensorShape(slice.step.value())),
             Attribute("axes", TensorShape(2)),
         ),
     ](t2, expected_2)
@@ -589,9 +589,9 @@ fn test_SLICE_multiple_axes() raises:
         for j in range(3):
             for k in range(5):
                 expected[i * 3 * 5 + j * 5 + k] = (
-                    StaticIntTuple[5](1, 3, 5, 7, 9)[i] * 32 * 40
-                    + StaticIntTuple[3](3, 6, 9)[j] * 40
-                    + StaticIntTuple[5](5, 7, 9, 11, 13)[k]
+                    IndexList[5](1, 3, 5, 7, 9)[i] * 32 * 40
+                    + IndexList[3](3, 6, 9)[j] * 40
+                    + IndexList[5](5, 7, 9, 11, 13)[k]
                 )
 
     test_unary_op[
@@ -606,7 +606,7 @@ fn test_SLICE_multiple_axes() raises:
                 "ends", TensorShape(slice_0.end.value(), slice_1.end.value(), slice_2.end.value())
             ),
             Attribute(
-                "steps", TensorShape(slice_0.step, slice_1.step, slice_2.step)
+                "steps", TensorShape(slice_0.step.value(), slice_1.step.value(), slice_2.step.value())
             ),
             # Attribute("axes", TensorShape(0, 1, 2))
         ),
@@ -629,10 +629,10 @@ fn test_SLICE_multiple_axes() raises:
             for k in range(5):
                 for l in range(4):
                     expected_2[i * 3 * 5 * 4 + j * 5 * 4 + k * 4 + l] = (
-                        StaticIntTuple[5](1, 3, 5, 7, 9)[i] * 32 * 40 * 50
-                        + StaticIntTuple[3](3, 6, 9)[j] * 40 * 50
-                        + StaticIntTuple[5](5, 7, 9, 11, 13)[k] * 50
-                        + StaticIntTuple[4](7, 11, 15, 19)[l]
+                        IndexList[5](1, 3, 5, 7, 9)[i] * 32 * 40 * 50
+                        + IndexList[3](3, 6, 9)[j] * 40 * 50
+                        + IndexList[5](5, 7, 9, 11, 13)[k] * 50
+                        + IndexList[4](7, 11, 15, 19)[l]
                     )
 
     test_unary_op[
@@ -657,10 +657,10 @@ fn test_SLICE_multiple_axes() raises:
             Attribute(
                 "steps",
                 TensorShape(
-                    slice_2_1.step,
-                    slice_2_2.step,
-                    slice_2_3.step,
-                    slice_2_4.step,
+                    slice_2_1.step.value(),
+                    slice_2_2.step.value(),
+                    slice_2_3.step.value(),
+                    slice_2_4.step.value(),
                 ),
             ),
         ),
@@ -691,7 +691,7 @@ fn test_backward_SLICE() raises:
         AttributeVector(
             Attribute("starts", TensorShape(slice_0.start.value())),
             Attribute("ends", TensorShape(slice_0.end.value())),
-            Attribute("steps", TensorShape(slice_0.step)),
+            Attribute("steps", TensorShape(slice_0.step.value())),
             Attribute("axes", TensorShape(0)),
         ),
     ](t0, ug0, expected_ug0)
@@ -719,7 +719,7 @@ fn test_backward_SLICE() raises:
         AttributeVector(
             Attribute("starts", TensorShape(slice_1.start.value())),
             Attribute("ends", TensorShape(slice_1.end.value())),
-            Attribute("steps", TensorShape(slice_1.step)),
+            Attribute("steps", TensorShape(slice_1.step.value())),
             Attribute("axes", TensorShape(1)),
         ),
     ](t1, ug1, expected_ug1)
@@ -739,7 +739,7 @@ fn test_backward_SLICE() raises:
         for j in range(2):
             for k in range(3):
                 expected_ug2[
-                    i * 2 * 10 + j * 10 + StaticIntTuple[3](6, 4, 2)[k]
+                    i * 2 * 10 + j * 10 + IndexList[3](6, 4, 2)[k]
                 ] = 1.0
 
     test_unary_op_backward[
@@ -749,7 +749,7 @@ fn test_backward_SLICE() raises:
         AttributeVector(
             Attribute("starts", TensorShape(slice_2.start.value())),
             Attribute("ends", TensorShape(slice_2.end.value())),
-            Attribute("steps", TensorShape(slice_2.step)),
+            Attribute("steps", TensorShape(slice_2.step.value())),
             Attribute("axes", TensorShape(2)),
         ),
     ](t2, ug2, expected_ug2)
@@ -770,9 +770,9 @@ fn test_backward_SLICE_multiple_axes() raises:
         for j in range(3):
             for k in range(5):
                 expected[i * 3 * 5 + j * 5 + k] = (
-                    StaticIntTuple[5](1, 3, 5, 7, 9)[i] * 32 * 40
-                    + StaticIntTuple[3](3, 6, 9)[j] * 40
-                    + StaticIntTuple[5](5, 7, 9, 11, 13)[k]
+                    IndexList[5](1, 3, 5, 7, 9)[i] * 32 * 40
+                    + IndexList[3](3, 6, 9)[j] * 40
+                    + IndexList[5](5, 7, 9, 11, 13)[k]
                 )
 
     alias ug_shape = TensorShape(3, 3, 5)
@@ -784,9 +784,9 @@ fn test_backward_SLICE_multiple_axes() raises:
         for j in range(3):
             for k in range(5):
                 expected_ug[
-                    StaticIntTuple[5](1, 3, 5, 7, 9)[i] * 32 * 40
-                    + StaticIntTuple[3](3, 6, 9)[j] * 40
-                    + StaticIntTuple[5](5, 7, 9, 11, 13)[k]
+                    IndexList[5](1, 3, 5, 7, 9)[i] * 32 * 40
+                    + IndexList[3](3, 6, 9)[j] * 40
+                    + IndexList[5](5, 7, 9, 11, 13)[k]
                 ] = 1.0
 
     test_unary_op_backward[
@@ -802,7 +802,7 @@ fn test_backward_SLICE_multiple_axes() raises:
                 "ends", TensorShape(slice_0.end.value(), slice_1.end.value(), slice_2.end.value())
             ),
             Attribute(
-                "steps", TensorShape(slice_0.step, slice_1.step, slice_2.step)
+                "steps", TensorShape(slice_0.step.value(), slice_1.step.value(), slice_2.step.value())
             ),
         ),
     ](t1, ug, expected_ug)

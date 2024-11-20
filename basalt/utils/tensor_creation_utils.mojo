@@ -1,5 +1,5 @@
 from python import Python, PythonObject
-from memory import memcpy
+from memory import memcpy, UnsafePointer
 
 # maybe this functions should be from the Tensor struct (like tensor.to_numpy()) and tensor.__init__(np_array: PythonObject) to create a tensor from a numpy array and tensor.copy_np_data(np_array: PythonObject) to copy the numpy array to the tensor.
 
