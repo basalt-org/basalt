@@ -395,7 +395,7 @@ struct SUM:
         var res_grad = Tensor[dtype](t_shape)
         fill(res_grad, 1.0)
 
-        elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
+        accumulate_op[t_shape, ug_shape, mul](res_grad, ug)
 
         return res_grad ^
 
@@ -475,7 +475,7 @@ struct MEAN:
 
         fill(res_grad, grad)
 
-        elwise_op[t_shape, ug_shape, mul](res_grad, res_grad, ug)
+        accumulate_op[t_shape, ug_shape, mul](res_grad, ug)
 
         return res_grad ^
 
@@ -593,7 +593,7 @@ struct TRANSPOSE:
         var axes = attributes["axes"]  # axes to be permuted
 
         var rank = t_shape.rank()
-        var shape = StaticIntTuple[MAX_RANK]()
+        var shape = IndexList[MAX_RANK]()
 
         if axes:
             # NOTE: axis has to be the size of rank of the tensor
@@ -623,7 +623,7 @@ struct TRANSPOSE:
 
             fn create_transpose_axes() -> TensorShape:
                 var rank = t_shape.rank()
-                var axes = StaticIntTuple[MAX_RANK]()
+                var axes = IndexList[MAX_RANK]()
                 for i in range(rank):
                     axes[i] = rank - i - 1
                 return TensorShape(rank=rank, shape=axes)
@@ -649,7 +649,7 @@ struct TRANSPOSE:
                 var axes_shape = axes.value().to_shape()
 
                 var rank = axes_shape.rank()
-                var axes_shape_inv = StaticIntTuple[MAX_RANK]()
+                var axes_shape_inv = IndexList[MAX_RANK]()
 
                 for i in range(rank):
                     axes_shape_inv[axes_shape[i]] = i
@@ -663,7 +663,7 @@ struct TRANSPOSE:
 
             fn create_transpose_axes() -> TensorShape:
                 var rank = t_shape.rank()
-                var axes = StaticIntTuple[MAX_RANK]()
+                var axes = IndexList[MAX_RANK]()
                 for i in range(rank):
                     axes[i] = rank - i - 1
                 return TensorShape(axes)

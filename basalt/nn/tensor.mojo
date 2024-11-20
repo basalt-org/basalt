@@ -1,7 +1,7 @@
 from testing import assert_true
 from algorithm import vectorize
-from utils.index import StaticIntTuple
-from memory import memset_zero, memcpy
+from utils.index import IndexList
+from memory import memset_zero, memcpy, UnsafePointer
 
 
 alias MAX_RANK = 8
@@ -10,33 +10,33 @@ alias MAX_RANK = 8
 @register_passable("trivial")
 struct TensorShape(Stringable):
     var _rank: Int
-    var _shape: StaticIntTuple[MAX_RANK]
+    var _shape: IndexList[MAX_RANK]
 
     fn __init__(inout self, *shape: Int):
         self._rank = len(shape)
-        self._shape = StaticIntTuple[MAX_RANK]()
+        self._shape = IndexList[MAX_RANK]()
         for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shape[i]
 
     fn __init__(inout self, shapes: VariadicList[Int]):
         self._rank = len(shapes)
-        self._shape = StaticIntTuple[MAX_RANK]()
+        self._shape = IndexList[MAX_RANK]()
         for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shapes[i]
 
     fn __init__(inout self, shape: List[Int]):
         self._rank = len(shape)
-        self._shape = StaticIntTuple[MAX_RANK]()
+        self._shape = IndexList[MAX_RANK]()
         for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shape[i]
 
-    fn __init__[num: Int](inout self, shape: StaticIntTuple[num]):
+    fn __init__[num: Int](inout self, shape: IndexList[num]):
         self._rank = num
-        self._shape = StaticIntTuple[MAX_RANK]()
+        self._shape = IndexList[MAX_RANK]()
         for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shape[i]
 
-    fn __init__(inout self, rank: Int, shape: StaticIntTuple[MAX_RANK]):
+    fn __init__(inout self, rank: Int, shape: IndexList[MAX_RANK]):
         self._rank = rank
         self._shape = shape
 
@@ -58,8 +58,8 @@ struct TensorShape(Stringable):
             result *= self._shape[i]
         return result
 
-    fn strides(self) -> StaticIntTuple[MAX_RANK]:
-        var result = StaticIntTuple[MAX_RANK](0)
+    fn strides(self) -> IndexList[MAX_RANK]:
+        var result = IndexList[MAX_RANK](0)
         result[self._rank - 1] = 1
         for i in range(self._rank - 2, -1, -1):
             result[i] = result[i + 1] * self._shape[i + 1]
@@ -91,6 +91,12 @@ struct TensorShape(Stringable):
             if self[i] == value:
                 return True
         return False
+
+    fn to_list(self) -> List[Int]:
+        var result = List[Int]()
+        for i in range(self.rank()):
+            result.append(self[i])
+        return result
 
 
 struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
@@ -149,10 +155,10 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
 
     @always_inline("nodebug")
     fn store[simd_width: Int](self, index: Int, value: SIMD[dtype, simd_width]):
-        self._data.store[width=simd_width](index, value)
+        self._data.store(index, value)
 
     @always_inline("nodebug")
-    fn strides(self) -> StaticIntTuple[MAX_RANK]:
+    fn strides(self) -> IndexList[MAX_RANK]:
         return self._shape.strides()
 
     @always_inline("nodebug")

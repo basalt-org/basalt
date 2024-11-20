@@ -16,8 +16,9 @@ fn to_numpy(tensor: Tensor) -> PythonObject:
             dims.append(tensor.dim(i))
         var pyarray: PythonObject = np.empty(dims, dtype=np.float32)
 
-        var pointer_d = pyarray.__array_interface__["data"][0].unsafe_get_as_pointer[dtype]()
-        memcpy(pointer_d, tensor.data(), tensor.num_elements())
+        var pointer_d = pyarray.__array_interface__["data"][0].unsafe_get_as_pointer[DType.float32]()
+        var d: UnsafePointer[Float32] = tensor.data().bitcast[Float32]()
+        memcpy(pointer_d, d, tensor.num_elements())
 
         _ = tensor
 
@@ -68,7 +69,8 @@ fn copy_np_data(inout tensor: Tensor, np_array: PythonObject) raises:
         print("Error in to_tensor", e)
 
     var pointer_d = np_array_2.__array_interface__["data"][0].unsafe_get_as_pointer[dtype]()
-    memcpy(tensor.data(), pointer_d, tensor.num_elements())
+    var d: UnsafePointer[Float32] = tensor.data().bitcast[Float32]()
+    memcpy(pointer_d, d, tensor.num_elements())
 
     _ = np_array_2
     _ = np_array

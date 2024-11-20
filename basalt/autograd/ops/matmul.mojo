@@ -1,7 +1,7 @@
 from basalt.utils.tensorutils import transpose_2D
 
 from algorithm import vectorize, parallelize
-from memory import memset_zero, stack_allocation
+from memory import memset_zero, stack_allocation, UnsafePointer
 from sys.info import simdwidthof
 
 
@@ -26,7 +26,7 @@ fn calculate_block[
 
             @parameter
             fn inner_n[nelts: Int](n: Int):
-                acc.store[width=nelts](
+                acc.store(
                     m * BLOCK_N + n,
                     SIMD[dtype, nelts](t1[(bm + m) * K + k])
                     .fma(
@@ -42,7 +42,7 @@ fn calculate_block[
 
         @parameter
         fn vec_store[nelts: Int](n: Int):
-            res.store[width=nelts](
+            res.store(
                 (bm + m) * N + (bn + n), acc.load[width=nelts](m * BLOCK_N + n)
             )
 

@@ -1,4 +1,5 @@
 from collections.optional import Optional
+from memory import UnsafePointer
 
 from basalt import dtype
 from basalt import Tensor, TensorShape

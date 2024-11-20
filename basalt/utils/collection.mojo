@@ -15,13 +15,14 @@ struct Collection(CollectionElement, Sized):
     var symbols: UnsafePointer[Scalar[DType.uint32]]
 
     @always_inline("nodebug")
-    fn __init__(inout self, *, capacity: Int = 0):
+    fn __init__(inout self, *, capacity: Int = 1):
         """
         Initializes a new Collection with the given capacity.
         """
         self.size = 0
         self.capacity = capacity
         self.data = UnsafePointer[Tensor[dtype]].alloc(capacity)
+        UnsafePointer.init_pointee_move((self.data + self.size), Tensor[dtype]())
         self.symbols = UnsafePointer[Scalar[DType.uint32]].alloc(capacity)
 
     @always_inline("nodebug")
@@ -134,16 +135,17 @@ struct Collection(CollectionElement, Sized):
         return -1
 
     fn __getitem__(
-        inout self,
+        self,
         symbol: Symbol,
-    ) -> ref[__lifetime_of(self)] Tensor[dtype]:
+    ) -> ref[self.data[0]] Tensor[dtype]:
+        # TODO: This is a hack, we should instead use dict, because there can be cases where the object doesn't exist and also self.data[0] can be a value that doesn't exit because the list is empty (but we hack this by assigning an empty value)
         """
         Returns a reference to the tensor with the given symbol.
         """
         var index = self.get_index(symbol.name)
 
 
-        return (self.data + index)[0]
+        return (self.data + index)[]
 
     @always_inline("nodebug")
     fn clear(inout self):

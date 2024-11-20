@@ -1,10 +1,10 @@
 from sys.info import num_physical_cores
 from algorithm import vectorize, parallelize
-from memory import memset_zero, memset, stack_allocation
+from memory import memset_zero, memset, stack_allocation, UnsafePointer
 from math import sqrt
 from random import rand
 from utils.numerics import min_finite, max_finite
-from utils.index import StaticIntTuple
+from utils.index import IndexList
 
 from basalt import Tensor, TensorShape
 from basalt.nn.tensor import MAX_RANK
@@ -25,7 +25,7 @@ fn fill[dtype: DType](inout t: Tensor[dtype], val: Scalar[dtype]):
 # ----- Functions to access positions in tensor data -----
 @always_inline
 fn get_real_index[
-    size: Int, strides_shape: StaticIntTuple[size], broadcast_shape: TensorShape
+    size: Int, strides_shape: IndexList[size], broadcast_shape: TensorShape
 ](i: Int) -> Int:
     # broadcast_shape is of same rank as strides_shape (the not broadcasted shape), because of broadcast_calculate_strides
     var index_res = 0
@@ -54,7 +54,7 @@ fn broadcast_shapes(s1: TensorShape, s2: TensorShape) -> TensorShape:
     var big = s1 if s1.rank() > s2.rank() else s2
     var small = s2 if s1.rank() > s2.rank() else s1
 
-    var res = StaticIntTuple[MAX_RANK](-1)
+    var res = IndexList[MAX_RANK](-1)
 
     for i in range(ndim - 1, diff - 1, -1):
         var a = big[i]
@@ -83,11 +83,11 @@ fn broadcast_shapes(*s: TensorShape) -> TensorShape:
 
 
 @always_inline
-fn broadcast_calculate_strides[size: Int, shape: TensorShape, broadcast_shape: TensorShape]() -> StaticIntTuple[size]:
+fn broadcast_calculate_strides[size: Int, shape: TensorShape, broadcast_shape: TensorShape]() -> IndexList[size]:
     alias shape_rank = shape.rank()
     alias diff = size - shape_rank
 
-    var strides = StaticIntTuple[size](0)
+    var strides = IndexList[size](0)
 
     var stride = 1
     for i in range(shape_rank - 1, -1, -1):
@@ -105,6 +105,16 @@ fn elwise_transform[
     @parameter
     fn vecmath[nelts: Int](idx: Int):
         res.store[nelts](idx, func[dtype, nelts](t.load[nelts](idx)))
+
+    vectorize[vecmath, nelts](t.num_elements())
+
+
+fn elwise_transform[
+    func: fn[dtype: DType, nelts: Int] (x: SIMD[dtype, nelts]) -> SIMD[dtype, nelts],
+](inout t: Tensor[dtype]):
+    @parameter
+    fn vecmath[nelts: Int](idx: Int):
+        t.store[nelts](idx, func[dtype, nelts](t.load[nelts](idx)))
 
     vectorize[vecmath, nelts](t.num_elements())
 
@@ -216,9 +226,53 @@ fn broadcast_elwise_op[
 
 
 @always_inline
+fn accumulate_op[
+    res_shape: TensorShape,
+    t1_shape: TensorShape,
+    func: fn[dtype: DType, nelts: Int] (
+        x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]
+    ) -> SIMD[dtype, nelts],
+](inout res: Tensor[dtype], t1: Tensor[dtype]):
+    alias size = res_shape.rank()
+    alias strides1 = broadcast_calculate_strides[size, t1_shape, res_shape]()
+
+    @parameter
+    fn vec_op[nelts: Int](i: Int):
+        var index1 = get_real_index[size, strides1, res_shape](i)
+
+        res.store[nelts](i, func[dtype, nelts](res.load[nelts](i), t1.load[nelts](index1)))
+
+
+@always_inline
+fn accumulate_op[
+    func: fn[dtype: DType, nelts: Int] (
+        x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]
+    ) -> SIMD[dtype, nelts],
+](inout res: Tensor[dtype], t: Tensor[dtype]):
+    @parameter
+    fn vecmath[nelts: Int](idx: Int):
+        res.store[nelts](idx, func[dtype, nelts](res.load[nelts](idx), t.load[nelts](idx)))
+
+    vectorize[vecmath, nelts](t.num_elements())
+
+
+@always_inline
+fn accumulate_op[
+    func: fn[dtype: DType, nelts: Int] (
+        x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]
+    ) -> SIMD[dtype, nelts],
+](inout res: Tensor[dtype], a: Scalar[dtype]):
+    @parameter
+    fn vecmath[nelts: Int](idx: Int):
+        res.store[nelts](idx, func[dtype, nelts](res.load[nelts](idx), a))
+
+    vectorize[vecmath, nelts](res.num_elements())
+
+
+@always_inline
 fn accumulate_grad(inout grad: Tensor[dtype], res_grad: Tensor[dtype]):
     # Accumulate gradient without checking for broadcasting
-    elwise_op[add](grad, grad, res_grad)
+   accumulate_op[add](grad, res_grad)
 
 
 @always_inline
@@ -227,9 +281,9 @@ fn accumulate_grad[
 ](inout grad: Tensor[dtype], res_grad: Tensor[dtype]):
     @parameter
     if grad_shape == res_grad_shape:
-        elwise_op[add](grad, grad, res_grad)
+        accumulate_op[add](grad, res_grad)
     elif res_grad_shape == TensorShape(1):
-        elwise_op[add](grad, grad, res_grad[0])
+        accumulate_op[add](grad, res_grad[0])
     elif grad_shape != res_grad_shape:
         # Backward resulting gradient (res_grad) was formed from an operation that required broadcasting.
         # In order to accumulate res_grad to the gradient, the res_grad tensor needs to be unbroadcasted.
@@ -317,7 +371,7 @@ fn reduce[
 
 fn get_reduce_shape(t: TensorShape, axis: Int) -> TensorShape:
     var rank = t.rank()
-    var new_shape = StaticIntTuple[MAX_RANK]()
+    var new_shape = IndexList[MAX_RANK]()
     for i in range(rank):
         if i == axis:
             new_shape[i] = 1
@@ -415,7 +469,7 @@ fn tsum(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 fn tmean(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
     var num_elements_axis: Scalar[dtype] = t.dim(axis)
     tsum(res, t, axis)
-    elwise_op[div](res, res, num_elements_axis)
+    accumulate_op[div](res, num_elements_axis)
 
 
 @always_inline
@@ -429,7 +483,7 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 
     @parameter
     fn get_t_index(
-        i: Int, j: Int, axis: Int, shape: TensorShape, strides: StaticIntTuple[MAX_RANK]
+        i: Int, j: Int, axis: Int, shape: TensorShape, strides: IndexList[MAX_RANK]
     ) -> Int:
         var index_res = 0
         for k in range(shape.rank()):
@@ -441,7 +495,7 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 
     @parameter
     fn get_mu_index(
-        i: Int, axis: Int, shape: TensorShape, strides: StaticIntTuple[MAX_RANK]
+        i: Int, axis: Int, shape: TensorShape, strides: IndexList[MAX_RANK]
     ) -> Int:
         var index_res = 0
         for k in range(shape.rank()):
@@ -463,7 +517,7 @@ fn tstd(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
         res[i] /= num_elements_axis
 
     _ = (strides, strides_mu)
-    elwise_transform[sqrt](res, res)
+    elwise_transform[sqrt](res)
 
 
 @always_inline
@@ -537,7 +591,7 @@ fn tmax(inout res: Tensor[dtype], t: Tensor[dtype], axis: Int):
 @always_inline
 fn get_transpose_shape(t: TensorShape, axes: TensorShape) -> TensorShape:
     var rank = t.rank()
-    var new_shape = StaticIntTuple[MAX_RANK]()
+    var new_shape = IndexList[MAX_RANK]()
 
     for i in range(rank):
         new_shape[i] = t[axes[i]]

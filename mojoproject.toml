@@ -1,6 +1,6 @@
 [project]
-authors = ["stijn", "benny", "andres <andresnowak52@gmail.com>"]
-channels = ["conda-forge", "https://conda.modular.com/max"]
+authors = ["stijn", "benny", "andres"]
+channels = ["conda-forge", "https://conda.modular.com/max-nightly"]
 description = "Basalt is a stand-alone machine learning framework that leverages the power of Mojo."
 name = "Basalt"
 platforms = ["osx-arm64", "linux-64"]

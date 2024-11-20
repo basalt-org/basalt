@@ -1,19 +1,20 @@
 from time import now
 from memory import memset
+from memory import UnsafePointer, memcpy, memset
 
 from basalt.autograd.node import Node
 
 
 @always_inline("nodebug")
 fn fit_string[num: Int](s: String) -> String:
-    var data = DTypePointer[DType.uint8]().alloc(num + 1)
+    var data = UnsafePointer[Byte]().alloc(num + 1)
     var copy_len = min(num, len(s))
 
-    memcpy(data, s.unsafe_uint8_ptr(), copy_len)
+    memcpy(data, s.unsafe_ptr(), copy_len)
     memset(data + copy_len, ord(" "), num - copy_len)
     data[num] = 0
 
-    return String(data, num + 1)
+    return String(ptr=data, length=num + 1)
 
 
 @always_inline("nodebug")
@@ -124,12 +125,12 @@ struct PerfMetrics:
         print(header)
 
         var header_length = len(header)
-        var seperator = DTypePointer[DType.uint8]().alloc(header_length + 1)
+        var seperator = UnsafePointer[UInt8]().alloc(header_length + 1)
         
         memset(seperator, ord("-"), header_length)
         seperator[header_length] = 0
         
-        print(String(seperator, len(header) + 1))
+        print(String(ptr=seperator, length=len(header) + 1))
 
         for i in range(size):
             var value = metrics[i]
