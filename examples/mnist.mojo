@@ -1,4 +1,4 @@
-from time.time import now
+from time.time import monotonic as now
 
 import basalt.nn as nn
 from basalt import Tensor, TensorShape

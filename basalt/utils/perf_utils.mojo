@@ -1,4 +1,4 @@
-from time import now
+from time.time import monotonic as now
 from memory import memset
 from memory import UnsafePointer, memcpy, memset
 
