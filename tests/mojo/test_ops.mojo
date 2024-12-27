@@ -1,4 +1,5 @@
 from math import exp, log
+from utils.index import IndexList
 
 from basalt import dtype, nelts
 from basalt.autograd import OP
@@ -85,7 +86,7 @@ fn test_EXP() raises:
     fill(t1, 2.0)
 
     var expected = Tensor[dtype](2, 3)
-    fill(expected, exp[dtype, 1](2.0))
+    fill(expected, exp(SIMD[dtype, 1](2.0)))
 
     test_unary_op[OP.EXP, t1_shape](t1, expected)
 
@@ -96,7 +97,7 @@ fn test_LOG() raises:
     fill(t1, 2.0)
 
     var expected = Tensor[dtype](2, 3)
-    fill(expected, log[dtype, 1](2.0))
+    fill(expected, log(SIMD[dtype, 1](2.0)))
 
     test_unary_op[OP.LOG, t1_shape](t1, expected)
 
@@ -147,27 +148,27 @@ fn test_MAX() raises:
     @parameter
     fn fill_tensor[
         size: Int
-    ](inout tensor: Tensor[dtype], values: StaticIntTuple[size]):
+    ](inout tensor: Tensor[dtype], values: IndexList[size]):
         for i in range(tensor.num_elements()):
             tensor[i] = values[i]
 
     # Test axis 0
     alias attrs = AttributeVector(Attribute("axis", 0))
-    var expected_max_axis_0_temp = StaticIntTuple[6](7, 8, 9, 10, 11, 12)
+    var expected_max_axis_0_temp = IndexList[6](7, 8, 9, 10, 11, 12)
     expected = Tensor[dtype](1, 3, 2)
     fill_tensor(expected, expected_max_axis_0_temp)
     test_unary_op[OP.MAX, t1_shape, attrs](t1, expected)
 
     # Test axis 1
     alias attrs_1 = AttributeVector(Attribute("axis", 1))
-    var expected_max_axis_1_temp = StaticIntTuple[4](5, 6, 11, 12)
+    var expected_max_axis_1_temp = IndexList[4](5, 6, 11, 12)
     expected = Tensor[dtype](2, 1, 2)
     fill_tensor(expected, expected_max_axis_1_temp)
     test_unary_op[OP.MAX, t1_shape, attrs_1](t1, expected)
 
     # Test axis 2
     alias attrs_2 = AttributeVector(Attribute("axis", 2))
-    var expected_max_axis_2_temp = StaticIntTuple[6](2, 4, 6, 8, 10, 12)
+    var expected_max_axis_2_temp = IndexList[6](2, 4, 6, 8, 10, 12)
     expected = Tensor[dtype](2, 3, 1)
     fill_tensor(expected, expected_max_axis_2_temp)
     test_unary_op[OP.MAX, t1_shape, attrs_2](t1, expected)
