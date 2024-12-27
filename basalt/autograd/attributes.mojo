@@ -124,6 +124,16 @@ struct Attribute(Stringable, CollectionElement):
         for i in range(self.size):
             self.data_shape[i] = value[i]
 
+    fn __init__(inout self, name: String, value: StaticTuple[Int, _]):
+        self.data_shape = IndexList[MAX_RANK]()
+        self.name = Bytes[MAX_NAME_CHARS](name)
+        self.data = Bytes[MAX_DATA_BYTES]()
+        self.type = AttributeType.INTS
+        self.size = len(value)
+
+        for i in range(self.size):
+            self.data_shape[i] = value[i]
+
     fn __init__[dtype: DType](inout self, name: String, value: Scalar[dtype]):
         constrained[dtype.is_numeric(), "Attribute value must be numeric."]()
 

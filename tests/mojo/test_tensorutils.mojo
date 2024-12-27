@@ -2,9 +2,7 @@ from random import rand
 from testing import assert_equal, assert_almost_equal
 from math import sqrt, exp
 
-from utils.static_tuple import StaticTuple
-
-alias StaticIntTuple = StaticTuple[Int, _]
+from utils.index import IndexList
 
 from basalt import dtype, nelts
 from basalt.autograd.ops.matmul import dot
@@ -332,27 +330,27 @@ fn test_max() raises:
     @parameter
     fn fill_tensor[
         size: Int
-    ](inout tensor: Tensor[dtype], values: StaticIntTuple[size]):
+    ](inout tensor: Tensor[dtype], values: IndexList[size]):
         for i in range(tensor.num_elements()):
             tensor[i] = values[i]
 
     var tensor_max_axis_0 = Tensor[dtype](get_reduce_shape(t.shape(), axis=0))
     tmax(tensor_max_axis_0, t, axis=0)
-    var expected_max_axis_0_temp = StaticIntTuple[6](7, 8, 9, 10, 11, 12)
+    var expected_max_axis_0_temp = IndexList[6](7, 8, 9, 10, 11, 12)
     var expected_max_axis_0 = Tensor[dtype](1, 3, 2)
     fill_tensor(expected_max_axis_0, expected_max_axis_0_temp)
     assert_tensors_equal(tensor_max_axis_0, expected_max_axis_0)
 
     var tensor_max_axis_1 = Tensor[dtype](get_reduce_shape(t.shape(), axis=1))
     tmax(tensor_max_axis_1, t, axis=1)
-    var expected_max_axis_1_temp = StaticIntTuple[4](5, 6, 11, 12)
+    var expected_max_axis_1_temp = IndexList[4](5, 6, 11, 12)
     var expected_max_axis_1 = Tensor[dtype](2, 1, 2)
     fill_tensor(expected_max_axis_1, expected_max_axis_1_temp)
     assert_tensors_equal(tensor_max_axis_1, expected_max_axis_1)
 
     var tensor_max_axis_2 = Tensor[dtype](get_reduce_shape(t.shape(), axis=2))
     tmax(tensor_max_axis_2, t, axis=2)
-    var expected_max_axis_2_temp = StaticIntTuple[6](2, 4, 6, 8, 10, 12)
+    var expected_max_axis_2_temp = IndexList[6](2, 4, 6, 8, 10, 12)
     var expected_max_axis_2 = Tensor[dtype](2, 3, 1)
     fill_tensor(expected_max_axis_2, expected_max_axis_2_temp)
     assert_tensors_equal(tensor_max_axis_2, expected_max_axis_2)
