@@ -1,7 +1,11 @@
 from basalt import dtype, nelts
 from basalt.nn import Tensor, TensorShape
-from basalt.utils.tensorutils import fill, elwise_op
+from basalt.utils.tensorutils import fill, elwise_op, accumulate_op
 from basalt.utils.math_util import add
+
+from utils.static_tuple import StaticTuple
+
+alias StaticIntTuple = StaticTuple[Int, _]
 
 
 fn generate_tensor(*shape: Int) -> Tensor[dtype]:
@@ -759,7 +763,7 @@ struct SumMeanStdData:
 
         var B = generate_expected_tensor[15](expected_sum, 3, 1, 5)
         var C = generate_expected_tensor[15](expected_mean, 3, 1, 5)
-        elwise_op[add](C, C, 0.5)
+        accumulate_op[add](C, 0.5)
 
         return SumMeanStdData(A, axis, B, C, expected_std)
 

@@ -113,6 +113,11 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
         memset_zero(self._data, shape.num_elements())
         self._shape = shape
 
+    fn __init__(inout self, shapes: VariadicList[Int]):
+        self._shape = TensorShape(shapes)
+        self._data = UnsafePointer[Scalar[dtype]].alloc(self._shape.num_elements())
+        memset_zero(self._data, self._shape.num_elements())
+
     fn __init__(
         inout self, owned data: UnsafePointer[Scalar[dtype]], owned shape: TensorShape
     ):

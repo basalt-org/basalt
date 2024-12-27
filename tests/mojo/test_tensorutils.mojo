@@ -2,6 +2,10 @@ from random import rand
 from testing import assert_equal, assert_almost_equal
 from math import sqrt, exp
 
+from utils.static_tuple import StaticTuple
+
+alias StaticIntTuple = StaticTuple[Int, _]
+
 from basalt import dtype, nelts
 from basalt.autograd.ops.matmul import dot
 from basalt.utils.tensorutils import (
@@ -70,7 +74,7 @@ fn test_elwise_transform() raises:
     var D = Tensor[dtype](2, 10)
     fill(A, 4)
     fill(B, 2)
-    fill(C, exp[dtype, 1](2))
+    fill(C, exp(SIMD[dtype, 1](2.0)))
     fill(D, 7)
 
     var A_res = Tensor[dtype](2, 10)
@@ -178,7 +182,7 @@ fn test_elwise_broadcast_tensor() raises:
     for i in range(40):
         for j in range(3):
             var index = (i % 4) + ((i // 4) * 12) + j * 4
-            result1_expected[index] = 3.0 + (i + 1)
+            result1_expected[index] = Float32(3.0) + (i + 1)
     assert_tensors_equal(result1, result1_expected)
 
 
@@ -197,7 +201,7 @@ fn test_sum_mean_std() raises:
     assert_equal(tensor_sum, s)
 
     var tensor_mean = tmean(t)
-    assert_equal(tensor_mean, s / 20)
+    assert_equal(tensor_mean, Float32(s) / 20)
 
     var tensor_std = tstd(t)
     var expected_std: Scalar[dtype] = 0
@@ -262,7 +266,7 @@ fn test_sum_mean_std_n() raises:
     assert_equal(tensor_sum, s)
 
     var tensor_mean = tmean(t)
-    assert_equal(tensor_mean, s / 60)
+    assert_equal(tensor_mean, Float32(s) / 60)
 
     var tensor_std = tstd(t)
     var expected_std: Scalar[dtype] = 0
