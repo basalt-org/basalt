@@ -87,7 +87,7 @@ fn test_DIV() raises:
     var expected_grad1 = Tensor[dtype](t1_shape)
     var expected_grad2 = Tensor[dtype](t2_shape)
     fill(expected_grad1, 1.0 / 2.0)
-    fill[dtype](expected_grad2, -1.0 / (2.0**2))
+    fill[dtype](expected_grad2, SIMD.cast[dtype](-1.0 / (2.0**2)))
     test_binary_op_backward[OP.DIV, t1_shape, t2_shape, ug_shape](
         t1, t2, ug, expected_grad1, expected_grad2
     )
@@ -122,7 +122,7 @@ fn test_EXP() raises:
     fill(ug, 5.0)
 
     var expected_grad1 = Tensor[dtype](t1_shape)
-    fill(expected_grad1, 5.0 * exp[dtype, 1](2.0))
+    fill(expected_grad1, 5.0 * exp(SIMD[dtype, 1](2.0)))
     test_unary_op_backward[OP.EXP, t1_shape, ug_shape](t1, ug, expected_grad1)
 
 
@@ -154,7 +154,7 @@ fn test_POW() raises:
     var expected_grad2 = Tensor[dtype](t2_shape)
     fill(expected_grad1, 4.0)
     var temp = Tensor[dtype](2, 3)
-    fill(temp, (2**2) * log[dtype, 1](2))
+    fill(temp, (2**2) * log(SIMD[dtype, 1](2.0)))
     expected_grad2[0] = tsum(temp)
 
     test_binary_op_backward[OP.POW, t1_shape, t2_shape, ug_shape](t1, t2, ug, expected_grad1, expected_grad2)
@@ -333,7 +333,7 @@ fn test_MEAN_0() raises:
     alias attributes = AttributeVector(Attribute("axis", 0))
     var expected_grad = Tensor[dtype](t1_shape)
     for i in range(expected_grad.num_elements()):
-        expected_grad[i] = 1.0 / t1_shape[0] * 3.0
+        expected_grad[i] = SIMD.cast[dtype](1.0 / t1_shape[0] * 3.0)
 
     test_unary_op_backward[OP.MEAN, t1_shape, ug_shape, attributes](
         t1, ug, expected_grad
@@ -351,7 +351,7 @@ fn test_MEAN_1() raises:
     alias attributes = AttributeVector(Attribute("axis", 1))
     var expected_grad = Tensor[dtype](t1_shape)
     for i in range(expected_grad.num_elements()):
-        expected_grad[i] = 1.0 / t1_shape[1] * 3.0
+        expected_grad[i] = SIMD.cast[dtype](1.0 / t1_shape[1] * 3.0)
 
     test_unary_op_backward[OP.MEAN, t1_shape, ug_shape, attributes](
         t1, ug, expected_grad

@@ -233,6 +233,9 @@ fn accumulate_op[
         x: SIMD[dtype, nelts], y: SIMD[dtype, nelts]
     ) -> SIMD[dtype, nelts],
 ](inout res: Tensor[dtype], t1: Tensor[dtype]):
+    if res_shape == t1_shape:
+        accumulate_op[func](res, t1)
+
     alias size = res_shape.rank()
     alias strides1 = broadcast_calculate_strides[size, t1_shape, res_shape]()
 
@@ -242,6 +245,7 @@ fn accumulate_op[
 
         res.store[nelts](i, func[dtype, nelts](res.load[nelts](i), t1.load[nelts](index1)))
 
+    vectorize[vec_op, 1](res.num_elements())
 
 @always_inline
 fn accumulate_op[
