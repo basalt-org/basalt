@@ -1,5 +1,5 @@
 from random import rand
-from python.python import Python
+from python.python import Python, PythonObject
 
 from basalt import dtype, nelts
 from basalt.autograd import Graph, Symbol, OP
