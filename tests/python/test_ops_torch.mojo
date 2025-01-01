@@ -1,6 +1,6 @@
 from random import rand
 from math import exp, log
-from python.python import Python
+from python.python import Python, PythonObject
 from collections.optional import Optional
 
 from basalt import dtype, nelts
@@ -480,17 +480,17 @@ fn torch_reduction_op(
 
         if op == OP.SUM:
             if axis:
-                expected = torch.sum(input_1, axis.value()[], True)
+                expected = torch.sum(input_1, axis.value(), True)
             else:
                 expected = torch.sum(input_1)
         elif op == OP.MAX:
             if axis:
-                expected = torch.amax(input_1, axis.value()[], True)
+                expected = torch.amax(input_1, axis.value(), True)
             else:
                 expected = torch.amax(input_1)
         elif op == OP.MEAN:
             if axis:
-                expected = torch.mean(input_1, axis.value()[], True)
+                expected = torch.mean(input_1, axis.value(), True)
             else:
                 expected = torch.mean(input_1)
         else:
