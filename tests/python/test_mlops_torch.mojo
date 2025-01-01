@@ -1,8 +1,7 @@
 from random import rand
 from utils.numerics import min_finite, max_finite
 from collections.optional import OptionalReg, Optional
-from python.python import Python
-from python.object import PythonObject
+from python.python import Python, PythonObject
 
 from basalt import dtype, nelts
 from basalt.autograd import OP
@@ -76,7 +75,7 @@ fn torch_unary_op(
                 else:
                     expected = torch.squeeze(input_1)
             elif attrs_tuple:
-                expected = torch.squeeze(input_1, dim=attrs_tuple.value()[])
+                expected = torch.squeeze(input_1, dim=attrs_tuple.value())
             else:
                 expected = torch.squeeze(input_1)
         elif op == OP.UNSQUEEZE:
@@ -91,11 +90,11 @@ fn torch_unary_op(
                 else:
                     expected = torch.unsqueeze(input_1, 0)
             elif attrs_tuple:
-                expected = torch.reshape(input_1, attrs_tuple.value()[])
+                expected = torch.reshape(input_1, attrs_tuple.value())
             else:
                 expected = torch.unsqueeze(input_1, 0)
         elif op == OP.SLICE:
-            var attrs = attrs_tuple.value()[]
+            var attrs = attrs_tuple.value()
 
             # create a tuple of all the slices using the dims
             var indices = PythonObject([])
@@ -376,9 +375,9 @@ fn test_SLICE() raises:
     # dim = 0
     alias slice_0 = Slice(5, 200, 3)
     alias attrs_0 = AttributeVector(
-        Attribute("starts", TensorShape(slice_0.start)),
-        Attribute("ends", TensorShape(slice_0.end)),
-        Attribute("steps", TensorShape(slice_0.step)),
+        Attribute("starts", TensorShape(slice_0.start.value())),
+        Attribute("ends", TensorShape(slice_0.end.value())),
+        Attribute("steps", TensorShape(slice_0.step.value())),
         Attribute("axes", TensorShape(0)),
     )
 
@@ -387,7 +386,7 @@ fn test_SLICE() raises:
     rand(ug.data(), ug.num_elements())
 
     var attrs_tuple_0 = PythonObject(
-        (slice_0.start, slice_0.end, slice_0.step, 0)
+        (slice_0.start.value(), slice_0.end.value(), slice_0.step.value(), 0)
     )
     var expected_and_grad = torch_unary_op(
         OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_0
@@ -400,9 +399,9 @@ fn test_SLICE() raises:
     # dim = 1
     alias slice_1 = Slice(10, 311, 5)
     alias attrs_1 = AttributeVector(
-        Attribute("starts", TensorShape(slice_1.start)),
-        Attribute("ends", TensorShape(slice_1.end)),
-        Attribute("steps", TensorShape(slice_1.step)),
+        Attribute("starts", TensorShape(slice_1.start.value())),
+        Attribute("ends", TensorShape(slice_1.end.value())),
+        Attribute("steps", TensorShape(slice_1.step.value())),
         Attribute("axes", TensorShape(1)),
     )
 
@@ -411,7 +410,7 @@ fn test_SLICE() raises:
     rand(ug.data(), ug.num_elements())
 
     var attrs_tuple_1 = PythonObject(
-        (slice_1.start, slice_1.end, slice_1.step, 1)
+        (slice_1.start.value(), slice_1.end.value(), slice_1.step.value(), 1)
     )
     expected_and_grad = torch_unary_op(
         OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_1
@@ -424,9 +423,9 @@ fn test_SLICE() raises:
     # dim = 2
     alias slice_2 = Slice(293, 33, -7)
     alias attrs_2 = AttributeVector(
-        Attribute("starts", TensorShape(slice_2.start)),
-        Attribute("ends", TensorShape(slice_2.end)),
-        Attribute("steps", TensorShape(slice_2.step)),
+        Attribute("starts", TensorShape(slice_2.start.value())),
+        Attribute("ends", TensorShape(slice_2.end.value())),
+        Attribute("steps", TensorShape(slice_2.step.value())),
         Attribute("axes", TensorShape(2)),
     )
 
@@ -435,7 +434,7 @@ fn test_SLICE() raises:
     rand(ug.data(), ug.num_elements())
 
     var attrs_tuple_2 = PythonObject(
-        (slice_2.start, slice_2.end, slice_2.step, 2)
+        (slice_2.start.value(), slice_2.end.value(), slice_2.step.value(), 2)
     )
     expected_and_grad = torch_unary_op(
         OP.SLICE, t1, ug, attrs_tuple=attrs_tuple_2
@@ -452,9 +451,9 @@ fn test_SLICE() raises:
     alias slice_1_1 = Slice(10, 250, 5)
 
     alias attrs_0_1 = AttributeVector(
-        Attribute("starts", TensorShape(slice_0_1.start, slice_1_1.start)),
-        Attribute("ends", TensorShape(slice_0_1.end, slice_1_1.end)),
-        Attribute("steps", TensorShape(slice_0_1.step, slice_1_1.step)),
+        Attribute("starts", TensorShape(slice_0_1.start.value(), slice_1_1.start.value())),
+        Attribute("ends", TensorShape(slice_0_1.end.value(), slice_1_1.end.value())),
+        Attribute("steps", TensorShape(slice_0_1.step.value(), slice_1_1.step.value())),
         Attribute("axes", TensorShape(0, 1)),
     )
 
@@ -464,13 +463,13 @@ fn test_SLICE() raises:
 
     var attrs_tuple_0_1 = PythonObject(
         (
-            slice_0_1.start,
-            slice_0_1.end,
-            slice_0_1.step,
+            slice_0_1.start.value(),
+            slice_0_1.end.value(),
+            slice_0_1.step.value(),
             0,
-            slice_1_1.start,
-            slice_1_1.end,
-            slice_1_1.step,
+            slice_1_1.start.value(),
+            slice_1_1.end.value(),
+            slice_1_1.step.value(),
             1,
         )
     )
@@ -490,13 +489,13 @@ fn test_SLICE() raises:
     alias attrs_0_2 = AttributeVector(
         Attribute(
             "starts",
-            TensorShape(slice_0_2.start, slice_1_2.start, slice_2_2.start),
+            TensorShape(slice_0_2.start.value(), slice_1_2.start.value(), slice_2_2.start.value()),
         ),
         Attribute(
-            "ends", TensorShape(slice_0_2.end, slice_1_2.end, slice_2_2.end)
+            "ends", TensorShape(slice_0_2.end.value(), slice_1_2.end.value(), slice_2_2.end.value())
         ),
         Attribute(
-            "steps", TensorShape(slice_0_2.step, slice_1_2.step, slice_2_2.step)
+            "steps", TensorShape(slice_0_2.step.value(), slice_1_2.step.value(), slice_2_2.step.value())
         ),
         Attribute("axes", TensorShape(0, 1, 2)),
     )
@@ -507,17 +506,17 @@ fn test_SLICE() raises:
 
     var attrs_tuple_0_2 = PythonObject(
         (
-            slice_0_2.start,
-            slice_0_2.end,
-            slice_0_2.step,
+            slice_0_2.start.value(),
+            slice_0_2.end.value(),
+            slice_0_2.step.value(),
             0,
-            slice_1_2.start,
-            slice_1_2.end,
-            slice_1_2.step,
+            slice_1_2.start.value(),
+            slice_1_2.end.value(),
+            slice_1_2.step.value(),
             1,
-            slice_2_2.start,
-            slice_2_2.end,
-            slice_2_2.step,
+            slice_2_2.start.value(),
+            slice_2_2.end.value(),
+            slice_2_2.step.value(),
             2,
         )
     )
