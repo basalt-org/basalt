@@ -824,7 +824,6 @@ fn main():
     except e:
         print("[ERROR] Error in forward mlops")
         print(e)
-        return
 
     try:
         test_backward_SIGMOID()
@@ -839,4 +838,3 @@ fn main():
     except e:
         print("[ERROR] Error in backward mlops")
         print(e)
-        return

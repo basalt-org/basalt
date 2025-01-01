@@ -161,7 +161,7 @@ struct Attribute(Stringable, CollectionElement):
 
     @always_inline("nodebug")
     fn to_list(self) -> List[Int]:
-        var result = List[Int](self.size)
+        var result = List[Int]()
 
         for i in range(self.size):
             result.append(self.data_shape[i])
