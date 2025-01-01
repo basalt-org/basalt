@@ -31,11 +31,11 @@ fn to_numpy(tensor: Tensor) -> PythonObject:
 fn to_tensor(np_array: PythonObject) raises -> Tensor[dtype]:
     var shape = List[Int]()
     for i in range(np_array.ndim):
-        shape.append(int(np_array.shape[i].to_float64()))
+        shape.append(int(float(np_array.shape[i])))
     if np_array.ndim == 0:
         # When the numpy array is a scalar, you need or the reshape to a size 1 ndarray or do this, if not the memcpy gets a memory error (Maybe because it is a register value?).
         var tensor = Tensor[dtype](TensorShape(1))
-        tensor[0] = np_array.to_float64().cast[dtype]()
+        tensor[0] = float(np_array).cast[dtype]()
         return tensor^
 
     var tensor = Tensor[dtype](TensorShape(shape))

@@ -1,6 +1,7 @@
 from random import rand
 from python.python import Python
 from testing import assert_equal
+from utils.index import IndexList
 
 from basalt import dtype, nelts
 from basalt.autograd import Graph, Symbol
@@ -41,7 +42,7 @@ fn test_get_result_shape() raises:
     kernel = Tensor[dtype](2, 2)
 
     res = get_result_shape(
-        inputs.shape(), kernel.shape(), StaticIntTuple[2](3, 1), 1, 2
+        inputs.shape(), kernel.shape(), IndexList[2](3, 1), 1, 2
     )
     assert_equal(res[0], 36)
     assert_equal(res[1], 17)
@@ -55,9 +56,9 @@ fn test_get_result_shape() raises:
     res = get_result_shape(
         inputs.shape(),
         kernel.shape(),
-        StaticIntTuple[2](3, 2),
-        StaticIntTuple[2](2, 1),
-        StaticIntTuple[2](2, 3),
+        IndexList[2](3, 2),
+        IndexList[2](2, 1),
+        IndexList[2](2, 3),
     )
     assert_equal(res[0], 17)
     assert_equal(res[1], 18)
@@ -75,9 +76,9 @@ fn torch_conv2d(
     inputs: Tensor,
     kernel: Tensor,
     bias: Tensor,
-    padding: StaticIntTuple[2],
-    stride: StaticIntTuple[2],
-    dilation: StaticIntTuple[2],
+    padding: IndexList[2],
+    stride: IndexList[2],
+    dilation: IndexList[2],
     upper_grad: Tensor,
 ) -> torch_conv2d_output:
     var out: torch_conv2d_output
@@ -113,8 +114,8 @@ fn torch_conv2d(
         )
         return out
 
-    except:
-        print("Error importing torch")
+    except e:
+        print("Error importing torch", e)
         var d = Tensor[dtype](1)
         var out: torch_conv2d_output = torch_conv2d_output(d, d, d, d)
         return out
@@ -123,16 +124,16 @@ fn torch_conv2d(
 fn test_conv_forward[
     input_shape: TensorShape,
     kernel_shape: TensorShape,
-    padding: StaticIntTuple[2],
-    stride: StaticIntTuple[2],
-    dilation: StaticIntTuple[2],
+    padding: IndexList[2],
+    stride: IndexList[2],
+    dilation: IndexList[2],
 ](inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]) raises:
     fn create_graph() -> Graph:
         var g = Graph()
         var inp = g.input(input_shape)
 
         var weights = g.input(kernel_shape)  # as input
-        var bias = g.input(kernel_shape[0])  # as input
+        var bias = g.input(TensorShape(kernel_shape[0]))  # as input
 
         var res = g.op(
             OP.CONV2D,
@@ -215,9 +216,9 @@ fn test_forward_3() raises:
     # padding=(3, 1), stride=(2, 3), dilation=(2, 3)
     # input shape: (4, 3, 32, 17)  kernel shape: (2, 3, 2, 2)
     # result_shape:  (4, 2, 18, 6)
-    alias padding = StaticIntTuple[2](3, 1)
-    alias stride = StaticIntTuple[2](2, 3)
-    alias dilation = StaticIntTuple[2](2, 3)
+    alias padding = IndexList[2](3, 1)
+    alias stride = IndexList[2](2, 3)
+    alias dilation = IndexList[2](2, 3)
     alias input_shape = TensorShape(4, 3, 32, 17)
     alias kernel_shape = TensorShape(2, 3, 2, 2)
 
@@ -237,9 +238,9 @@ fn test_conv_backward[
     ug_shape: TensorShape,
     input_shape: TensorShape,
     kernel_shape: TensorShape,
-    padding: StaticIntTuple[2],
-    stride: StaticIntTuple[2],
-    dilation: StaticIntTuple[2],
+    padding: IndexList[2],
+    stride: IndexList[2],
+    dilation: IndexList[2],
 ](
     ug: Tensor[dtype], inputs: Tensor[dtype], kernel: Tensor[dtype], bias: Tensor[dtype]
 ) raises:
@@ -302,8 +303,8 @@ fn test_backward_1() raises:
 
 fn test_backward_2() raises:
     # padding=(2, 4), stride=(3, 1), dilation=2
-    alias padding = StaticIntTuple[2](2, 4)
-    alias stride = StaticIntTuple[2](3, 1)
+    alias padding = IndexList[2](2, 4)
+    alias stride = IndexList[2](3, 1)
     alias dilation = 2
     alias input_shape = TensorShape(4, 2, 28, 28)
     alias kernel_shape = TensorShape(3, 2, 4, 8)
@@ -328,9 +329,9 @@ fn test_backward_2() raises:
 
 fn test_backward_3() raises:
     # padding=(2, 4), stride=2, dilation=(3, 2)
-    alias padding = StaticIntTuple[2](3, 2)
+    alias padding = IndexList[2](3, 2)
     alias stride = 2
-    alias dilation = StaticIntTuple[2](3, 2)
+    alias dilation = IndexList[2](3, 2)
     alias input_shape = TensorShape(4, 2, 28, 28)
     alias kernel_shape = TensorShape(3, 2, 5, 6)
 

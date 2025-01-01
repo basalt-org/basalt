@@ -13,3 +13,8 @@ test_python = { cmd = "magic run mojo test -I . tests/python" }
 
 [dependencies]
 max = ">=24.6.0,<25"
+
+[pypi-dependencies]
+torch = ">=2.5.1, <3"
+torchvision = ">=0.20.1, <0.21"
+torchaudio = ">=2.5.1, <3"
