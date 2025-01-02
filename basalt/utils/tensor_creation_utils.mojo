@@ -70,8 +70,9 @@ fn copy_np_data(inout tensor: Tensor, np_array: PythonObject) raises:
 
     var pointer_d = np_array_2.__array_interface__["data"][0].unsafe_get_as_pointer[dtype]()
     var d: UnsafePointer[Float32] = tensor.data().bitcast[Float32]()
-    memcpy(pointer_d, d, tensor.num_elements())
+    memcpy(d, pointer_d, tensor.num_elements())
 
-    _ = np_array_2
-    _ = np_array
-    _ = tensor
+    # This shouldn't be necessary anymore, but I'm leaving it here for now.
+    # _ = np_array_2
+    # _ = np_array
+    # _ = tensor

@@ -1,4 +1,4 @@
-from python import Python
+from python import Python, PythonObject
 from pathlib import Path
 from collections import Set
 
@@ -134,7 +134,7 @@ fn load_onnx_model(
             # Get the shape of data onnx
             var temp = List[Int]()
             for j in range(len(data_np.shape)):
-                temp.append(int(data_np.shape[j].to_float64()))
+                temp.append(int(float(data_np.shape[j])))
             var data_shape = TensorShape(temp)
 
             # Compare the shape of the data with the shape of the model tensor
@@ -155,6 +155,7 @@ fn load_onnx_model(
                         count += 1
 
                     if count == model_tensor_shape.rank():
+                        print("Transposing tensor before copying " + str(i))
                         raise_error_flag = False
                         data_np = data_np.transpose()
 
