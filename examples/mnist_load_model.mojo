@@ -1,4 +1,4 @@
-from time.time import now
+from time.time import monotonic as now
 from pathlib import Path
 
 import basalt.nn as nn

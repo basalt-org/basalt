@@ -23,12 +23,10 @@ fn get_trainable_parameters(g: Graph) -> List[Symbol]:
 
 @value
 struct Adam[
-    lifetime: MutableLifetime, # using mutability and anylifetime, seems to give problem for now because the the reference can't now for sure if the lifetime is mutable or not
-    //,
     g: Graph,
     trainable_parameters: List[Symbol] = get_trainable_parameters(g),
 ]:
-    var parameters: Reference[Parameters, True, lifetime]
+    var parameters: Pointer[Parameters, MutableAnyOrigin]
 
     var lr: Scalar[dtype]
     var beta1: Scalar[dtype]
@@ -41,13 +39,13 @@ struct Adam[
 
     fn __init__(
         inout self,
-        parameters: Reference[Parameters, True, lifetime],
+        ref[MutableAnyOrigin] parameters: Parameters,
         lr: Scalar[dtype] = 0.001,
         beta1: Scalar[dtype] = 0.9,
         beta2: Scalar[dtype] = 0.999,
         epsilon: Scalar[dtype] = 1e-8,
     ):
-        self.parameters = parameters
+        self.parameters = Pointer.address_of(parameters)
 
         self.lr = lr
         self.beta1 = beta1

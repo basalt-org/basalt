@@ -80,7 +80,7 @@ struct Model[
 
     # TODO: remove when ability to concatenate graphs (modules)
     # Removes the need for splitting in forward and inference mode
-    fn forward(inout self, *t_inputs: Tensor[dtype]) -> ref[__lifetime_of(self)] Tensor[dtype]:
+    fn forward(inout self, *t_inputs: Tensor[dtype]) -> ref[__origin_of(self)] Tensor[dtype]:
         # NOTE: Important detail here is that the order of the inputs must be the same as the order the inputs were defined in the graph.
         # Example: If you were te define the y_true before the x when creating the graph
         #
@@ -310,11 +310,11 @@ struct Model[
             var par: Tensor[dtype]
             if p_init.initializer:
                 # 1. Specific parameter initialization defined
-                var initializer_attr = p_init.initializer.value()[]
+                var initializer_attr = p_init.initializer.value()
                 par = initialize_tensor(
                     shape=p.shape,
                     type=initializer_attr.to_string(),
-                    data=p_init.data.value()[],
+                    data=p_init.data.value(),
                 )
             elif p_init.data:
                 # 2. Parameter initialized with data only

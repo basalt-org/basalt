@@ -1,4 +1,5 @@
-from memory.unsafe_pointer import UnsafePointer, initialize_pointee_move, destroy_pointee
+from memory.unsafe_pointer import UnsafePointer
+from memory import memset_zero, memcpy
 
 from basalt import Tensor, Symbol
 
@@ -11,17 +12,18 @@ struct Collection(CollectionElement, Sized):
     var size: Int
     var capacity: Int
     var data: UnsafePointer[Tensor[dtype]]
-    var symbols: DTypePointer[DType.uint32]
+    var symbols: UnsafePointer[Scalar[DType.uint32]]
 
     @always_inline("nodebug")
-    fn __init__(inout self, *, capacity: Int = 0):
+    fn __init__(inout self, *, capacity: Int = 1):
         """
         Initializes a new Collection with the given capacity.
         """
         self.size = 0
         self.capacity = capacity
         self.data = UnsafePointer[Tensor[dtype]].alloc(capacity)
-        self.symbols = DTypePointer[DType.uint32].alloc(capacity)
+        UnsafePointer.init_pointee_move((self.data + self.size), Tensor[dtype]())
+        self.symbols = UnsafePointer[Scalar[DType.uint32]].alloc(capacity)
 
     @always_inline("nodebug")
     fn __moveinit__(inout self, owned existing: Self):
@@ -41,11 +43,11 @@ struct Collection(CollectionElement, Sized):
         self.capacity = existing.capacity
         self.size = existing.size
         self.data = UnsafePointer[Tensor[dtype]].alloc(existing.capacity)
-        self.symbols = DTypePointer[DType.uint32].alloc(existing.capacity)
+        self.symbols = UnsafePointer[Scalar[DType.uint32]].alloc(existing.capacity)
         memcpy(self.symbols, existing.symbols, existing.capacity)
 
         for i in range(existing.size):
-            initialize_pointee_move((self.data + i), (existing.data + i)[])
+            UnsafePointer.init_pointee_move((self.data + i), (existing.data + i)[])
 
     @always_inline("nodebug")
     fn __del__(owned self):
@@ -53,7 +55,7 @@ struct Collection(CollectionElement, Sized):
         Destructor for the Collection.
         """
         for i in range(self.size):
-            destroy_pointee((self.data + i))
+            UnsafePointer.destroy_pointee((self.data + i))
         if self.data:
             self.data.free()
         if self.symbols:
@@ -72,10 +74,10 @@ struct Collection(CollectionElement, Sized):
         Reallocates the Collection to the new capacity.
         """
         var new_data = UnsafePointer[Tensor[dtype]].alloc(new_capacity)
-        var new_symbols = DTypePointer[DType.uint32].alloc(new_capacity)
+        var new_symbols = UnsafePointer[Scalar[DType.uint32]].alloc(new_capacity)
 
         for i in range(self.size):
-            initialize_pointee_move((new_data + i), (self.data + i)[])
+            UnsafePointer.init_pointee_move((new_data + i), (self.data + i)[])
             new_symbols[i] = self.symbols[i]
 
         self.data.free()
@@ -99,7 +101,7 @@ struct Collection(CollectionElement, Sized):
         """
         if self.size >= self.capacity:
             self._realloc(max(1, self.capacity * 2))
-        initialize_pointee_move((self.data + self.size), value ^)
+        UnsafePointer.init_pointee_move((self.data + self.size), value ^)
         self.symbols[self.size] = symbol_name
         self.size += 1
 
@@ -133,16 +135,17 @@ struct Collection(CollectionElement, Sized):
         return -1
 
     fn __getitem__(
-        inout self,
+        self,
         symbol: Symbol,
-    ) -> ref[__lifetime_of(self)] Tensor[dtype]:
+    ) -> ref[self.data[0]] Tensor[dtype]:
+        # TODO: This is a hack, we should instead use dict, because there can be cases where the object doesn't exist and also self.data[0] can be a value that doesn't exit because the list is empty (but we hack this by assigning an empty value)
         """
         Returns a reference to the tensor with the given symbol.
         """
         var index = self.get_index(symbol.name)
 
 
-        return (self.data + index)[0]
+        return (self.data + index)[]
 
     @always_inline("nodebug")
     fn clear(inout self):
@@ -150,7 +153,7 @@ struct Collection(CollectionElement, Sized):
         Clears the Collection, removing all tensors and symbols.
         """
         for i in range(self.size):
-            destroy_pointee((self.data + i))
+            UnsafePointer.destroy_pointee((self.data + i))
         memset_zero(self.symbols, self.capacity)
         self.size = 0
 

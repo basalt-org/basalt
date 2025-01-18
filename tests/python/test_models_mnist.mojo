@@ -1,6 +1,7 @@
 from random import rand
 from python import Python
 from testing import assert_almost_equal
+from utils.index import IndexList
 
 from basalt import dtype
 from basalt.autograd import Graph, OP
@@ -14,6 +15,7 @@ from basalt.nn import (
     CrossEntropyLoss,
     optim,
 )
+from basalt.autograd.params import Param
 
 from tests import assert_tensors_equal, to_numpy, to_tensor
 
@@ -32,17 +34,17 @@ fn create_CNN(
 
     # conv1
     # var x1 = nn.Conv2d(g, x, out_channels=16, kernel_size=5, padding=2)
-    var c1_w = g.param(TensorShape(16, x.shape[1], 5, 5), init=conv1_weights)
-    var c1_b = g.param(TensorShape(16), init=conv1_bias)
+    var c1_w = g.param(TensorShape(16, x.shape[1], 5, 5), init=Param(conv1_weights))
+    var c1_b = g.param(TensorShape(16), init=Param(conv1_bias))
     var x1 = g.op(
         OP.CONV2D,
         x,
         c1_w,
         c1_b,
         attributes=AttributeVector(
-            Attribute("padding", StaticIntTuple[2](2, 2)),
-            Attribute("stride", StaticIntTuple[2](1, 1)),
-            Attribute("dilation", StaticIntTuple[2](1, 1)),
+            Attribute("padding", IndexList[2](2, 2)),
+            Attribute("stride", IndexList[2](1, 1)),
+            Attribute("dilation", IndexList[2](1, 1)),
         ),
     )
 
@@ -51,17 +53,17 @@ fn create_CNN(
 
     # conv2
     # var x4 = nn.Conv2d(g, x3, out_channels=32, kernel_size=5, padding=2)
-    var c2_w = g.param(TensorShape(32, x3.shape[1], 5, 5), init=conv2_weights)
-    var c2_b = g.param(TensorShape(32), init=conv2_bias)
+    var c2_w = g.param(TensorShape(32, x3.shape[1], 5, 5), init=Param(conv2_weights))
+    var c2_b = g.param(TensorShape(32), init=Param(conv2_bias))
     var x4 = g.op(
         OP.CONV2D,
         x3,
         c2_w,
         c2_b,
         attributes=AttributeVector(
-            Attribute("padding", StaticIntTuple[2](2, 2)),
-            Attribute("stride", StaticIntTuple[2](1, 1)),
-            Attribute("dilation", StaticIntTuple[2](1, 1)),
+            Attribute("padding", IndexList[2](2, 2)),
+            Attribute("stride", IndexList[2](1, 1)),
+            Attribute("dilation", IndexList[2](1, 1)),
         ),
     )
 
@@ -81,8 +83,8 @@ fn create_CNN(
 
     # linear1
     # var out = nn.Linear(g, x7, n_outputs=10)
-    var l1_w = g.param(TensorShape(x7.shape[1], 10), init=linear1_weights)
-    var l1_b = g.param(TensorShape(10), init=linear1_bias)
+    var l1_w = g.param(TensorShape(x7.shape[1], 10), init=Param(linear1_weights))
+    var l1_b = g.param(TensorShape(10), init=Param(linear1_bias))
     var res = g.op(OP.DOT, x7, l1_w)
     var out = g.op(OP.ADD, res, l1_b)
     g.out(out)
@@ -120,7 +122,7 @@ fn run_mojo[
     )
 
     var model = Model[graph]()
-    var optim = optim.Adam[graph](model.parameters, lr=learning_rate)
+    var optim = optim.Adam[graph](model.parameters, lr=learning_rate.cast[dtype]())
 
     var losses = List[Scalar[dtype]]()
 

@@ -1,10 +1,11 @@
-from time.time import now
+from time.time import monotonic as now
 
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
 from basalt import Graph, Symbol, OP
 from basalt.utils.datasets import BostonHousing
 from basalt.utils.dataloader import DataLoader
+from basalt.nn.model import Parameters
 
 
 fn linear_regression(batch_size: Int, n_inputs: Int, n_outputs: Int) -> Graph:
@@ -34,7 +35,7 @@ fn main():
     # except: print("Could not render graph")
 
     var model = nn.Model[graph]()
-    var optim = nn.optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
+    var optim = nn.optim.Adam[graph](model.parameters, lr=learning_rate)
 
     # Batchwise data loader
     print("Loading data...")

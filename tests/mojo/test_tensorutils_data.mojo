@@ -1,7 +1,9 @@
 from basalt import dtype, nelts
 from basalt.nn import Tensor, TensorShape
-from basalt.utils.tensorutils import fill, elwise_op
+from basalt.utils.tensorutils import fill, elwise_op, accumulate_op
 from basalt.utils.math_util import add
+
+from utils.index import IndexList
 
 
 fn generate_tensor(*shape: Int) -> Tensor[dtype]:
@@ -14,7 +16,7 @@ fn generate_tensor(*shape: Int) -> Tensor[dtype]:
 
 fn generate_expected_tensor[
     size: Int
-](data: StaticIntTuple[size], *shape: Int) -> Tensor[dtype]:
+](data: IndexList[size], *shape: Int) -> Tensor[dtype]:
     var A = Tensor[dtype](shape)
     for i in range(size):
         A[i] = data[i]
@@ -39,7 +41,7 @@ struct TransposeData:
     @staticmethod
     fn generate_1_2dim_test_case() -> TransposeData:
         var A = generate_tensor(2, 3)
-        var expected = StaticIntTuple[6](1, 4, 2, 5, 3, 6)
+        var expected = IndexList[6](1, 4, 2, 5, 3, 6)
         var tranpose_dims = VariadicList[Int](1, 0)
         var B = generate_expected_tensor(expected, 3, 2)
 
@@ -48,7 +50,7 @@ struct TransposeData:
     @staticmethod
     fn generate_2_2dim_test_case() -> TransposeData:
         var A = generate_tensor(2, 3, 2)
-        var expected = StaticIntTuple[12](1, 7, 3, 9, 5, 11, 2, 8, 4, 10, 6, 12)
+        var expected = IndexList[12](1, 7, 3, 9, 5, 11, 2, 8, 4, 10, 6, 12)
         var tranpose_dims = VariadicList[Int](2, 1, 0)
         var B = generate_expected_tensor(expected, 2, 3, 2)
 
@@ -57,7 +59,7 @@ struct TransposeData:
     @staticmethod
     fn generate_3_2dim_test_case() -> TransposeData:
         var A = generate_tensor(2, 3, 2, 3)
-        var expected = StaticIntTuple[36](
+        var expected = IndexList[36](
             1,
             2,
             3,
@@ -103,7 +105,7 @@ struct TransposeData:
     @staticmethod
     fn generate_4_2dim_test_case() -> TransposeData:
         var A = generate_tensor(3, 2, 3, 2, 3)
-        var expected = StaticIntTuple[108](
+        var expected = IndexList[108](
             1,
             2,
             3,
@@ -221,7 +223,7 @@ struct TransposeData:
     @staticmethod
     fn generate_1_alldim_test_case() -> TransposeData:
         var A = generate_tensor(2, 3, 2, 3)
-        var expected = StaticIntTuple[36](
+        var expected = IndexList[36](
             1,
             4,
             2,
@@ -267,7 +269,7 @@ struct TransposeData:
     @staticmethod
     fn generate_2_alldim_test_case() -> TransposeData:
         var A = generate_tensor(2, 3, 4)
-        var expected = StaticIntTuple[24](
+        var expected = IndexList[24](
             1,
             13,
             2,
@@ -302,7 +304,7 @@ struct TransposeData:
     @staticmethod
     fn generate_1_transpose_test_case() -> TransposeData:
         var A = generate_tensor(2, 3, 2, 3)
-        var expected = StaticIntTuple[36](
+        var expected = IndexList[36](
             1,
             19,
             7,
@@ -365,7 +367,7 @@ struct PaddingData:
     fn generate_1d_test_case_after() -> PaddingData:
         var A = generate_tensor(2)
 
-        var expected = StaticIntTuple[4](1, 2, 0, 0)
+        var expected = IndexList[4](1, 2, 0, 0)
         var pad_with = List[Int]()
         pad_with.append(0)  # before
         pad_with.append(2)  # after
@@ -378,7 +380,7 @@ struct PaddingData:
     fn generate_1d_test_case_before_after() -> PaddingData:
         var A = generate_tensor(3)
 
-        var expected = StaticIntTuple[6](0, 0, 1, 2, 3, 0)
+        var expected = IndexList[6](0, 0, 1, 2, 3, 0)
         var pad_with = List[Int]()
         pad_with.append(2)  # before
         pad_with.append(1)  # after
@@ -391,7 +393,7 @@ struct PaddingData:
     fn generate_2d_test_case() -> PaddingData:
         var A = generate_tensor(2, 2)
 
-        var expected = StaticIntTuple[45](
+        var expected = IndexList[45](
             0,
             0,
             0,
@@ -452,7 +454,7 @@ struct PaddingData:
     fn generate_3d_test_case_simple() -> PaddingData:
         var A = generate_tensor(2, 2, 2)
 
-        var expected = StaticIntTuple[16](
+        var expected = IndexList[16](
             0, 0, 1, 2, 3, 4, 0, 0, 0, 0, 5, 6, 7, 8, 0, 0
         )
         var pad_with = List[Int]()
@@ -471,7 +473,7 @@ struct PaddingData:
     fn generate_3d_test_case() -> PaddingData:
         var A = generate_tensor(1, 2, 3)
 
-        var expected = StaticIntTuple[45](
+        var expected = IndexList[45](
             0,
             0,
             0,
@@ -534,7 +536,7 @@ struct PaddingData:
     fn generate_4d_test_case() -> PaddingData:
         var A = generate_tensor(2, 2, 2, 2)
 
-        var expected = StaticIntTuple[81](
+        var expected = IndexList[81](
             1,
             2,
             0,
@@ -659,7 +661,7 @@ struct SumMeanStdData:
         var A = generate_tensor(3, 4, 5)
         var axis = 0
 
-        var expected_sum = StaticIntTuple[20](
+        var expected_sum = IndexList[20](
             63,
             66,
             69,
@@ -682,7 +684,7 @@ struct SumMeanStdData:
             120,
         )
 
-        var expected_mean = StaticIntTuple[20](
+        var expected_mean = IndexList[20](
             21,
             22,
             23,
@@ -718,7 +720,7 @@ struct SumMeanStdData:
         var A = generate_tensor(3, 4, 5)
         var axis = 1
 
-        var expected_sum = StaticIntTuple[15](
+        var expected_sum = IndexList[15](
             34,
             38,
             42,
@@ -736,7 +738,7 @@ struct SumMeanStdData:
             210,
         )
 
-        var expected_mean = StaticIntTuple[15](
+        var expected_mean = IndexList[15](
             8,
             9,
             10,
@@ -759,7 +761,7 @@ struct SumMeanStdData:
 
         var B = generate_expected_tensor[15](expected_sum, 3, 1, 5)
         var C = generate_expected_tensor[15](expected_mean, 3, 1, 5)
-        elwise_op[add](C, C, 0.5)
+        accumulate_op[add](C, 0.5)
 
         return SumMeanStdData(A, axis, B, C, expected_std)
 
@@ -768,7 +770,7 @@ struct SumMeanStdData:
         var A = generate_tensor(3, 4, 5)
         var axis = 2
 
-        var expected_sum = StaticIntTuple[12](
+        var expected_sum = IndexList[12](
             15,
             40,
             65,
@@ -783,7 +785,7 @@ struct SumMeanStdData:
             290,
         )
 
-        var expected_mean = StaticIntTuple[12](
+        var expected_mean = IndexList[12](
             3,
             8,
             13,

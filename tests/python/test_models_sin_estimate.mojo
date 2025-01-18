@@ -2,11 +2,13 @@ from random import rand
 from python import Python
 from utils.numerics import max_finite
 from testing import assert_almost_equal
+import math
 
 from basalt import dtype
 from basalt.autograd import Graph, OP
 from basalt.nn import Tensor, TensorShape, Model, ReLU, MSELoss, optim
 from basalt.utils.rand_utils import MersenneTwister
+from basalt.autograd.params import Param
 
 from tests import to_numpy, to_tensor
 
@@ -26,8 +28,8 @@ fn create_simple_nn(
     var y_true = g.input(TensorShape(batch_size, 1))
 
     # Linear 1: nn.Linear(g, x, n_outputs=32)
-    var l1_w = g.param(TensorShape(1, 32), init=linear1_weights)
-    var l1_b = g.param(TensorShape(32), init=linear1_bias)
+    var l1_w = g.param(TensorShape(1, 32), init=Param(linear1_weights))
+    var l1_b = g.param(TensorShape(32), init=Param(linear1_bias))
     var res_1 = g.op(OP.DOT, x, l1_w)
     var x1 = g.op(OP.ADD, res_1, l1_b)
 
@@ -35,8 +37,8 @@ fn create_simple_nn(
     var x2 = ReLU(g, x1)
 
     # Linear 2: nn.Linear(g, x2, n_outputs=32)
-    var l2_w = g.param(TensorShape(32, 32), init=linear2_weights)
-    var l2_b = g.param(TensorShape(32), init=linear2_bias)
+    var l2_w = g.param(TensorShape(32, 32), init=Param(linear2_weights))
+    var l2_b = g.param(TensorShape(32), init=Param(linear2_bias))
     var res_2 = g.op(OP.DOT, x2, l2_w)
     var x3 = g.op(OP.ADD, res_2, l2_b)
 
@@ -44,8 +46,8 @@ fn create_simple_nn(
     var x4 = ReLU(g, x3)
 
     # Linear 3: nn.Linear(g, x4, n_outputs=1)
-    var l3_w = g.param(TensorShape(32, 1), init=linear3_weights)
-    var l3_b = g.param(TensorShape(1), init=linear3_bias)
+    var l3_w = g.param(TensorShape(32, 1), init=Param(linear3_weights))
+    var l3_b = g.param(TensorShape(1), init=Param(linear3_bias))
     var res_3 = g.op(OP.DOT, x4, l3_w)
     var y_pred = g.op(OP.ADD, res_3, l3_b)
     g.out(y_pred)
@@ -81,7 +83,7 @@ fn run_mojo[
     )
 
     var model = Model[graph]()
-    var optim = optim.Adam[graph](model.parameters, lr=learning_rate)
+    var optim = optim.Adam[graph](model.parameters, lr=learning_rate.cast[dtype]())
 
     var losses = List[Scalar[dtype]]()
 
@@ -252,4 +254,4 @@ fn main():
             break
 
     if success:
-        print("SUCCES: All losses in Sin estimate model are equal.")
+        print("SUCCESS: All losses in Sin estimate model are equal.")

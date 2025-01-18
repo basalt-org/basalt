@@ -1,4 +1,4 @@
-from time.time import now
+from time.time import monotonic as now
 
 import basalt.nn as nn
 from basalt import Tensor, TensorShape
@@ -65,7 +65,7 @@ fn main():
     # except: print("Could not render graph")
 
     var model = nn.Model[graph]()
-    var optim = nn.optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
+    var optim = nn.optim.Adam[graph](model.parameters, lr=learning_rate)
 
     print("Loading data ...")
     var train_data: MNIST

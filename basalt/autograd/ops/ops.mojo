@@ -39,7 +39,7 @@ from ..attributes import AttributeVector
 # Define operators as named parameter expression
 @value
 @register_passable("trivial")
-struct OP(Stringable):
+struct OP(Stringable, Writable):
     """
     Compile time Operators list.
     """
@@ -83,9 +83,12 @@ struct OP(Stringable):
 
     fn __eq__(self, other: OP) -> Bool:
         return self.id == other.id
+    
+    fn write_to[W: Writer](self, mut writer: W):
+        writer.write(str(self.name))
 
     fn __str__(self) -> String:
-        return str(self.name)
+        return String.write(self)
 
 
 fn static_result_shape(

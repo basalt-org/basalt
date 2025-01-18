@@ -13,4 +13,8 @@ Makefile
 ./temp
 flamegraph.svg
 
+.magic
+
 examples/data/yolov8n.onnx
+
+*.DS_Store

@@ -4,15 +4,17 @@ from basalt.utils import q_sqrt
 from basalt.autograd.params import Param
 from basalt.autograd.attributes import AttributeVector, Attribute
 
+from utils.index import IndexList
+
 
 fn Conv2d(
     inout g: Graph,
     inputs: Symbol,
     out_channels: Int,
-    kernel_size: StaticIntTuple[2],
-    padding: StaticIntTuple[2] = 0,
-    stride: StaticIntTuple[2] = 1,
-    dilation: StaticIntTuple[2] = 1,
+    kernel_size: IndexList[2],
+    padding: IndexList[2] = 0,
+    stride: IndexList[2] = 1,
+    dilation: IndexList[2] = 1,
 ) -> Symbol:
     """
     A 2D Convolution Layer.

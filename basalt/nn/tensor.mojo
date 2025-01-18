@@ -1,8 +1,7 @@
 from testing import assert_true
 from algorithm import vectorize
-
-from tensor import Tensor as _Tensor
-from tensor import TensorShape as _TensorShape
+from utils.index import IndexList
+from memory import memset_zero, memcpy, UnsafePointer
 
 
 alias MAX_RANK = 8
@@ -11,41 +10,35 @@ alias MAX_RANK = 8
 @register_passable("trivial")
 struct TensorShape(Stringable):
     var _rank: Int
-    var _shape: StaticIntTuple[MAX_RANK]
+    var _shape: IndexList[MAX_RANK]
 
     fn __init__(inout self, *shape: Int):
         self._rank = len(shape)
-        self._shape = StaticIntTuple[MAX_RANK]()
+        self._shape = IndexList[MAX_RANK]()
         for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shape[i]
 
     fn __init__(inout self, shapes: VariadicList[Int]):
         self._rank = len(shapes)
-        self._shape = StaticIntTuple[MAX_RANK]()
+        self._shape = IndexList[MAX_RANK]()
         for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shapes[i]
 
     fn __init__(inout self, shape: List[Int]):
         self._rank = len(shape)
-        self._shape = StaticIntTuple[MAX_RANK]()
+        self._shape = IndexList[MAX_RANK]()
         for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shape[i]
 
-    fn __init__[num: Int](inout self, shape: StaticIntTuple[num]):
+    fn __init__[num: Int](inout self, shape: IndexList[num]):
         self._rank = num
-        self._shape = StaticIntTuple[MAX_RANK]()
+        self._shape = IndexList[MAX_RANK]()
         for i in range(min(self._rank, MAX_RANK)):
             self._shape[i] = shape[i]
 
-    fn __init__(inout self, rank: Int, shape: StaticIntTuple[MAX_RANK]):
+    fn __init__(inout self, rank: Int, shape: IndexList[MAX_RANK]):
         self._rank = rank
         self._shape = shape
-
-    fn __init__(inout self, owned shape: _TensorShape):
-        self._rank = shape.rank()
-        self._shape = StaticIntTuple[MAX_RANK]()
-        for i in range(min(self._rank, MAX_RANK)):
-            self._shape[i] = shape[i]
 
     @always_inline("nodebug")
     fn __getitem__(self, index: Int) -> Int:
@@ -59,31 +52,26 @@ struct TensorShape(Stringable):
     fn rank(self) -> Int:
         return self._rank
 
-    @always_inline("nodebug")
     fn num_elements(self) -> Int:
         var result = 1
         for i in range(self._rank):
             result *= self._shape[i]
         return result
 
-    @always_inline("nodebug")
-    fn strides(self) -> StaticIntTuple[MAX_RANK]:
-        var result = StaticIntTuple[MAX_RANK](0)
+    fn strides(self) -> IndexList[MAX_RANK]:
+        var result = IndexList[MAX_RANK](0)
         result[self._rank - 1] = 1
         for i in range(self._rank - 2, -1, -1):
             result[i] = result[i + 1] * self._shape[i + 1]
         return result
 
-    @always_inline("nodebug")
-    fn _std_shape(self) -> _TensorShape:
-        var s = List[Int](capacity=self.rank())
-        for i in range(self.rank()):
-            s.append(self[i])
-        return _TensorShape(s)
-
-    @always_inline("nodebug")
     fn __str__(self) -> String:
-        return str(self._std_shape())
+        var s: String = "("
+        for i in range(self._rank):
+            s += str(self._shape[i])
+            if i < self._rank - 1:
+                s += ", "
+        return s + ")"
 
     @always_inline("nodebug")
     fn __eq__(self, other: TensorShape) -> Bool:
@@ -98,44 +86,47 @@ struct TensorShape(Stringable):
     fn __ne__(self, other: TensorShape) -> Bool:
         return not self.__eq__(other)
 
-    @always_inline("nodebug")
     fn __contains__(self, value: Int) -> Bool:
         for i in range(self.rank()):
             if self[i] == value:
                 return True
         return False
 
+    fn to_list(self) -> List[Int]:
+        var result = List[Int]()
+        for i in range(self.rank()):
+            result.append(self[i])
+        return result
+
 
 struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
-    var _data: DTypePointer[dtype]
+    var _data: UnsafePointer[Scalar[dtype]]
     var _shape: TensorShape
 
     fn __init__(inout self, *dims: Int):
         self._shape = TensorShape(dims)
-        self._data = DTypePointer[dtype].alloc(self._shape.num_elements())
+        self._data = UnsafePointer[Scalar[dtype]].alloc(self._shape.num_elements())
         memset_zero(self._data, self._shape.num_elements())
 
     fn __init__(inout self, owned shape: TensorShape):
-        self._data = DTypePointer[dtype].alloc(shape.num_elements())
+        self._data = UnsafePointer[Scalar[dtype]].alloc(shape.num_elements())
         memset_zero(self._data, shape.num_elements())
         self._shape = shape
 
+    fn __init__(inout self, shapes: VariadicList[Int]):
+        self._shape = TensorShape(shapes)
+        self._data = UnsafePointer[Scalar[dtype]].alloc(self._shape.num_elements())
+        memset_zero(self._data, self._shape.num_elements())
+
     fn __init__(
-        inout self, owned data: DTypePointer[dtype], owned shape: TensorShape
+        inout self, owned data: UnsafePointer[Scalar[dtype]], owned shape: TensorShape
     ):
         # NOTE: Remember to use _ = your_tensor that you passed, so there is no weird behavior in this function
-        self._data = DTypePointer[dtype].alloc(shape.num_elements())
+        self._data = UnsafePointer[Scalar[dtype]].alloc(shape.num_elements())
         self._shape = shape
         
         memcpy(self._data, data, self._shape.num_elements())
         _ = data
-
-    fn __init__(inout self, owned tensor: _Tensor[dtype]):
-        self._data = DTypePointer[dtype].alloc(tensor.num_elements())
-        self._shape = tensor.shape()
-
-        memcpy(self._data, tensor.unsafe_ptr(), self._shape.num_elements())
-        _ = tensor
 
     fn __moveinit__(inout self, owned other: Tensor[dtype]):
         self._data = other._data
@@ -143,7 +134,7 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
 
     fn __copyinit__(inout self, other: Tensor[dtype]):
         # print("[WARNING] Copying tensor")
-        self._data = DTypePointer[dtype].alloc(other._shape.num_elements())
+        self._data = UnsafePointer[Scalar[dtype]].alloc(other._shape.num_elements())
         memcpy(self._data, other._data, other.num_elements())
         self._shape = other._shape
 
@@ -156,7 +147,7 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
         self._data[index] = value
 
     @always_inline("nodebug")
-    fn data(self) -> DTypePointer[dtype]:
+    fn data(self) -> UnsafePointer[Scalar[dtype]]:
         return self._data
 
     @always_inline("nodebug")
@@ -169,10 +160,10 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
 
     @always_inline("nodebug")
     fn store[simd_width: Int](self, index: Int, value: SIMD[dtype, simd_width]):
-        self._data.store[width=simd_width](index, value)
+        self._data.store(index, value)
 
     @always_inline("nodebug")
-    fn strides(self) -> StaticIntTuple[MAX_RANK]:
+    fn strides(self) -> IndexList[MAX_RANK]:
         return self._shape.strides()
 
     @always_inline("nodebug")
@@ -197,12 +188,15 @@ struct Tensor[dtype: DType](Stringable, Movable, CollectionElement):
         assert_true(self.num_elements() == new_shape.num_elements())
         self._shape = new_shape
 
-    @always_inline("nodebug")
     fn __str__(self) -> String:
-        var new_data = DTypePointer[dtype].alloc(self.num_elements())
-        var std_shape = self._shape._std_shape()
-        memcpy(new_data, self._data, self.num_elements())
-        return str(_Tensor[dtype](ptr=new_data, shape=std_shape))
+        # temp fix
+        var s: String = "["
+        for i in range(self.num_elements()):
+            s += str(self[i])
+            if i < self.num_elements() - 1:
+                s += ", "
+        return s + "]"
+
 
     @always_inline("nodebug")
     fn __del__(owned self):

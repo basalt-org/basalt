@@ -3,16 +3,18 @@ from basalt.autograd.attributes import AttributeVector
 
 from algorithm import parallelize, vectorize, tile
 from utils.loop import unroll
+from utils.index import IndexList
+from memory import memset_zero, UnsafePointer
 
 
 @always_inline
 fn get_result_shape(
     input_shape: TensorShape,
     kernel_shape: TensorShape,
-    padding: StaticIntTuple[2],
-    stride: StaticIntTuple[2],
-    dilation: StaticIntTuple[2],
-) -> StaticIntTuple[2]:
+    padding: IndexList[2],
+    stride: IndexList[2],
+    dilation: IndexList[2],
+) -> IndexList[2]:
     """
     Calculates the X and Y dimensions of the resulting convolution.
     Dimensions X, Y are on the end of the shape (..., X, Y)
@@ -29,7 +31,7 @@ fn get_result_shape(
         // stride[1]
     ) + 1
 
-    return StaticIntTuple[2](result_x_dim, result_y_dim)
+    return IndexList[2](result_x_dim, result_y_dim)
 
 
 struct CONV2D:
@@ -104,7 +106,7 @@ struct CONV2D:
         alias outputs_strides = output_shape.strides()
         alias col_strides = col_shape.strides()
 
-        var col_ptr = DTypePointer[dtype].alloc(col_shape.num_elements())
+        var col_ptr = UnsafePointer[Scalar[dtype]].alloc(col_shape.num_elements())
         memset_zero(col_ptr, col_shape.num_elements())
 
         @parameter

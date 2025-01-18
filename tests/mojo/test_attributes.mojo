@@ -1,4 +1,5 @@
 from testing import assert_equal, assert_true
+from utils.index import IndexList
 
 from basalt.nn import TensorShape
 from basalt.autograd.attributes import Attribute
@@ -32,7 +33,7 @@ fn test_attribute_tensor_shape() raises:
 
 
 fn test_attribute_static_int_tuple() raises:
-    alias value: StaticIntTuple[7] = StaticIntTuple[7](1, 2, 3, 4, 5, 6, 7)
+    alias value: IndexList[7] = IndexList[7](1, 2, 3, 4, 5, 6, 7)
     alias a = Attribute(name="test", value=value)
 
     assert_true(a.to_static[7]() == value)

@@ -43,7 +43,7 @@ struct Graph:
             self.inputs.append(symbol)
         else:
             if data is not None:
-                self.params.put(symbol, data.value()[])
+                self.params.put(symbol, data.value())
             else:
                 self.params.put(symbol)
 
@@ -96,7 +96,7 @@ struct Graph:
         operand_2: Float64,
         attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
-        return self.op(op, operand_1, self.scalar(operand_2), attributes=attributes)
+        return self.op(op, operand_1, self.scalar(operand_2.cast[dtype]()), attributes=attributes)
 
     fn op(
         inout self,
@@ -105,7 +105,7 @@ struct Graph:
         operand_2: Symbol,
         attributes: AttributeVector = AttributeVector(),
     ) -> Symbol:
-        return self.op(op, self.scalar(operand_1), operand_2, attributes=attributes)
+        return self.op(op, self.scalar(operand_1.cast[dtype]()), operand_2, attributes=attributes)
 
     fn create_symbols(inout self, shapes: List[TensorShape], trainable: Bool = False) -> List[Symbol]:
         var symbols = List[Symbol]()

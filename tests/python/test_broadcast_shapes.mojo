@@ -1,4 +1,4 @@
-from python.python import Python
+from python.python import Python, PythonObject
 from testing import assert_true
 
 from basalt.nn import Tensor, TensorShape
@@ -8,7 +8,7 @@ from basalt.utils.tensorutils import broadcast_shapes
 fn to_tensor_shape(owned shape: PythonObject) raises -> TensorShape:
     var tensor_shape = List[Int]()
     for dim in shape:
-        tensor_shape.append(int(dim.to_float64()))
+        tensor_shape.append(int(float(dim)))
     return TensorShape(tensor_shape)
 
 

@@ -1,5 +1,6 @@
 from collections import Optional, OptionalReg
 from utils.static_tuple import StaticTuple
+from utils.index import IndexList
 
 from basalt.nn.tensor import Tensor, TensorShape, MAX_RANK
 from basalt.utils.bytes import Bytes, scalar_to_bytes, bytes_to_scalar
@@ -29,7 +30,7 @@ struct AttributeType(Stringable):
     fn __init__(inout self, type: DType):
         if type.is_floating_point():
             self = AttributeType.FLOAT
-        elif type.is_bool():
+        elif type == DType.bool:
             self = AttributeType.BOOL
         else:
             self = AttributeType.INT
@@ -78,21 +79,21 @@ struct AttributeVector(Sized, Stringable, CollectionElement):
 
 @register_passable("trivial")
 struct Attribute(Stringable, CollectionElement):
-    var data_shape: StaticIntTuple[MAX_RANK]
+    var data_shape: IndexList[MAX_RANK]
     var name: Bytes[MAX_NAME_CHARS]
     var data: Bytes[MAX_DATA_BYTES]
     var type: AttributeType
     var size: Int
 
     fn __init__(inout self, name: String, value: String):
-        self.data_shape = StaticIntTuple[MAX_RANK]()
+        self.data_shape = IndexList[MAX_RANK]()
         self.name = Bytes[MAX_NAME_CHARS](name)
         self.data = Bytes[MAX_DATA_BYTES](value)
         self.type = AttributeType.STRING
         self.size = len(value)
 
     fn __init__(inout self, name: String, value: TensorShape):
-        self.data_shape = StaticIntTuple[MAX_RANK]()
+        self.data_shape = IndexList[MAX_RANK]()
         self.name = Bytes[MAX_NAME_CHARS](name)
         self.data = Bytes[MAX_DATA_BYTES]()
         self.type = AttributeType.INTS
@@ -101,10 +102,10 @@ struct Attribute(Stringable, CollectionElement):
         for i in range(self.size):
             self.data_shape[i] = value._shape[i]
 
-    fn __init__[N: Int](inout self, name: String, value: StaticIntTuple[N]):
+    fn __init__[N: Int](inout self, name: String, value: IndexList[N]):
         constrained[N < MAX_RANK, "Attribute rank must be less than MAX_RANK."]()
 
-        self.data_shape = StaticIntTuple[MAX_RANK]()
+        self.data_shape = IndexList[MAX_RANK]()
         self.name = Bytes[MAX_NAME_CHARS](name)
         self.data = Bytes[MAX_DATA_BYTES]()
         self.type = AttributeType.INTS
@@ -113,10 +114,30 @@ struct Attribute(Stringable, CollectionElement):
         for i in range(self.size):
             self.data_shape[i] = value[i]
 
+    fn __init__(inout self, name: String, value: List[Int]):
+        self.data_shape = IndexList[MAX_RANK]()
+        self.name = Bytes[MAX_NAME_CHARS](name)
+        self.data = Bytes[MAX_DATA_BYTES]()
+        self.type = AttributeType.INTS
+        self.size = len(value)
+
+        for i in range(self.size):
+            self.data_shape[i] = value[i]
+
+    fn __init__(inout self, name: String, value: StaticTuple[Int, _]):
+        self.data_shape = IndexList[MAX_RANK]()
+        self.name = Bytes[MAX_NAME_CHARS](name)
+        self.data = Bytes[MAX_DATA_BYTES]()
+        self.type = AttributeType.INTS
+        self.size = len(value)
+
+        for i in range(self.size):
+            self.data_shape[i] = value[i]
+
     fn __init__[dtype: DType](inout self, name: String, value: Scalar[dtype]):
         constrained[dtype.is_numeric(), "Attribute value must be numeric."]()
 
-        self.data_shape = StaticIntTuple[MAX_RANK]()
+        self.data_shape = IndexList[MAX_RANK]()
         self.name = Bytes[MAX_NAME_CHARS](name)
         self.data = scalar_to_bytes[dtype, MAX_DATA_BYTES](value)
         self.type = AttributeType(dtype)
@@ -139,14 +160,23 @@ struct Attribute(Stringable, CollectionElement):
         return str(self.data)
 
     @always_inline("nodebug")
+    fn to_list(self) -> List[Int]:
+        var result = List[Int]()
+
+        for i in range(self.size):
+            result.append(self.data_shape[i])
+
+        return result
+
+    @always_inline("nodebug")
     fn to_shape(self) -> TensorShape:
         return TensorShape(rank=self.size, shape=self.data_shape)
 
     @always_inline("nodebug")
-    fn to_static[N: Int](self) -> StaticIntTuple[N]:
+    fn to_static[N: Int](self) -> IndexList[N]:
         constrained[N < MAX_RANK, "Attribute rank must be less than MAX_RANK."]()
 
-        var result = StaticIntTuple[N]()
+        var result = IndexList[N]()
 
         for i in range(N):
             result[i] = int(self.data_shape[i])

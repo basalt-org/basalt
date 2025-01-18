@@ -91,6 +91,9 @@ struct DataLoader:
         # Does this mean that the whole dataset is copied every epoch ?!
         return self
 
+    fn __has_next__(self) -> Bool:
+        return self._num_batches > 0
+
     fn __next__(inout self) -> Batch[dtype]:
         # NOTE: ignore the remainder for now
         # var end = min(self._current_index + self.batch_size, self.data.dim(0))

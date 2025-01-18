@@ -1,15 +1,16 @@
 from basalt import Tensor, TensorShape
 from collections.optional import Optional
+from utils.index import IndexList
 
 from basalt import Graph, Symbol, OP
 from basalt.autograd.attributes import AttributeVector, Attribute
 
 
 fn set_static_stride(
-    kernel_size: StaticIntTuple[2], stride: Optional[Int] = None
-) -> StaticIntTuple[2]:
+    kernel_size: IndexList[2], stride: Optional[Int] = None
+) -> IndexList[2]:
     if stride:
-        return StaticIntTuple[2](stride.value()[], stride.value()[])
+        return IndexList[2](stride.value(), stride.value())
     else:
         return kernel_size
 
@@ -17,10 +18,10 @@ fn set_static_stride(
 fn MaxPool2d(
     inout g: Graph,
     inputs: Symbol,
-    kernel_size: StaticIntTuple[2],
+    kernel_size: IndexList[2],
     stride: Optional[Int] = None,
-    padding: StaticIntTuple[2] = 0,
-    dilation: StaticIntTuple[2] = 1,
+    padding: IndexList[2] = 0,
+    dilation: IndexList[2] = 1,
 ) -> Symbol:
     """
     A 2D Max Pooling Layer.
@@ -39,10 +40,10 @@ fn MaxPool2d(
 fn MaxPool2d(
     inout g: Graph,
     inputs: Symbol,
-    kernel_size: StaticIntTuple[2],
-    stride: StaticIntTuple[2],  # stride should be 1 or more
-    padding: StaticIntTuple[2] = 0,
-    dilation: StaticIntTuple[2] = 1,
+    kernel_size: IndexList[2],
+    stride: IndexList[2],  # stride should be 1 or more
+    padding: IndexList[2] = 0,
+    dilation: IndexList[2] = 1,
 ) -> Symbol:
     """
     A 2D Max Pooling Layer.

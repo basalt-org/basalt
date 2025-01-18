@@ -7,6 +7,7 @@ from basalt import dtype
 from basalt.autograd import Graph, OP
 from basalt.nn import Tensor, TensorShape, Model, MSELoss, optim
 from basalt.utils.rand_utils import MersenneTwister
+from basalt.autograd.params import Param
 
 from tests import to_numpy, to_tensor
 
@@ -22,8 +23,8 @@ fn create_linear_regression(
 
     # linear1
     # var out = nn.Linear(g, x, n_outputs=1)
-    var l1_w = g.param(TensorShape(13, n_outputs), init=linear1_weights)
-    var l1_b = g.param(TensorShape(n_outputs), init=linear1_bias)
+    var l1_w = g.param(TensorShape(13, n_outputs), init=Param(linear1_weights))
+    var l1_b = g.param(TensorShape(n_outputs), init=Param(linear1_bias))
     var res = g.op(OP.DOT, x, l1_w)
     var out = g.op(OP.ADD, res, l1_b)
     g.out(out)
@@ -54,7 +55,7 @@ fn run_mojo[
     )
 
     var model = Model[graph]()
-    var optim = optim.Adam[graph](Reference(model.parameters), lr=learning_rate)
+    var optim = optim.Adam[graph](model.parameters, lr=learning_rate.cast[dtype]())
 
     var losses = List[Scalar[dtype]]()
 
@@ -193,4 +194,4 @@ fn main():
             break
 
     if success:
-        print("SUCCES: All losses in Linear Regression model are equal.")
+        print("SUCCESS: All losses in Linear Regression model are equal.")

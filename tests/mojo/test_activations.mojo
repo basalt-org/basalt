@@ -158,7 +158,7 @@ fn test_RELU() raises:
 
 
 fn test_LEAKYRELU() raises:
-    alias negative_slope = 0.1
+    alias negative_slope = Float32(0.1)
 
     alias shape = TensorShape(2, 3)
     alias nodes = 1
