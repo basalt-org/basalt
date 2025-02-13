@@ -11,6 +11,7 @@ from .activations import (
     LogSoftmax,
     ReLU,
     LeakyReLU,
+    GELU,
     Sigmoid,
     Tanh,
 )
